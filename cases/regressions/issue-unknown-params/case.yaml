@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-unknown-params
+feature: cad.agent.recover
+intent: >-
+  A command with a parameter schema refuses a key the schema does not name and says which, with
+  the parameter it resembles and the ones the command takes (platform rule E7a), instead of
+  running without it; every key a command reads is in its schema, so a valid call still runs.
+  Before, 102 of 317 commands ran with an unknown key without a word, and the schemas left out
+  keys commands read (properties.set's geometry fields, measuregeom's, keys written one or another).
+layer: gate
+source:
+  kind: probe
+  from: "unknown-parameter sweep"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "unknown_params" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

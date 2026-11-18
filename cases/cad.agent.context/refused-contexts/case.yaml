@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/refused-contexts
+feature: cad.agent.context
+intent: >-
+  a context naming an unknown handle or layout, entities of two spaces, an entity outside the part, a layout by its object-model id, another part noun or a non-handle is refused with what is valid and changes nothing; time is not available.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: refused_contexts_change_nothing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

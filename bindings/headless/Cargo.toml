@@ -1,0 +1,32 @@
+[package]
+name = "kition-cad"
+description = "The CAD kit for Kition's agent: the Kition SDK document served headless over the Kit Protocol."
+version.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+publish = false
+
+[[test]]
+name = "sdk_waiting"
+harness = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-cad-kit = { path = "../wasm" }
+kition-headless = { workspace = true }
+
+[dev-dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-kit-server = { workspace = true }
+serde_json = { workspace = true }
+kition-kits = { workspace = true }
+kition-env = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tempfile = "3"
+kition-cad-io = { workspace = true }
+# workspace_only.rs builds its hostile drawings with the drawing database and reads the pictures
+# the kit answers.
+kition-cad-doc = { workspace = true }
+image = { workspace = true }

@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-propagation
+feature: cad.agent.premises
+intent: Remeasured dimensions consume their target lock, stored layer and text metrics; positive style scale ignores the fallback header.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_propagation.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_propagation }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

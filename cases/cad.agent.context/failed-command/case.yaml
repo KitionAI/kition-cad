@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/failed-command
+feature: cad.agent.context
+intent: >-
+  an agent's failing command leaves the editor as the step's context set it and the drawing unchanged (no partial change).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: an_agents_failing_command_leaves_the_editor_and_the_drawing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

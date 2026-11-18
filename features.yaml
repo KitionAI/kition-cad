@@ -1,0 +1,472 @@
+format: 1
+kit: cad
+updated: "2026-11-17"
+gate_budget_s: 600
+protected: []
+features:
+  - id: cad.agent.environment
+    title: "Hosted repairs precede observation; typed owning-map snapshots and deterministic field, text and creation replay"
+    dimension: [function, conversion, collab]
+    priority: P0
+    status: partial
+    paths: [crates/kdm/kdm-model/model/schema.json, bindings/headless/tests/env_receipts.rs, bindings/headless/tests/env_review.rs]
+    cases: [regressions/issue-c8-cad-pin-model, regressions/issue-c8-cad-env]
+    since: "2026-11-17"
+  - id: cad.agent.premises
+    title: "Public SDK premise planning, refreshed boundary facts and typed name gaps; conservative declarations remain"
+    gap: "Some declarations remain conservative; nested union name/type roles remain unsupported."
+    dimension: [function, collab]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/src/read_fields.rs, bindings/wasm/src/acts.rs, bindings/wasm/src/query.rs, bindings/wasm/src/scan.rs, bindings/wasm/src/context.rs, bindings/wasm/src/params.rs, bindings/wasm/tests/declarations_independent.rs, bindings/wasm/tests/read4_derived.rs, crates/kdm/kdm-model/model/schema.json, crates/engine/engine/src/sysvars.rs, bindings/headless/tests]
+    cases: [regressions/issue-c8-cad-pin-precision, regressions/issue-c8-cad-pin-narrow, regressions/issue-c8-cad-pin-protocol, regressions/issue-c8-cad-pin-group, regressions/issue-c8-cad-pin-public, regressions/issue-c8-cad-pin-roundtrip, regressions/issue-c8-cad-pin-audit, regressions/issue-c8-cad-pin-premises, regressions/issue-c8-cad-pin-reread, regressions/issue-c8-cad-read-4-layout_dispatch, regressions/issue-c8-cad-read-4-footprints, regressions/issue-c8-cad-read-4-waiting_sdk, regressions/issue-c8-cad-read-4-reference_results, regressions/issue-c8-cad-read-4-held, regressions/issue-c8-cad-read-4-polyline_fields, regressions/issue-c8-cad-read-4-annotation_roles, regressions/issue-c8-cad-read-4-propagation, regressions/issue-c8-cad-read-4-copy_propagation, regressions/issue-c8-cad-read-4-record_names, regressions/issue-c8-cad-read-4-spacing, regressions/issue-c8-cad-read-4-destinations, regressions/issue-c8-cad-read-4-layer_merge, regressions/issue-c8-cad-read-4-leaders, regressions/issue-c8-cad-read-4-derived, regressions/issue-c8-cad-read-4-record_copies, regressions/issue-c8-cad-read-4-dimension_fields, regressions/issue-c8-cad-read-4-spaces, regressions/issue-c8-cad-read-4-session, regressions/issue-c8-cad-read-4-properties, regressions/issue-c8-cad-read-4-drawing, regressions/issue-c8-cad-read-4-find, regressions/issue-c8-cad-read-4-styles, regressions/issue-c8-cad-read-4-definitions, regressions/issue-c8-cad-read-4-copies, regressions/issue-c8-cad-read-4-constraints, regressions/issue-c8-cad-read-4-setters, regressions/issue-c8-cad-read-4-sources, regressions/issue-c8-cad-read-4-defaults, regressions/issue-c8-cad-read-4-audit, regressions/issue-c8-cad-read-3-matrix, regressions/issue-c8-cad-read-3-scans, regressions/issue-c8-cad-read-3-same, regressions/issue-c8-cad-read-2-source, regressions/issue-c8-cad-read-2-incremental, regressions/issue-c8-cad-read-2-setters, regressions/issue-c8-cad-read-2-targets, regressions/issue-c8-cad-read-2-names, regressions/issue-c8-cad-read-2-edges, regressions/issue-c8-cad-read-2-tables, regressions/issue-c8-cad-read-2-locks, regressions/issue-c8-cad-read-2-eligibility, regressions/issue-c8-cad-premises, regressions/issue-c8-cad-spatial, regressions/issue-c8-cad-defaults, regressions/issue-c8-cad-review, regressions/issue-c8-cad-query, regressions/issue-c8-cad-scans, regressions/issue-c8-cad-clipboard, regressions/issue-c8-cad-curves, regressions/issue-c8-cad-propagation, regressions/issue-c8-cad-query-receipts, regressions/issue-c8-cad-3-address, regressions/issue-c8-cad-3-derived, regressions/issue-c8-cad-3-settings, regressions/issue-c8-cad-3-library, regressions/issue-c8-cad-3-declarations, regressions/issue-c8-cad-read, regressions/issue-c8-cad-read-engine, regressions/issue-c8-cad-read-more, regressions/issue-c8-cad-read-editor]
+    since: "2026-11-17"
+  - id: cad.agent.observe
+    title: An agent reads the geometry and dimensions it
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [cad.agent.observe/dim-bottom]
+    since: "2026-11-17"
+  - id: cad.agent.act
+    title: An agent organizes objects on layers
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [cad.agent.act/walls-layer, regressions/issue-param-types, regressions/issue-read-only-fields]
+    since: "2026-11-17"
+  - id: cad.agent.recover
+    title: An agent fixes what the check reports
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [cad.agent.recover/dangling-group, regressions/issue-unknown-params]
+    since: "2026-11-17"
+  - id: cad.agent.draft
+    title: An agent works in a draft over a conversation
+    dimension: [ai]
+    priority: P1
+    status: has
+    requirements: [AX13]
+    cases: [cad.agent.draft/diagonal]
+    since: "2026-11-17"
+  - id: cad.agent.context
+    title: "Explicit call context: steps name their space and entities (at.part, on), nothing carries over between calls, a failing command changes nothing"
+    dimension: [ai, collab]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    paths: [crates/engine/engine/src/context.rs, crates/engine/engine/src/lib.rs, bindings/wasm/src/context.rs, bindings/wasm/src/acts.rs, bindings/wasm/src/lib.rs]
+    cases: [cad.agent.context/check-context, cad.agent.context/create-then-act, cad.agent.context/editor-state-hidden, cad.agent.context/entities-by-layout, cad.agent.context/explicit-layer-layout, cad.agent.context/failed-command, cad.agent.context/failed-run, cad.agent.context/hooks-no-edit, cad.agent.context/inspect-layouts, cad.agent.context/on-drives-selection, cad.agent.context/pick-tolerance, cad.agent.context/published-commands, cad.agent.context/reads-declared, cad.agent.context/refused-contexts, cad.agent.context/run-two-layouts, cad.agent.context/saved-navigation, cad.agent.context/two-layouts, cad.agent.context/two-spaces-one-run, regressions/issue-partial-change, regressions/issue-c8-cad-lazy]
+    since: "2026-11-17"
+  - id: cad.agent.ids
+    title: "Typed entity handles, named identities preserved on rename and saved constraint ids; full resolver audit pending"
+    dimension: [ai, collab]
+    priority: P0
+    status: partial
+    requirements: [AX13]
+    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/write.rs, crates/kdm/kdm-model/src/repair.rs]
+    cases: [cad.agent.ids/guard-conflicts, cad.agent.ids/guard-others, cad.agent.ids/kdm-tool-ids, cad.agent.ids/new-server, cad.agent.ids/receipts, regressions/issue-session-entity-ids, regressions/issue-c8-cad-params, regressions/issue-c8-cad-saved, regressions/issue-c8-cad-identity-loss]
+    since: "2026-11-17"
+  - id: cad.agent.measure
+    title: "Measurements in one read-only command (entities.measure): bounds, minimum distance, intersections, duplicate objects"
+    dimension: [ai, function]
+    priority: P1
+    status: has
+    commands: [entities.measure]
+    paths: [crates/engine/engine/src/cmd/measure.rs]
+    cases: [cad.agent.measure/report, cad.agent.measure/through-run]
+    since: "2026-11-17"
+  - id: cad.agent.preview
+    title: "A preview by explicit view (file.render, agent.render): a space, a window, an entity or a named view, pure and deterministic, with the window and units per pixel to read coordinates off it"
+    dimension: [ai, fidelity]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    commands: [file.render]
+    paths: [bindings/wasm/src/render.rs]
+    cases: [cad.agent.preview/default-view, cad.agent.preview/deterministic, cad.agent.preview/explicit-view, cad.agent.preview/object-view-layers, cad.agent.preview/pixel-to-drawing, cad.agent.preview/scale-size, cad.agent.preview/typed-refusals]
+    since: "2026-11-17"
+  - id: cad.file.drawings
+    title: "New, open, save, close drawings, and audit or recover them"
+    dimension: [conversion, function]
+    priority: P1
+    status: partial
+    commands: [new, open, close, closeall, qsave, saveas, document.switch, document.bytes, audit, recover]
+    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/audit.rs, crates/engine/engine/src/cmd/modify2.rs, bindings/wasm/src/links.rs]
+    target: "AutoCAD 2027"
+    gap: "Drawings made with the core drawing, text, layer, block, dimension and modify commands save to DXF and reopen unchanged (the cad.*/dxf-save-reopen cases); other entities and tables are not yet proved, and the DWG path (native app) is proved only for the data its regression cases cover."
+    cases: [regressions/issue-4, regressions/issue-writes-outside-workspace, regressions/issue-reads-outside-workspace]
+    since: "2026-11-17"
+  - id: cad.file.export
+    title: "Export the drawing as PDF, SVG or PNG, framed to its extents (file.export; the agent's cad_export)"
+    dimension: [conversion, ai]
+    priority: P1
+    status: has
+    commands: [file.export]
+    paths: [bindings/wasm/src/lib.rs, crates/formats/io/src/lib.rs, crates/formats/io/src/pdf.rs, crates/formats/io/src/svg.rs]
+    gap: "Model space only (a layout prints with plot or exportpdf in the editor); the PNG is 2400 x 1600 whatever the drawing's shape; DWG is not an export, since the web build cannot write it."
+    cases: [regressions/issue-export]
+    since: "2026-11-17"
+  - id: cad.document.text
+    title: "The drawing's words as plain text for search (document.text): TEXT, MTEXT, attribute values and dimension text overrides, model space then each layout"
+    dimension: [ai, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/wasm/src/document_text.rs, bindings/wasm/src/lib.rs]
+    cases: [cad.document.text/words-by-space]
+    since: "2026-11-17"
+  - id: cad.edit.clipboard
+    title: "Undo, redo, clipboard, paste variants and erase"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [u, undo, redo, cutclip, copyclip, copybase, pasteclip, pasteblock, pasteorig, erase.selection, erase, edit.undo, edit.redo]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/machines.rs, bindings/wasm/src/collab.rs, crates/engine/engine/src/cmd/modify2.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.select.objects
+    title: "Select, select all, quick select, find, and grips"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [selectall, ai_deselect, select, qselect, qselect.info, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, selectioncycling, find]
+    paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.view.navigation
+    title: "Zoom, pan, regenerate, redraw and saved views"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [zoom, zoom.previous, zoom.window, zoom.in, zoom.out, zoom.all, zoom.extents, zoom.object, pan, pan.left, pan.right, pan.up, pan.down, regen, regenall, redraw, view.set, view.get]
+    paths: [crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/interaction.rs, crates/engine/engine/src/cmd/machines.rs, web/src/ribbon/HomeTab.tsx]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.lines
+    title: "Lines, polylines, construction lines, rays, multilines and 3D polylines"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [line, pline, xline, ray, "3dpoly", mline]
+    paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/kdm/kdm-model/src/repair.rs, web/src/ribbon/HomeTab.tsx]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.curves
+    title: "Circles, arcs, ellipses, splines, donuts and helices"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [circle, arc, ellipse, spline, donut, arc.sce, arc.sca, arc.scl, arc.sea, arc.sed, arc.ser, arc.cse, arc.csa, arc.csl, arc.continue, circle.cd, circle.2p, circle.3p, circle.ttr, circle.ttt, ellipse.axis, ellipse.arc, helix, spline.cv]
+    paths: [crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/draw.rs, crates/kdm/kdm-model/src/repair.rs, web/src/ribbon/HomeTab.tsx]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.shapes
+    title: "Rectangles, polygons, revision clouds and wipeouts"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [rectang, polygon, revcloud, revcloud.polygonal, revcloud.freehand, wipeout]
+    paths: [crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/machines.rs, crates/engine/engine/src/cmd/hatch.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.points
+    title: "Points, divide and measure"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [point, point.multiple, divide, measure, ddptype]
+    paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/props.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.text
+    title: "Single-line and multiline text, and text styles"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [text, mtext, textedit, style, style.list, style.rename, style.delete, style.current]
+    paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/layout/plotstyle.rs, crates/support/fonts/src/mtext.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-1]
+    since: "2026-11-17"
+  - id: cad.draw.centers
+    title: "Center marks and center lines"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [centermark, centerline]
+    paths: [crates/engine/engine/src/cmd/draw2.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.draw.hatch
+    title: "Hatch, gradient fill, boundary and region"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [hatch, gradient, boundary, region, hatchedit]
+    paths: [crates/engine/engine/src/cmd/hatch.rs, bindings/wasm/src/conformance.rs, crates/engine/engine/src/cmd/machines.rs, crates/kdm/kdm-model/src/repair.rs, crates/engine/doc/src/library.rs, crates/render/render/src/hatch.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-2]
+    since: "2026-11-17"
+  - id: cad.dimension.create
+    title: "Linear, aligned, radius, diameter, angular, arc, ordinate, continue, baseline and quick dimensions"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [dimlinear, dimaligned, dimradius, dimdiameter, dimangular, dimarc, dimordinate, dimcontinue, dimbaseline, qdim, dim]
+    paths: [crates/engine/engine/src/cmd/annotate.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-3]
+    since: "2026-11-17"
+  - id: cad.dimension.edit
+    title: "Dimension text, spacing, overrides and association"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [dimoverride, dimreassociate, dimdisassociate, dimtedit.home, dimtedit.angle, dimtedit.left, dimtedit.center, dimtedit.right, dimtedit, dimspace]
+    paths: [crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/props.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.dimension.styles
+    title: "Dimension styles"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [dimstyle.update, dimstyle, dimstyle.dimension, dimstyle.list, dimstyle.rename, dimstyle.delete, dimstyle.current, dimstyle.override]
+    paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/props/rename.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.dimension.leaders
+    title: "Leaders, multileaders and multileader styles"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [mleader, leader, mleaderstyle]
+    paths: [crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/mleader_content.rs, crates/engine/engine/src/cmd/props.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.block.manage
+    title: "Blocks, attributes, insert, write block and purge"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [block, "-block", insert, attdef, attedit, "-attedit", wblock, base, purge, blocks.list, battman, attdisp, attsync]
+    paths: [crates/engine/engine/src/cmd/blocks.rs, crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/blocks/attedit.rs, crates/engine/engine/src/cmd/blocks/attribs.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.modify.transform
+    title: "Move, copy, rotate, scale, mirror, stretch and align"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [move, copy, rotate, scale, mirror, stretch, align, ncopy]
+    paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/gripcmds.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.modify.shape
+    title: "Offset, trim, extend, fillet, chamfer, break, join, lengthen, blend and reverse"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [offset, trim, extend, fillet, chamfer, explode, break, breakatpoint, join, overkill, pedit, splinedit, lengthen, blend, reverse, flatten]
+    paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/machines.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.modify.array
+    title: "Rectangular, polar and path arrays"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [array, arrayrect, arraypolar, arraypath]
+    paths: [crates/engine/engine/src/cmd/array.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/modify2.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.modify.order-groups
+    title: "Draw order and groups"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [draworder.front, draworder.back, group, ungroup, groupedit, groups.list]
+    paths: [crates/engine/engine/src/cmd/groups.rs, crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/machines.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-cad-concurrent-unnamed-groups]
+    since: "2026-11-17"
+  - id: cad.layer.manage
+    title: "Layers, layer tools and layer states"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [layer, layer.new, layer.set, layer.current, layer.delete, laymcur, laymch, laycur, layiso, layuniso, layfrz, layoff, laylck, layulk, layon, laythw, layerp, layerstate.save, layerstate.restore, layerstate.list, layerstate.delete, layerstate.rename, laymrg, laydel, layout, vplayer]
+    paths: [crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/machines.rs, crates/engine/engine/src/cmd/layer/prompts.rs, crates/engine/engine/src/cmd/layout.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.layout.paper
+    title: "Layouts, viewports, model and paper space"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [layout.set, chspace, layout.new, layout.delete, layout.rename, layout.copy, layout.list, mview, vports, vports.1, vports.2, vports.3, vports.4, viewport.set, mspace, pspace, viewport.sync]
+    paths: [crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/layout/prompts.rs, crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/modify2.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.output.plot
+    title: "Page setup, plot, export to PDF and plot styles"
+    dimension: [conversion, function]
+    priority: P1
+    status: partial
+    commands: [pagesetup, plot, exportpdf, plotstyle, stylesmanager]
+    paths: [bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/layout/plotstyle.rs, crates/engine/engine/src/cmd/layer.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.properties.edit
+    title: "Properties, match properties, colour, linetype, lineweight and linetype scale"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [properties, properties.set, matchprop, color, linetype, lweight, ltscale, rename]
+    paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/qselect.rs, crates/engine/engine/src/cmd/inquiry.rs, crates/engine/engine/src/cmd/layer.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.drawing.settings
+    title: "Units, limits, drafting settings, object snaps and status-bar modes"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [units, limits, ortho, grid, snap, polar, otrack, dynmode, lwdisplay, isodraft, transparencydisplay, qpmode, osnap, dsettings]
+    paths: [crates/engine/engine/src/cmd/settings.rs, crates/engine/engine/src/cmd/props.rs, crates/engine/doc/src/tables.rs, crates/engine/engine/src/cmd/array.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.tools.inquiry
+    title: "Inquiry: distance, ID point, list, area, mass properties, time, status, count, calculator and system variables"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [dist, id, list, area, time, status, drawing.inspect, entities, count, setvar, getvar, sysvars, cal, massprop, measuregeom, radius.measure, angle.measure]
+    paths: [crates/engine/engine/src/cmd/inquiry.rs, crates/engine/engine/src/cmd/utility.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/settings.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.table.edit
+    title: "Tables and table styles"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [tablestyle, table, table.set, table.insertrow, table.deleterow, table.insertcol, table.deletecol, table.merge, table.unmerge]
+    paths: [crates/engine/engine/src/cmd/table.rs, crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/props/rename.rs, crates/engine/engine/src/cmd/blocks/purge.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.constraint.parametric
+    title: "Geometric and dimensional constraints, parameters and constraint display"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [geomconstraint, gccoincident, gcperpendicular, gcparallel, gctangent, gchorizontal, gcvertical, gccollinear, gcconcentric, gcsmooth, gcsymmetric, gcequal, gcfix, autoconstrain, constraintbar, constraintbar.showall, constraintbar.hideall, dimconstraint, dcaligned, dchorizontal, dcvertical, dcangular, dcradius, dcdiameter, dclinear, dcdisplay, dcdisplay.showall, dcdisplay.hideall, delconstraint, parameters, constraintsettings, constraints.inspect]
+    paths: [crates/engine/engine/src/cmd/constraints.rs]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.app.command-line
+    title: "Command line"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [commandLine]
+    target: "AutoCAD 2027"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: cad.editor.display-modes
+    title: "The editor in each display mode: Classic gives way before stepping down, Focus shows only the drawing, letters pick tools and Escape cancels first in Focus"
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/App.tsx, web/src/CommandLine.tsx, web/src/ribbon/HomeTab.tsx, web/tests/modes.mjs, web/tests/focus.mjs]
+    cases: [cad.editor.display-modes/mode-smoke, regressions/issue-focus-keys]
+    since: "2026-11-17"
+  - id: cad.draw.basic-geometry
+    title: "Lines, circles, arcs, closed polylines and rectangles"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [line, circle, arc, pline, rectang, saveas, open]
+    paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.draw.basic-geometry/dxf-save-reopen]
+    since: "2026-11-17"
+  - id: cad.draw.text-labels
+    title: "Single-line and multiline text"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [text, mtext, saveas, open]
+    paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/props.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.draw.text-labels/dxf-save-reopen, regressions/issue-dwg-style-font]
+    since: "2026-11-17"
+  - id: cad.layer.basics
+    title: "New layers with a colour, the current layer and frozen layers"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [layer.new, layer.set, layer.current, line, circle, saveas, open]
+    paths: [crates/engine/engine/src/cmd/layer.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.layer.basics/dxf-save-reopen]
+    since: "2026-11-17"
+  - id: cad.block.define-insert
+    title: "Define a block from objects and insert it"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [block, insert, line, circle, saveas, open]
+    paths: [crates/engine/engine/src/cmd/blocks.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.block.define-insert/dxf-save-reopen]
+    since: "2026-11-17"
+  - id: cad.dimension.basic
+    title: "Linear, aligned and radius dimensions"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [dimlinear, dimaligned, dimradius, line, circle, saveas, open]
+    paths: [crates/engine/engine/src/cmd/annotate.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.dimension.basic/dxf-save-reopen, regressions/issue-dimension-extents]
+    since: "2026-11-17"
+  - id: cad.modify.transform-hatch
+    title: "Move, rotate, scale, copy, mirror, polar array and hatch"
+    dimension: [function, conversion]
+    priority: P0
+    status: has
+    commands: [move, rotate, scale, copy, mirror, array, rectang, hatch, saveas, open]
+    paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/array.rs, crates/engine/engine/src/cmd/hatch.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
+    target: "AutoCAD 2027"
+    cases: [cad.modify.transform-hatch/dxf-save-reopen, regressions/issue-dwg-hatch-associative]
+    since: "2026-11-17"

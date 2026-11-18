@@ -1,0 +1,19 @@
+[package]
+name = "kition-cad-render"
+description = "Kition CAD rendering: display lists (linetypes, hatches, text, blocks, dimensions) and a CPU rasteriser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-cad-geom = { workspace = true }
+kition-cad-color = { workspace = true }
+kition-cad-doc = { workspace = true }
+kition-cad-fonts = { workspace = true }
+tiny-skia = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

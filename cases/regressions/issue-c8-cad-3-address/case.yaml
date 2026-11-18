@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-3-address
+feature: cad.agent.premises
+intent: Address matrices verify consumed facts, refusal reasons and saved results across independent DXF rewrites; twelve false selection refusals remain explicitly pinned waiting for SDK consumer context.
+layer: gate
+timeout_s: 60
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_matrix.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: address_matrix }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

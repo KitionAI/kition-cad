@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-writes-outside-workspace
+feature: cad.file.drawings
+intent: >-
+  The headless kit reads, writes and lists nothing outside its workspace (KHP A28, A29, section
+  10.6): whatever an agent runs, directly, as a model.batch command (no origin, the agent's, a
+  person's the caller claims) or typed at the command line (with a `_`, `.`, `-` or `'` prefix,
+  while another command runs, or as `name {json}`), nothing appears in the process's current,
+  home or temporary folder, a folder outside is not changed, no file outside is opened to read
+  (named pipes planted there show any attempt), and no answer tells whether a file outside
+  exists. While a host owns every file, OPEN, RECOVER, INSERT, SAVE, SAVEAS, WBLOCK, PLOT,
+  EXPORTPDF and STYLESMANAGER reach no file by path, and the command line runs nothing its caller
+  could not run directly. An audit found by reading code that `_RECOVER <path>` at the command
+  line read any file whole (the kit's check did not read the prefix), and that STYLESMANAGER read
+  and wrote plot style tables by path.
+layer: gate
+tags: [headless, security]
+source:
+  kind: probe
+  from: workspace escape audit (cad)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: workspace_only, filter: agent_commands_write_read_and_list_nothing_outside_the_workspace }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

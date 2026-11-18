@@ -1,0 +1,122 @@
+[
+  {
+    "code": "cad.missing-layer",
+    "fixture": "check-missing-layer.dxf",
+    "severity": "error",
+    "summary": "Objects are on a layer the drawing does not define; AUDIT creates it."
+  },
+  {
+    "code": "cad.missing-linetype",
+    "fixture": "check-missing-linetype.dxf",
+    "severity": "error",
+    "summary": "A layer uses a linetype the drawing does not define; AUDIT sets it to Continuous."
+  },
+  {
+    "code": "cad.missing-text-style",
+    "fixture": "check-missing-text-style.dxf",
+    "severity": "error",
+    "summary": "A dimension or multileader style uses a text style the drawing does not define; AUDIT sets it to Standard."
+  },
+  {
+    "code": "cad.missing-block",
+    "fixture": "check-missing-block.dxf",
+    "severity": "error",
+    "summary": "A block reference names a block the drawing does not define; AUDIT creates an empty definition."
+  },
+  {
+    "code": "cad.missing-table-entry",
+    "fixture": "check-missing-table-entry.dxf",
+    "severity": "error",
+    "summary": "A table entry every drawing has (layer 0, a standard style) is missing; AUDIT recreates it."
+  },
+  {
+    "code": "cad.missing-reference",
+    "fixture": "check-missing-reference.dxf",
+    "severity": "error",
+    "summary": "Objects use a linetype or style the drawing does not define; AUDIT sets them to the default."
+  },
+  {
+    "code": "cad.dangling-reference",
+    "fixture": "check-dangling-reference.dxf",
+    "severity": "error",
+    "summary": "A group, dimension, viewport or constraint refers to an object that does not exist; AUDIT removes the reference."
+  },
+  {
+    "code": "cad.invalid-geometry",
+    "fixture": "check-invalid-geometry.dxf",
+    "severity": "error",
+    "summary": "An object's geometry is invalid (zero length, no area, not a number); erasing it changes nothing on the drawing."
+  },
+  {
+    "code": "cad.block-cycle",
+    "fixture": "check-block-cycle.dxf",
+    "severity": "error",
+    "summary": "A block contains itself through its references; AUDIT removes the reference that closes the loop."
+  },
+  {
+    "code": "cad.duplicate-handle",
+    "fixture": "check-duplicate-handle.dxf",
+    "severity": "error",
+    "summary": "Two objects share one handle; AUDIT gives one of them a new handle."
+  },
+  {
+    "code": "cad.missing-current",
+    "fixture": "check-missing-current.dxf",
+    "severity": "warning",
+    "summary": "The current layer, linetype or style names an entry that does not exist; AUDIT sets the default."
+  },
+  {
+    "code": "cad.degenerate-polyline",
+    "fixture": "check-degenerate-polyline.dxf",
+    "severity": "warning",
+    "summary": "A polyline's vertices make a single point, so it draws nothing."
+  },
+  {
+    "code": "cad.degenerate-hatch",
+    "fixture": "check-degenerate-hatch.dxf",
+    "severity": "warning",
+    "summary": "A hatch's boundary has no area, so it fills nothing."
+  },
+  {
+    "code": "cad.unresolved-xref",
+    "fixture": "check-unresolved-xref.dxf",
+    "severity": "warning",
+    "summary": "An external reference has nothing loaded, so its drawing does not show."
+  },
+  {
+    "code": "cad.far-outside",
+    "fixture": "check-far-outside.dxf",
+    "severity": "warning",
+    "summary": "An object lies far away from the rest of the drawing, so zooming to the extents shows almost nothing."
+  },
+  {
+    "code": "cad.hidden-layer",
+    "fixture": "check-hidden-layer.dxf",
+    "severity": "info",
+    "summary": "Objects are on a layer that is off or frozen, so they do not show or plot."
+  },
+  {
+    "code": "cad.font-substituted",
+    "fixture": "check-font-substituted.dxf",
+    "severity": "info",
+    "summary": "A text style's font is not available here, so its text is drawn with a substitute."
+  },
+  {
+    "code": "cad.empty-text",
+    "fixture": "check-empty-text.dxf",
+    "severity": "info",
+    "summary": "A text object has no text; erasing it changes nothing on the drawing."
+  },
+  {
+    "code": "cad.dimension-text-overridden",
+    "fixture": "check-dimension-text-overridden.dxf",
+    "severity": "info",
+    "summary": "A dimension shows fixed text instead of its measurement, so it does not follow the geometry."
+  },
+  {
+    "code": "cad.truncated",
+    "fixture": "check-truncated.dxf",
+    "severity": "info",
+    "summary": "One code was found more often than the check lists; the rest are counted in one diagnostic."
+  }
+]

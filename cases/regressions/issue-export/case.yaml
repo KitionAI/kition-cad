@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-export
+feature: cad.file.export
+intent: >-
+  The kit exports a drawing as PDF, SVG and PNG (KHP A35, A41; Kition platform K21): kit.json
+  declares the three in `exports` and `agent.export` names `file.export`, which answers the file as
+  base64 `data`; `kit.initialize` reports them, and the host's `document.export` writes the same
+  bytes as new files. Each export is valid in its own reader (a one-page PDF, an SVG that parses, a
+  PNG that decodes and is not one colour) and shows model space framed to the drawing's extents,
+  not its limits, and an export never edits the drawing. Before, kit.json had no exports and an
+  agent could not hand a person a PDF, SVG or PNG of a drawing.
+layer: gate
+source:
+  kind: probe
+  from: "agent readiness review (cad: exports null, no agent.export)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "export" }
+  - cargo-test: { package: "kition-cad", test: "export" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

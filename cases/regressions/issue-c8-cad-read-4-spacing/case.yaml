@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-spacing
+feature: cad.agent.premises
+intent: Dimension spacing preserves base appearance and no-op geometry while holding the projection inputs and assigned target fields.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_spacing.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_spacing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

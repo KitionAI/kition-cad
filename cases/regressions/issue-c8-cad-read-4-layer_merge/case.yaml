@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-layer_merge
+feature: cad.agent.premises
+intent: Layer merge preserves destination properties and holds discarded source layer data and a conditionally assigned freeze state.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_layer_merge.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_layer_merge }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

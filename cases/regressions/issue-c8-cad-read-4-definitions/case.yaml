@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-definitions
+feature: cad.agent.premises
+intent: Referenced block geometry and base stay protected while description edits and unused insert attribute values merge into the saved file.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_definitions.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_definitions }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

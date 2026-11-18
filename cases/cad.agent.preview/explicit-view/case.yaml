@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/explicit-view
+feature: cad.agent.preview
+intent: >-
+  two windows draw different pictures, and a layout by name draws its paper space, not Model space.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: two_windows_differ_and_a_layout_differs_from_model_space }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

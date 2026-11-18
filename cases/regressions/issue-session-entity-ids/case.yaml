@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-session-entity-ids
+feature: cad.agent.ids
+intent: >-
+  An entity a command makes in a session is named by its handle in the object model from the
+  moment the command returns, keeps that handle in the saved file, and the reopened drawing's
+  object model, entities list and commands name it the same; layers, layouts and named views are
+  targets by name. Before, a session-made entity was a random object id in the object model and
+  table records got new object ids on every open, so receipts and queries named nothing an agent
+  could use again.
+layer: gate
+source:
+  kind: issue
+  from: "task card C4/C5/C6-cad (audit: kdm-model write.rs ObjectId::new for session-made entities and table records)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: ids }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

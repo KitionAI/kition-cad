@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/scale-size
+feature: cad.agent.preview
+intent: >-
+  scale is pixels per drawing unit, capped by maxSize, and maxSize alone fits the view.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: scale_and_max_size }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

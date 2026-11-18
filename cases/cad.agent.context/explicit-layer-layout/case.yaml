@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/explicit-layer-layout
+feature: cad.agent.context
+intent: >-
+  a drawing command given `layer` and `layout` draws on that layer in that space and leaves the drawing's current layer and the space shown alone, for an agent and a person; an unknown layer or layout is refused by name.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: a_drawing_command_with_an_explicit_layer_and_layout_draws_there_and_moves_nothing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

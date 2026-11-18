@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/hooks-no-edit
+feature: cad.agent.context
+intent: >-
+  editor_state, set_context and restore_editor_state move no revision, dirty state or undo history.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: hooks_are_no_edit }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

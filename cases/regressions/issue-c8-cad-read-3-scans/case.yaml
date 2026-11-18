@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-3-scans
+feature: cad.agent.premises
+intent: Boundary scans protect extent-dependent sampled outlines, typed layer-state destinations and snap-source identity while merging changes that preserve those inputs.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read3_scans.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read3_scans }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

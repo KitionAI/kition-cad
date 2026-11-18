@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-waiting_sdk
+feature: cad.agent.premises
+intent: Public SDK membership, planned FIND consumers and incremental boundary guards pass with independent same-server and outside-file writers.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_waiting.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_waiting }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

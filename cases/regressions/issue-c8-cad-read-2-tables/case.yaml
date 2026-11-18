@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-tables
+feature: cad.agent.premises
+intent: Table field assignment and row insertion preserve independent cell text while merge redirection or replacement of the addressed insertion gap conflicts.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read2_tables.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read2_tables }
+  - cargo-test: { package: kition-cad-kit, test: places, filter: table_cells }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

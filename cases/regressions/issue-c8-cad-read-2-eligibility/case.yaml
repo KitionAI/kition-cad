@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-eligibility
+feature: cad.agent.premises
+intent: Deletion and freezing conflict when another file writer changes eligibility, while unrelated additions survive a merged deletion.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read_classes.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read_classes, filter: eligibility }
+  - cargo-test: { package: kition-cad, test: read_classes, filter: kit_defect_deletion }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

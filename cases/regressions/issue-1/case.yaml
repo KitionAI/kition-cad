@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-1
+feature: cad.draw.text
+intent: >-
+  MTEXT and multileader text keep their spaces: a line without formatting is set exactly like the
+  same single-line text (same width, same glyph positions), and runs keep the letter gap between
+  them. In a new (metric) drawing the Standard multileader and table styles are millimetre-sized
+  (text 4 and 4.5 high), table takes a textHeight, and rows grow to fit their text. Before, spaces
+  had no width ("Twowordshere") and table text used the imperial Standard height 0.18 whatever
+  rowHeight said, invisible in a millimetre drawing.
+layer: gate
+source:
+  kind: issue
+  from: Kition CAD regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-fonts", filter: "issue_1_spaces_keep_their_width" }
+  - cargo-test: { package: "kition-cad-engine", filter: "issue_1_multileader_and_table_text_in_a_metric_drawing" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

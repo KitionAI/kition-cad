@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-dwg-hatch-associative
+feature: cad.modify.transform-hatch
+intent: >-
+  An associative hatch stays associative through a DWG save and reopen, and a non-associative one stays not associative. DWG keeps group 71 only for a hatch that names its boundary objects, which Kition CAD's hatches don't, so the flag now also travels in the hatch's `KITION_CAD` xdata.
+layer: gate
+source:
+  kind: probe
+  from: "P2 round trip (cad.file.drawings gap: an associative hatch came back not associative through DWG)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-io", filter: "dwg_keeps_hatch_associativity", test: "dwg_roundtrip_losses" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

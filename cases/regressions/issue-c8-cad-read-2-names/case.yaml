@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-names
+feature: cad.agent.premises
+intent: Historical typed name replay rejects case-folded creation collisions and preserves independent same-spelled records of other types and unrelated names of the same type.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read2_names.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read2_names }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

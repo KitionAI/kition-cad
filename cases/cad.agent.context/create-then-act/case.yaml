@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/create-then-act
+feature: cad.agent.context
+intent: >-
+  drawing an entity, selecting it by window and moving it works in one call, since select keeps its effect for the rest of the call.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: create_then_act_in_one_run }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

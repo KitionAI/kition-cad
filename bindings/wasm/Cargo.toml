@@ -1,0 +1,32 @@
+[package]
+name = "kition-cad-kit"
+description = "The CAD engine for Kition's in-page editor: open, draw, edit, and save Kition CAD drawings from JavaScript (WebAssembly), on the Kition SDK."
+version.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kdm-model = { workspace = true }
+kition-cad-engine = { workspace = true }
+kition-cad-io = { workspace = true }
+kition-cad-render = { workspace = true }
+kition-cad-doc = { workspace = true }
+kition-cad-geom = { workspace = true }
+kition-cad-fonts = { workspace = true }
+kition-cad-color = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# The conformance fixtures' golden previews (src/conformance.rs), and exported PNGs.
+image = { workspace = true }
+# Exported PDFs' content streams (tests/export.rs); the version the PDF writer uses.
+miniz_oxide = "0.8"

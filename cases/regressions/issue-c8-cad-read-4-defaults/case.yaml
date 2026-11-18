@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-defaults
+feature: cad.agent.premises
+intent: Unused drawing defaults and viewport limits merge independent same-server and outside writes while consumed dimensions, style margins and source geometry remain protected.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4 }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

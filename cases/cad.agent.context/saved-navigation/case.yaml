@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/saved-navigation
+feature: cad.agent.context
+intent: >-
+  an agent's zoom or pan inside an MSPACE viewport, which would change the viewport's view the file saves, is refused naming pspace, and the saved drawing is unchanged; paper-space navigation writes nothing.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: an_agents_zoom_inside_a_layout_viewport_is_refused_and_writes_nothing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

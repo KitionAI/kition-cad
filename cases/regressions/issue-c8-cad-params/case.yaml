@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-params
+feature: cad.agent.ids
+intent: Every entity parameter and source name is marked with the type its implementation resolves, and all named tables expose tool ids.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/object_params.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: object_params }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

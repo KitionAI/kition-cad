@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-pin-protocol
+feature: cad.agent.premises
+intent: Explicit null regions reach the CAD content callback and isolated replacement plans follow the new document; receipts expose stored edits and proven public derived changes only.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/pin_protocol.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: pin_protocol }
+  - cargo-test: { package: kition-cad, test: premise }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

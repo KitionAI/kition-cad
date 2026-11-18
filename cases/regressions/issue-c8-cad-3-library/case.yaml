@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-3-library
+feature: cad.agent.premises
+intent: Insertion-base replacements and built-in linetype loads hold consumed headers and name availability; current-linetype assignment permits independent description changes.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_matrix.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: library_and_base_family_matrix }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

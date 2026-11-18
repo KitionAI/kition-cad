@@ -1,0 +1,44 @@
+format: 1
+id: cad.agent.draft/diagonal
+feature: cad.agent.draft
+intent: >-
+  Over two messages the agent adds geometry in a draft for the person to review; the draft has both additions and the drawing itself is untouched (KHP Recover, A12–A14).
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.dxf
+  license: Apache-2.0
+  note: "A copy of the conformance drawing the cad engine writes: a 100 x 60 rectangle of four lines (handles 100-103) and a text, all on layer 0."
+input: [input/plan.dxf]
+steps:
+  - task:
+      turns:
+        - >-
+          As a draft for me to review (leave plan.dxf itself unchanged), draw a line across the
+          rectangle from its bottom-left corner to its top-right corner.
+        - In the same draft, add a circle of radius 10 at the centre of the rectangle.
+      max_turns: 20
+  - run: { path: plan.dxf, args: { draft: true, save: false }, steps: [{ command: entities }], as: draft }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+expected:
+  - actual: out:draft
+    compare: values
+    value:
+      completed.0.result.count: 7
+      completed.0.result.entities: { any: { type: Circle, geometry.radius: { approx: 10, tol: 0.001 }, geometry.center.x: { approx: 50, tol: 0.001 }, geometry.center.y: { approx: 30, tol: 0.001 } } }
+  - actual: out:draft
+    compare: values
+    value:
+      completed.0.result.entities: { any: { type: Line, geometry.b.x: 100, geometry.b.y: 60, geometry.a.x: 0, geometry.a.y: 0 } }
+  - actual: out:all
+    compare: values
+    collateral: true
+    value:
+      completed.0.result.count: 5
+solution:
+  - tool: cad_run
+    args: { path: plan.dxf, draft: true, steps: [{ command: line, params: { points: [[0, 0], [100, 60]] } }] }
+  - tool: cad_run
+    args: { path: plan.dxf, draft: true, steps: [{ command: circle, params: { center: [50, 30], radius: 10 } }] }
+since: "2026-11-17"
+timeout_s: 600

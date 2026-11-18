@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-clipboard
+feature: cad.agent.premises
+intent: Clipboard capture holds copied definitions and history never undoes an independent disk writer's change.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_review2.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_review2, filter: clipboard_ }
+  - cargo-test: { package: kition-cad, test: guard_review2, filter: history_ }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

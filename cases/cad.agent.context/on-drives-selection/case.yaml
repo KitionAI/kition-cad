@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/on-drives-selection
+feature: cad.agent.context
+intent: >-
+  a selection-default command (move) driven by `on`, and erase and properties.set given handles, change exactly those entities and leave the person's selection, space and view as they were.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: a_selection_command_driven_by_on_changes_exactly_those_entities }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

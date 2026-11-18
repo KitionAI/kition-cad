@@ -1,0 +1,23 @@
+format: 1
+id: cad.document.text/words-by-space
+feature: cad.document.text
+intent: >-
+  document.text answers a drawing's words: TEXT with %% codes as their characters, MTEXT without
+  formatting codes, a block's text and its visible attribute values (not invisible ones), a
+  dimension's text override with the measurement in place of <> (not bare measured values),
+  model space then each layout as labelled parts, text on layers that are off left out; the
+  example apartment's labels, note and room schedule; the limit truncates by Unicode scalar
+  values, every part lies inside the text, reading changes neither the revision, the dirty state
+  nor the saved bytes, and an empty drawing answers no text.
+layer: gate
+source:
+  kind: synthetic
+  from: "bindings/wasm/tests/document_text.rs, examples/apartment.dxf, conformance/check-dimension-text-overridden.dxf"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "document_text" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

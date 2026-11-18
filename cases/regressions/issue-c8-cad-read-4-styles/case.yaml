@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-styles
+feature: cad.agent.premises
+intent: Dimension rendering protects the font metrics it actually samples; style copying and typed renaming merge unused font data and unrelated settings.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_styles.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_styles }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

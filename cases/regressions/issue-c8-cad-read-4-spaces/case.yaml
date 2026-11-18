@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-spaces
+feature: cad.agent.premises
+intent: CHSPACE holds the selected viewport projection and remeasured dimensions while preserving source appearance and unrelated destination entities.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_spaces.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_spaces }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-3-settings
+feature: cad.agent.premises
+intent: Stored setting commands refuse overwriting a colleague's replacement of the same variable and allow independent geometry edits.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_matrix.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: stored_settings_family_matrix }
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: current_style_family_matrix }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

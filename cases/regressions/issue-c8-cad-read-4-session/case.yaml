@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-session
+feature: cad.agent.premises
+intent: Session-only SETVAR assignments preserve independently rewritten same-named imported DXF headers.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_session.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_session }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

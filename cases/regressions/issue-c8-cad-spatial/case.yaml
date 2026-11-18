@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-spatial
+feature: cad.agent.premises
+intent: Spatial premise replay retains draw order and block child geometry and visibility; outside writer scenarios expose the pinned SDK insertion-gap defect.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/places.rs and bindings/headless/tests/outside.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: places }
+  - cargo-test: { package: kition-cad, test: outside }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

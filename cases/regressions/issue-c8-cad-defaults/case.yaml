@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-defaults
+feature: cad.agent.premises
+intent: Drawing commands hold current stored properties they copy; an explicit layer does not hold the current layer.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/outside.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: outside, filter: creation_holds }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

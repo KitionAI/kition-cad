@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-engine
+feature: cad.agent.premises
+intent: Invalid names and incomplete object addresses are rejected atomically; attribute and style edits preserve references and constants; circle defaults, elevated line edits and unrelated parameter deletion preserve data; dimension override counts include only dimensions.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/read_engine_defects.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: read_engine_defects }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

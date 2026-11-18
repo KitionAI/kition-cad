@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-targets
+feature: cad.agent.premises
+intent: Reassociation, draw order, viewport projection and sheet setup resolve the named object's space; hatch editing cannot act on another kind or an unrelated active viewport.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/read2_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: read2_targets }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

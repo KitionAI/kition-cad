@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-locks
+feature: cad.agent.premises
+intent: Commands and their propagation hooks atomically refuse locked entity mutations; independent locking of a field target or joined-away source conflicts before execution.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/read2_locks.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: read2_locks }
+  - cargo-test: { package: kition-cad, test: read2_locks }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

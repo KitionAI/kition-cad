@@ -1,0 +1,119 @@
+//! C8-cad-read-3: same-field decision, with independent file writers.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[path = "read2/common.rs"]
+mod common;
+use common::*;
+use serde_json::json;
+
+async fn written_field(command: &'static str) {
+    check(
+        |f| match command {
+            "textedit" => (command, json!({"handle":f.text,"text":"Mine"})),
+            "attedit" => (command, json!({"handle":f.insert,"values":{"CODE":"Mine"}})),
+            "plotstyle" => (command, json!({"handles":[f.circle],"name":"ByLayer"})),
+            "laycur" => (command, json!({"handles":[f.circle]})),
+            "matchprop" => (command, json!({"source":f.line,"targets":[f.circle]})),
+            "table.set" => (command, json!({"handle":f.table,"row":1,"col":1,"text":"Mine"})),
+            _ => panic!("command"),
+        },
+        |f| match command {
+            "textedit" => vec![(command, json!({"handle":f.text,"text":"Colleague"}))],
+            "attedit" => vec![(command, json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
+            "plotstyle" => vec![(command, json!({"handles":[f.circle],"name":"Normal"}))],
+            "laycur" => vec![("properties.set", json!({"handles":[f.circle],"layer":"Secondary"}))],
+            "matchprop" => vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+            "table.set" => vec![(command, json!({"handle":f.table,"row":1,"col":1,"text":"Colleague"}))],
+            _ => panic!("command"),
+        },
+        |f| match command {
+            "textedit" => vec![("properties.set", json!({"handles":[f.text],"height":6}))],
+            "attedit" => vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+            "table.set" => vec![(command, json!({"handle":f.table,"row":2,"col":2,"text":"Kept"}))],
+            _ => vec![("properties.set", json!({"handles":[f.circle],"radius":7}))],
+        },
+    )
+    .await;
+}
+
+macro_rules! probe {
+    ($name:ident, $command:literal) => {
+        #[tokio::test(flavor = "multi_thread")]
+        async fn $name() {
+            written_field($command).await;
+        }
+    };
+}
+probe!(textedit_same_field, "textedit");
+probe!(attribute_same_field, "attedit");
+probe!(plotstyle_same_field, "plotstyle");
+probe!(layer_assignment_same_field, "laycur");
+probe!(matchprop_same_field, "matchprop");
+probe!(table_text_same_field, "table.set");
+
+async fn current_setting(command: &'static str) {
+    check(
+        |f| match command {
+            "attdisp" => (command, json!({"mode":"on"})),
+            "layer.current" => (command, json!({"name":"Editable"})),
+            _ => (command, json!({"handles":[f.line]})),
+        },
+        |_| match command {
+            "attdisp" => vec![("attdisp", json!({"mode":"off"}))],
+            _ => vec![("layer.current", json!({"name":"Secondary"}))],
+        },
+        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+    )
+    .await;
+}
+macro_rules! current_probe {
+    ($name:ident,$command:literal) => {
+        #[tokio::test(flavor = "multi_thread")]
+        async fn $name() {
+            current_setting($command).await;
+        }
+    };
+}
+current_probe!(attribute_display_same_setting, "attdisp");
+current_probe!(current_layer_same_setting, "layer.current");
+current_probe!(make_layer_current_same_setting, "laymcur");
+current_probe!(isolation_current_layer_same_setting, "layiso");
+
+async fn injected_header(command: &str, variable: &str, code: &str, value: &str, params: serde_json::Value) {
+    for relevant in [false, true] {
+        let f = Fixture::new();
+        let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
+        if relevant {
+            // The writer does not round-trip these header variables. A separate file
+            // writer supplies the real header instead; verify it survived parsing.
+            let before = String::from_utf8(f.disk()).unwrap();
+            let mut lines: Vec<_> = before.lines().collect();
+            let at = lines.iter().position(|line| line.trim() == "ENDSEC").unwrap() - 1;
+            let key = format!("${variable}");
+            lines.splice(at..at, ["9", key.as_str(), code, value]);
+            let after = lines.join("\n") + "\n";
+            assert_ne!(before, after);
+            std::fs::write(f.path(), after).unwrap();
+            let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
+            assert!(d.header.get(variable).is_some(), "{variable} is a real saved colleague change");
+        } else {
+            f.colleague(&[("properties.set", json!({"handles":[f.circle],"color":"blue"}))]);
+        }
+        let before = f.disk();
+        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":command,"params":params}]})).await;
+        if relevant {
+            assert_eq!(answer.err().map(|e| e["error"]["code"].clone()), Some(json!("conflict")));
+            assert_eq!(f.disk(), before);
+        } else {
+            answer.unwrap();
+        }
+        f.kits.shutdown().await;
+    }
+}
+#[tokio::test(flavor = "multi_thread")]
+async fn injected_circle_radius_same_setting() {
+    injected_header("circle.cd", "CIRCLERAD", "40", "6", json!({"center":[750,0],"diameter":10})).await;
+}
+#[tokio::test(flavor = "multi_thread")]
+async fn injected_wipeout_frame_same_setting() {
+    injected_header("wipeout", "WIPEOUTFRAME", "70", "1", json!({"frames":"off"})).await;
+}

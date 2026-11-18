@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.context/run-two-layouts
+feature: cad.agent.context
+intent: >-
+  through cad_run with the real executable: a run's target layout, a step's at.part, `on` a Model entity and an explicit layer and layout each act where they say; the saved file keeps the person's space and current layer, a run that only navigates (layout.set, zoom, select) leaves the file's bytes unchanged, and the next call starts in Model space.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: a_run_acts_in_two_layouts_and_the_file_keeps_no_navigation }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-copies
+feature: cad.agent.premises
+intent: Copies and arrays protect stored source properties and source space while merging unrelated group membership and source-layer locks.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_copies.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_copies }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

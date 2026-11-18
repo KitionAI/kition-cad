@@ -1,0 +1,17 @@
+format: 1
+id: cad.draw.text-labels/dxf-save-reopen
+feature: cad.draw.text-labels
+intent: >-
+  A justified single-line text and a two-line MTEXT with exact line spacing come back unchanged after SAVEAS and OPEN of a DXF file (id-blind canonical drawing), and a second save reproduces them exactly.
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/tests/roundtrip.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "text_and_mtext_survive_save_and_reopen", test: "roundtrip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

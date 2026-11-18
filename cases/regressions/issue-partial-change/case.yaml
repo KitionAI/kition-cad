@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-partial-change
+feature: cad.agent.context
+intent: >-
+  A command that fails changes nothing: the engine puts the drawing and the selection back when a
+  command answers an error, as it does when one panics, and records no undo step and no revision.
+  Before, `properties.set` given a new layer and an unknown dimension style made the layer, failed
+  on the style, and the layer stayed with an undo step for a command that reported failure; an
+  agent's run in the open editor was left with that partial change.
+layer: gate
+source:
+  kind: issue
+  from: "task card C4/C5/C6-cad (audit: engine lib.rs execute_inner kept a failing command's changes)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: failed_command }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

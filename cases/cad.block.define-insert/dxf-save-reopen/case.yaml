@@ -1,0 +1,17 @@
+format: 1
+id: cad.block.define-insert/dxf-save-reopen
+feature: cad.block.define-insert
+intent: >-
+  A block defined from a line and a circle (the originals converted to an insert) and two more inserts of it come back unchanged after SAVEAS and OPEN of a DXF file (id-blind canonical drawing), and a second save reproduces them exactly.
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/tests/roundtrip.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "blocks_and_inserts_survive_save_and_reopen", test: "roundtrip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

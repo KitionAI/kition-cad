@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-3
+feature: cad.dimension.create
+intent: >-
+  The catalogue and the commands do what they say. Parameters that take objects' handles
+  (hatch handles, dimspace base and handles, dimlinear object, dimangular lines and arc, select,
+  matchprop targets, trim and extend edges) are described as handles, never as colours. A
+  polyline's width is the width of the vertex ends that give none, and a vertex's own startWidth
+  and endWidth stand. A radius or diameter dimension's at places its text, outside the circle as
+  inside it. Before, handles read "a colour such as #rrggbb", width replaced every vertex width,
+  and at outside the circle only chose the direction.
+layer: gate
+source:
+  kind: issue
+  from: Kition CAD regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "commands", filter: "handle_parameters_are_not_colours" }
+  - cargo-test: { package: "kition-cad-engine", filter: "issue_3_" }
+  - cargo-test: { package: "kition-cad-engine", test: "dim_radial_inside" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

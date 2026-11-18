@@ -1,0 +1,21 @@
+format: 1
+id: cad.agent.ids/kdm-tool-ids
+feature: cad.agent.ids
+intent: >-
+  The object model names an entity by its handle and a layer, named view, block and layout by its
+  name in its table (`layer:Walls`, `view:Front`, `block:Door`, `layout:Layout1`), the ids the kit's
+  inspect, commands and diagnostics use (KitObjectModel OM9); the ids survive a rewrite, the save
+  and a new replica of the saved file, a rename names the record by its new name, and a layer a
+  model batch creates is named by the merge repair.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/tool_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kdm-model, test: tool_ids }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

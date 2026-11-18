@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-pin-audit
+feature: cad.agent.premises
+intent: Source-audited name gaps, automatic names, typed command-line assignments inactive clipboard paths, ordered FIND consumers and terminal close preserve necessary conflicts, independent merges and document lifecycle.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/pin_audit.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: pin_audit }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

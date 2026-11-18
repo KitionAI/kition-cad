@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-dimension-extents
+feature: cad.dimension.basic
+intent: >-
+  A saved drawing's `$EXTMIN`/`$EXTMAX` cover each dimension as drawn, text included, on the first save as after a reopen. Before, a new dimension was bounded by its points plus a margin until a reopen gave it its `*D` block, so saving the reopened drawing recorded larger extents.
+layer: gate
+source:
+  kind: probe
+  from: "P2 round trip (cad.dimension.basic gap: a second save recorded a larger EXTMAX)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "saved_extents_cover_dimensions_as_drawn_on_every_save", test: "roundtrip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

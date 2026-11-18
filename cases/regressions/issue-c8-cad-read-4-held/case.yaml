@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-held
+feature: cad.agent.premises
+intent: Snapshot, discarded payload, library units, assigned setting and newly connected constraint facts remain necessary.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_held.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_held }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

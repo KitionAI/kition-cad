@@ -1,0 +1,5 @@
+{
+  "maxChannelDelta": 2,
+  "maxDifferentPixels": 600,
+  "note": "The engine's own renderer draws the preview; anti-aliased line and glyph edges may differ by a step between platforms."
+}

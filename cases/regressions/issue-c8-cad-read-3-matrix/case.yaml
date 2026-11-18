@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-3-matrix
+feature: cad.agent.premises
+intent: Boundary source writes protect sampled curves while changes preserving straight outlines merge; the derived matrix retains zero wrong writes and zero false refusals.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_matrix.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: derived_geometry_matrix }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

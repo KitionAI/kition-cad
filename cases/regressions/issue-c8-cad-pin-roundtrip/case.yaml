@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-pin-roundtrip
+feature: cad.agent.premises
+intent: A native view rebuilt after a model roundtrip produces no phantom write and preserves its replica version.
+layer: unit
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/pin_roundtrip.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kdm-model, test: pin_roundtrip }
+  - cargo-test: { package: kdm-model, test: roundtrip }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-4
+feature: cad.file.drawings
+intent: >-
+  A reproducible build (SOURCE_DATE_EPOCH set, as the showcase and gate cases run) saves the
+  same DXF bytes every time the same commands build the drawing: the replica's actor, whose slot
+  numbers new handles, and the document id come from a counter in the process mixed with the
+  epoch. Before, the actor was random, so every handle and so the file differed on every save.
+  Without SOURCE_DATE_EPOCH, and always on the web, actors stay random.
+layer: gate
+source:
+  kind: issue
+  from: Kition CAD regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "deterministic_save" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

@@ -1,0 +1,17 @@
+format: 1
+id: cad.draw.basic-geometry/dxf-save-reopen
+feature: cad.draw.basic-geometry
+intent: >-
+  Lines, a circle, an arc, a closed polyline and a rectangle drawn with commands come back unchanged (id-blind canonical drawing) after SAVEAS and OPEN of a DXF file through the real reader and writer, and saving the reopened drawing again reproduces it exactly.
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/tests/roundtrip.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "lines_curves_and_polylines_survive_save_and_reopen", test: "roundtrip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-dimension_fields
+feature: cad.agent.premises
+intent: Dimension disassociation preserves remeasured coordinates and text and arrow overrides hold assigned values.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_dimension_fields.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_dimension_fields, filter: "dimension_" }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

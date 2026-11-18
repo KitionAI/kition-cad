@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-footprints
+feature: cad.agent.premises
+intent: Finite-line endpoints and selection protect boundary input without duplicating their numeric movement as a nonnumeric derived receipt edit.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_footprints.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_footprints }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

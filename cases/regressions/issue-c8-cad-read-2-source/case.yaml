@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-source
+feature: cad.agent.premises
+intent: Dimensions made from explicit source handles attach to those sources even when another object has coincident snap points.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/read2_source_identity.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: read2_source_identity }
+  - cargo-test: { package: kition-cad, test: read2_source }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

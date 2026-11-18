@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-focus-keys
+feature: cad.editor.display-modes
+intent: >-
+  In Focus, where the command line is hidden, a letter picks its tool (the command line's type-to-command capture is
+  off), Escape cancels the running command or clears the selection and stays in Focus, and only an Escape with nothing
+  to cancel leaves Focus. The display-mode audit found typing in Focus going nowhere useful once the command
+  line was hidden.
+layer: gate
+source:
+  kind: probe
+  from: kit display modes work (DM-cad, X2 and X3)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/focus.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 60
+since: "2026-11-17"

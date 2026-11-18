@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-cad-pin-model
+feature: cad.agent.environment
+intent: Public SDK raw batch contracts, typed owning maps and identity confidence preserve saved rereads and allow generated JSON, text and creation tasks to replay exactly.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/env_review.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: sdk_waiting }
+  - cargo-test: { package: kition-cad, test: env_receipts }
+  - cargo-test: { package: kition-cad, test: env_review }
+  - cargo-test: { package: kition-cad, test: outside }
+  - cargo-test: { package: kition-cad, test: guard_review2 }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

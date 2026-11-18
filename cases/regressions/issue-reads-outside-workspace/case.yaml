@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-reads-outside-workspace
+feature: cad.file.drawings
+intent: >-
+  A drawing's links are data: opening, drawing, previewing, exporting, checking, reading the text
+  of and saving a drawing whose external references, images and text style name files outside the
+  workspace (absolute, file URL, `..`, UNC) or on a server read nothing outside the workspace and
+  connect to nothing (KHP A29, A37, A42). Inspect reports every link as `links: [{id, kind,
+  target, exists, path?}]` (external references `embed`, images `media`), with `exists` true only
+  for a file the host lends inside the workspace, and the check reports each reference that is
+  not loaded (cad.unresolved-xref). Before, inspect reported no links.
+layer: gate
+tags: [headless, security]
+source:
+  kind: probe
+  from: workspace escape audit (cad)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: workspace_only, filter: drawings_and_links_read_nothing_outside_the_workspace }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-curves
+feature: cad.agent.premises
+intent: Continuation holds the actual last curve and trim/extend fence and crossing writes hold their observed target set; nonmatching find text may change.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_review2.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_review2, filter: curves_ }
+  - cargo-test: { package: kition-cad, test: guard_review2, filter: query_find }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

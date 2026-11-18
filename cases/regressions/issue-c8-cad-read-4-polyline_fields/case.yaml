@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-polyline_fields
+feature: cad.agent.premises
+intent: Polyline flag assignments preserve independent vertices and common fields while holding the assigned flag and close eligibility.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_polyline_fields.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_polyline_fields }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

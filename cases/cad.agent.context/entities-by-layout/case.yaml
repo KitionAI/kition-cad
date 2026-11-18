@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/entities-by-layout
+feature: cad.agent.context
+intent: >-
+  `entities {layout, limit, offset}` lists any space's entities by name, a page at a time, without going there.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: entities_lists_any_space_by_name_with_paging_without_going_there }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

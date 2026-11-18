@@ -1,0 +1,60 @@
+format: 1
+id: cad.agent.context/two-spaces-one-run
+feature: cad.agent.context
+intent: >-
+  The drawing opens in Model space with layer 0 current. In one cad_run the agent draws a circle
+  in the paper space of Layout1 on layer Notes and moves the rectangle's bottom line in Model
+  space, naming each step's space (`at.part` `{"layout": ...}`, or an explicit `layout`) and its
+  layer and entity (`layer`, `on` with the handle) instead of switching layouts or the current
+  layer; each edit lands where it says and nothing else changes.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.dxf
+  license: Apache-2.0
+  note: "conformance/basic.dxf (a 100 x 60 rectangle of four lines, handles 100-103, and a text) with a layer Notes added by the engine, saved with SOURCE_DATE_EPOCH=1762905600."
+input: [input/plan.dxf]
+steps:
+  - task:
+      prompt: >-
+        In plan.dxf, in one cad_run call: draw a circle of radius 10 centred at (50, 50) in the
+        paper space of the layout Layout1, on layer Notes, and move the rectangle's bottom line
+        (from (0, 0) to (100, 0)) in model space down by 10. Change nothing else, including the
+        current layer.
+      max_turns: 20
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layout: Layout1, type: Circle } }], as: paper }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layout: Model } }], as: model }
+  - check: { path: plan.dxf, as: diagnostics }
+expected:
+  - actual: out:paper
+    compare: values
+    value:
+      completed.0.result.count: 1
+      completed.0.result.entities.0.layer: Notes
+      completed.0.result.entities.0.geometry.radius: 10
+      completed.0.result.entities.0.geometry.center.x: 50
+      completed.0.result.entities.0.geometry.center.y: 50
+  - actual: out:model
+    compare: values
+    value:
+      completed.0.result.entities: { any: { handle: "100", geometry.a.y: -10, geometry.b.y: -10 } }
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { max_errors: 0 }
+  - actual: out:model
+    compare: values
+    collateral: true
+    value:
+      completed.0.result.count: 5
+      completed.0.result.entities: { any: { handle: "102", geometry.a.y: 60 } }
+solution:
+  - tool: cad_inspect
+    args: { path: plan.dxf }
+  - tool: cad_run
+    args:
+      path: plan.dxf
+      steps:
+        - { command: circle, at: { part: { layout: Layout1 } }, params: { center: [50, 50], radius: 10, layer: Notes } }
+        - { command: move, on: ["100"], params: { delta: [0, -10] } }
+since: "2026-11-17"
+timeout_s: 600

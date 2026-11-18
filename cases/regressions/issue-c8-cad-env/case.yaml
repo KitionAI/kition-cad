@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-env
+feature: cad.agent.environment
+intent: Hosted repairs precede observation; receipts and typed owning-map environment snapshots equal saved rereads for damaged and named-record fixtures.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/env_schema.rs and bindings/headless/tests/env_receipts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: env_schema }
+  - cargo-test: { package: kition-cad, test: env_receipts }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

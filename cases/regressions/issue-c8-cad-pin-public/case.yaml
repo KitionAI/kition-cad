@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-pin-public
+feature: cad.agent.premises
+intent: Guard implementation facts stay private while public bounds and eligibility remain observable; replacement exchanges and explicit null regions follow the public SDK contract.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/pin_public.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: pin_public }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

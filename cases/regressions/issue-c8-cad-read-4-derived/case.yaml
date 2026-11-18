@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-derived
+feature: cad.agent.premises
+intent: Computed guard facts are described so same-server receipts include assigned dimension overrides, boundary outlines and viewport choices.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/read4_derived.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: read4_derived }
+  - cargo-test: { package: kition-cad, test: read4_dimension_fields, filter: assigned_arrow_override }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

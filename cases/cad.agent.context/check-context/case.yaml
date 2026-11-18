@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.context/check-context
+feature: cad.agent.context
+intent: >-
+  kition-sdk's check_context passes with a context that moves the editor to a layout and selects an entity there, and with one back to Model space.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: context, filter: check_context_with_a_move_to_a_layout_and_a_selection_there }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

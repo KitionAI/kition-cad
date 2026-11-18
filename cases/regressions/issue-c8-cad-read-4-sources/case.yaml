@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-sources
+feature: cad.agent.premises
+intent: Explicit source sampling and spline conversion protect geometry while merging unrelated display properties, with usable schemas for reference xlines and spline conversion.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_sources.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_sources }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

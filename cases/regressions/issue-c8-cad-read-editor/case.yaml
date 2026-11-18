@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-editor
+feature: cad.agent.premises
+intent: Editor-read scanning distinguishes assignments from reads and only follows command lookup arguments, retaining complete declaration assertions.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: acts }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

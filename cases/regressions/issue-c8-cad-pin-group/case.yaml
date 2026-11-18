@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-pin-group
+feature: cad.agent.premises
+intent: Removing a deleted group member during merge preserves a concurrent group-description edit, with independent group data keys.
+layer: unit
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/replicas.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kdm-model, test: replicas, filter: a_group_member_deleted_elsewhere_leaves_the_group }
+  - cargo-test: { package: kdm-model, test: pin_group }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

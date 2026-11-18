@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.ids/guard-conflicts
+feature: cad.agent.ids
+intent: >-
+  another agent's edit or erase of my target refuses my write as a conflict on that handle (changed, deleted), and the file is unchanged.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: another_agents_edit_or_erase_of_my_target_refuses_my_write }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

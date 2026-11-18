@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-drawing
+feature: cad.agent.premises
+intent: Wipeout boundaries and offset copies hold only the source values consumed and preserve unrelated saved changes.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_drawing.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_drawing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

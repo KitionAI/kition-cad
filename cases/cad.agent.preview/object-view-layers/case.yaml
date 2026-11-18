@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/object-view-layers
+feature: cad.agent.preview
+intent: >-
+  an entity by handle is framed with a margin, a named view draws its rectangle, and layers draws only the layers named.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: an_object_a_named_view_and_a_layer_subset }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

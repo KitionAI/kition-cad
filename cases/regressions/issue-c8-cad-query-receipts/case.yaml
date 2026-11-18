@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-query-receipts
+feature: cad.agent.premises
+intent: Query witnesses preserve equal-offset footprints and receipts name the drawing's computed facts alongside each changed entity.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/receipts.rs and bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: receipts }
+  - cargo-test: { package: kition-cad, test: premise }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

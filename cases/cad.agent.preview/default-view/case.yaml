@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/default-view
+feature: cad.agent.preview
+intent: >-
+  file.render without a target draws Model space fitted to its extents at 1024 pixels on the longer side, whatever space, zoom and selection the person left, and moves no editor state, revision or dirty state.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: the_default_view_is_model_space_fitted_to_its_extents_whatever_the_editor_shows }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

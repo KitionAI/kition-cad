@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.ids/new-server
+feature: cad.agent.ids
+intent: >-
+  a handle an earlier call answered names the same entity after a new server opens the saved file, in commands, receipts and the object model, which also takes layer:<name> and layout:<name>.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: handles_from_an_earlier_call_name_the_same_entities_after_a_new_server_opens_the_saved_file }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/deterministic
+feature: cad.agent.preview
+intent: >-
+  the same file.render call answers the same bytes after the person changes space and zoom.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: the_same_call_answers_the_same_bytes }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

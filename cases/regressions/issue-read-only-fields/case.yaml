@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-read-only-fields
+feature: cad.agent.act
+intent: >-
+  An object-model batch that writes an entity's `handle` (the drawing's own name for the entity,
+  which no edit renames) fails with `read-only` at that operation, naming `Entity.handle`, and the
+  whole batch changes nothing (KHP A50, A18; KitObjectModel OM8); `model.describe` marks the field
+  `readOnly`, and a batch still creates entities, which get their handle from the kit. Before, a
+  batch that set a handle answered success and the drawing kept the old handle.
+layer: gate
+source:
+  kind: probe
+  from: "agent readiness review (cad: set h100.handle to \"khp check\" but cad_query reads \"215F\")"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", test: "read_only_fields" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

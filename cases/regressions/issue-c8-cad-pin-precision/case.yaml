@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-pin-precision
+feature: cad.agent.premises
+intent: Attribute synchronization ignores ordinary definition geometry while protecting copied attributes and reference locks; centered multileaders protect native bounds and gradients ignore the hatch pattern default, for incremental and outside writers.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/pin_precision.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: pin_precision }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

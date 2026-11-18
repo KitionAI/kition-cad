@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.ids/receipts
+feature: cad.agent.ids
+intent: >-
+  receipts name entities by handle with before and after: a move and a vertex edit (the polyline's `kind`), a property change (`common`), an edit of a block's entity (that entity, not its inserts), an erase (deleted).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: receipts_name_entities_by_handle_with_before_and_after }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

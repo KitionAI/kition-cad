@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.context/failed-run
+feature: cad.agent.context
+intent: >-
+  through cad_run: a later step's failure (a partial-change command) rolls the whole run back and the file is unchanged.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: a_failing_later_step_changes_nothing }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

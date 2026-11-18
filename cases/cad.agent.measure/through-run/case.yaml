@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.measure/through-run
+feature: cad.agent.measure
+intent: >-
+  entities.measure answers bounds, distance and overlaps through cad_run and changes nothing.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: entities_measure_through_the_run_tool }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

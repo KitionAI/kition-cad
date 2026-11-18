@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.context/inspect-layouts
+feature: cad.agent.context
+intent: >-
+  cad_inspect lists every space with its id, part and entity count and no editor state; a preview of a layout by name and of a Model window is drawn by file.render without moving the person.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: inspect_lists_every_space_and_previews_a_layout_by_name }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

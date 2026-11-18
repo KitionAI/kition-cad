@@ -1,0 +1,19 @@
+format: 1
+id: cad.agent.ids/guard-others
+feature: cad.agent.ids
+intent: >-
+  another agent's edit of an unrelated entity does not refuse my write and is named by handle in `others`, by that agent.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: premise, filter: another_agents_edit_of_an_unrelated_entity_is_reported_and_my_write_applies }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+tags: [headless]
+since: "2026-11-17"

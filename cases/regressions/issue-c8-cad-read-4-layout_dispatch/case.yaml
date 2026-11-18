@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-4-layout_dispatch
+feature: cad.agent.premises
+intent: The bracketed agent LAYOUT set dispatcher preserves independent page edits while guarding its named address.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read4_layout_dispatch.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read4_layout_dispatch }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,36 @@
+format: 1
+id: cad.agent.recover/dangling-group
+feature: cad.agent.recover
+intent: >-
+  The agent runs the kit's check, finds the group that lists an object the drawing does not have, and repairs it (the check's AUDIT fix, or removing the missing member) without deleting any geometry (KHP Verify). The group lists only the missing object, so the
+  check's own fix leaves it empty and removes it.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/check-dangling-reference.dxf
+  license: Apache-2.0
+  note: "A copy of the conformance fixture for cad.dangling-reference: the basic drawing with a group \"Walls\" that lists an object the file does not have."
+input: [input/plan.dxf]
+steps:
+  - task:
+      prompt: >-
+        Run the kit's check on plan.dxf and fix every error it reports. Keep every line and the
+        text in the drawing.
+      max_turns: 20
+  - check: { path: plan.dxf, as: diagnostics }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+expected:
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { absent: [cad.dangling-reference], max_errors: 0 }
+  - actual: out:all
+    compare: values
+    collateral: true
+    value:
+      completed.0.result.count: 5
+      completed.0.result.entities: { any: { type: Text } }
+solution:
+  - tool: cad_run
+    args: { path: plan.dxf, steps: [{ command: audit, params: { fix: true } }] }
+since: "2026-11-17"
+timeout_s: 600

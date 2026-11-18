@@ -1,0 +1,409 @@
+//! Kition's collaboration members (engine contract 2, Kition phase 3g): the drawing as a KDM
+//! replica.
+//!
+//! The engine keeps its own `Session` (the command bridge to the replica,
+//! `kition_cad_engine::kdm_bridge`), not a `kition_kit::session::KitSession` directly, so
+//! `kition_kit::export_kit_session!` does not apply here; these members are added by hand with
+//! the exact JS names and shapes `kition-sdk`'s `session::web` gives
+//! (`crates/kition-kit/src/session/web.rs`), as Kition Slide's are, so Kition's host code is the
+//! same for every kit. The wasm bindings live in [`crate::web`].
+//!
+//! A drawing has no blobs (raster images are referenced by path): [`CadDocument::blobs`] and
+//! [`CadDocument::blobs_since`] answer an empty bundle, and [`CadDocument::add_blobs`] checks a
+//! bundle (`(64-char ASCII-hex sha256, u64 LE length, bytes) * N`, Kition Photo's encoding) and
+//! keeps nothing.
+
+use kition_cad_engine::{Damage, Origin, Session, Version};
+use kition_kit::KitDocument;
+use serde_json::{Value, json};
+
+use crate::{CadDocument, engine_error};
+
+impl CadDocument {
+    /// Opens a file with the replica a host stored for it (the Kit UI protocol's `replica`
+    /// capability: DXF cannot carry its own replica): the drawing is the replica's, so it keeps
+    /// its KDM identity across saves. The host vouches that the replica was saved with these
+    /// bytes; when they disagree (an older save, a drawing edited outside the replica) the engine
+    /// records the file on top as one import. A replica that does not open (damaged, a newer
+    /// schema) is ignored and the file opens as [`CadDocument::open`] opens it.
+    ///
+    /// Empty `bytes` mean there is no file yet, only the replica (a host opening a shared drawing
+    /// for the first time from its sync room's snapshot, to save it as a new file): the drawing
+    /// is the replica's alone.
+    pub fn open_with_replica(name: &str, bytes: &[u8], snapshot: &[u8], blobs: &[u8]) -> Result<Self, String> {
+        let restored = (|| -> Result<Session, String> {
+            check_blobs(blobs)?;
+            let mut session = Session::empty();
+            session.open_with_replica(bytes, snapshot).map_err(engine_error)?;
+            // The drawing is the active one, as after `open`, and is saved to `name`.
+            let state = session.state_mut().map_err(engine_error)?;
+            state.path = Some(name.to_owned());
+            state.title = std::path::Path::new(name).file_stem().map_or_else(|| "Drawing".to_owned(), |stem| stem.to_string_lossy().into_owned());
+            Ok(session)
+        })();
+        match restored {
+            Ok(session) => Ok(Self::from_session(session)),
+            Err(_) => Self::open(name, bytes),
+        }
+    }
+
+    /// Whether the drawing has made its replica yet: it makes one lazily, on the first shared
+    /// edit or when asked for it ([`CadDocument::version`] and the rest).
+    pub fn has_replica(&self) -> bool {
+        self.session.state().is_ok_and(|state| state.kdm().is_some())
+    }
+
+    /// The replica's own document id (a `kition-sdk` `DocId`, stable across saves and across
+    /// opening another replica of the same document — never the DXF file's path or name): Kit
+    /// UI's generic runtime reads this for the Kit UI protocol's `replica/info` message. `None`
+    /// (`undefined` in JS) before the drawing has made a replica.
+    pub fn doc_id(&self) -> Option<String> {
+        self.session.doc_id()
+    }
+
+    /// The drawing's replica version.
+    pub fn version(&mut self) -> Result<Vec<u8>, String> {
+        Ok(self.session.version().map_err(engine_error)?.encode())
+    }
+
+    /// The drawing's changes since `since` (empty bytes: every change).
+    pub fn export_changes(&mut self, since: &[u8]) -> Result<Vec<u8>, String> {
+        let since = if since.is_empty() { Version::empty() } else { Version::decode(since).map_err(engine_error)? };
+        let changes = self.session.export_changes(&since).map_err(engine_error)?;
+        if let Some(session) = self.session.kdm() {
+            *self.batch_entities.lock().map_err(|_| "entity inventory unavailable")? =
+                session.replica().objects_of_type("Entity").into_iter().collect();
+        }
+        Ok(changes)
+    }
+
+    /// Imports a peer's (or stored) changes. Answers what went stale on screen.
+    pub fn import_changes(&mut self, bytes: &[u8]) -> Result<Damage, String> {
+        self.session.import_changes(bytes).map_err(engine_error)
+    }
+
+    /// The drawing's replica as a snapshot, for a peer to open as a new replica of the same
+    /// drawing ([`CadDocument::open`]'ing the saved DXF does not: DXF carries no replica).
+    pub fn snapshot(&mut self) -> Result<Vec<u8>, String> {
+        self.session.snapshot().map_err(engine_error)
+    }
+
+    /// Undoes the person's last step on the drawing's replica. `done` is `false`, not an error,
+    /// when there is nothing to undo.
+    pub fn undo(&mut self) -> Result<(bool, Damage), String> {
+        let done = self.can_undo();
+        if done {
+            self.execute("edit.undo", json!({ "scope": "person" }))?;
+        }
+        Ok((done, if done { Damage::Full } else { Damage::None }))
+    }
+
+    pub fn redo(&mut self) -> Result<(bool, Damage), String> {
+        let done = self.can_redo();
+        if done {
+            self.execute("edit.redo", json!({ "scope": "person" }))?;
+        }
+        Ok((done, if done { Damage::Full } else { Damage::None }))
+    }
+
+    /// Whether the person has a step to undo (engine rule E14a: the person's).
+    pub fn can_undo(&self) -> bool {
+        self.session.can_undo_in(kition_cad_engine::UndoScope::Person)
+    }
+
+    pub fn can_redo(&self) -> bool {
+        self.session.can_redo_in(kition_cad_engine::UndoScope::Person)
+    }
+
+    /// Runs a command as `origin` (a person, an agent): the replica records it as theirs, and it
+    /// undoes as that replica's own step. Contract 1's
+    /// [`CadDocument::execute`](kition_kit::KitDocument::execute) is this with the local person.
+    pub fn execute_as(&mut self, command: &str, params: Value, origin: &Origin) -> Result<Value, String> {
+        let previous = self.session.set_origin(Some(origin.clone()));
+        let result = self.execute(command, params);
+        self.session.set_origin(previous);
+        result
+    }
+
+    /// Every blob the drawing's replica references: none.
+    pub fn blobs(&mut self) -> Result<Vec<u8>, String> {
+        Ok(Vec::new())
+    }
+
+    /// Takes a peer's blobs (from their [`CadDocument::blobs`]): a drawing references none, so
+    /// the bundle is only checked.
+    pub fn add_blobs(&mut self, bytes: &[u8]) -> Result<(), String> {
+        check_blobs(bytes)
+    }
+
+    /// The blobs the drawing's replica has newly needed since `since`: none.
+    pub fn blobs_since(&mut self, since: &[u8]) -> Result<Vec<u8>, String> {
+        if !since.is_empty() {
+            Version::decode(since).map_err(engine_error)?;
+        }
+        Ok(Vec::new())
+    }
+
+    /// How many times the drawing left its replica because it refused a write or an undo (a
+    /// drawing it cannot hold, or a bug). The drawing keeps working, undoing from its own
+    /// history; the next shared edit makes a fresh replica, which collaborators must resync (its
+    /// full [`CadDocument::snapshot`]). Hosts watch this.
+    pub fn kdm_resets(&self) -> u32 {
+        u32::try_from(self.session.kdm_resets()).unwrap_or(u32::MAX)
+    }
+}
+
+/// Checks a blob bundle (`(64-byte ASCII-hex hash, u64 LE length, bytes) * N`): truncated or
+/// malformed input is an error, never a panic.
+fn check_blobs(bytes: &[u8]) -> Result<(), String> {
+    let mut i = 0usize;
+    while i < bytes.len() {
+        let hash_end = i.checked_add(64).ok_or("blob bundle: overflow")?;
+        let hash = bytes.get(i..hash_end).ok_or("truncated blob bundle: hash")?;
+        if !hash.is_ascii() {
+            return Err("blob bundle: hash is not ASCII".to_owned());
+        }
+        let len_end = hash_end.checked_add(8).ok_or("blob bundle: overflow")?;
+        let len_bytes: [u8; 8] =
+            bytes.get(hash_end..len_end).ok_or("truncated blob bundle: length")?.try_into().map_err(|_| "blob bundle: length".to_owned())?;
+        let len = usize::try_from(u64::from_le_bytes(len_bytes)).map_err(|_| "blob bundle: length too large".to_owned())?;
+        let data_end = len_end.checked_add(len).ok_or("blob bundle: overflow")?;
+        bytes.get(len_end..data_end).ok_or("truncated blob bundle: data")?;
+        i = data_end;
+    }
+    Ok(())
+}
+
+/// The object model (`KitObjectModel 1.0`) over the document's change exchange: `kition-cad` serves
+/// `model.describe` and `model.batch` headless through `kition_kit::session::model::Exchange`.
+impl kition_kit::session::model::ReplicaPort for CadDocument {
+    fn model_schema(&self) -> std::sync::Arc<kition_kit::kdm::Schema> {
+        <kdm_model::CadModel as kition_kit::session::KitModel>::schema()
+    }
+
+    fn model_export(&mut self, since: &[u8]) -> Result<Vec<u8>, String> {
+        self.export_changes(since)
+    }
+
+    fn model_import(&mut self, bytes: &[u8]) -> Result<(), String> {
+        self.import_changes(bytes).map(|_| ())
+    }
+
+    fn model_command(&mut self, command: &str, params: Value, origin: &Origin) -> Result<Value, String> {
+        self.execute_as(command, params, origin)
+    }
+
+    fn model_commands(&self) -> Vec<kition_kit::KitCommand> {
+        self.commands()
+    }
+
+    /// A shared drawing with no file yet (a server's headless kit opening a sync room): the
+    /// replica alone, failing rather than falling back to an empty drawing.
+    fn model_open_replica(name: &str, snapshot: &[u8], blobs: &[u8]) -> Result<Self, String> {
+        check_blobs(blobs)?;
+        let mut session = Session::empty();
+        session.open_with_replica(&[], snapshot).map_err(engine_error)?;
+        let state = session.state_mut().map_err(engine_error)?;
+        state.path = Some(name.to_owned());
+        state.title = std::path::Path::new(name).file_stem().map_or_else(|| "Drawing".to_owned(), |stem| stem.to_string_lossy().into_owned());
+        Ok(Self::from_session(session))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use kition_kit::KitDocument;
+    use serde_json::json;
+
+    use super::*;
+
+    fn fixture() -> Vec<u8> {
+        let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
+        doc.execute("line", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
+        doc.save(Some("Plan.dxf")).unwrap()
+    }
+
+    fn extra_edit(doc: &mut CadDocument) {
+        doc.execute("circle", json!({ "center": [200, 100], "radius": 20 })).unwrap();
+        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+    }
+
+    fn entities(doc: &CadDocument) -> u64 {
+        doc.inspect().unwrap()["entities"].as_u64().unwrap()
+    }
+
+    #[test]
+    fn version_and_snapshot_force_a_replica_lazily() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        assert!(!doc.has_replica(), "opening a DXF plainly makes no replica");
+        let version = doc.version().unwrap();
+        assert!(doc.has_replica());
+        assert_eq!(doc.version().unwrap(), version, "asking twice makes no further replica");
+        assert!(!doc.snapshot().unwrap().is_empty());
+        assert!(!doc.dirty(), "making the replica leaves the drawing clean");
+    }
+
+    #[test]
+    fn undo_redo_report_done_and_damage() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        assert!(!doc.can_undo());
+        extra_edit(&mut doc);
+        assert!(doc.can_undo());
+        let (done, damage) = doc.undo().unwrap();
+        assert!(done);
+        assert_ne!(damage, Damage::None);
+        assert!(doc.can_redo());
+        let (done, _) = doc.redo().unwrap();
+        assert!(done);
+        doc.undo().unwrap();
+        doc.undo().unwrap();
+        let (done, damage) = doc.undo().unwrap();
+        assert!(!done, "nothing more to undo is a normal false, not an error");
+        assert_eq!(damage, Damage::None);
+    }
+
+    #[test]
+    fn execute_as_records_the_given_origin() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        let origin = Origin::person("user:agent-1");
+        doc.execute_as("circle", json!({ "center": [5, 5], "radius": 2 }), &origin).unwrap();
+        assert!(doc.can_undo());
+        assert_eq!(doc.session.origin(), kition_cad_engine::kdm_bridge::local_person(), "the origin is put back");
+    }
+
+    /// `docId` is `None` before any replica exists, and the replica's own id (not the file's
+    /// `name`, and stable across a save/reopen with that same replica) once one does.
+    #[test]
+    fn doc_id_is_none_until_a_replica_exists_then_the_replicas_own_id() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        assert_eq!(doc.doc_id(), None, "no replica yet");
+        doc.version().unwrap();
+        let id = doc.doc_id().unwrap_or_else(|| panic!("doc_id once a replica exists"));
+        assert!(!id.is_empty());
+        let bytes = doc.save(Some("Plan.dxf")).unwrap();
+        let snapshot = doc.snapshot().unwrap();
+        let reopened = CadDocument::open_with_replica("Plan.dxf", &bytes, &snapshot, &[]).unwrap();
+        assert_eq!(reopened.doc_id(), Some(id), "the reopened replica keeps the same document id");
+    }
+
+    /// With no file yet (empty bytes), the replica alone opens: a peer's full change export
+    /// becomes the same drawing, same identity, and it saves as DXF.
+    #[test]
+    fn a_replica_opens_without_a_file() {
+        let mut a = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        extra_edit(&mut a);
+        let changes = a.export_changes(&[]).unwrap();
+        let mut b = CadDocument::open_with_replica("Shared.dxf", &[], &changes, &a.blobs().unwrap()).unwrap();
+        assert_eq!(b.doc_id(), a.doc_id());
+        assert_eq!(b.version().unwrap(), a.version().unwrap());
+        assert!(!b.dirty());
+        assert_eq!(entities(&b), entities(&a));
+        assert!(CadDocument::open("Shared.dxf", &b.save(Some("Shared.dxf")).unwrap()).is_ok());
+        assert!(CadDocument::open_with_replica("Shared.dxf", &[], b"not a replica", &[]).is_err());
+    }
+
+    #[test]
+    fn blob_bundles_are_checked_without_panicking() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        assert!(doc.blobs().unwrap().is_empty());
+        assert!(doc.add_blobs(&[]).is_ok());
+        assert!(doc.add_blobs(&[1, 2, 3]).is_err());
+        let mut malformed = "a".repeat(64).into_bytes();
+        malformed.extend_from_slice(&u64::MAX.to_le_bytes());
+        assert!(doc.add_blobs(&malformed).is_err(), "a length claiming more data than exists");
+        let mut good = "a".repeat(64).into_bytes();
+        good.extend_from_slice(&3u64.to_le_bytes());
+        good.extend_from_slice(b"abc");
+        assert!(doc.add_blobs(&good).is_ok());
+    }
+
+    /// A DXF saved with its replica reopens as that replica: same version, same rendered pixels,
+    /// not dirty, and it takes new edits (which undo) at once.
+    #[test]
+    fn a_drawing_reopens_with_its_stored_replica() {
+        let mut a = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        extra_edit(&mut a);
+        let bytes = a.save(Some("Plan.dxf")).unwrap();
+        let snapshot = a.snapshot().unwrap();
+        let version = a.version().unwrap();
+
+        let mut b = CadDocument::open_with_replica("Plan.dxf", &bytes, &snapshot, &[]).unwrap();
+        assert!(b.has_replica());
+        assert_eq!(b.version().unwrap(), version);
+        assert_eq!(entities(&b), entities(&a));
+        assert!(!b.dirty());
+        assert!(!b.can_undo());
+        extra_edit(&mut b);
+        assert!(b.dirty());
+        assert_ne!(b.version().unwrap(), version);
+        assert!(b.undo().unwrap().0);
+        assert!(CadDocument::open("Plan.dxf", &b.save(Some("Plan.dxf")).unwrap()).is_ok(), "it still saves as DXF");
+    }
+
+    /// A damaged (or missing) stored replica never stops the file from opening: it opens
+    /// plainly, never as a blank drawing.
+    #[test]
+    fn a_damaged_stored_replica_opens_the_file_plainly() {
+        let bytes = fixture();
+        let a = CadDocument::open("Plan.dxf", &bytes).unwrap();
+        for (snapshot, blobs) in [(&b"not a snapshot"[..], &[][..]), (&[][..], &[1u8, 2, 3][..])] {
+            let doc = CadDocument::open_with_replica("Plan.dxf", &bytes, snapshot, blobs).unwrap();
+            assert_eq!(entities(&doc), entities(&a));
+            assert!(!doc.has_replica(), "the file opened plainly");
+        }
+        assert!(CadDocument::open_with_replica("Plan.dxf", b"not a drawing", b"not a snapshot", &[]).is_err());
+    }
+
+    /// `a` saves with its replica; `b` opens with it. `a` draws more;
+    /// `b.importChanges(a.exportChanges(b.version()))` converges `b` to the same replicated state.
+    #[test]
+    fn two_documents_converge_through_export_and_import_changes() {
+        let mut a = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        extra_edit(&mut a);
+        let bytes = a.save(Some("Plan.dxf")).unwrap();
+        let snapshot = a.snapshot().unwrap();
+        let mut b = CadDocument::open_with_replica("Plan.dxf", &bytes, &snapshot, &[]).unwrap();
+        assert_eq!(b.version().unwrap(), a.version().unwrap(), "b starts from a's own replica");
+
+        a.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        let since = b.version().unwrap();
+        let changes = a.export_changes(&since).unwrap();
+        b.import_changes(&changes).unwrap();
+        assert_eq!(a.version().unwrap(), b.version().unwrap());
+        assert_eq!(entities(&a), entities(&b));
+        assert_eq!(
+            a.render(0.0, 0.0, 1.0, 400, 300).unwrap(),
+            b.render(0.0, 0.0, 1.0, 400, 300).unwrap(),
+            "converged replicas render the same drawing"
+        );
+    }
+    /// `kition-cad` serves the object model through `ReplicaPort`: a command and a model edit in
+    /// batches reach the engine, and a read-only batch refuses writes.
+    #[test]
+    fn serves_the_object_model_over_its_change_exchange() {
+        use kition_kit::session::model::{Exchange, ModelErrorCode};
+        use serde_json::{Value, json};
+
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        let mut exchange = Exchange::new();
+        let described = exchange.describe(&mut doc).unwrap();
+        assert_eq!(described["capability"], "KitObjectModel 1.0");
+        assert!(described["commands"].as_array().unwrap().iter().any(|command| command["id"] == "circle"));
+
+        let command = json!({ "ops": [{ "op": "command", "id": "circle", "params": { "center": [5, 5], "radius": 2 } }] });
+        assert_eq!(exchange.batch(&mut doc, &command, true).unwrap_err().code, ModelErrorCode::ReadOnly);
+        let before = doc.version().unwrap();
+        exchange.batch(&mut doc, &command, false).unwrap();
+        assert_ne!(doc.version().unwrap(), before, "the command ran in the engine");
+
+        let load = |exchange: &mut Exchange, doc: &mut CadDocument, target: &str, field: &str| -> Value {
+            let answer = exchange.batch(doc, &json!({ "ops": [], "load": [{ "target": target, "fields": [field] }] }), false).unwrap();
+            answer["loaded"][0]["fields"][field].clone()
+        };
+        let model = load(&mut exchange, &mut doc, "root", "model");
+        assert_eq!(model.as_array().unwrap().len(), 2, "the line and the circle");
+        let remove = json!({ "ops": [{ "op": "delete", "target": model[0] }] });
+        exchange.batch(&mut doc, &remove, false).unwrap();
+        assert_eq!(load(&mut Exchange::new(), &mut doc, "root", "model").as_array().unwrap().len(), 1);
+    }
+}

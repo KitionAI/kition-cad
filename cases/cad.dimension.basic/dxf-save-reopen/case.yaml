@@ -1,0 +1,17 @@
+format: 1
+id: cad.dimension.basic/dxf-save-reopen
+feature: cad.dimension.basic
+intent: >-
+  A linear, an aligned and a radius dimension come back with their definition points, style, text and associativity after SAVEAS and OPEN of a DXF file (the *D block the writer draws them into and the unmoved text's cached position set aside), and a second save reproduces them exactly.
+layer: gate
+source:
+  kind: synthetic
+  from: "crates/engine/engine/tests/roundtrip.rs"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "dimensions_survive_save_and_reopen", test: "roundtrip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

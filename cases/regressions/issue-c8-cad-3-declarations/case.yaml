@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-c8-cad-3-declarations
+feature: cad.agent.premises
+intent: ARRAY's forwarded target and non-file path declarations pass the source/schema checks, and move premises expose the effective layer lock while retaining geometry protection.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs and bindings/wasm/tests/places.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, filter: every_file_parameter_is_declared }
+  - cargo-test: { package: kition-cad-kit, test: acts }
+  - cargo-test: { package: kition-cad-kit, test: places }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

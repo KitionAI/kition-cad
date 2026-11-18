@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-read-3-same
+feature: cad.agent.premises
+intent: Replacing an observed field refuses a colleague's same-field change and merges unrelated field changes, including settings and positional table text.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read3_same.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read3_same }
+  - cargo-test: { package: kition-cad, test: read3_fields }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

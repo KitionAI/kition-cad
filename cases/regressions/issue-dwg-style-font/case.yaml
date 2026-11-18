@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-dwg-style-font
+feature: cad.draw.text-labels
+intent: >-
+  A text style with Kition CAD's built-in font (Standard) keeps that font through a DWG save and reopen, while a style with another font keeps its own. A DXF carries the font name as xdata on the STYLE record, which a DWG conversion drops, so the style came back as `txt`; the DXF written for a DWG now also carries it in the `KITION_CAD_STYLEFONTS` XRECORD, which the conversion keeps.
+layer: gate
+source:
+  kind: probe
+  from: "P2 round trip (cad.file.drawings gap: Standard's font came back as txt through DWG)"
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-io", filter: "dwg_keeps_the_builtin_font_of_a_text_style", test: "dwg_roundtrip_losses" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

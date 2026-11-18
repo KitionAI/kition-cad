@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-cad-read-2-incremental
+feature: cad.agent.premises
+intent: An SDK writer changing a style's eligibility through the header must report a premise conflict to another writer; the active probe waits for incremental SDK dependency refresh.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/read_classes.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: read_classes, filter: waiting_for_sdk_incremental }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

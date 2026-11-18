@@ -1,0 +1,28 @@
+[package]
+name = "kition-cad-engine"
+description = "Kition CAD engine: sessions, commands, the command line and prompts, snaps, selection, undo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-cad-geom = { workspace = true }
+kition-cad-color = { workspace = true }
+kition-cad-doc = { workspace = true }
+kition-cad-constraints = { workspace = true }
+kition-cad-fonts = { workspace = true }
+kition-cad-render = { workspace = true }
+kdm-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+# R-tree spatial index for picking, window selection and object snaps (Apache-2.0).
+rstar = { version = "0.12", default-features = false }
+
+[dev-dependencies]
+# The KDM bridge tests save a drawing as a file.
+kition-cad-io = { workspace = true }

@@ -1,0 +1,18 @@
+format: 1
+id: cad.agent.preview/pixel-to-drawing
+feature: cad.agent.preview
+intent: >-
+  the answer's window and unitsPerPixel map a known drawing point to the pixel where it is drawn, and an empty point to an empty pixel.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-kit, test: render, filter: window_and_units_per_pixel_map_a_known_point_to_its_pixel }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

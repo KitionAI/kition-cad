@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-2
+feature: cad.draw.hatch
+intent: >-
+  A new drawing is metric (the new command as the kit's new documents), and the library's hatch
+  patterns follow the drawing's measurement as CAD programs load the ISO definitions: ANSI31's
+  lines are 3.175 apart in a millimetre drawing as they are 0.125 inch apart in an inch one, the
+  saved DXF writes the same definition, and MEASUREMENT switches it. Before, the new command made
+  inch drawings and ANSI31 at scale 1 was a near-solid fill in a millimetre drawing.
+layer: gate
+source:
+  kind: issue
+  from: Kition CAD regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-render", test: "hatch_fill", filter: "library_patterns_follow_the_drawings_measurement" }
+  - cargo-test: { package: "kition-cad-engine", filter: "issue_2_new_drawings_are_metric" }
+  - cargo-test: { package: "kition-cad-io", filter: "issue_2_metric_hatch_patterns_are_written_in_millimetres" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

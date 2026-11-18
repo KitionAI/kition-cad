@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-cad-3-derived
+feature: cad.agent.premises
+intent: Derived geometry writes hold their other source entities and consumed layer state while independent geometry may change.
+layer: gate
+timeout_s: 60
+source:
+  kind: synthetic
+  from: bindings/headless/tests/guard_matrix.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: guard_matrix, filter: derived_geometry_matrix }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

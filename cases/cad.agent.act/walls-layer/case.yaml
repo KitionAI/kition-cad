@@ -1,0 +1,38 @@
+format: 1
+id: cad.agent.act/walls-layer
+feature: cad.agent.act
+intent: >-
+  The agent makes a layer and moves the rectangle's four lines onto it by layer name, leaving the text on layer 0: the layer parameter is a name, not a number.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.dxf
+  license: Apache-2.0
+  note: "A copy of the conformance drawing the cad engine writes: a 100 x 60 rectangle of four lines (handles 100-103) and a text, all on layer 0."
+input: [input/plan.dxf]
+steps:
+  - task:
+      prompt: >-
+        In plan.dxf, create a layer named "Walls" and move the four lines of the rectangle onto it.
+        The text stays on layer 0, and no geometry changes.
+      max_turns: 20
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layer: Walls } }], as: walls }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+expected:
+  - actual: out:walls
+    compare: values
+    value:
+      completed.0.result.count: 4
+      completed.0.result.entities: { any: { handle: "100", type: Line } }
+  - actual: out:all
+    compare: values
+    collateral: true
+    value:
+      completed.0.result.count: 5
+      completed.0.result.entities: { any: { type: Text, layer: "0" } }
+      completed.0.result.entities.0.geometry.b.x: 100
+solution:
+  - tool: cad_run
+    args: { path: plan.dxf, steps: [{ command: layer.new, params: { name: Walls } }, { command: properties.set, params: { handles: ["100", "101", "102", "103"], layer: Walls } }] }
+since: "2026-11-17"
+timeout_s: 600
