@@ -12,7 +12,8 @@
     "module": "kition_cad_kit",
     "class": "CadDocument",
     "contract": 2,
-    "crate": "kition-cad-kit"
+    "crate": "kition-cad-kit",
+    "editorState": ["/space", "/viewport", "/view", "/selection", "/selectedObjects", "/viewRequest", "/prompt", "/running", "/drafting", "/units"]
   },
   "formats": [
     {
