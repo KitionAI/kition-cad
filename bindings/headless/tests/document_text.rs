@@ -14,7 +14,9 @@ use serde_json::json;
 
 #[test]
 fn answers_document_text_as_the_manifest_declares() {
-    let mut kit = Headless::<CadDocument>::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap());
+    let mut kit = Headless::<CadDocument>::with_replica_port(
+        KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_cad_kit::EDITOR_STATE).unwrap(),
+    );
     assert_eq!(kit.capabilities()["capabilities"], json!([kition_kit::text::CAPABILITY]));
     let root = std::env::temp_dir().join(format!("kition-cad-text-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

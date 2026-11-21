@@ -1,6 +1,6 @@
 format: 1
 kit: cad
-updated: "2026-11-17"
+updated: "2026-11-20"
 gate_budget_s: 600
 protected: []
 features:
@@ -119,6 +119,14 @@ features:
     paths: [bindings/wasm/src/document_text.rs, bindings/wasm/src/lib.rs]
     cases: [cad.document.text/words-by-space]
     since: "2026-11-17"
+  - id: cad.document.identity
+    title: "A host asks the document id a .dxf carries and forks a copied drawing (document.identity, document.fork; Kit Process Protocol 5.6): a .dxf embeds no replica, so it carries none and forks into the same bytes"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/headless/src/main.rs, kit.json]
+    cases: [cad.document.identity/no-replica]
+    since: "2026-11-20"
   - id: cad.edit.clipboard
     title: "Undo, redo, clipboard, paste variants and erase"
     dimension: [function]

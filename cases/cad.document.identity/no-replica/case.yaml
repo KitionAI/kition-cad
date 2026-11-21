@@ -1,0 +1,22 @@
+format: 1
+id: cad.document.identity/no-replica
+feature: cad.document.identity
+intent: >-
+  Through the real kition-cad process, which lists the feature document.identity: a .dxf holds the
+  drawing alone and embeds no replica (the kit makes one under a new id on every open), so a saved
+  drawing, its byte copy and an empty .dxf carry no identity (docId null); document.fork writes the
+  same bytes with no docId to a new file, which opens as the drawing, leaves the source unchanged,
+  and never replaces an existing file (file_conflict).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/identity.rs (a_drawing_carries_no_identity_and_forks_into_the_same_bytes)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad, test: identity, filter: a_drawing_carries_no_identity_and_forks_into_the_same_bytes }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-20"

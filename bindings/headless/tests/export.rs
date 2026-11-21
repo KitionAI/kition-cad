@@ -12,7 +12,9 @@ use serde_json::{Map, json};
 
 #[test]
 fn issue_export_the_headless_kit_reports_and_writes_its_exports() {
-    let mut kit = Headless::<CadDocument>::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap());
+    let mut kit = Headless::<CadDocument>::with_replica_port(
+        KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_cad_kit::EDITOR_STATE).unwrap(),
+    );
     assert_eq!(kit.capabilities()["formats"]["export"], json!(["pdf", "svg", "png"]));
     let root = std::env::temp_dir().join(format!("kition-cad-export-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

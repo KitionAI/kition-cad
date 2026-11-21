@@ -12,7 +12,9 @@ fn null_content_regions_reach_the_cad_callback() {
     let doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
     std::fs::write(root.path().join("Plan.dxf"), doc.save(Some("Plan.dxf")).unwrap()).unwrap();
     let folder = HostFolder::new(root.path()).unwrap();
-    let mut kit = Headless::<CadDocument>::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap());
+    let mut kit = Headless::<CadDocument>::with_replica_port(
+        KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_cad_kit::EDITOR_STATE).unwrap(),
+    );
     kit.set_host(folder.host());
     let opened = kit.open(OpenRequest { file: &folder.file("Plan.dxf").unwrap(), read_only: false, create: None }).unwrap();
     let mut params = json!({"id":"drawing","field":"kind.attribs","region":null,"before":null}).as_object().unwrap().clone();
@@ -30,7 +32,9 @@ fn replacement_plans_advance_without_changing_the_live_drawing() {
     }
     std::fs::write(root.path().join("Plan.dxf"), doc.save(Some("Plan.dxf")).unwrap()).unwrap();
     let folder = HostFolder::new(root.path()).unwrap();
-    let mut kit = Headless::<CadDocument>::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap());
+    let mut kit = Headless::<CadDocument>::with_replica_port(
+        KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_cad_kit::EDITOR_STATE).unwrap(),
+    );
     kit.set_host(folder.host());
     let opened = kit.open(OpenRequest { file: &folder.file("Plan.dxf").unwrap(), read_only: false, create: None }).unwrap();
     let token = kit.context_plan(&opened.id, &json!({"action":"begin","steps":[]}).as_object().unwrap().clone()).unwrap()["token"].clone();

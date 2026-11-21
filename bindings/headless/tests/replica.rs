@@ -11,7 +11,7 @@ use kition_kit_server::{ErrorReason, KitBackend};
 use serde_json::{Value, json};
 
 fn kit() -> Headless<CadDocument> {
-    Headless::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap())
+    Headless::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_cad_kit::EDITOR_STATE).unwrap())
 }
 
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

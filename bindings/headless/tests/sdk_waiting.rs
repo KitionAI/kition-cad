@@ -140,7 +140,7 @@ impl ReplicaPort for Probe {
 }
 
 fn nested_union_schema_roles_are_not_available() {
-    let kit = KitInfo::from_manifest(MANIFEST, &[], &[]).unwrap();
+    let kit = KitInfo::from_manifest(MANIFEST, &[], kition_cad_kit::EDITOR_STATE).unwrap();
     let commands = Headless::<Probe>::new(kit).commands(None).unwrap();
     let schema = &commands.iter().find(|c| c.id == "review.union").unwrap().params;
     let source = &schema["properties"]["reference"]["oneOf"][1]["properties"]["source"];
