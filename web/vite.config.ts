@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   resolve: {
-    dedupe: ['react', 'react-dom', 'loro-crdt'],
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
     exclude: ['@kition/sdk'],
