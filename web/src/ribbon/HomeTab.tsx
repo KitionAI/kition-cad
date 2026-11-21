@@ -1,5 +1,5 @@
-import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, ShrinkIcon as Shrink, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera-icons/react'
-import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools } from '@kition/kit-editor'
+import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, ShrinkIcon as Shrink, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera/icons/react'
+import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
 
 const DRAW = ['line', 'pline', 'circle', 'arc', 'rectang', 'polygon', 'ellipse', 'spline', 'hatch']

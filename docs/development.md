@@ -6,7 +6,7 @@
 |---|---|
 | `crates/` | The engine (Rust), in groups: `support/` (`geom`, `color`, `fonts`), `engine/` (`doc`, the drawing model; `constraints`; `engine`, the commands), `formats/` (`dxf`, `dwg`, `io`), `render/` (`render`) and `kdm/` (`kdm-model`). Layers are in [architecture.md](architecture.md) |
 | `bindings/` | `wasm`: `kition-cad-kit`, the engine behind Kition's `KitDocument` contract, compiled to WebAssembly for the editor; `headless`: `kition-cad`, the headless kit executable for Kition's agent |
-| `web/` | The kit's editor (React, on kition-sdk's `@kition/kit-editor`); `web/dev.html` is a host for development |
+| `web/` | The kit's editor (React, on kition-sdk's `@kition/sdk/editor`); `web/dev.html` is a host for development |
 | `kit.json` | The kit manifest (KHP) |
 | `agent/` | The agent guide (`guide.md`) and checks |
 | `conformance/` | The agent conformance fixtures (`.dxf` drawings) that cases and tests refer to |
@@ -32,14 +32,16 @@ round trips (`crates/engine/engine/tests/roundtrip.rs`); `features.yaml` and its
 [writing-format.md](writing-format.md) lists every command.
 
 By default the editor's dependencies come from npm: `pnpm install` in `web/` installs the published
-`@kition/*` packages at the versions the committed `web/pnpm-lock.yaml` pins, so no other checkout
-is needed. To develop against local checkouts instead, run `KITION_LINK=1 pnpm install` in `web/`:
-`web/.pnpmfile.cjs` then links `@kition/kdm`, `@kition/kit-editor`, `@kition/kit-engine`,
-`@kition/kit-host`, `@kition/kit-ui-protocol` and `@kition/kit-dev-host` from a kition-sdk checkout,
-and `@kition/tessera-ui`, `@kition/tessera-tokens` and `@kition/tessera-icons` from a kition-tessera
-checkout (by default `../kition-sdk` and `../kition-tessera` beside this repository; `KITION_SDK`
-and `KITION_TESSERA` name others). A package whose folder is not there stays on npm. The linked
-install rewrites `web/pnpm-lock.yaml`; a lockfile changed that way must not be committed.
+`@kition/sdk` (the editor, `@kition/sdk/editor`, and the development host, `@kition/sdk/dev-host`)
+and `@kition/tessera` (its icons, `@kition/tessera/icons`) at the versions the committed
+`web/pnpm-lock.yaml` pins, so no other checkout is needed. To develop against local checkouts
+instead, run `KITION_LINK=1 pnpm install` in `web/`: `web/.pnpmfile.cjs` then links `@kition/sdk`
+from a kition-sdk checkout's `packages/sdk` and `@kition/tessera` from a kition-tessera checkout's
+`packages/tessera` (by default `../kition-sdk` and `../kition-tessera` beside this repository;
+`KITION_SDK` and `KITION_TESSERA` name others). Both packages' `exports` point at their built
+`dist/`, so build them in the checkouts first. A package whose folder is not there stays on npm.
+The linked install rewrites `web/pnpm-lock.yaml`; a lockfile changed that way must not be
+committed.
 
 `cargo xtask` is an alias in `.cargo/config.toml` for `cargo run --package xtask --`. Every asset
 file under `assets/`, `docs/images/` and `examples/` needs a row in

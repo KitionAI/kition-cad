@@ -2,7 +2,7 @@
 
 The kit's editor (`web/`) has no language setting of its own: the host (Kition) tells it which
 locale to use, at `connectHost`'s `host.init.locale` and over the live `ui/locale` event
-(`@kition/kit-editor`'s `connectHost`).
+(`@kition/sdk/editor`'s `connectHost`).
 
 ## Translation coverage
 
@@ -12,7 +12,7 @@ locale to use, at `connectHost`'s `host.init.locale` and over the live `ui/local
   labels the upstream editor's English text uses, for locales its own catalogs don't
   cover.
 - `web/src/i18n/upstream/*.tsv` carries translations of that same English text, loaded with
-  `@kition/kit-editor`'s `loadPhrases` (`main.tsx`) and layered under `PHRASES` with
+  `@kition/sdk/editor`'s `loadPhrases` (`main.tsx`) and layered under `PHRASES` with
   `withPhrases`: `uk.tsv` (Ukrainian).
 - Drawing titles, layer/layout/block/style names, parameter names and expressions, text in a
   drawing, and command-line input are user data and keep their original spelling. Engine

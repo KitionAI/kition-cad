@@ -1,5 +1,5 @@
-import { CheckIcon as Check, EyeIcon as Eye, EyeOffIcon as EyeOff, LockIcon as Lock, LockOpenIcon as LockOpen, PlusIcon as Plus, SnowflakeIcon as Snowflake, SunIcon as Sun } from '@kition/tessera-icons/react'
-import { IconButton, useKitEditor } from '@kition/kit-editor'
+import { CheckIcon as Check, EyeIcon as Eye, EyeOffIcon as EyeOff, LockIcon as Lock, LockOpenIcon as LockOpen, PlusIcon as Plus, SnowflakeIcon as Snowflake, SunIcon as Sun } from '@kition/tessera/icons/react'
+import { IconButton, useKitEditor } from '@kition/sdk/editor'
 import type { CadInfo } from './cad'
 import { SelectionProperties } from './SelectionProperties'
 

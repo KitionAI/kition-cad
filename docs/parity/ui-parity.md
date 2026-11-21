@@ -153,7 +153,7 @@ command line.
 | Workspaces | Drafting & Annotation, 3D Modeling | no |
 | Options / Preferences dialog | many tabs | **no** |
 | Customisation (CUI, aliases editor, tool palettes) | yes | no |
-| Themes | Dark, Light | the host's theme (`@kition/kit-editor` theme tokens) |
+| Themes | Dark, Light | the host's theme (`@kition/sdk/editor` theme tokens) |
 | Accessibility | VoiceOver basics | ARIA labels on the editor's controls; screen-reader coverage untested |
 
 ## Navigation (≈ 55%)
@@ -163,7 +163,7 @@ command line.
 | ZOOM Extents, All, Window, Previous, In/Out, Center, Scale, Object | yes | yes, 50-entry history (`cmd/view.rs:107-149`) |
 | ZOOM Realtime (drag), Dynamic | yes | **no** |
 | Wheel zoom about cursor, ZOOMFACTOR, ZOOMWHEEL | yes | fixed factor (no ZOOMFACTOR) |
-| Middle-drag pan, double-middle-click extents | yes | middle-drag pan (`@kition/kit-editor`'s canvas) |
+| Middle-drag pan, double-middle-click extents | yes | middle-drag pan (`@kition/sdk/editor`'s canvas) |
 | Trackpad two-finger pan, pinch zoom (macOS) | yes | a two-finger scroll zooms about the cursor like a wheel (`web/src/CadCanvas.tsx`) |
 | Named views (VIEW) | yes | **no** (VIEW table not read or written) |
 | Tiled model-space viewports (VPORTS) | yes | not confirmed: VPORTS maps to paper-space MVIEW |

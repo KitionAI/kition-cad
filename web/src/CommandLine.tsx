@@ -1,6 +1,6 @@
 import { useRef, useState, type RefObject } from 'react'
-import { TerminalIcon as Terminal } from '@kition/tessera-icons/react'
-import { useKitEditor, useKitTools } from '@kition/kit-editor'
+import { TerminalIcon as Terminal } from '@kition/tessera/icons/react'
+import { useKitEditor, useKitTools } from '@kition/sdk/editor'
 
 /** Kition CAD's command line: the engine's prompt, and what the person types run as a command. */
 export function CommandLine({ prompt, running, input, history, onCommand }: { prompt: string; running: string | null; input: RefObject<HTMLInputElement | null>; history: string[]; onCommand: (text: string) => void }) {

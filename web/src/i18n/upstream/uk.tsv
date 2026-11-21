@@ -2,7 +2,7 @@
 # License: MIT (upstream licensed it MIT OR Apache-2.0; used here under MIT, see NOTICE).
 # Written from Kition CAD's English strings; no proprietary translations were copied.
 # UTF-8: (empty)<TAB>English source<TAB>Ukrainian translation. The first column is ignored by
-# this kit's loader (@kition/kit-editor's loadPhrases); it is kept empty so the catalog keeps its
+# this kit's loader (@kition/sdk/editor's loadPhrases); it is kept empty so the catalog keeps its
 # three-column form.
 # Keep command IDs, keywords, technology/product names and user data unchanged.
 	  Cancel  	Скасувати

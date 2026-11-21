@@ -1,4 +1,4 @@
-import type { KitEngineInfo } from '@kition/kit-editor'
+import type { KitEngineInfo } from '@kition/sdk/editor'
 
 export type Layer = { name: string; on: boolean; frozen: boolean; locked: boolean }
 

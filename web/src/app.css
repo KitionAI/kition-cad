@@ -1,4 +1,4 @@
-/* The CAD editor's own layout; colors and shapes come from @kition/kit-editor's tokens. */
+/* The CAD editor's own layout; colors and shapes come from @kition/sdk/editor's tokens. */
 
 .cad-side {
   width: 232px;

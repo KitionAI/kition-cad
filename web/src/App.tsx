@@ -15,7 +15,7 @@ import {
   type KitCanvasHandle,
   type Phrases,
   type RasterView,
-} from '@kition/kit-editor'
+} from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { CATALOGS } from './strings'
 import { CAD_PRIMARY, DRAFTING, HOST_FILE_COMMANDS, MENU_TABS, describe } from './cad'

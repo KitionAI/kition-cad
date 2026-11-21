@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useKitEditor } from '@kition/kit-editor'
+import { useKitEditor } from '@kition/sdk/editor'
 import type { CadInfo } from './cad'
 
 function NumberField({ label, value, disabled, positive, onCommit }: { label: string; value: number; disabled: boolean; positive?: boolean; onCommit: (value: number) => void }) {

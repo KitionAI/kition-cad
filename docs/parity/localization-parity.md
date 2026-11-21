@@ -21,7 +21,7 @@ shaping and right-to-left text through TrueType, vertical SHX text styles.
 ## What Kition CAD has
 
 - **A display-time string catalog** in this kit's editor (`web/src/i18n/upstream/`, loaded by
-  `@kition/kit-editor`'s `loadPhrases`/`withPhrases`; the editor has no settings menu of its own,
+  `@kition/sdk/editor`'s `loadPhrases`/`withPhrases`; the editor has no settings menu of its own,
   so the host (Kition) sets the locale; [localization.md](../features/localization.md)). The Ukrainian catalog has
   **973 rows**, covering menus, command labels, tool groups and tooltips, status controls,
   object snaps, drafting prompts and property labels. Engine diagnostics and command history

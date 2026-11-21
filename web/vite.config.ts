@@ -10,10 +10,10 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'loro-crdt'],
   },
   optimizeDeps: {
-    exclude: ['@kition/kit-editor', '@kition/kit-host', '@kition/kit-ui-protocol', '@kition/kit-dev-host'],
+    exclude: ['@kition/sdk'],
     // The published kit editor reaches a CommonJS shim (through its UI library); excluded above, it
     // is not scanned, so the shim is named here to be converted for the browser.
-    include: ['@kition/kit-editor > use-sync-external-store/shim'],
+    include: ['@kition/sdk > use-sync-external-store/shim'],
   },
   worker: { format: 'es' },
   server: {
