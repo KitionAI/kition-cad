@@ -38,8 +38,8 @@ const grip = async () => {
   await until('grip ready', async () => (await details()).prompt.startsWith('STRETCH '))
 }
 const evidence = async (name) => {
-  await mkdir(new URL('../../temp/precision/', import.meta.url), { recursive: true })
-  await page.screenshot({ path: new URL(`../../temp/precision/${which}-${name}.png`, import.meta.url).pathname })
+  await mkdir(new URL('../test-results/precision/', import.meta.url), { recursive: true })
+  await page.screenshot({ path: new URL(`../test-results/precision/${which}-${name}.png`, import.meta.url).pathname })
 }
 const previewAt = async (x, y) => {
   const surface = kit.getByTestId('kit-canvas-surface')

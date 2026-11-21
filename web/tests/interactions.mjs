@@ -35,8 +35,8 @@ const reopen = async () => {
 const pixels = () => kit.getByTestId('kit-canvas-surface').evaluate((canvas) => canvas.toDataURL())
 const circle = async () => (await details()).selectedObjects[0]
 const evidence = async (name) => {
-  await mkdir(new URL('../../temp/interactions/', import.meta.url), { recursive: true })
-  await page.screenshot({ path: new URL(`../../temp/interactions/${which}-${name}.png`, import.meta.url).pathname })
+  await mkdir(new URL('../test-results/interactions/', import.meta.url), { recursive: true })
+  await page.screenshot({ path: new URL(`../test-results/interactions/${which}-${name}.png`, import.meta.url).pathname })
 }
 
 try {
@@ -160,8 +160,8 @@ try {
   console.log('PASS new input routes cannot edit a view-only drawing')
   assert.deepEqual(errors, [], 'no browser errors')
 } catch (error) {
-  await mkdir(new URL('../../temp/interactions/', import.meta.url), { recursive: true })
-  await page.screenshot({ path: new URL(`../../temp/interactions/${which}.png`, import.meta.url).pathname }).catch(() => {})
+  await mkdir(new URL('../test-results/interactions/', import.meta.url), { recursive: true })
+  await page.screenshot({ path: new URL(`../test-results/interactions/${which}.png`, import.meta.url).pathname }).catch(() => {})
   throw error
 } finally {
   await browser.close()

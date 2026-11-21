@@ -12,7 +12,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } })
 const kit = page.frameLocator('#kit')
 const input = kit.getByTestId('cad-command-line')
 const origin = `http://127.0.0.1:${server.httpServer.address().port}`
-const output = new URL('../../temp/polar/', import.meta.url)
+const output = new URL('../test-results/polar/', import.meta.url)
 const errors = []
 page.on('pageerror', (error) => errors.push(error.message))
 const inspect = () => page.evaluate(async () => window.devHost.connection().ai.inspect())
@@ -77,6 +77,7 @@ try {
   await until('one Undo restores clean geometry after all mode changes', async () => !(await inspect()).dirty)
   await kit.getByTestId('cad-redo').click()
   await command('selectall')
+  await until('selectall selects the redone circle', async () => (await circle())?.center[0] > 260)
   const center = (await circle()).center
   await kit.getByTestId('cad-save').click()
   await until('polar edit saves through the host', async () => !(await inspect()).dirty)
