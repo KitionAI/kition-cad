@@ -45,10 +45,13 @@ const previewAt = async (x, y) => {
   const surface = kit.getByTestId('kit-canvas-surface')
   const box = await surface.boundingBox()
   return surface.evaluate((canvas, point) => {
+    // The editor draws previews in the primary colour (the kit's brand, kit.json ui.brand).
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--kit-primary').trim()
+    const [red, green, blue] = [1, 3, 5].map((at) => parseInt(primary.slice(at, at + 2), 16))
     const scale = canvas.width / canvas.clientWidth
     const pixels = canvas.getContext('2d').getImageData(Math.round(point.x * scale) - 8, Math.round(point.y * scale) - 8, 16, 16).data
     for (let offset = 0; offset < pixels.length; offset += 4) {
-      if (Math.abs(pixels[offset] - 86) < 10 && Math.abs(pixels[offset + 1] - 69) < 10 && Math.abs(pixels[offset + 2] - 212) < 10) return true
+      if (Math.abs(pixels[offset] - red) < 10 && Math.abs(pixels[offset + 1] - green) < 10 && Math.abs(pixels[offset + 2] - blue) < 10) return true
     }
     return false
   }, { x: x - box.x, y: y - box.y })
