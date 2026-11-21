@@ -11,10 +11,6 @@ const server = await createServer({ configFile: new URL('../vite.config.ts', imp
 await server.listen()
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-// The editor takes Cmd or Ctrl from navigator.platform (kit-editor's isMac); Playwright's
-// ControlOrMeta follows the operating system running the test, and the two disagree for WebKit on
-// Linux, which reports a Mac platform.
-const primaryKey = async () => ((await page.evaluate(() => /Mac|iPhone|iPad/i.test(navigator.platform))) ? 'Meta' : 'Control')
 const kit = page.frameLocator('#kit')
 const app = kit.locator('.kui-app')
 const origin = `http://127.0.0.1:${server.httpServer.address().port}`
@@ -45,7 +41,7 @@ try {
   await kit.getByTestId('cad-command-line').press('Escape')
   await app.focus()
 
-  await page.keyboard.press(`${await primaryKey()}+Backslash`)
+  await page.keyboard.press('ControlOrMeta+Backslash')
   await until('Cmd+\\ enters Focus', async () => (await mode()) === 'focus')
   assert.equal(await kit.getByTestId('cad-command-line').count(), 0, 'the command line is hidden in Focus')
 
@@ -69,7 +65,7 @@ try {
   await kit.getByTestId('cad-command-line').press('Enter')
   await until('everything selected', async () => (await details()).selection === 7)
   await app.focus()
-  await page.keyboard.press(`${await primaryKey()}+Backslash`)
+  await page.keyboard.press('ControlOrMeta+Backslash')
   await until('Cmd+\\ enters Focus with a selection', async () => (await mode()) === 'focus')
   await page.keyboard.press('Escape')
   await until('Escape clears the selection', async () => (await details()).selection === 0)
