@@ -36,7 +36,7 @@ packages and rewrites `web/pnpm-lock.yaml`, which must not be committed.
 Before you open a pull request, run the check; it must exit 0:
 
 ```sh
-cargo xtask ci
+cargo fmt --all -- --check
 ```
 
 ## Rules
