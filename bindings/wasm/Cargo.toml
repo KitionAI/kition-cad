@@ -26,7 +26,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-# The conformance fixtures' golden previews (src/conformance.rs), and exported PNGs.
+# The conformance fixtures' expected previews (src/conformance.rs), and exported PNGs.
 image = { workspace = true }
 # Exported PDFs' content streams (tests/export.rs); the version the PDF writer uses.
 miniz_oxide = "0.8"
