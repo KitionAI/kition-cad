@@ -78,7 +78,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("dimoverride", "Override", run_override)
             .menu(&["Dimension", "Override"])
             .alias(&["dov", "dimover"])
-            .params("{handles?, <DimStyle fields or DIM* variables: values>, clear?: bool, text?: override text}")
+            .params("{handles?, …any dimension style field or DIM* variable as its own key with its value, clear?: bool, text?: override text}")
             .interactive(|s| Ok(Box::new(OverrideM::new(s)))),
         CommandSpec::new("dimreassociate", "Reassociate Dimensions", run_reassociate)
             .menu(&["Dimension", "Reassociate Dimensions"])

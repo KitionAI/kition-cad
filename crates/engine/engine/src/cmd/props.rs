@@ -11,7 +11,7 @@ use super::*;
 use crate::{Result, Session};
 
 /// `dimstyle` and its Dimension menu entry, `dimstyle.dimension`.
-const DIMSTYLE_PARAMS: &str = "{name: str, current?: bool (make it the current style; default true), <style fields or DIM* variables, e.g. arrowSize / DIMASZ, DIMTSZ, DIMBLK, DIMTAD, DIMLUNIT…>} → styles";
+const DIMSTYLE_PARAMS: &str = "{name: str, current?: bool (make it the current style; default true), DIMTSZ?, DIMBLK?, DIMTAD?, …or any other dimension style field or DIM* variable as its own key (arrowSize or DIMASZ, DIMLUNIT)} → styles";
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -42,7 +42,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("dimstyle.delete", "Delete Dimension Style", run_dimstyle_delete).params("{name} (not Standard, the current style or one in use)"),
         CommandSpec::new("dimstyle.current", "Set Current Dimension Style", run_dimstyle_current).params("{name}"),
         CommandSpec::new("dimstyle.override", "Dimension Style Override", dim_override)
-            .params("{handles?, <style fields or DIM* variables: values>, clear?: bool} (per-dimension overrides)"),
+            .params("{handles?, …any dimension style field or DIM* variable as its own key with its value, clear?: bool} (per-dimension overrides)"),
         CommandSpec::new("tablestyle", "Table Style...", run_tablestyle)
             .menu(&["Format", "Table Style..."])
             .alias(&["ts"])
