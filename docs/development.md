@@ -21,8 +21,14 @@
 cargo test --workspace
 cargo build --release -p kition-cad                       # the headless kit executable
 cd web && pnpm install && pnpm engine && pnpm test:flow   # the editor
-cargo xtask ci                                            # the check every change passes
+cargo xtask ci                                            # the kit's own checks (CI runs them)
 ```
+
+On your machine, run only the fast checks: `cargo fmt --all -- --check`, `cargo check -p
+<touched crates> --all-targets`, `cargo xtask wasm` and `pnpm typecheck` in `web/`. The check every
+change passes is the kit's CI run on GitHub (`.github/workflows/ci.yml`): clippy, `cargo test
+--workspace`, `cargo xtask ci` and every `test:*` script of `web/` ([quality.md](quality.md)); a
+change is done when the CI run of HEAD passes and HEAD is on `origin/main`.
 
 `pnpm test:flow` drives the editor in the development host (`web/dev.html`) in Chromium and WebKit;
 `web/package.json` lists the other browser tests (`test:interactions`, `test:precision`,
@@ -98,4 +104,5 @@ machine: the Package workflow (`.github/workflows/package.yml`, which calls Kiti
 KitionAI/kition-cad`, and publishes the Release with the package's lock entry,
 `kition-cad-<version>.json`. Kition pins it with `node scripts/pin-kits.mjs cad` (see
 `docs/kits.md` there). A version is published once: bump `version` in `kit.json` to publish a
-change.
+change. Releasing is the owner's step: agents do not start the Package workflow or change a
+version.

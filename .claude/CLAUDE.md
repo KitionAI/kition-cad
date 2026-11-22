@@ -37,7 +37,7 @@ People trust Kition CAD with their drawings; a crash loses their work. **This ou
 - **Layering** is enforced by `cargo xtask layers`: L0 `geom`, `dxf` → L1 `color`, `doc` → L2 `fonts`, `render`, `constraints` → L3 `io` → L4 `engine` → L5 `kition-cad-kit` → apps.
 - **The UI is thin**: panels read engine state and act through `app.run(id, params)` / `app.start(id)` / `app.cmdline(text)`. Colours come from `theme::Tokens`.
 - **Rust only** (no handwritten JS/TS). **Never break wasm** (`cargo xtask wasm`).
-- **Quality gates** before every commit: `cargo xtask ci` (fmt, clippy -D warnings, tests, assets, layers, wasm). Commit after every feature arc that builds, and push to `main`.
+- **Checks and CI.** On this machine run only the fast checks: `cargo fmt --all -- --check`, `cargo check -p <touched crates> --all-targets`, the wasm check (`cargo xtask wasm`) and `pnpm typecheck` in `web/`. Commit after every feature arc that builds. The full checks run in the kit's CI run on GitHub (`.github/workflows/ci.yml`, which calls Kition's reusable kit CI): clippy, `cargo test --workspace`, `cargo xtask ci` (fmt, clippy -D warnings, tests, assets, layers, wasm) and every `test:*` script of `web/`. A task is done when the CI run of HEAD passes and HEAD is on `origin/main` (Kition's `scripts/kit-ci.sh` `push`, `wait`, `land`); never push untested commits to `main`. Add no other workflows, and do not start the Package workflow (`.github/workflows/package.yml`): releasing is the owner's step.
 
 ## Running and looking at the app
 - There is no desktop app, CLI or control channel in this repository (Kition does not use
