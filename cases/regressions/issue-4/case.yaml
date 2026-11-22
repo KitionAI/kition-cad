@@ -2,7 +2,7 @@ format: 1
 id: regressions/issue-4
 feature: cad.file.drawings
 intent: >-
-  A reproducible build (SOURCE_DATE_EPOCH set, as the showcase and gate cases run) saves the
+  A reproducible build (SOURCE_DATE_EPOCH set, as the showcase and gating tests run) saves the
   same DXF bytes every time the same commands build the drawing: the replica's actor, whose slot
   numbers new handles, and the document id come from a counter in the process mixed with the
   epoch. Before, the actor was random, so every handle and so the file differed on every save.

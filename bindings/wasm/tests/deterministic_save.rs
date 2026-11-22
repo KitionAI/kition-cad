@@ -1,5 +1,5 @@
 //! A drawing built by the same commands saves the same DXF bytes when `SOURCE_DATE_EPOCH` is set,
-//! as a showcase sample or a gate case builds it: the replica's actor (whose slot
+//! as a showcase sample or a gating test builds it: the replica's actor (whose slot
 //! numbers new handles) and the document id come from a counter in the process instead of
 //! randomness. Each build runs in a process of its own: this test starts itself twice.
 

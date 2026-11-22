@@ -1,5 +1,5 @@
 //! New replica actors and document ids: random, except in a reproducible build
-//! (`SOURCE_DATE_EPOCH` set, as the showcase and gate cases build): there they come from a
+//! (`SOURCE_DATE_EPOCH` set, as the showcase and gating tests build): there they come from a
 //! counter in the process mixed with the epoch, so the handles a new drawing mints (numbered from
 //! its actor's slot, [`crate::handle_range`]) and so its saved DXF are the same on every build.
 //! Never on the web: the page has no environment.
