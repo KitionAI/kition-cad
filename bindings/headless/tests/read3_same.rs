@@ -3,6 +3,8 @@
 #[path = "read2/common.rs"]
 mod common;
 use common::*;
+use kition_cad_kit::CadDocument;
+use kition_kit::KitDocument;
 use serde_json::json;
 
 async fn written_field(command: &'static str) {
@@ -74,9 +76,48 @@ macro_rules! current_probe {
     };
 }
 current_probe!(attribute_display_same_setting, "attdisp");
-current_probe!(current_layer_same_setting, "layer.current");
-current_probe!(make_layer_current_same_setting, "laymcur");
-current_probe!(isolation_current_layer_same_setting, "layiso");
+
+/// The current layer is each person's own: after a colleague made Secondary their current layer
+/// (or made an unrelated change), my command setting my current layer applies, and the saved file
+/// is the colleague's with my command run on it (my current layer in it).
+async fn my_current_layer(command: &'static str) {
+    for colleague_current in [true, false] {
+        let f = Fixture::new();
+        let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
+        let colleague = if colleague_current {
+            vec![("layer.current", json!({"name":"Secondary"}))]
+        } else {
+            vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))]
+        };
+        f.colleague(&colleague);
+        let before = f.disk();
+        let params = match command {
+            "layer.current" => json!({"name":"Editable"}),
+            _ => json!({"handles":[f.line]}),
+        };
+        let mut oracle = CadDocument::open(FILE, &before).unwrap();
+        oracle.execute(command, params.clone()).unwrap_or_else(|e| panic!("oracle {command}: {e}"));
+        let expected = kition_cad_io::read(&oracle.save(Some(FILE)).unwrap(), FILE).unwrap();
+        f.call("run", json!({"basis":basis,"steps":[{"command":command,"params":params}]}))
+            .await
+            .unwrap_or_else(|e| panic!("{command} after {colleague:?} must apply: {e}"));
+        let actual = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        assert_eq!(content(&actual), content(&expected), "{command}: saved result");
+        assert_eq!(actual.header.str("CLAYER", "?"), "Editable", "{command}: my current layer is saved");
+        f.kits.shutdown().await;
+    }
+}
+macro_rules! my_current_layer_probe {
+    ($name:ident,$command:literal) => {
+        #[tokio::test(flavor = "multi_thread")]
+        async fn $name() {
+            my_current_layer($command).await;
+        }
+    };
+}
+my_current_layer_probe!(current_layer_is_my_own_setting, "layer.current");
+my_current_layer_probe!(make_layer_current_is_my_own_setting, "laymcur");
+my_current_layer_probe!(isolation_current_layer_is_my_own_setting, "layiso");
 
 async fn injected_header(command: &str, variable: &str, code: &str, value: &str, params: serde_json::Value) {
     for relevant in [false, true] {

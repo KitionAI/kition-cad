@@ -134,27 +134,56 @@ async fn check_selected(
     }
 }
 
-/// A default taken from a stored setting: the viewports MVIEW makes take the current colour.
-#[tokio::test(flavor = "multi_thread")]
-async fn new_viewports_rest_on_the_current_properties_they_take() {
-    check(
-        |_| ("mview", json!({"layout":"Layout1"})),
-        |_| vec![("color", json!({"color":"red"}))],
-        // A move would change the model extents the viewport is fitted to.
-        |_| vec![("layer.new", json!({"name":"Other"}))],
-    )
-    .await;
+/// The handles of the entities of `store`.
+fn handles_of(store: &kition_cad_doc::EntityStore) -> Vec<kition_cad_doc::Handle> {
+    store.iter().map(|e| e.handle).collect()
 }
 
-/// A default taken from a stored setting: OFFSET onto the current layer copies CLAYER.
+/// The viewports MVIEW makes take the current colour, which is each person's own: after a
+/// colleague made red their current colour (or made an unrelated change), MVIEW applies and its
+/// viewports take my current colour (ByLayer), which the saved file carries.
 #[tokio::test(flavor = "multi_thread")]
-async fn an_offset_onto_the_current_layer_rests_on_it() {
-    check(
-        |f| ("offset", json!({"handle":f.line,"distance":5,"side":[50,10],"layer":"current"})),
-        |_| vec![("layer.current", json!({"name":"Walls"}))],
-        |f| vec![("move", json!({"handles":[f.other],"delta":[0,5]}))],
-    )
-    .await;
+async fn new_viewports_take_my_current_colour_not_a_colleagues() {
+    for colleague_colour in [true, false] {
+        let f = Fixture::new();
+        let basis = f.basis().await;
+        // A move would change the model extents the viewport is fitted to.
+        f.colleague(&[if colleague_colour { ("color", json!({"color":"red"})) } else { ("layer.new", json!({"name":"Other"})) }]);
+        let layout = |d: &kition_cad_doc::Drawing| d.layouts.iter().find(|l| l.name == "Layout1").map(|l| handles_of(&l.entities)).unwrap();
+        let old = layout(&kition_cad_io::read(&f.disk(), FILE).unwrap());
+        f.write(basis, "mview", json!({"layout":"Layout1"})).await.unwrap();
+        let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        let space = &saved.layouts.iter().find(|l| l.name == "Layout1").unwrap().entities;
+        let made: Vec<_> = space.iter().filter(|e| !old.contains(&e.handle)).collect();
+        assert!(made.iter().any(|e| matches!(e.kind, kition_cad_doc::EntityKind::Viewport(_))), "MVIEW made a viewport");
+        assert!(made.iter().all(|e| e.common.color.to_aci() == 256), "the new viewports take my current colour, ByLayer");
+        assert_eq!(saved.header.i64("CECOLOR", 256), 256, "the file carries the saving session's current colour");
+        f.stop().await;
+    }
+}
+
+/// OFFSET onto the current layer copies CLAYER, which is each person's own: after a colleague made
+/// Walls their current layer (or made an unrelated change), the offset applies and lands on my
+/// current layer (0), which the saved file carries.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_offset_onto_the_current_layer_takes_mine_not_a_colleagues() {
+    for colleague_current in [true, false] {
+        let f = Fixture::new();
+        let basis = f.basis().await;
+        f.colleague(&[if colleague_current {
+            ("layer.current", json!({"name":"Walls"}))
+        } else {
+            ("move", json!({"handles":[f.other],"delta":[0,5]}))
+        }]);
+        let old = handles_of(&kition_cad_io::read(&f.disk(), FILE).unwrap().model);
+        f.write(basis, "offset", json!({"handle":f.line,"distance":5,"side":[50,10],"layer":"current"})).await.unwrap();
+        let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        let made: Vec<_> = saved.model.iter().filter(|e| !old.contains(&e.handle)).collect();
+        assert_eq!(made.len(), 1, "the offset made one entity");
+        assert!(made.iter().all(|e| e.common.layer == "0"), "the offset lands on my current layer");
+        assert_eq!(saved.header.str("CLAYER", "?"), "0", "the file carries the saving session's current layer");
+        f.stop().await;
+    }
 }
 
 /// A name the write creates: BLOCK redefines a block another writer made under that name.
@@ -241,58 +270,53 @@ async fn a_geometry_edit_holds_the_dimensions_it_remeasures() {
     .await;
 }
 
-/// Adding unrelated geometry never runs the constraint solver on existing components.
+/// Adding unrelated geometry never runs the constraint solver on existing components; a new line
+/// takes my current colour, never a colleague's (the current colour is each person's own).
 #[tokio::test(flavor = "multi_thread")]
 async fn a_new_line_does_not_hold_unrelated_constraint_geometry() {
-    for necessary in [true, false] {
+    for colleague_colour in [true, false] {
         let f = Fixture::new();
         f.colleague(&[("gcperpendicular", json!({"h1":f.line,"h2":f.cross}))]);
         let basis = f.basis().await;
-        f.colleague(&if necessary { vec![("color", json!({"color":"red"}))] } else { vec![("move", json!({"handles":[f.cross],"delta":[10,0]}))] });
-        let before = f.disk();
-        let answer = f.write(basis, "line", json!({"points":[[0,150],[10,150]]})).await;
-        if necessary {
-            assert_eq!(answer.unwrap_err()["error"]["code"], "conflict");
-            assert_eq!(f.disk(), before);
+        f.colleague(&if colleague_colour {
+            vec![("color", json!({"color":"red"}))]
         } else {
-            answer.unwrap();
-        }
+            vec![("move", json!({"handles":[f.cross],"delta":[10,0]}))]
+        });
+        let answer = f.write(basis, "line", json!({"points":[[0,150],[10,150]]})).await.unwrap();
+        let h = kition_cad_doc::Handle::parse_hex(answer["completed"][0]["result"]["handles"][0].as_str().unwrap()).unwrap();
+        let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        assert_eq!(saved.entity(h).unwrap().common.color.to_aci(), 256, "the new line takes my current colour, ByLayer");
         f.stop().await;
     }
 }
 
-/// same-field decision: replacing CECOLOR holds its observed value.
+/// The current colour (CECOLOR) is each person's own: setting mine after a colleague set theirs
+/// (or made an unrelated change) applies, and the saved file carries mine.
 #[tokio::test(flavor = "multi_thread")]
-async fn replacing_a_setting_holds_its_previous_value() {
-    for same_field in [false, true] {
+async fn setting_my_current_colour_applies_over_a_colleagues() {
+    for colleague_colour in [false, true] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[if same_field { ("color", json!({"color":"blue"})) } else { ("move", json!({"handles":[f.circle],"delta":[1,0]})) }]);
-        let before = f.disk();
-        let answer = f.write(basis, "color", json!({"color":"red"})).await;
-        if same_field {
-            let error = answer.unwrap_err();
-            assert_eq!(error["error"]["code"], "conflict");
-            assert!(error["conflicts"].as_array().unwrap().iter().any(|c| c["reason"] == "changed"));
-            assert_eq!(f.disk(), before);
-        } else {
-            answer.unwrap();
-            let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
-            assert_eq!(saved.header.i64("CECOLOR", 256), 1);
-        }
+        f.colleague(&[if colleague_colour { ("color", json!({"color":"blue"})) } else { ("move", json!({"handles":[f.circle],"delta":[1,0]})) }]);
+        f.write(basis, "color", json!({"color":"red"})).await.unwrap();
+        let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        assert_eq!(saved.header.i64("CECOLOR", 256), 1);
         f.stop().await;
     }
 }
 
 /// review: these are not irrelevant reads. The colleague makes a
-/// formerly valid deletion illegal, so its accepted result is no longer available.
+/// formerly valid deletion illegal, so its accepted result is no longer available. A colleague's
+/// current text style or layer is theirs, not the drawing's (each person's own): it does not make
+/// my deletion or freeze illegal (`eligibility_ignores_a_colleagues_current_style_or_layer`).
 #[tokio::test(flavor = "multi_thread")]
 async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
     let mut wrong = Vec::new();
-    for kind in ["textstyle", "usedtextstyle", "dimstyle", "layout", "freeze"] {
+    for kind in ["usedtextstyle", "dimstyle", "layout"] {
         let f = Fixture::new();
         let (command, params) = match kind {
-            "textstyle" | "usedtextstyle" => {
+            "usedtextstyle" => {
                 f.colleague(&[("style", json!({"name":"S","current":false}))]);
                 ("style.delete", json!({"name":"S"}))
             }
@@ -300,19 +324,16 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
                 f.colleague(&[("dimstyle", json!({"name":"D2","current":false}))]);
                 ("dimstyle.delete", json!({"name":"D2"}))
             }
-            "freeze" => ("layer.set", json!({"name":"Walls","frozen":true})),
             _ => ("layout.delete", json!({"name":"Layout2"})),
         };
         let basis = f.basis().await;
         let colleague = match kind {
-            "textstyle" => vec![("style.current", json!({"name":"S"}))],
             "usedtextstyle" => vec![
                 ("style.current", json!({"name":"S"})),
                 ("text", json!({"at":[300,300],"text":"uses S","height":3})),
                 ("style.current", json!({"name":"Standard"})),
             ],
             "dimstyle" => vec![("dimstyle.current", json!({"name":"D2"}))],
-            "freeze" => vec![("layer.current", json!({"name":"Walls"}))],
             _ => vec![("layout.delete", json!({"name":"Layout1"}))],
         };
         f.colleague(&colleague);
@@ -327,6 +348,36 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
         f.stop().await;
     }
     assert!(wrong.is_empty(), "changed eligibility must be a premise conflict: {wrong:?}");
+}
+
+/// A colleague's current text style or current layer is theirs (each person's own): deleting the
+/// style they made current, or freezing the layer they made current, applies, and the saved file
+/// carries my current text style and layer.
+#[tokio::test(flavor = "multi_thread")]
+async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
+    for kind in ["textstyle", "freeze"] {
+        let f = Fixture::new();
+        if kind == "textstyle" {
+            f.colleague(&[("style", json!({"name":"S","current":false}))]);
+        }
+        let basis = f.basis().await;
+        if kind == "textstyle" {
+            f.colleague(&[("style.current", json!({"name":"S"}))]);
+            f.write(basis, "style.delete", json!({"name":"S"})).await.unwrap();
+        } else {
+            f.colleague(&[("layer.current", json!({"name":"Walls"}))]);
+            f.write(basis, "layer.set", json!({"name":"Walls","frozen":true})).await.unwrap();
+        }
+        let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        if kind == "textstyle" {
+            assert!(d.text_style("S").is_none(), "S is deleted");
+        } else {
+            assert!(d.layer("Walls").unwrap().frozen, "Walls is frozen");
+        }
+        assert_eq!(d.header.str("TEXTSTYLE", "Standard"), "Standard");
+        assert_eq!(d.header.str("CLAYER", "0"), "0");
+        f.stop().await;
+    }
 }
 
 /// Eligibility is a boolean dependency: unrelated additions must merge with deletion.
@@ -355,7 +406,9 @@ async fn deletion_eligibility_does_not_hold_another_styles_eligibility() {
     f.write(basis, "style.delete", json!({"name":"S"})).await.unwrap();
     let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
     assert!(d.text_style("S").is_none());
-    assert_eq!(d.header.str("TEXTSTYLE", "Standard"), "Other");
+    assert!(d.text_style("Other").is_some());
+    // The current text style is each person's own: the file carries the saving session's.
+    assert_eq!(d.header.str("TEXTSTYLE", "Standard"), "Standard");
     f.stop().await;
 }
 

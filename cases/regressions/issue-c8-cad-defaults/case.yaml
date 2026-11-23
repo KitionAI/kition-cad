@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-defaults
 feature: cad.agent.premises
-intent: Drawing commands hold current stored properties they copy; an explicit layer does not hold the current layer.
+intent: A drawing command without a layer draws on the current layer of the person who runs it, never on a colleague's (the current layer is each person's own), and one with an explicit layer draws there; the saved file carries the saving session's current layer.
 layer: gate
 source:
   kind: synthetic

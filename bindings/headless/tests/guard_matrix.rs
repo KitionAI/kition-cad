@@ -495,18 +495,22 @@ async fn derived_geometry_matrix() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn stored_settings_family_matrix() {
+    // The last field: the setting is each person's own (the current colour, lineweight, text
+    // style and linetype: kdm_model::CURRENT_VARS), so a colleague's is theirs and mine applies
+    // (the saved file carries mine); the others are the drawing's, shared, and replacing one
+    // holds the value I observed.
     let rows = [
-        ("color", json!({"color":"red"}), json!({"color":"blue"})),
-        ("lweight", json!({"lineweight":"ByLayer"}), json!({"lineweight":"ByBlock"})),
-        ("ltscale", json!({"scale":2}), json!({"scale":3})),
-        ("units", json!({"luprec":2}), json!({"luprec":3})),
-        ("limits", json!({"min":[0,0],"max":[100,100]}), json!({"min":[0,0],"max":[200,200]})),
-        ("ddptype", json!({"pdmode":2}), json!({"pdmode":3})),
-        ("style.current", json!({"name":"S"}), json!({"name":"T"})),
-        ("linetype", json!({"current":"ByBlock"}), json!({"current":"Continuous"})),
+        ("color", json!({"color":"red"}), json!({"color":"blue"}), true),
+        ("lweight", json!({"lineweight":"ByLayer"}), json!({"lineweight":"ByBlock"}), true),
+        ("ltscale", json!({"scale":2}), json!({"scale":3}), false),
+        ("units", json!({"luprec":2}), json!({"luprec":3}), false),
+        ("limits", json!({"min":[0,0],"max":[100,100]}), json!({"min":[0,0],"max":[200,200]}), false),
+        ("ddptype", json!({"pdmode":2}), json!({"pdmode":3}), false),
+        ("style.current", json!({"name":"S"}), json!({"name":"T"}), true),
+        ("linetype", json!({"current":"ByBlock"}), json!({"current":"Continuous"}), true),
     ];
     let mut counts = Counts::default();
-    for (command, mine, theirs) in rows {
+    for (command, mine, theirs, own) in rows {
         for relevant in [true, false] {
             let (mut d, ids) = drawing("unrelated");
             run(&mut d, "style", json!({"name":"T","current":false}));
@@ -525,7 +529,7 @@ async fn stored_settings_family_matrix() {
                     command,
                     if relevant { "same" } else { "unrelated" },
                     json!([{"command":command,"params":mine}]),
-                    if relevant { 'C' } else { 'A' }, // same-field decision
+                    if relevant && !own { 'C' } else { 'A' }, // same-field decision for shared settings
                     basis,
                 )
                 .await;
@@ -537,15 +541,18 @@ async fn stored_settings_family_matrix() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn current_style_family_matrix() {
+    // The last field: the colleague changed their own current text style (TEXTSTYLE, each
+    // person's own): my STYLE, which makes S my current style, applies. The current dimension
+    // style and the DIM* variables measured against it stay the drawing's, shared.
     let rows = [
-        ("style", json!({"name":"S"}), "style.current", json!({"name":"T"})),
-        ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"})),
-        ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"})),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"})),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3})),
+        ("style", json!({"name":"S"}), "style.current", json!({"name":"T"}), true),
+        ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
+        ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
+        ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
+        ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3}), false),
     ];
     let mut counts = Counts::default();
-    for (command, mine, other_command, theirs) in rows {
+    for (command, mine, other_command, theirs, own) in rows {
         for relevant in [true, false] {
             let (mut d, ids) = drawing("unrelated");
             run(&mut d, "style", json!({"name":"T","current":false}));
@@ -564,7 +571,7 @@ async fn current_style_family_matrix() {
                     command,
                     if relevant { other_command } else { "unrelated" },
                     json!([{"command":command,"params":mine}]),
-                    if relevant { 'C' } else { 'A' }, // same-field decision
+                    if relevant && !own { 'C' } else { 'A' }, // same-field decision for shared settings
                     // SETVAR introduces DIMASZ into the header; synchronization then stores
                     // a value that was absent at observation, without changing the style definition.
                     basis,
@@ -622,8 +629,9 @@ async fn library_and_base_family_matrix() {
                     row,
                     if relevant { "same" } else { "unrelated" },
                     json!([{"command":command,"params":params}]),
-                    if relevant { 'C' } else { 'A' }, // same-field decision
-                    // BASE and current-linetype replace their observed settings.
+                    // same-field decision: BASE replaces its observed setting. The current
+                    // linetype is each person's own: a colleague's is theirs, mine applies.
+                    if relevant && row != "linetype-current" { 'C' } else { 'A' },
                     basis,
                 )
                 .await;

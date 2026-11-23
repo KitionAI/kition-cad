@@ -117,7 +117,18 @@ async fn check_program_with_setup(
             let expected = if refuse {
                 None
             } else {
-                let mut oracle = CadDocument::open(FILE, &before).unwrap();
+                // The current layer, colour, styles… (kdm_model::CURRENT_VARS) are each person's
+                // own: the agent keeps those of the file it observed, whatever an outside writer
+                // saved as theirs, and its save writes its own.
+                let observed = kition_cad_io::read(&observed, FILE).unwrap();
+                let mut file = kition_cad_io::read(&before, FILE).unwrap();
+                let oracle_bytes = if outside && kdm_model::CURRENT_VARS.iter().any(|v| observed.header.vars.get(*v) != file.header.vars.get(*v)) {
+                    kdm_model::carry_current(&observed, &mut file);
+                    kition_cad_io::write(&file, FILE).unwrap()
+                } else {
+                    before.clone()
+                };
+                let mut oracle = CadDocument::open(FILE, &oracle_bytes).unwrap();
                 for (command, params) in &writes {
                     oracle.execute(command, params.clone()).unwrap_or_else(|e| panic!("oracle {command}: {e}"));
                 }

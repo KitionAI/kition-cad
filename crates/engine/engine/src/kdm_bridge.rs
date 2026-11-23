@@ -78,9 +78,11 @@ impl Link {
 }
 
 /// The replica's view as the drawing, with a next handle never below `floor` when `floor` is in
-/// the replica's own range.
-fn view_of(kdm: &CadSession, floor: u64) -> Arc<Drawing> {
+/// the replica's own range, and `current`'s current properties (the current layer, styles…:
+/// each person's own, never replicated, [`kdm_model::CURRENT_VARS`]).
+fn view_of(kdm: &CadSession, floor: u64, current: &Drawing) -> Arc<Drawing> {
     let mut d = kdm.drawing().clone();
+    kdm_model::carry_current(current, &mut d);
     let (start, end) = kdm.handle_range();
     if (start..end).contains(&floor) {
         d.handseed = d.handseed.max(floor);
@@ -259,7 +261,8 @@ impl DocState {
             return;
         }
         if let Some(kdm) = self.link.kdm.as_ref() {
-            self.doc = view_of(kdm, floor);
+            // The step's own snapshot (the caller set it) holds the current properties it had.
+            self.doc = view_of(kdm, floor, &self.doc);
         }
         self.link.synced = self.doc.clone();
         self.link.mark = self.pushed;
@@ -282,7 +285,7 @@ impl DocState {
             self.link.mark = self.pushed;
             return false;
         }
-        self.doc = view_of(kdm, floor);
+        self.doc = view_of(kdm, floor, &self.doc);
         self.link.synced = self.doc.clone();
         self.link.mark = self.pushed;
         true
@@ -294,7 +297,7 @@ impl DocState {
     pub(crate) fn follow_kdm(&mut self) {
         let Some(kdm) = self.link.kdm.as_ref() else { return };
         let before = self.doc.clone();
-        self.doc = view_of(kdm, before.handseed);
+        self.doc = view_of(kdm, before.handseed, &before);
         self.link.synced = self.doc.clone();
         let doc = self.doc.clone();
         self.selection.retain(|h| doc.entity(*h).is_some());
@@ -310,6 +313,25 @@ impl DocState {
 }
 
 impl Session {
+    /// Puts `from`'s current properties (the current layer, styles…: each person's own, never
+    /// replicated, [`kdm_model::CURRENT_VARS`]) into the active drawing, as part of its view: not
+    /// an edit, so a clean drawing stays clean and nothing is written to the replica.
+    pub fn carry_current(&mut self, from: &Drawing) -> Result<()> {
+        let st = self.state_mut()?;
+        let clean = Arc::ptr_eq(&st.doc, &st.saved);
+        let synced = Arc::ptr_eq(&st.doc, &st.link.synced);
+        let mut d = (*st.doc).clone();
+        kdm_model::carry_current(from, &mut d);
+        st.doc = Arc::new(d);
+        if clean {
+            st.saved = st.doc.clone();
+        }
+        if synced {
+            st.link.synced = st.doc.clone();
+        }
+        Ok(())
+    }
+
     /// Reconcile an outside save onto a clean drawing while keeping both scoped histories.
     pub fn reconcile_reread(&mut self, baseline: &Drawing, fresh: &Drawing) -> Result<()> {
         self.active_kdm(false)?.reread(baseline, fresh).map_err(kdm_error)?;
@@ -451,7 +473,14 @@ impl Session {
         let st = self.state_mut()?;
         if let Some(mut drawing) = loaded {
             let kdm = st.link.kdm.as_mut().ok_or_else(no_replica)?;
-            if !kdm.holds_file(&drawing).map_err(kdm_error)? {
+            if kdm.holds_file(&drawing).map_err(kdm_error)? {
+                // The replica holds the file's content; the current properties are the file's.
+                let mut view = (*st.doc).clone();
+                kdm_model::carry_current(&drawing, &mut view);
+                st.doc = Arc::new(view);
+                st.saved = st.doc.clone();
+                st.link.synced = st.doc.clone();
+            } else {
                 drawing.handseed = kdm.next_handle(&drawing).max(st.doc.handseed);
                 kdm.record(&Origin::system("import"), &drawing).map_err(kdm_error)?;
                 st.doc = Arc::new(drawing);

@@ -28,7 +28,7 @@ use crate::cells::{identify_cells, write_cells};
 use crate::ids::{Ids, Name, Slot, Table, fold_key, names, new_key};
 use crate::list::{assign_orders, sync_list};
 use crate::refs::{each_parametric_list, each_ref_handle, handle_out, handles_out, hval_out, kind_out};
-use crate::{KdmResult, all_entities, kdm_err, root_id};
+use crate::{KdmResult, all_entities, is_current_var, kdm_err, root_id};
 
 /// Writes a whole drawing into a fresh replica's creating transaction. Answers the `Drawing`
 /// object's id. Every entity gets a minted object id (never one derived from its handle: two
@@ -622,20 +622,24 @@ impl Writer<'_, '_> {
         Ok(())
     }
 
-    /// Header variables, one map key each; and the parametric settings.
+    /// Header variables, one map key each, but for each person's own current properties
+    /// ([`crate::CURRENT_VARS`]); and the parametric settings.
     fn write_header(&mut self, before: Option<&Drawing>, after: &Drawing) -> KdmResult<()> {
         let root = root_id();
         let empty = BTreeMap::new();
         let old = before.map_or(&empty, |b| &b.header.vars);
         if self.full || *old != after.header.vars {
             for (key, v) in &after.header.vars {
+                if is_current_var(key) {
+                    continue;
+                }
                 if old.get(key) != Some(v) {
                     self.tx.map_set(&root, "header", key, hval_out(v))?;
                     self.wrote = true;
                 }
             }
             for key in old.keys() {
-                if !after.header.vars.contains_key(key) {
+                if !is_current_var(key) && !after.header.vars.contains_key(key) {
                     self.tx.map_delete(&root, "header", key)?;
                     self.wrote = true;
                 }

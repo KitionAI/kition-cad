@@ -298,6 +298,35 @@ fn a_layer_deleted_while_someone_draws_on_it_rehomes_to_layer_0() {
     assert_eq!(doc(&b).header.str("CLAYER", "?"), "0", "the current layer that is gone falls back to 0");
 }
 
+/// The current layer is each person's own (kdm_model::CURRENT_VARS): two people making different
+/// layers current at once both keep theirs after merging, a new line each draws lands on their own
+/// current layer, and the replicas converge.
+#[test]
+fn each_person_draws_on_their_own_current_layer() {
+    let mut a = new_session();
+    a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
+    let mut b = peer(&mut a);
+    a.execute("layer.current", &json!({"name": "Walls"})).unwrap();
+    b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after both made a layer current");
+    assert_eq!(doc(&a).header.str("CLAYER", "?"), "Walls", "a's current layer survives b's");
+    assert_eq!(doc(&b).header.str("CLAYER", "?"), "Doors", "b's current layer survives a's");
+    let x = handle(&a.execute("line", &json!({"points": [[0, 70], [5, 70]]})).unwrap());
+    let y = handle(&b.execute("line", &json!({"points": [[0, 80], [5, 80]]})).unwrap());
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "both lines");
+    for s in [&a, &b] {
+        let layer = |h: &str| doc(s).entity(Handle::parse_hex(h).unwrap()).unwrap().common.layer.clone();
+        assert_eq!(layer(&x), "Walls", "a's line is on a's current layer");
+        assert_eq!(layer(&y), "Doors", "b's line is on b's current layer");
+    }
+    assert_eq!(doc(&a).header.str("CLAYER", "?"), "Walls");
+    assert_eq!(doc(&b).header.str("CLAYER", "?"), "Doors");
+    assert_holds(&a, "a's drawing is its replica's, its current layer aside");
+    assert_holds(&b, "b's drawing is its replica's, its current layer aside");
+}
+
 #[test]
 fn agent_edits_record_their_origin_and_undo_on_this_replica() {
     let mut s = new_session();

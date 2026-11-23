@@ -28,6 +28,9 @@ kition-env = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tempfile = "3"
 kition-cad-io = { workspace = true }
+# Each person's current properties (CURRENT_VARS, carry_current) for the outside-writer oracles
+# (tests/read4/common.rs).
+kdm-model = { workspace = true }
 # workspace_only.rs builds its hostile drawings with the drawing database and reads the pictures
 # the kit answers.
 kition-cad-doc = { workspace = true }

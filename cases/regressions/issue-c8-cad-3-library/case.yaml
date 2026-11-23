@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-3-library
 feature: cad.agent.premises
-intent: Insertion-base replacements and built-in linetype loads hold consumed headers and name availability; current-linetype assignment permits independent description changes.
+intent: Insertion-base replacements and built-in linetype loads hold consumed headers and name availability; current-linetype assignment permits independent description changes and a colleague's own current linetype (each person's own).
 layer: gate
 source:
   kind: synthetic

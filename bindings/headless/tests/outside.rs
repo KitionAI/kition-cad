@@ -219,21 +219,24 @@ async fn a_rename_away_is_refused_before_the_name_resolver_runs() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn creation_holds_implicit_defaults_and_respects_explicit_layer() {
+/// The current layer is each person's own: a colleague who made Walls their current layer changes
+/// nothing of mine, so a new line without a layer applies and lands on my current layer (0), one
+/// with an explicit layer lands there, and the saved file carries my current layer.
+async fn creation_holds_my_current_layer_not_a_colleagues_and_respects_explicit_layer() {
     for explicit in [false, true] {
         let f = Fixture::new();
         let basis = f.basis().await;
         f.colleague(&[("layer.current", json!({"name":"Walls"}))]);
         let mut p = json!({"points":[[0,100],[100,100]]});
         if explicit {
-            p["layer"] = json!("0");
+            p["layer"] = json!("Walls");
         }
-        let result = f.write(basis, "premise", "line", p).await;
-        if explicit {
-            result.unwrap();
-        } else {
-            reason(&result.unwrap_err(), "changed");
-        }
+        let result = f.write(basis, "premise", "line", p).await.unwrap();
+        let h = result["completed"][0]["result"]["handles"][0].as_str().unwrap().to_owned();
+        let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
+        let line = saved.entity(kition_cad_doc::Handle::parse_hex(&h).unwrap()).unwrap();
+        assert_eq!(line.common.layer, if explicit { "Walls" } else { "0" });
+        assert_eq!(saved.header.str("CLAYER", "?"), "0", "the file carries the saving session's current layer");
         f.stop().await;
     }
 }

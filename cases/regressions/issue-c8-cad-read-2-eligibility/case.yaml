@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-read-2-eligibility
 feature: cad.agent.premises
-intent: Deletion and freezing conflict when another file writer changes eligibility, while unrelated additions survive a merged deletion.
+intent: Deletion and freezing conflict when another file writer changes eligibility, while unrelated additions survive a merged deletion; a colleague's current text style or layer is theirs and does not block mine.
 layer: gate
 source:
   kind: synthetic

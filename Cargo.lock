@@ -884,6 +884,7 @@ name = "kition-cad"
 version = "0.5.0"
 dependencies = [
  "image",
+ "kdm-model",
  "kition-cad-doc",
  "kition-cad-io",
  "kition-cad-kit",

@@ -50,16 +50,24 @@ async fn selected_layer_tools_hold_the_snapshot_they_capture() {
     }
 }
 
+/// LAYCUR moves the objects to my current layer. The current layer is each person's own: a
+/// colleague who made another layer theirs changes nothing of mine, so the write applies, the
+/// line lands on my current layer, and the saved file carries my current layer.
 #[tokio::test(flavor = "multi_thread")]
-async fn laycur_holds_the_current_layer_it_assigns() {
-    for relevant in [false, true] {
+async fn laycur_assigns_my_current_layer_not_a_colleagues() {
+    for colleague_current in [false, true] {
         let mut d = drawing();
         d.execute("layer.new", json!({"name":"Walls"})).unwrap();
-        let h = d.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
+        d.execute("layer.new", json!({"name":"Doors"})).unwrap();
+        let h = d.execute("line", json!({"points":[[0,0],[10,0]],"layer":"Walls"})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("layer.current", json!({"name":"Walls"})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "laycur", json!({"handles":[h]}), relevant).await;
+        f.colleague(&[if colleague_current { ("layer.current", json!({"name":"Doors"})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "laycur", json!({"handles":[h]}), false).await;
+        let saved = kition_cad_io::read(&std::fs::read(f.dir.path().join(FILE)).unwrap(), FILE).unwrap();
+        let line = saved.entity(kition_cad_doc::Handle::parse_hex(h.as_str().unwrap()).unwrap()).unwrap();
+        assert_eq!(line.common.layer, "0", "the line is on my current layer");
+        assert_eq!(saved.header.str("CLAYER", "?"), "0", "the file carries the saving session's current layer");
         f.kits.shutdown().await;
     }
 }

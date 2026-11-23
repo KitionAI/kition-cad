@@ -327,3 +327,17 @@ fn record_identities_issued_at_once_are_both_kept() {
         assert!(used.contains("layer:Plumbing") && used.contains("textstyle:Notes"), "{used:?}");
     }
 }
+
+#[test]
+fn each_person_keeps_their_own_current_layer() {
+    let (mut a, mut b) = pair();
+    edit(&mut a, |d| d.header.set_str("CLAYER", "Walls"));
+    edit(&mut b, |d| {
+        d.header.set_str("CLAYER", "Doors");
+        let _ = d.add(&Space::Model, on("Doors"), line((1.0, 1.0), (2.0, 2.0)));
+    });
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    assert_eq!(a.model().drawing.header.str("CLAYER", "?"), "Walls");
+    assert_eq!(b.model().drawing.header.str("CLAYER", "?"), "Doors");
+}

@@ -127,6 +127,26 @@ fn a_header_change_writes_one_key() {
 }
 
 #[test]
+fn the_current_layer_and_styles_are_never_written() {
+    let mut before = drawing();
+    before.header.set_str("TEXTSTYLE", "Standard");
+    let (mut replica, mut ids) = new_replica(&before);
+    for var in kdm_model::CURRENT_VARS {
+        assert!(replica.map_get(&root(), "header", var).unwrap_or_default().is_null(), "{var} is each person's own");
+    }
+    let mut after = before.clone();
+    after.header.set_str("CLAYER", "Walls");
+    after.header.set_str("TEXTSTYLE", "Other");
+    replica.take_changed();
+    let wrote = replica.transact(&person("t"), |tx| write_changes(tx, &before, &after, &mut ids)).unwrap_or_else(|error| panic!("write: {error}"));
+    assert!(!wrote, "changing the current layer writes nothing");
+    assert_eq!(replica.take_changed(), BTreeSet::new());
+    let (read, _) = kdm_model::read_document(&replica).unwrap_or_else(|error| panic!("read: {error}"));
+    assert_eq!(read.header.get("CLAYER"), None);
+    assert_eq!(read.header.f64("LTSCALE", 0.0), 2.0, "the shared variables are read back");
+}
+
+#[test]
 fn erasing_an_entity_deletes_its_object_and_a_new_one_gets_a_fresh_object() {
     let before = drawing();
     let (mut replica, mut ids) = new_replica(&before);
