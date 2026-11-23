@@ -1,21 +1,19 @@
 //! [`normalize`] and [`canonical`]: id-blind forms of a [`Drawing`], for comparing views.
-//! Constraint ids are minted by every read (never replicated), the next handle is each
-//! replica's own, and so are the current properties ([`crate::CURRENT_VARS`]), so two views of
-//! the same content — a round trip, or two replicas that converged — rarely share them.
+//! Constraint ids are minted by every read (never replicated) and the next handle is each
+//! replica's own, so two views of the same content — a round trip, or two replicas that
+//! converged — rarely share them.
 
 use kition_cad_doc::Drawing;
 use serde_json::{Map, Value, json};
 
-/// An id-blind copy of `d`: constraints renumbered from 1 in order, the next handle zeroed, and
-/// each person's own current properties left out. Two drawings with the same content normalize
-/// to the same value.
+/// An id-blind copy of `d`: constraints renumbered from 1 in order, and the next handle zeroed.
+/// Two drawings with the same content normalize to the same value.
 pub fn normalize(d: &Drawing) -> Drawing {
     let mut out = d.clone();
     for (i, c) in out.constraints.iter_mut().enumerate() {
         c.id = u32::try_from(i + 1).unwrap_or(u32::MAX);
     }
     out.handseed = 0;
-    out.header.vars.retain(|key, _| !crate::is_current_var(key));
     out.record_ids.clear();
     out.record_ids_used.clear();
     out

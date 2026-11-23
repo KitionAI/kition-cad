@@ -76,7 +76,7 @@ fn holds_compares_content_not_ids() {
     assert!(!a.holds(&other).unwrap());
     let mut current = drawing();
     current.header.set_str("CLAYER", "Walls");
-    assert!(a.holds(&current).unwrap(), "the current layer is each person's own, not the drawing's content");
+    assert!(!a.holds(&current).unwrap());
 }
 
 #[test]

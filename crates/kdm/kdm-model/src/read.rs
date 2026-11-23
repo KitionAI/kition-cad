@@ -17,7 +17,7 @@ use crate::cells;
 use crate::ids::{Ids, Known, Slot, Table, names};
 use crate::refs::{each_parametric_list, each_ref_handle, handle_in, handles_in, hval_in, kind_in};
 use crate::source::Source;
-use crate::{KdmResult, is_current_var, kdm_err, next_handle, root_id};
+use crate::{KdmResult, kdm_err, next_handle, root_id};
 
 /// The entities of the last read, by object: a reload reuses those whose object did not change.
 #[derive(Clone, Debug, Default)]
@@ -262,11 +262,6 @@ pub(crate) fn read_with<S: Source>(
 
     let mut header = Header::default();
     for (key, value) in src.entries(&root, "header")? {
-        // Each person's own current properties are never shared (a batch that wrote one is
-        // not read).
-        if is_current_var(&key) {
-            continue;
-        }
         if let Some(v) = hval_in(value) {
             header.vars.insert(key, v);
         }

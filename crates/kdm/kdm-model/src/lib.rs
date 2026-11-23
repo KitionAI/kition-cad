@@ -26,10 +26,7 @@
 //!   that, so the diff writes it). A record's `order` keeps the table's order; the identities
 //!   ever issued to records are the keys of the root's `recordIdsUsed` map (it only grows, so
 //!   two people adding records at once both keep theirs);
-//! - header variables are a map keyed by variable name, each its own register, except the
-//!   current properties and styles ([`CURRENT_VARS`]: the current layer, linetype, colour,
-//!   text style…), which are each person's own: never written, kept by the view across
-//!   reloads ([`carry_current`]);
+//! - header variables are a map keyed by variable name, each its own register;
 //! - constraints are `Constraint` objects in the root's `constraints` list, their references by
 //!   entity object id.
 //!
@@ -119,47 +116,6 @@ fn kit_err(error: impl std::fmt::Display) -> KitError {
 
 pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
     KdmError::Engine(error.to_string())
-}
-
-/// The header variables that are each person's own (the current layer, linetype, colour,
-/// lineweight, linetype scale, plot style, transparency, and the current text, multileader,
-/// table and multiline styles): a replica never holds them, the view keeps its own across
-/// reloads ([`carry_current`]), and a DXF file saves the view's.
-pub const CURRENT_VARS: [&str; 12] = [
-    "CLAYER",
-    "CELTYPE",
-    "CECOLOR",
-    "CECOLOR_RGB",
-    "CELWEIGHT",
-    "CELTSCALE",
-    "CPLOTSTYLE",
-    "CETRANSPARENCY",
-    "TEXTSTYLE",
-    "CMLEADERSTYLE",
-    "CTABLESTYLE",
-    "CMLSTYLE",
-];
-
-/// Whether a header variable is one of [`CURRENT_VARS`] (names compare without case).
-pub fn is_current_var(name: &str) -> bool {
-    CURRENT_VARS.iter().any(|v| v.eq_ignore_ascii_case(name))
-}
-
-/// Puts `from`'s [`CURRENT_VARS`] into `to` (a view read again from the replica, which holds
-/// none), then sends every current name that names no record of `to` (a layer someone else
-/// deleted) back to its default, as the repair does.
-pub fn carry_current(from: &Drawing, to: &mut Drawing) {
-    for var in CURRENT_VARS {
-        match from.header.vars.get(var) {
-            Some(v) => {
-                to.header.vars.insert(var.to_owned(), v.clone());
-            }
-            None => {
-                to.header.vars.remove(var);
-            }
-        }
-    }
-    repair::header_names(to);
 }
 
 /// The key of a table cell's `TableCell` object in the root's `tableCells` map: the table
@@ -298,8 +254,7 @@ impl CadModel {
     /// view (which is what the replica held before the change) rather than parsed again.
     fn reload(&mut self, replica: &Replica, changed: Option<&BTreeSet<ObjectId>>) -> Result<()> {
         let cache = read::EntityCache::of(&self.drawing, &self.ids);
-        let (mut drawing, ids, _) = read::read_with(replica, Some(replica.actor()), &self.known, changed.map(|c| (&cache, c))).map_err(kit_err)?;
-        carry_current(&self.drawing, &mut drawing);
+        let (drawing, ids, _) = read::read_with(replica, Some(replica.actor()), &self.known, changed.map(|c| (&cache, c))).map_err(kit_err)?;
         self.known.remember(&drawing, &ids);
         self.drawing = drawing;
         self.ids = ids;
@@ -325,8 +280,7 @@ impl KitModel for CadModel {
     }
 
     /// Reloads the view, parsing again only the entities that changed (the others are taken from
-    /// the view), keeping every surviving constraint's local id and the view's own current
-    /// properties ([`carry_current`]).
+    /// the view), keeping every surviving constraint's local id.
     fn apply(&mut self, replica: &Replica, changed: &BTreeSet<ObjectId>, _blobs: &dyn BlobSource) -> Result<Damage> {
         self.reload(replica, Some(changed))?;
         Ok(Damage::Full)

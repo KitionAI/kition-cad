@@ -54,8 +54,7 @@ impl CadSession {
     }
 
     /// Opens a snapshot (or a full change export) of another replica as a new replica of a fresh
-    /// actor. The view's current properties are the defaults: they are each person's own
-    /// ([`crate::CURRENT_VARS`]).
+    /// actor.
     pub fn open_snapshot(bytes: &[u8]) -> Result<Self> {
         let inner = KitSession::open_snapshot(bytes, Box::new(MemoryBlobs::default()), crate::fresh::actor())?;
         Ok(Self { inner, undo_steps: 0, redo_steps: 0 })
@@ -133,8 +132,7 @@ impl CadSession {
 
     /// Whether the replica holds what a file saved from it holds: `file` (a drawing read from
     /// DXF) against this replica's view saved as DXF and read back the same way, so what DXF does
-    /// not keep (or writes from the next handle, `$HANDSEED`) does not count, nor do the current
-    /// properties, which are each person's own. A host reopening a
+    /// not keep (or writes from the next handle, `$HANDSEED`) does not count. A host reopening a
     /// file with the replica it stored beside it asks this before recording the file on top.
     pub fn holds_file(&self, file: &Drawing) -> Result<bool> {
         let bytes = kition_cad_io::write(self.drawing(), "drawing.dxf").map_err(kit_err)?;

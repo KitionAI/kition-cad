@@ -353,10 +353,26 @@ fn entities_only_and_sound(tx: &Tx<'_>, changed: &BTreeSet<ObjectId>) -> KdmResu
     };
     for object in changed {
         if *object == root {
-            // The current dimension style names a style that exists (the other current names
-            // are each person's own, never replicated: `crate::CURRENT_VARS`).
-            if let Some(name) = crate::refs::hval_in(tx.map_get(&root, "header", "DIMSTYLE")?).and_then(|v| v.as_str().map(str::to_owned))
-                && !has(Table::DimStyles, &name)?
+            let header = |var: &str| -> KdmResult<Option<String>> {
+                Ok(crate::refs::hval_in(tx.map_get(&root, "header", var)?).and_then(|v| v.as_str().map(str::to_owned)))
+            };
+            for (var, table) in [
+                ("CLAYER", Table::Layers),
+                ("TEXTSTYLE", Table::TextStyles),
+                ("DIMSTYLE", Table::DimStyles),
+                ("CMLEADERSTYLE", Table::MLeaderStyles),
+                ("CTABLESTYLE", Table::TableStyles),
+            ] {
+                if let Some(name) = header(var)?
+                    && !has(table, &name)?
+                {
+                    return Ok(false);
+                }
+            }
+            if let Some(lt) = header("CELTYPE")?
+                && !lt.eq_ignore_ascii_case("ByLayer")
+                && !lt.eq_ignore_ascii_case("ByBlock")
+                && !has(Table::Linetypes, &lt)?
             {
                 return Ok(false);
             }
@@ -491,7 +507,7 @@ fn standard_records(d: &mut Drawing) -> bool {
 }
 
 /// The current layer, linetype and styles (CLAYER…) name records that exist.
-pub(crate) fn header_names(d: &mut Drawing) -> bool {
+fn header_names(d: &mut Drawing) -> bool {
     let mut changed = false;
     let vars: [(&str, &str); 6] = [
         ("CLAYER", "0"),
