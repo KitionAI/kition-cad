@@ -2,11 +2,13 @@ format: 1
 id: regressions/issue-4
 feature: cad.file.drawings
 intent: >-
-  A reproducible build (SOURCE_DATE_EPOCH set, as the showcase and gating tests run) saves the
-  same DXF bytes every time the same commands build the drawing: the replica's actor, whose slot
-  numbers new handles, and the document id come from a counter in the process mixed with the
-  epoch. Before, the actor was random, so every handle and so the file differed on every save.
-  Without SOURCE_DATE_EPOCH, and always on the web, actors stay random.
+  A reproducible build (the SDK's reproducible-ids feature, enabled in dev-dependencies only, and
+  KITION_REPRODUCIBLE_IDS set, as the showcase and gating tests run) saves the same DXF bytes every
+  time the same commands build the drawing: the replica's actor, whose slot numbers new handles,
+  and the document id come from a counter in the process mixed with the seed. Before, the actor was
+  random, so every handle and so the file differed on every save. SOURCE_DATE_EPOCH alone, which
+  hosts pass to every kit, leaves actors random (two kit processes never mint the same handles),
+  as do shipped builds and the web.
 layer: gate
 source:
   kind: issue

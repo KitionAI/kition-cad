@@ -41,11 +41,10 @@ impl CadSession {
         identify_cells(&mut drawing);
         let drawing = &drawing;
         let mut ids = Ids::default();
-        let (replica, ()) =
-            Replica::create_with(CadModel::schema(), crate::fresh::document(), crate::fresh::actor(), &Origin::system("create"), |tx| {
-                write_document(tx, drawing, &mut ids).map(|_| ())
-            })
-            .map_err(kit_err)?;
+        let (replica, ()) = Replica::create_with(CadModel::schema(), DocId::new(), ActorId::random(), &Origin::system("create"), |tx| {
+            write_document(tx, drawing, &mut ids).map(|_| ())
+        })
+        .map_err(kit_err)?;
         let mut inner: KitSession<CadModel> = KitSession::from_replica(replica, Box::new(MemoryBlobs::default()))?;
         // `from_replica` read the view back; put back the exact drawing and the ids
         // `write_document` minted for it.
@@ -56,7 +55,7 @@ impl CadSession {
     /// Opens a snapshot (or a full change export) of another replica as a new replica of a fresh
     /// actor.
     pub fn open_snapshot(bytes: &[u8]) -> Result<Self> {
-        let inner = KitSession::open_snapshot(bytes, Box::new(MemoryBlobs::default()), crate::fresh::actor())?;
+        let inner = KitSession::open_snapshot(bytes, Box::new(MemoryBlobs::default()), ActorId::random())?;
         Ok(Self { inner, undo_steps: 0, redo_steps: 0 })
     }
 
@@ -120,11 +119,10 @@ impl CadSession {
     /// [`read_document`] reads both back. Errs if `drawing` cannot be written to a replica.
     pub fn holds(&self, drawing: &Drawing) -> Result<bool> {
         let mut ids = Ids::default();
-        let (scratch, ()) =
-            Replica::create_with(CadModel::schema(), crate::fresh::document(), crate::fresh::actor(), &Origin::system("create"), |tx| {
-                write_document(tx, drawing, &mut ids).map(|_| ())
-            })
-            .map_err(kit_err)?;
+        let (scratch, ()) = Replica::create_with(CadModel::schema(), DocId::new(), ActorId::random(), &Origin::system("create"), |tx| {
+            write_document(tx, drawing, &mut ids).map(|_| ())
+        })
+        .map_err(kit_err)?;
         let (theirs, _) = read_document(&scratch).map_err(kit_err)?;
         let (mine, _) = read_document(self.inner.replica()).map_err(kit_err)?;
         Ok(canonical(&theirs) == canonical(&mine))

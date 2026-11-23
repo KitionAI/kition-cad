@@ -26,6 +26,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+# Counted ids for tests/deterministic_save.rs (with `KITION_REPRODUCIBLE_IDS`); never in a shipped build.
+kition-kit = { workspace = true, features = ["session", "reproducible-ids"] }
 # The conformance fixtures' expected previews (src/conformance.rs), and exported PNGs.
 image = { workspace = true }
 # Exported PDFs' content streams (tests/export.rs); the version the PDF writer uses.

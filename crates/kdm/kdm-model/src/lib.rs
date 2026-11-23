@@ -70,7 +70,6 @@
 mod cells;
 mod compare;
 mod finite;
-pub mod fresh;
 mod ids;
 mod list;
 mod read;
@@ -84,7 +83,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
 use kition_cad_doc::{Drawing, Entity, EntityStore, Handle};
-use kition_kit::kdm::{ActorId, KdmError, ObjectId, Origin, Replica, Schema, Tx};
+use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, Replica, Schema, Tx};
 use kition_kit::session::{BlobSink, BlobSource, Damage, KitError, KitModel};
 
 pub use cells::identify_cells;
@@ -293,7 +292,7 @@ impl KitModel for CadModel {
     fn import(name: &str, bytes: &[u8], _blobs: &mut dyn BlobSink, actor: ActorId) -> Result<Replica> {
         let drawing = decode(name, bytes)?;
         let mut ids = Ids::default();
-        let (replica, ()) = Replica::create_with(Self::schema(), fresh::document(), actor, &Origin::system("import"), |tx| {
+        let (replica, ()) = Replica::create_with(Self::schema(), DocId::new(), actor, &Origin::system("import"), |tx| {
             write_document(tx, &drawing, &mut ids)?;
             Ok(())
         })
