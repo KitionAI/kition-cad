@@ -8,7 +8,9 @@
 //!   (one added to a layout or block someone deleted), as are constraints the drawing does not
 //!   list;
 //! - an entity whose handle an earlier entity (in reading order) already holds gets a new one,
-//!   above every handle in use (a safety net: replicas mint handles from their own ranges).
+//!   above every handle in use (a safety net: replicas mint handles from their own ranges);
+//! - a table cell whose table is gone, is no table, or no longer has the cell's id is deleted,
+//!   and every cell's tool id follows its table's handle.
 //!
 //! Then on the drawing itself ([`repair_drawing`], the merge-relevant part of the engine's AUDIT):
 //! - layer `0`, the `ByBlock`, `ByLayer` and `Continuous` linetypes and the `Standard` styles
@@ -28,10 +30,11 @@ use kition_cad_doc::{Block, DimStyle, Drawing, Entity, EntityKind, EntityStore, 
 use kition_kit::kdm::{ObjectId, Tx};
 use serde_json::Value;
 
+use crate::cells;
 use crate::ids::{Known, Table};
 use crate::read::{entries, read_with};
 use crate::refs::{drop_gone, drop_gone_assoc, each_parametric_list, refs_gone};
-use crate::{KdmResult, all_entities, root_id, write_changes};
+use crate::{KdmResult, all_entities, root_id, table_cell_tool_id, write_changes};
 
 pub(crate) fn validate(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>) -> KdmResult<bool> {
     let root = root_id();
@@ -141,7 +144,8 @@ fn cleanup(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, deleted: bool) -> KdmR
     let root = root_id();
     let mut wrote = false;
     let mut removed = false;
-    let maps: Vec<(&str, &str)> = Table::ALL.iter().map(|t| (t.field(), t.ty())).chain([("blocks", "Block"), ("layouts", "Layout")]).collect();
+    let maps: Vec<(&str, &str)> =
+        Table::ALL.iter().map(|t| (t.field(), t.ty())).chain([("blocks", "Block"), ("layouts", "Layout"), (cells::FIELD, cells::TYPE)]).collect();
     let mut stores: Vec<ObjectId> = vec![root.clone()];
     for (field, ty) in maps {
         let mut named: HashSet<ObjectId> = HashSet::new();
@@ -259,7 +263,70 @@ fn cleanup(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, deleted: bool) -> KdmR
         // References by handle into this entity now name another: read the drawing again.
         removed = true;
     }
+    // Cells name nothing the drawing-level repair reads: deleting one needs no read of it.
+    wrote |= clean_cells(tx)?;
     Ok((wrote, removed))
+}
+
+/// Table cells whose table is gone, is no table, or no longer has their id are deleted (a cell
+/// typed in while someone deleted its row, or its table); every other cell's tool id names its
+/// table's handle (which a duplicate-handle repair may have changed).
+fn clean_cells(tx: &mut Tx<'_>) -> KdmResult<bool> {
+    let root = root_id();
+    let mut wrote = false;
+    let mut tables: HashMap<ObjectId, Option<(Handle, HashSet<u32>)>> = HashMap::new();
+    for (key, value) in tx.map_entries(&root, cells::FIELD)? {
+        let Some(object) = value.as_str().map(ObjectId::from_string) else { continue };
+        let table = match cells::parse_key(&key) {
+            Some((entity, cell)) => {
+                if !tables.contains_key(&entity) {
+                    let grid = table_grid(tx, &entity)?;
+                    tables.insert(entity.clone(), grid);
+                }
+                tables.get(&entity).and_then(Option::as_ref).filter(|(_, ids)| ids.contains(&cell)).map(|(h, _)| (*h, cell))
+            }
+            None => None,
+        };
+        match table {
+            Some((handle, cell)) => {
+                let id = Value::String(table_cell_tool_id(handle, cell));
+                if tx.exists(&object) && tx.get(&object, "id")? != id {
+                    tx.set(&object, "id", id)?;
+                    wrote = true;
+                }
+            }
+            None => {
+                tx.map_delete(&root, cells::FIELD, &key)?;
+                if tx.exists(&object) {
+                    tx.delete(&object)?;
+                }
+                wrote = true;
+            }
+        }
+    }
+    Ok(wrote)
+}
+
+/// A live table entity's handle and the ids of its cells (`None`: no such table).
+fn table_grid(tx: &Tx<'_>, entity: &ObjectId) -> KdmResult<Option<(Handle, HashSet<u32>)>> {
+    if !(tx.exists(entity) && tx.object_type(entity).is_ok_and(|t| t == "Entity")) {
+        return Ok(None);
+    }
+    let kind = tx.get(entity, "kind")?;
+    if kind.get("type").and_then(Value::as_str) != Some("table") {
+        return Ok(None);
+    }
+    let Some(handle) = tx.get(entity, "handle")?.as_str().and_then(Handle::parse_hex) else { return Ok(None) };
+    let ids = kind
+        .get("cells")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flat_map(|rows| rows.values())
+        .filter_map(Value::as_object)
+        .flat_map(|cols| cols.values())
+        .filter_map(|cell| cell.get("id").and_then(Value::as_u64).and_then(|id| u32::try_from(id).ok()))
+        .collect();
+    Ok(Some((handle, ids)))
 }
 
 /// Whether every changed object is an existing entity of a kind that names no block, dimension
@@ -286,32 +353,21 @@ fn entities_only_and_sound(tx: &Tx<'_>, changed: &BTreeSet<ObjectId>) -> KdmResu
     };
     for object in changed {
         if *object == root {
-            let header = |var: &str| -> KdmResult<Option<String>> {
-                Ok(crate::refs::hval_in(tx.map_get(&root, "header", var)?).and_then(|v| v.as_str().map(str::to_owned)))
-            };
-            for (var, table) in [
-                ("CLAYER", Table::Layers),
-                ("TEXTSTYLE", Table::TextStyles),
-                ("DIMSTYLE", Table::DimStyles),
-                ("CMLEADERSTYLE", Table::MLeaderStyles),
-                ("CTABLESTYLE", Table::TableStyles),
-            ] {
-                if let Some(name) = header(var)?
-                    && !has(table, &name)?
-                {
-                    return Ok(false);
-                }
-            }
-            if let Some(lt) = header("CELTYPE")?
-                && !lt.eq_ignore_ascii_case("ByLayer")
-                && !lt.eq_ignore_ascii_case("ByBlock")
-                && !has(Table::Linetypes, &lt)?
+            // The current dimension style names a style that exists (the other current names
+            // are each person's own, never replicated: `crate::CURRENT_VARS`).
+            if let Some(name) = crate::refs::hval_in(tx.map_get(&root, "header", "DIMSTYLE")?).and_then(|v| v.as_str().map(str::to_owned))
+                && !has(Table::DimStyles, &name)?
             {
                 return Ok(false);
             }
             continue;
         }
-        if tx.object_type(object).ok().as_deref() != Some("Entity") {
+        let ty = tx.object_type(object).ok();
+        // A cell's text names nothing (`clean_cells` already dropped cells of tables that are gone).
+        if ty.as_deref() == Some(cells::TYPE) {
+            continue;
+        }
+        if ty.as_deref() != Some("Entity") {
             return Ok(false);
         }
         let common = tx.get(object, "common")?;
@@ -435,7 +491,7 @@ fn standard_records(d: &mut Drawing) -> bool {
 }
 
 /// The current layer, linetype and styles (CLAYER…) name records that exist.
-fn header_names(d: &mut Drawing) -> bool {
+pub(crate) fn header_names(d: &mut Drawing) -> bool {
     let mut changed = false;
     let vars: [(&str, &str); 6] = [
         ("CLAYER", "0"),

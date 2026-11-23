@@ -110,6 +110,24 @@ fn name_parameters_are_declared_by_the_type_the_resolver_reads() {
 }
 
 #[test]
+fn a_table_cell_is_its_own_object_whose_tool_id_survives_a_reopen() {
+    use kition_kit::session::model::Exchange;
+    use serde_json::json;
+    let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
+    let table = doc.execute("table", json!({"at":[0,0],"rows":2,"cols":2,"cells":[["a","b"],["c","d"]]})).unwrap()["handle"].clone();
+    // The table numbers its cells 1, 2, … row by row: the first cell of the second row is 3.
+    let id = format!("cell:{}-3", table.as_str().unwrap());
+    for saved in [false, true] {
+        if saved {
+            doc = CadDocument::open("Plan.dxf", &doc.save(Some("Plan.dxf")).unwrap()).unwrap();
+        }
+        let answer = Exchange::new().batch(&mut doc, &json!({"ops":[],"load":[{"target":id}]}), false).unwrap();
+        assert_eq!(answer["loaded"][0]["id"], id, "{answer}");
+        assert_eq!(answer["loaded"][0]["fields"]["text"], "c", "{answer}");
+    }
+}
+
+#[test]
 fn every_named_table_has_a_tool_id_that_survives_a_reopen() {
     let schema: serde_json::Value = serde_json::from_str(include_str!("../../../crates/kdm/kdm-model/model/schema.json")).unwrap();
     for ty in [

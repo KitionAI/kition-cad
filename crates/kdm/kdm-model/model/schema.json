@@ -1,7 +1,7 @@
 {
   "kdm": 1,
   "kit": "kit.cad",
-  "schemaVersion": 3,
+  "schemaVersion": 1,
   "root": "Drawing",
   "types": {
     "Drawing": { "batchOps": { "*": { "direct": true } },
@@ -42,7 +42,7 @@
       },
       "fields": {
         "header": { "kind": "map" },
-        "recordIdsUsed": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "recordIdsUsed": { "kind": "map" },
         "parametric": { "kind": "json", "optional": true },
         "layers": { "kind": "map", "owns": true, "of": "Layer" },
         "linetypes": { "kind": "map", "owns": true, "of": "Linetype" },
@@ -58,7 +58,8 @@
         "blocks": { "kind": "map", "owns": true, "of": "Block" },
         "layouts": { "kind": "map", "owns": true, "of": "Layout" },
         "model": { "kind": "list", "of": "Entity" },
-        "constraints": { "kind": "list", "of": "Constraint" }
+        "constraints": { "kind": "list", "of": "Constraint" },
+        "tableCells": { "kind": "map", "owns": true, "of": "TableCell" }
       }
     },
     "Layer": { "batchOps": { "*": { "direct": true } },
@@ -174,6 +175,14 @@
         "kind": { "kind": "json" }
       },
       "toolId": { "field": "handle" }
+    },
+    "TableCell": { "batchOps": { "*": { "direct": true } },
+      "text": "text",
+      "fields": {
+        "id": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "text": { "kind": "text" }
+      },
+      "toolId": { "field": "id", "prefix": "cell:" }
     },
     "Constraint": { "batchOps": { "*": { "direct": true } },
       "fields": {

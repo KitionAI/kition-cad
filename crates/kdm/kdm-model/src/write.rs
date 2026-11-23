@@ -24,15 +24,16 @@ use kition_kit::kdm::{ObjectId, Tx};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
+use crate::cells::{identify_cells, write_cells};
 use crate::ids::{Ids, Name, Slot, Table, fold_key, names, new_key};
 use crate::list::{assign_orders, sync_list};
 use crate::refs::{each_parametric_list, each_ref_handle, handle_out, handles_out, hval_out, kind_out};
-use crate::{KdmResult, all_entities, kdm_err, root_id};
+use crate::{KdmResult, all_entities, is_current_var, kdm_err, root_id};
 
 /// Writes a whole drawing into a fresh replica's creating transaction. Answers the `Drawing`
-/// object's id. Entities get object ids derived from their handles (`h<hex>`). Errs if the
-/// drawing holds a handle twice ([`crate::dedupe_handles`] fixes that) or a number that is not
-/// finite.
+/// object's id. Every entity gets a minted object id (never one derived from its handle: two
+/// replicas built from one file are two documents). Errs if the drawing holds a handle twice
+/// ([`crate::dedupe_handles`] fixes that) or a number that is not finite.
 pub fn write_document(tx: &mut Tx<'_>, d: &Drawing, ids: &mut Ids) -> KdmResult<ObjectId> {
     let root = root_id();
     tx.create_with_id("Drawing", &root, Map::new())?;
@@ -178,7 +179,7 @@ fn record_data<T: Serialize>(table: Table, record: &T, ids: &Ids) -> KdmResult<V
 struct Writer<'w, 'tx> {
     tx: &'w mut Tx<'tx>,
     ids: &'w mut Ids,
-    /// A full write: everything is new, entity object ids derive from handles.
+    /// A full write: everything is new.
     full: bool,
     /// Objects this write created: written in full, whatever `before` held.
     fresh: HashSet<ObjectId>,
@@ -189,6 +190,7 @@ impl Writer<'_, '_> {
     fn write(&mut self, before: Option<&Drawing>, after: &Drawing) -> KdmResult<()> {
         let mut identified = after.clone();
         identified.ensure_record_ids();
+        identify_cells(&mut identified);
         let after = &identified;
         self.rekey_records(after)?;
         let pairs = store_pairs(before, after);
@@ -210,7 +212,7 @@ impl Writer<'_, '_> {
         }
         let mut created = Vec::with_capacity(new.len());
         for e in &new {
-            let object = if self.full { ObjectId::from_string(format!("h{:X}", e.handle.0)) } else { ObjectId::new() };
+            let object = ObjectId::new();
             self.ids.entities.insert(object.clone(), e.handle);
             created.push(object);
         }
@@ -222,6 +224,7 @@ impl Writer<'_, '_> {
                 ("kind", kind_out(&e.kind, self.ids)?),
             ]);
             self.tx.create_with_id("Entity", &object, f)?;
+            write_cells(self.tx, &object, e.handle, None, Some(&e.kind))?;
             self.fresh.insert(object);
             self.wrote = true;
         }
@@ -239,6 +242,7 @@ impl Writer<'_, '_> {
                     continue;
                 }
                 if let Some(object) = self.ids.entities.remove_local(e.handle) {
+                    write_cells(self.tx, &object, e.handle, Some(&e.kind), None)?;
                     if self.tx.exists(&object) {
                         self.tx.delete(&object)?;
                     }
@@ -277,7 +281,13 @@ impl Writer<'_, '_> {
                     self.wrote = true;
                 }
                 if old.is_none_or(|o| o.kind != e.kind) {
-                    self.tx.set(&object, "kind", kind_out(&e.kind, self.ids)?)?;
+                    // A table whose cell texts alone changed keeps its grid register as it is, so
+                    // a concurrent change of the grid is not overwritten.
+                    let kind = kind_out(&e.kind, self.ids)?;
+                    if old.is_none_or(|o| kind_out(&o.kind, self.ids).ok().as_ref() != Some(&kind)) {
+                        self.tx.set(&object, "kind", kind)?;
+                    }
+                    write_cells(self.tx, &object, e.handle, old.map(|o| &o.kind), Some(&e.kind))?;
                     self.wrote = true;
                 }
                 if old.is_none_or(|o| entity_description(o) != entity_description(e)) {
@@ -329,10 +339,19 @@ impl Writer<'_, '_> {
                 self.wrote = true;
             }
         }
-        let used = json!(serde_json::to_string(&after.record_ids_used).map_err(kdm_err)?);
-        if self.tx.get(&root_id(), "recordIdsUsed")? != used {
-            self.tx.set(&root_id(), "recordIdsUsed", used)?;
-            self.wrote = true;
+        // Issued record identities only grow: each is its own key, so identities two people
+        // issue at once both stay issued.
+        if before.is_none_or(|b| b.record_ids_used != after.record_ids_used) {
+            let root = root_id();
+            for id in &after.record_ids_used {
+                if before.is_some_and(|b| b.record_ids_used.contains(id)) {
+                    continue;
+                }
+                if self.tx.map_get(&root, "recordIdsUsed", id)?.is_null() {
+                    self.tx.map_set(&root, "recordIdsUsed", id, json!(true))?;
+                    self.wrote = true;
+                }
+            }
         }
         Ok(())
     }
@@ -603,20 +622,24 @@ impl Writer<'_, '_> {
         Ok(())
     }
 
-    /// Header variables, one map key each; and the parametric settings.
+    /// Header variables, one map key each, but for each person's own current properties
+    /// ([`crate::CURRENT_VARS`]); and the parametric settings.
     fn write_header(&mut self, before: Option<&Drawing>, after: &Drawing) -> KdmResult<()> {
         let root = root_id();
         let empty = BTreeMap::new();
         let old = before.map_or(&empty, |b| &b.header.vars);
         if self.full || *old != after.header.vars {
             for (key, v) in &after.header.vars {
+                if is_current_var(key) {
+                    continue;
+                }
                 if old.get(key) != Some(v) {
                     self.tx.map_set(&root, "header", key, hval_out(v))?;
                     self.wrote = true;
                 }
             }
             for key in old.keys() {
-                if !after.header.vars.contains_key(key) {
+                if !is_current_var(key) && !after.header.vars.contains_key(key) {
                     self.tx.map_delete(&root, "header", key)?;
                     self.wrote = true;
                 }

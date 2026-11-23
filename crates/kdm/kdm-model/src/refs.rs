@@ -69,12 +69,25 @@ pub(crate) fn kind_out(kind: &EntityKind, ids: &Ids) -> KdmResult<Value> {
     if matches!(kind, EntityKind::Table(_))
         && let Some(cells) = v.get_mut("cells")
     {
+        // The grid only: each cell's text is its `TableCell` object's (`crate::cells`).
         let rows = cells.as_array().ok_or_else(|| kdm_err("table cells must be rows"))?;
         *cells = Value::Object(
             rows.iter()
                 .enumerate()
                 .map(|(r, row)| {
-                    let cols = row.as_array().into_iter().flatten().enumerate().map(|(c, v)| (c.to_string(), v.clone())).collect();
+                    let cols = row
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .enumerate()
+                        .map(|(c, v)| {
+                            let mut cell = v.clone();
+                            if let Some(cell) = cell.as_object_mut() {
+                                cell.remove("text");
+                            }
+                            (c.to_string(), cell)
+                        })
+                        .collect();
                     (r.to_string(), Value::Object(cols))
                 })
                 .collect(),
@@ -89,7 +102,8 @@ pub(crate) fn kind_out(kind: &EntityKind, ids: &Ids) -> KdmResult<Value> {
 }
 
 /// An entity's `kind` read back; a dimension's associations with entities the reader does not
-/// hold are dropped.
+/// hold are dropped. A table's cells read with empty text: their text is their `TableCell`
+/// objects' (the reader fills it in).
 pub fn kind_in(mut v: Value, ids: &Ids) -> KdmResult<EntityKind> {
     if v.get("type").and_then(Value::as_str) == Some("table")
         && let Some(cells) = v.get_mut("cells")
@@ -106,7 +120,18 @@ pub fn kind_in(mut v: Value, ids: &Ids) -> KdmResult<EntityKind> {
             Ok(rows.into_values().collect())
         }
         let rows = ordered(cells)?;
-        *cells = Value::Array(rows.iter().map(|r| ordered(r).map(Value::Array)).collect::<KdmResult<_>>()?);
+        let mut grid = Vec::with_capacity(rows.len());
+        for row in &rows {
+            let mut cols = ordered(row)?;
+            // The register holds no text: the reader fills it from the cell's `TableCell`.
+            for cell in &mut cols {
+                if let Some(cell) = cell.as_object_mut() {
+                    cell.insert("text".into(), Value::String(String::new()));
+                }
+            }
+            grid.push(Value::Array(cols));
+        }
+        *cells = Value::Array(grid);
     }
     if v.get("type").and_then(Value::as_str) == Some("dimension")
         && let Some(assoc) = v.get_mut("assoc").and_then(Value::as_array_mut)

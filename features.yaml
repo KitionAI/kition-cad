@@ -119,6 +119,13 @@ features:
     paths: [bindings/wasm/src/document_text.rs, bindings/wasm/src/lib.rs]
     cases: [cad.document.text/words-by-space]
     since: "2026-11-17"
+  - id: cad.collab.constraint-lease
+    title: "Solving constraints while the drawing is co-edited takes its constraint lease (collaboration.leases `constraints`): a constraint command someone else's lease covers is refused with who holds it; an agent's constraint step takes the same lease"
+    dimension: [collab]
+    priority: P1
+    status: has
+    paths: [web/src/constraintLease.ts, web/src/App.tsx, web/tests/lease.mjs, kit.json]
+    since: "2026-11-22"
   - id: cad.document.identity
     title: "A host asks the document id a .dxf carries and forks a copied drawing (document.identity, document.fork; Kit Process Protocol 5.6): a .dxf embeds no replica, so it carries none and forks into the same bytes"
     dimension: [platform, data-safety]

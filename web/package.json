@@ -18,7 +18,8 @@
     "test:cancellation": "node tests/cancellation.mjs chromium && node tests/cancellation.mjs webkit",
     "test:interruption": "node tests/interruption.mjs chromium && node tests/interruption.mjs webkit",
     "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit",
-    "test:focus": "node tests/focus.mjs chromium && node tests/focus.mjs webkit"
+    "test:focus": "node tests/focus.mjs chromium && node tests/focus.mjs webkit",
+    "test:lease": "node tests/lease.mjs"
   },
   "dependencies": {
     "@kition/sdk": "npm:@kitionstage/sdk@0.5.2-stage.16",

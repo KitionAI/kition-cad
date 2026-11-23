@@ -395,9 +395,13 @@ pub(crate) fn writes_existing(command: &str, p: &Value, h: Handle) -> bool {
 }
 
 /// table.rs::edit normalizes the grid; positional edits consume identity/topology,
-/// defaults and merge text. Other cell values survive on the current drawing.
-pub(crate) fn table_fields(command: &str, p: &Value, t: &kition_cad_doc::Table) -> Vec<String> {
+/// defaults and merge text. Other cell values survive on the current drawing. Answers the
+/// table's fields and the ids of the cells whose text is consumed (a cell's text is its
+/// `TableCell` object's `text`, `cell:<table handle>-<cell id>`).
+pub(crate) fn table_fields(command: &str, p: &Value, t: &kition_cad_doc::Table) -> (Vec<String>, Vec<u32>) {
     let mut f = vec!["kind.type".into()];
+    let mut texts = Vec::new();
+    let id_at = |row: usize, col: usize| t.cells.get(row).and_then(|r| r.get(col)).map(|c| c.id);
     let index = |key: &str| p.get(key).and_then(Value::as_u64).and_then(|n| usize::try_from(n).ok());
     let (rows, cols) = (t.row_heights.len(), t.col_widths.len());
     let (r, c) = (index("row").unwrap_or(rows), index("col").unwrap_or(cols));
@@ -415,14 +419,14 @@ pub(crate) fn table_fields(command: &str, p: &Value, t: &kition_cad_doc::Table) 
                     })
                 })
                 .unwrap_or((r, c));
-            f.push(format!("kind.cells.{ar}.{ac}.text"));
+            texts.extend(id_at(ar, ac));
         }
         for ar in 0..rows.min(r.saturating_add(1)) {
             for ac in 0..cols.min(c.saturating_add(1)) {
                 f.push(format!("kind.cells.{ar}.{ac}.merged"));
             }
         }
-        return f;
+        return (f, texts);
     }
     f.extend(["~grid.rows".into(), "~grid.cols".into()]);
     for (row, cells) in t.cells.iter().enumerate() {
@@ -446,11 +450,11 @@ pub(crate) fn table_fields(command: &str, p: &Value, t: &kition_cad_doc::Table) 
         let cs = index("cols").unwrap_or(1).max(1).min(cols.saturating_sub(c));
         for row in r..r.saturating_add(rs) {
             for col in c..c.saturating_add(cs) {
-                f.push(format!("kind.cells.{row}.{col}.text"));
+                texts.extend(id_at(row, col));
             }
         }
     }
-    f
+    (f, texts)
 }
 
 /// Geometric inputs of curve sampling; explicit source display properties are preserved.

@@ -7,6 +7,8 @@ import {
   FrameChrome,
   ZOOM_TOOL,
   createKitStrings,
+  kitLeases,
+  toast,
   useEngineTools,
   useKitEditorState,
   useKitSession,
@@ -23,6 +25,7 @@ import { HomeTab } from './ribbon/HomeTab'
 import { LayersPanel } from './LayersPanel'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
+import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
 
 /** The view tools are the host's; the engine's other tools run in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
@@ -30,8 +33,20 @@ const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
 export function App({ host, phrase }: { host: HostConnection; phrase: Phrases }) {
   const t = useMemo(() => createKitStrings(CATALOGS, host.init.locale), [host])
   const manifest = useMemo(engineManifest, [])
-  const session = useKitSession(host, manifest, describe)
-  const editor = useKitEditorState(session, host, t, 'cad', phrase)
+  // An agent's constraint command takes the drawing's constraint lease too (`constraintLease.ts`).
+  const session = useKitSession(host, manifest, describe, { agentLeaseScope: (command, params) => constraintLeaseScope(command, params) })
+  // The person's constraint commands take the drawing's constraint lease while it is co-edited.
+  const leases = useMemo(() => kitLeases(host), [host])
+  const running = useRef<string | null>(null)
+  running.current = session.state?.running ?? null
+  const constraintLease = useMemo(
+    () => new ConstraintLease(leases, (holder) => toast('info', t('lease.constraints', { name: holder || t('lease.someone') })), () => running.current),
+    [leases, t],
+  )
+  useEffect(() => () => constraintLease.release(), [constraintLease])
+  useEffect(() => constraintLease.follow(), [constraintLease, session.state?.running])
+  const leasedRun = useMemo(() => withConstraintLease(session.run, constraintLease), [session.run, constraintLease])
+  const editor = useKitEditorState({ ...session, run: leasedRun }, host, t, 'cad', phrase)
   const { doc, change, state } = session
   const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', hostTools: HOST_TOOLS })
   const canvas = useRef<KitCanvasHandle>(null)

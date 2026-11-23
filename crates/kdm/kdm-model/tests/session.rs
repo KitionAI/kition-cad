@@ -72,8 +72,24 @@ fn holds_compares_content_not_ids() {
     let a = CadSession::create(&drawing()).unwrap();
     assert!(a.holds(&drawing()).unwrap());
     let mut other = drawing();
-    other.header.set_str("CLAYER", "Walls");
+    other.header.set_f64("LTSCALE", 5.0);
     assert!(!a.holds(&other).unwrap());
+    let mut current = drawing();
+    current.header.set_str("CLAYER", "Walls");
+    assert!(a.holds(&current).unwrap(), "the current layer is each person's own, not the drawing's content");
+}
+
+#[test]
+fn a_file_read_again_pairs_its_entities_by_handle() {
+    let d = drawing();
+    let mut a = CadSession::create(&d).unwrap();
+    let h = line_a(&d);
+    let object = a.entity_object(h).unwrap();
+    let mut file = d.clone();
+    move_entity(&mut file, h, 5.0, 0.0);
+    a.reread(&d, &file).unwrap();
+    assert_eq!(a.entity_object(h), Some(object), "the moved line keeps its object");
+    assert!(a.holds(&file).unwrap());
 }
 
 #[test]

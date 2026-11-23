@@ -9,8 +9,13 @@
 //! - every entity is its own `Entity` object: its handle (a hex string), its `common` properties
 //!   and its `kind` (the geometry and everything else of the entity, one JSON register, so
 //!   moving an entity writes one register and two people editing different entities never
-//!   meet). An entity read from a file gets an object id derived from its handle; one made later
-//!   gets a fresh one ([`Ids::entities`] maps handles to objects);
+//!   meet). Every entity object gets a minted id, never one derived from its handle or the file
+//!   ([`Ids::entities`] maps handles to objects); a file read again pairs its entities with the
+//!   replica's by their stored `handle`;
+//! - a table entity's `kind` holds its grid (row heights, column widths, each cell's id and
+//!   merge span); each cell's text is a `TableCell` object's `text`, in the root's `tableCells`
+//!   map under `<entity object>:<cell id>`, so two people typing in one table, or in one cell,
+//!   both keep their typing ([`table_cell_key`]);
 //! - draw order is a list of entity objects per entity store: the root's `model`, and each
 //!   `Layout`'s and `Block`'s `entities` (so bringing an entity to the front is one list move);
 //! - named tables (layers, linetypes, text, dimension, multileader and table styles, views,
@@ -18,8 +23,13 @@
 //!   the root keyed by their name (folded to lower case, as the drawing compares names): two
 //!   people adding the same name keep one record, and a rename is a delete and an add, with
 //!   every reference to the name re-pointed in the same transaction (the engine's rename does
-//!   that, so the diff writes it). A record's `order` keeps the table's order;
-//! - header variables are a map keyed by variable name, each its own register;
+//!   that, so the diff writes it). A record's `order` keeps the table's order; the identities
+//!   ever issued to records are the keys of the root's `recordIdsUsed` map (it only grows, so
+//!   two people adding records at once both keep theirs);
+//! - header variables are a map keyed by variable name, each its own register, except the
+//!   current properties and styles ([`CURRENT_VARS`]: the current layer, linetype, colour,
+//!   text style…), which are each person's own: never written, kept by the view across
+//!   reloads ([`carry_current`]);
 //! - constraints are `Constraint` objects in the root's `constraints` list, their references by
 //!   entity object id.
 //!
@@ -45,19 +55,22 @@
 //! repair keep equal to `data.name`): the file stores no handle for them that the drawing keeps,
 //! and a name is unique within its table. A rename is a delete and an add (see above), so the
 //! renamed record is named by its new name. The root's table maps own their records. Constraints
-//! have `constraint:<id>` tool ids, using their persisted numeric ids.
+//! have `constraint:<id>` tool ids, using their persisted numeric ids. A table cell is
+//! `cell:<table handle>-<cell id>` ([`table_cell_tool_id`]).
 //!
 //! **Constraint ids.** Numeric ids are replicated and survive saving and reopening. Repair
 //! allocates missing or duplicate ids after model batches or concurrent creates.
 //!
 //! **Repair.** [`KitModel::validate`] clears what a merge left dangling: map entries and list
 //! entries of deleted objects, objects nothing lists (the loser of two concurrent adds of one
-//! name, an entity added to a layout someone deleted), duplicate handles; an entity on a layer
-//! someone deleted goes to layer `0`, a constraint on a deleted entity is removed, as are a
-//! dimension's associations and group members of deleted entities (see `repair`).
+//! name, an entity added to a layout someone deleted), duplicate handles, cells of tables that
+//! are gone; an entity on a layer someone deleted goes to layer `0`, a constraint on a deleted
+//! entity is removed, as are a dimension's associations and group members of deleted entities
+//! (see `repair`).
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+mod cells;
 mod compare;
 mod finite;
 pub mod fresh;
@@ -77,6 +90,7 @@ use kition_cad_doc::{Drawing, Entity, EntityStore, Handle};
 use kition_kit::kdm::{ActorId, KdmError, ObjectId, Origin, Replica, Schema, Tx};
 use kition_kit::session::{BlobSink, BlobSource, Damage, KitError, KitModel};
 
+pub use cells::identify_cells;
 pub use compare::{canonical, normalize};
 pub use ids::{Ids, Known, Table};
 pub use read::{read_document, read_document_known};
@@ -107,6 +121,59 @@ pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
     KdmError::Engine(error.to_string())
 }
 
+/// The header variables that are each person's own (the current layer, linetype, colour,
+/// lineweight, linetype scale, plot style, transparency, and the current text, multileader,
+/// table and multiline styles): a replica never holds them, the view keeps its own across
+/// reloads ([`carry_current`]), and a DXF file saves the view's.
+pub const CURRENT_VARS: [&str; 12] = [
+    "CLAYER",
+    "CELTYPE",
+    "CECOLOR",
+    "CECOLOR_RGB",
+    "CELWEIGHT",
+    "CELTSCALE",
+    "CPLOTSTYLE",
+    "CETRANSPARENCY",
+    "TEXTSTYLE",
+    "CMLEADERSTYLE",
+    "CTABLESTYLE",
+    "CMLSTYLE",
+];
+
+/// Whether a header variable is one of [`CURRENT_VARS`] (names compare without case).
+pub fn is_current_var(name: &str) -> bool {
+    CURRENT_VARS.iter().any(|v| v.eq_ignore_ascii_case(name))
+}
+
+/// Puts `from`'s [`CURRENT_VARS`] into `to` (a view read again from the replica, which holds
+/// none), then sends every current name that names no record of `to` (a layer someone else
+/// deleted) back to its default, as the repair does.
+pub fn carry_current(from: &Drawing, to: &mut Drawing) {
+    for var in CURRENT_VARS {
+        match from.header.vars.get(var) {
+            Some(v) => {
+                to.header.vars.insert(var.to_owned(), v.clone());
+            }
+            None => {
+                to.header.vars.remove(var);
+            }
+        }
+    }
+    repair::header_names(to);
+}
+
+/// The key of a table cell's `TableCell` object in the root's `tableCells` map: the table
+/// entity's object id and the cell's id within the table.
+pub fn table_cell_key(entity: &ObjectId, cell: u32) -> String {
+    format!("{}:{cell}", entity.as_str())
+}
+
+/// A table cell's tool id value (the `TableCell`'s `id`, named `cell:<value>`): the table's
+/// handle and the cell's id within the table.
+pub fn table_cell_tool_id(table: Handle, cell: u32) -> String {
+    format!("{}-{cell}", table.hex())
+}
+
 /// The handles a replica of `actor` mints new entities from: `[start, end)`, a per-actor slot of
 /// the handle space (Kition Film's id slots), so two actors that draw without exchanging first
 /// never mint the same handle. `((actor as u64) % 2^20) << 32`: 2^20 slots, each 2^32 handles
@@ -135,10 +202,11 @@ pub(crate) fn all_entities(d: &Drawing) -> impl Iterator<Item = &Arc<Entity>> + 
 
 /// A file's drawing, as [`KitModel::import`] reads it: DXF (or DWG where the build reads it),
 /// with duplicate handles (and handle 0) renumbered, since a replica needs every entity's handle
-/// unique in the drawing.
+/// unique in the drawing, and every table cell given an id (a replica keys cell texts by it).
 pub fn decode(name: &str, bytes: &[u8]) -> Result<Drawing> {
     let mut d = kition_cad_io::read(bytes, if name.is_empty() { "drawing.dxf" } else { name }).map_err(kit_err)?;
     dedupe_handles(&mut d);
+    identify_cells(&mut d);
     Ok(d)
 }
 
@@ -230,7 +298,8 @@ impl CadModel {
     /// view (which is what the replica held before the change) rather than parsed again.
     fn reload(&mut self, replica: &Replica, changed: Option<&BTreeSet<ObjectId>>) -> Result<()> {
         let cache = read::EntityCache::of(&self.drawing, &self.ids);
-        let (drawing, ids, _) = read::read_with(replica, Some(replica.actor()), &self.known, changed.map(|c| (&cache, c))).map_err(kit_err)?;
+        let (mut drawing, ids, _) = read::read_with(replica, Some(replica.actor()), &self.known, changed.map(|c| (&cache, c))).map_err(kit_err)?;
+        carry_current(&self.drawing, &mut drawing);
         self.known.remember(&drawing, &ids);
         self.drawing = drawing;
         self.ids = ids;
@@ -256,7 +325,8 @@ impl KitModel for CadModel {
     }
 
     /// Reloads the view, parsing again only the entities that changed (the others are taken from
-    /// the view), keeping every surviving constraint's local id.
+    /// the view), keeping every surviving constraint's local id and the view's own current
+    /// properties ([`carry_current`]).
     fn apply(&mut self, replica: &Replica, changed: &BTreeSet<ObjectId>, _blobs: &dyn BlobSource) -> Result<Damage> {
         self.reload(replica, Some(changed))?;
         Ok(Damage::Full)

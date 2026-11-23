@@ -12,6 +12,9 @@ pub(crate) trait Source {
     fn entries(&self, id: &ObjectId, field: &str) -> KdmResult<Vec<(String, Value)>>;
     fn exists(&self, id: &ObjectId) -> bool;
     fn type_of(&self, id: &ObjectId) -> Option<String>;
+    /// A text field's characters; `None` where the source cannot read text (a transaction: the
+    /// repair reads no cell text and writes none).
+    fn text(&self, id: &ObjectId, field: &str) -> Option<String>;
 }
 
 impl Source for Replica {
@@ -30,6 +33,9 @@ impl Source for Replica {
     fn type_of(&self, id: &ObjectId) -> Option<String> {
         Replica::object_type(self, id).ok()
     }
+    fn text(&self, id: &ObjectId, field: &str) -> Option<String> {
+        Replica::text(self, id, field).ok()
+    }
 }
 
 impl Source for Tx<'_> {
@@ -47,5 +53,8 @@ impl Source for Tx<'_> {
     }
     fn type_of(&self, id: &ObjectId) -> Option<String> {
         Tx::object_type(self, id).ok()
+    }
+    fn text(&self, _id: &ObjectId, _field: &str) -> Option<String> {
+        None
     }
 }

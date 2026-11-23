@@ -13,7 +13,7 @@ use kition_cad_doc::Drawing;
 use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, OriginKind, Replica, UndoScope, Version};
 use kition_kit::session::{Damage, KitModel, KitSession, MemoryBlobs};
 
-use crate::{CadModel, Ids, Result, canonical, handle_range, kit_err, next_handle, read_document, write_changes, write_document};
+use crate::{CadModel, Ids, Result, canonical, handle_range, identify_cells, kit_err, next_handle, read_document, write_changes, write_document};
 
 /// One open drawing as a KDM replica and the engine's view of it. See the module docs.
 pub struct CadSession {
@@ -35,8 +35,11 @@ impl std::fmt::Debug for CadSession {
 
 impl CadSession {
     /// A new replica holding `drawing`, written in its creating transaction (not an undo step).
-    /// The view is `drawing` itself.
+    /// The view is `drawing` itself (its table cells given ids where they had none).
     pub fn create(drawing: &Drawing) -> Result<Self> {
+        let mut drawing = drawing.clone();
+        identify_cells(&mut drawing);
+        let drawing = &drawing;
         let mut ids = Ids::default();
         let (replica, ()) =
             Replica::create_with(CadModel::schema(), crate::fresh::document(), crate::fresh::actor(), &Origin::system("create"), |tx| {
@@ -51,7 +54,8 @@ impl CadSession {
     }
 
     /// Opens a snapshot (or a full change export) of another replica as a new replica of a fresh
-    /// actor.
+    /// actor. The view's current properties are the defaults: they are each person's own
+    /// ([`crate::CURRENT_VARS`]).
     pub fn open_snapshot(bytes: &[u8]) -> Result<Self> {
         let inner = KitSession::open_snapshot(bytes, Box::new(MemoryBlobs::default()), crate::fresh::actor())?;
         Ok(Self { inner, undo_steps: 0, redo_steps: 0 })
@@ -82,6 +86,9 @@ impl CadSession {
     /// replicated changed or `origin` is a `system`/`import` one (never an undo step). On failure
     /// nothing is written and the view is the replica's.
     pub fn record(&mut self, origin: &Origin, after: &Drawing) -> Result<u32> {
+        let mut identified = after.clone();
+        identify_cells(&mut identified);
+        let after = &identified;
         let before = self.inner.model().drawing.clone();
         let mut ids = self.inner.model_mut().take_ids();
         let version = self.inner.version();
@@ -104,6 +111,7 @@ impl CadSession {
 
     /// Import only the file difference, without adding or replacing either undo history.
     /// `before` is the saved-file form, so regenerated DXF caches do not become outside edits.
+    /// The file's entities pair with the replica's by handle (the ids map), never by object id.
     pub fn reread(&mut self, before: &Drawing, after: &Drawing) -> Result<Damage> {
         let mut ids = self.inner.model().ids.clone();
         self.inner.reread(|_, tx| write_changes(tx, before, after, &mut ids).map(|_| ()).map_err(Into::into))
@@ -125,7 +133,8 @@ impl CadSession {
 
     /// Whether the replica holds what a file saved from it holds: `file` (a drawing read from
     /// DXF) against this replica's view saved as DXF and read back the same way, so what DXF does
-    /// not keep (or writes from the next handle, `$HANDSEED`) does not count. A host reopening a
+    /// not keep (or writes from the next handle, `$HANDSEED`) does not count, nor do the current
+    /// properties, which are each person's own. A host reopening a
     /// file with the replica it stored beside it asks this before recording the file on top.
     pub fn holds_file(&self, file: &Drawing) -> Result<bool> {
         let bytes = kition_cad_io::write(self.drawing(), "drawing.dxf").map_err(kit_err)?;

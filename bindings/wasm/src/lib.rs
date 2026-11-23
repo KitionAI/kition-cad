@@ -672,6 +672,8 @@ impl KitDocument for CadDocument {
         let mut session = Session::empty();
         if let Some(replica) = self.session.kdm() {
             session.open_snapshot(&replica.snapshot().map_err(engine_error)?).map_err(engine_error)?;
+            // The current properties are this person's own, not in the replica.
+            session.carry_current(self.session.doc().map_err(engine_error)?).map_err(engine_error)?;
         } else {
             session.open_drawing(self.session.doc().map_err(engine_error)?.clone(), "premise", None);
         }

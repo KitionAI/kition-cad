@@ -57,6 +57,16 @@ is not exported.
   `invalid-value` with a read-only explanation; later handle assignments refuse `read-only`.
 - A constraint has a saved id such as `constraint:1`. `delconstraint.ids` accepts these ids and
   the numeric ids its engine command lists; coordinates and cell indices are never object ids.
+- A table cell's text is an object of its own, `cell:<table handle>-<cell id>` (`cad_query` loads
+  its `text`); the table entity's `kind` holds the grid (row heights, column widths, each cell's
+  `id` and `merged` span) and no text. Cell ids are the table's own and survive saving and
+  reopening; change a cell with `table.set` (row and column), never by its object.
+- The current layer, linetype, colour, lineweight, linetype scale, plot style and the current
+  text, multileader, table and multiline styles (`CLAYER`, `CELTYPE`, `CECOLOR`, `CELWEIGHT`,
+  `CELTSCALE`, `CPLOTSTYLE`, `TEXTSTYLE`, `CMLEADERSTYLE`, `CTABLESTYLE`, `CMLSTYLE`…) are each
+  person's own: they are saved in the file but not shared with the others editing the drawing,
+  and setting them changes nothing anyone else sees. A drawing command takes an explicit `layer`
+  when the layer matters.
 
 ## What a write holds
 

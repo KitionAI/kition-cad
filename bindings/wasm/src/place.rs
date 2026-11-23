@@ -1536,7 +1536,11 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             Some(fields)
         } else if command.starts_with("table.") {
             if let EntityKind::Table(table) = &e.kind {
-                Some(crate::read_fields::table_fields(command, p, table))
+                let (fields, texts) = crate::read_fields::table_fields(command, p, table);
+                for cell in texts {
+                    premises.push(need(format!("cell:{}", kdm_model::table_cell_tool_id(*h, cell)), vec!["text".into()]));
+                }
+                Some(fields)
             } else {
                 Some(vec!["kind.type".into()])
             }

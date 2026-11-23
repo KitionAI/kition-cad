@@ -13,10 +13,11 @@ use kition_kit::kdm::{ActorId, KdmError, ObjectId, Replica};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use crate::cells;
 use crate::ids::{Ids, Known, Slot, Table, names};
 use crate::refs::{each_parametric_list, each_ref_handle, handle_in, handles_in, hval_in, kind_in};
 use crate::source::Source;
-use crate::{KdmResult, kdm_err, next_handle, root_id};
+use crate::{KdmResult, is_current_var, kdm_err, next_handle, root_id};
 
 /// The entities of the last read, by object: a reload reuses those whose object did not change.
 #[derive(Clone, Debug, Default)]
@@ -79,6 +80,8 @@ struct Reader<'s, S: Source> {
     seen: HashSet<ObjectId>,
     handles: HashSet<Handle>,
     ids: Ids,
+    /// The tables' cell objects.
+    cells: cells::Index,
 }
 
 impl<S: Source> Reader<'_, S> {
@@ -103,7 +106,8 @@ impl<S: Source> Reader<'_, S> {
 
     fn entity(&self, object: &ObjectId, handle: Handle) -> KdmResult<Entity> {
         let common: Common = from(self.src.get(object, "common")?)?;
-        let kind: EntityKind = kind_in(self.src.get(object, "kind")?, &self.ids)?;
+        let mut kind: EntityKind = kind_in(self.src.get(object, "kind")?, &self.ids)?;
+        cells::fill(self.src, self.cells.get(object), &mut kind);
         Ok(Entity { handle, common, kind })
     }
 
@@ -150,7 +154,7 @@ pub(crate) fn read_with<S: Source>(
     if !src.exists(&root) {
         return Err(KdmError::NotFound(root.to_string()));
     }
-    let mut r = Reader { src, seen: HashSet::new(), handles: HashSet::new(), ids: Ids::default() };
+    let mut r = Reader { src, seen: HashSet::new(), handles: HashSet::new(), ids: Ids::default(), cells: cells::index(src)? };
 
     // Pass 1: the stores and their entities' handles.
     let model = r.listed(&root, "model")?;
@@ -166,7 +170,8 @@ pub(crate) fn read_with<S: Source>(
     }
 
     // Which cached entities still read the same: those whose object did not change, unless an
-    // entity was deleted or got another handle (a cached dimension's associations would be stale).
+    // entity was deleted or got another handle (a cached dimension's associations would be stale),
+    // or, for a table, unless one of its cells or the map of cells changed.
     let mut cache = EntityCache::default();
     let (old, changed) = match reuse {
         Some((old, changed)) => (Some(old), Some(changed)),
@@ -176,16 +181,22 @@ pub(crate) fn read_with<S: Source>(
         (Some(old), Some(changed)) => changed.iter().any(|o| old.0.get(o).is_some_and(|e| r.ids.entities.local(o) != Some(e.handle))),
         _ => false,
     };
+    let stale_cells: HashSet<ObjectId> = match changed {
+        Some(changed) if changed.contains(&root) => r.cells.keys().cloned().collect(),
+        Some(changed) => r.cells.iter().filter(|(_, cells)| cells.values().any(|c| changed.contains(c))).map(|(e, _)| e.clone()).collect(),
+        None => HashSet::new(),
+    };
 
     // Pass 2: the entities.
     let mut build = |r: &mut Reader<'_, S>, listed: &Listed| -> KdmResult<EntityStore> {
         let mut store = EntityStore::new();
         for (object, handle) in listed {
             let cached = match (old, changed) {
-                (Some(old), Some(changed)) if !changed.contains(object) => old
-                    .0
-                    .get(object)
-                    .filter(|e| e.handle == *handle && !(stale_refs && matches!(&e.kind, EntityKind::Dimension(d) if !d.assoc.is_empty()))),
+                (Some(old), Some(changed)) if !changed.contains(object) => old.0.get(object).filter(|e| {
+                    e.handle == *handle
+                        && !(stale_refs && matches!(&e.kind, EntityKind::Dimension(d) if !d.assoc.is_empty()))
+                        && !(matches!(e.kind, EntityKind::Table(_)) && (stale_cells.contains(object) || changed.contains(&root)))
+                }),
                 _ => None,
             };
             let entity = match cached {
@@ -251,6 +262,11 @@ pub(crate) fn read_with<S: Source>(
 
     let mut header = Header::default();
     for (key, value) in src.entries(&root, "header")? {
+        // Each person's own current properties are never shared (a batch that wrote one is
+        // not read).
+        if is_current_var(&key) {
+            continue;
+        }
         if let Some(v) = hval_in(value) {
             header.vars.insert(key, v);
         }
@@ -295,7 +311,7 @@ pub(crate) fn read_with<S: Source>(
 
     let mut d = Drawing {
         record_ids: BTreeMap::new(),
-        record_ids_used: src.get(&root, "recordIdsUsed")?.as_str().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default(),
+        record_ids_used: src.entries(&root, "recordIdsUsed")?.into_iter().map(|(id, _)| id).collect(),
         header,
         layers,
         linetypes,

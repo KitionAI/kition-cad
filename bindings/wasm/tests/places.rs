@@ -79,12 +79,18 @@ fn table_cells_hold_the_cell_and_merge_topology_not_every_other_cell() {
     assert_eq!(
         p.fields,
         Some(
-            // same-field decision: the addressed text is replaced.
-            ["~locked", "kind.type", "kind.cells.1.0.id", "kind.cells.1.0.text", "kind.cells.0.0.merged", "kind.cells.1.0.merged"]
-                .into_iter()
-                .map(str::to_owned)
-                .collect()
+            ["~locked", "kind.type", "kind.cells.1.0.id", "kind.cells.0.0.merged", "kind.cells.1.0.merged"].into_iter().map(str::to_owned).collect()
         )
+    );
+    // same-field decision: the addressed text is replaced. A cell's text is its own object's
+    // (`cell:<table>-<cell id>`; the table numbers its cells 1, 2, … row by row).
+    let cell = json!(format!("cell:{}-3", h.as_str().unwrap()));
+    let text = under.premises.iter().find(|p| p.id == cell).unwrap_or_else(|| panic!("no premise on {cell}: {:?}", under.premises));
+    assert_eq!(text.fields, Some(vec!["text".to_owned()]));
+    assert_eq!(
+        under.premises.iter().filter(|p| p.id.as_str().is_some_and(|id| id.starts_with("cell:"))).count(),
+        1,
+        "only the addressed cell's text"
     );
 }
 

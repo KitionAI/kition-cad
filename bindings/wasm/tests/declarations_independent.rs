@@ -105,6 +105,14 @@ pub fn fixture() -> (CadDocument, Vec<(&'static str, String)>) {
         ("$Vp", hex(&vp)),
         ("$DoorLine", door_line),
     ];
+    // A table cell's text is its own object's: `cell:<table handle>-<cell id>`.
+    let tab_cell = |row: usize, col: usize| {
+        let h = kition_cad_doc::Handle::parse_hex(&hex(&tab)).unwrap();
+        let kition_cad_doc::EntityKind::Table(t) = &saved.entity(h).unwrap().kind else { panic!("$Tab is no table") };
+        format!("cell:{}-{}", hex(&tab), t.cells[row][col].id)
+    };
+    roles.push(("$TabCell10", tab_cell(1, 0)));
+    roles.push(("$TabCell11", tab_cell(1, 1)));
     for (role, ty, name) in [
         ("$0", "layer", "0"),
         ("$Walls", "layer", "Walls"),
@@ -1894,7 +1902,7 @@ const ROWS: &[Row] = &[
         "table.set",
         r##"{"handle":"$Tab","row":1,"col":0,"text":"x"}"##,
         "",
-        &[("$Tab", "kind.type,kind.cells.1.0.id,kind.cells.0.0.merged,kind.cells.1.0.merged", "-"), ("$Tab", "kind.cells.1.0.text", "-")],
+        &[("$Tab", "kind.type,kind.cells.1.0.id,kind.cells.0.0.merged,kind.cells.1.0.merged", "-"), ("$TabCell10", "text", "-")],
     ),
     // table.insertrow: row inserted before index; kind replaced whole
     // Review R4 (lost update): the handler replaces the whole value on the drawing as it is when the
@@ -1981,11 +1989,15 @@ const ROWS: &[Row] = &[
         "table.merge",
         r##"{"handle":"$Tab","row":1,"col":0,"rows":1,"cols":2}"##,
         "",
-        &[(
-            "$Tab",
-            "kind.type,kind.cells.0.0.id,kind.cells.0.1.id,kind.cells.1.0.id,kind.cells.1.1.id,kind.cells.0.0.merged,kind.cells.0.1.merged,kind.cells.1.0.merged,kind.cells.1.1.merged,~grid.rows,~grid.cols,kind.cells.1.0.text,kind.cells.1.1.text",
-            "-",
-        )],
+        &[
+            (
+                "$Tab",
+                "kind.type,kind.cells.0.0.id,kind.cells.0.1.id,kind.cells.1.0.id,kind.cells.1.1.id,kind.cells.0.0.merged,kind.cells.0.1.merged,kind.cells.1.0.merged,kind.cells.1.1.merged,~grid.rows,~grid.cols",
+                "-",
+            ),
+            ("$TabCell10", "text", "-"),
+            ("$TabCell11", "text", "-"),
+        ],
     ),
     // table.unmerge: unmerge the merge covering a cell
     // Review R4 (lost update): the handler replaces the whole value on the drawing as it is when the

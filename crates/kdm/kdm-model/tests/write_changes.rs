@@ -121,9 +121,29 @@ fn a_header_change_writes_one_key() {
     let before = drawing();
     let (mut replica, mut ids) = new_replica(&before);
     let mut after = before.clone();
-    after.header.set_str("CLAYER", "Walls");
+    after.header.set_f64("LTSCALE", 4.0);
     assert_eq!(write(&mut replica, &mut ids, &before, &after), BTreeSet::from([root()]));
-    assert_eq!(replica.map_get(&root(), "header", "CLAYER").unwrap_or_default()["s"], "Walls");
+    assert_eq!(replica.map_get(&root(), "header", "LTSCALE").unwrap_or_default()["r"].as_f64(), Some(4.0));
+}
+
+#[test]
+fn the_current_layer_and_styles_are_never_written() {
+    let mut before = drawing();
+    before.header.set_str("TEXTSTYLE", "Standard");
+    let (mut replica, mut ids) = new_replica(&before);
+    for var in kdm_model::CURRENT_VARS {
+        assert!(replica.map_get(&root(), "header", var).unwrap_or_default().is_null(), "{var} is each person's own");
+    }
+    let mut after = before.clone();
+    after.header.set_str("CLAYER", "Walls");
+    after.header.set_str("TEXTSTYLE", "Other");
+    replica.take_changed();
+    let wrote = replica.transact(&person("t"), |tx| write_changes(tx, &before, &after, &mut ids)).unwrap_or_else(|error| panic!("write: {error}"));
+    assert!(!wrote, "changing the current layer writes nothing");
+    assert_eq!(replica.take_changed(), BTreeSet::new());
+    let (read, _) = kdm_model::read_document(&replica).unwrap_or_else(|error| panic!("read: {error}"));
+    assert_eq!(read.header.get("CLAYER"), None);
+    assert_eq!(read.header.f64("LTSCALE", 0.0), 2.0, "the shared variables are read back");
 }
 
 #[test]
@@ -139,7 +159,7 @@ fn erasing_an_entity_deletes_its_object_and_a_new_one_gets_a_fresh_object() {
     assert!(!replica.exists(&object));
     let fresh = ids.entity(made).cloned().unwrap_or_else(|| panic!("new entity"));
     assert!(replica.exists(&fresh));
-    assert_ne!(fresh.as_str(), format!("h{:X}", made.0), "only entities written with the file derive their ids from handles");
+    assert_ne!(fresh.as_str(), format!("h{:X}", made.0), "no entity's object id derives from its handle");
     assert!(matches!(after.model.get(made).map(|e| &e.kind), Some(EntityKind::Line(_))));
 }
 
@@ -160,4 +180,34 @@ fn moving_entities_into_a_block_keeps_their_objects() {
     let edge = ids.block("Edge").cloned().unwrap_or_else(|| panic!("block"));
     assert_eq!(replica.list(&edge, "entities").unwrap_or_default(), vec![object.clone()]);
     assert!(!replica.list(&root(), "model").unwrap_or_default().contains(&object));
+}
+
+#[test]
+fn entities_written_with_the_file_get_minted_object_ids() {
+    let d = drawing();
+    let (first, first_ids) = new_replica(&d);
+    let (second, second_ids) = new_replica(&d);
+    for e in d.model.iter() {
+        let a = first_ids.entity(e.handle).cloned().unwrap_or_else(|| panic!("entity {}", e.handle.hex()));
+        let b = second_ids.entity(e.handle).cloned().unwrap_or_else(|| panic!("entity {}", e.handle.hex()));
+        assert_ne!(a.as_str(), format!("h{:X}", e.handle.0), "the object id is not derived from the handle");
+        assert_ne!(a, b, "two replicas built from one file name its entities differently");
+        assert_eq!(first.get(&a, "handle").unwrap_or_default(), Value::String(e.handle.hex()), "the handle is stored");
+        assert_eq!(second.get(&b, "handle").unwrap_or_default(), Value::String(e.handle.hex()));
+    }
+}
+
+#[test]
+fn issued_record_identities_are_one_key_each() {
+    let before = drawing();
+    let (mut replica, mut ids) = new_replica(&before);
+    let issued: BTreeSet<String> = replica.map_entries(&root(), "recordIdsUsed").unwrap_or_default().into_iter().map(|(k, _)| k).collect();
+    assert!(issued.contains("layer:Walls"), "{issued:?}");
+    let mut after = before.clone();
+    after.layers.push(Layer::new("Furniture"));
+    after.ensure_record_ids();
+    write(&mut replica, &mut ids, &before, &after);
+    assert_eq!(replica.map_get(&root(), "recordIdsUsed", "layer:Furniture").unwrap_or_default(), Value::Bool(true));
+    let (read, _) = kdm_model::read_document(&replica).unwrap_or_else(|error| panic!("read: {error}"));
+    assert!(read.record_ids_used.contains("layer:Furniture") && read.record_ids_used.contains("layer:Walls"));
 }

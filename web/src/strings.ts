@@ -15,6 +15,8 @@ const enUS: Catalog = {
   zoomExtents: 'Zoom Extents',
   properties: 'Properties',
   nothingSelected: 'Nothing selected',
+  'lease.constraints': '{name} is solving constraints in this drawing',
+  'lease.someone': 'Someone else',
 }
 
 const zhCN: Catalog = {
@@ -31,6 +33,8 @@ const zhCN: Catalog = {
   zoomExtents: '范围缩放',
   properties: '特性',
   nothingSelected: '未选择对象',
+  'lease.constraints': '{name} 正在求解此图形的约束',
+  'lease.someone': '其他人',
 }
 
 export const CATALOGS: Record<string, Catalog> = { 'en-US': enUS, 'zh-CN': zhCN }
