@@ -113,6 +113,7 @@ pub fn drawing() -> Drawing {
     d.groups.push(Group { name: "Pair".into(), description: "two lines".into(), selectable: true, members: vec![a, b] });
     d.header.set_f64("LTSCALE", 2.0);
     d.header.set_i64("ORTHOMODE", 1);
+    d.header.set_i64("PDMODE", 3);
     d.header.set("INSBASE", HVal::Point(Vec3::new(1.0, 2.0, 0.0)));
     d.header.set_str("CLAYER", "0");
     d

@@ -122,6 +122,7 @@ pub async fn check(
     for refuse in [false, true] {
         let f = Fixture::new();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
+        let observed = f.disk();
         let colleague = if refuse { necessary(&f) } else { unrelated(&f) };
         f.colleague(&colleague);
         let before = f.disk();
@@ -129,7 +130,18 @@ pub async fn check(
         let expected = if refuse {
             None
         } else {
-            let mut oracle = CadDocument::open(FILE, &before).unwrap();
+            // The current layer, styles and settings (kdm_model::is_current_var) are each
+            // person's own: the agent keeps those of the file it observed, whatever the colleague
+            // saved as theirs.
+            let mine = kition_cad_io::read(&observed, FILE).unwrap();
+            let mut file = kition_cad_io::read(&before, FILE).unwrap();
+            let oracle_bytes = if kdm_model::current_vars(&mine) != kdm_model::current_vars(&file) {
+                kdm_model::carry_current(&mine, &mut file);
+                kition_cad_io::write(&file, FILE).unwrap()
+            } else {
+                before.clone()
+            };
+            let mut oracle = CadDocument::open(FILE, &oracle_bytes).unwrap();
             oracle.execute(command, params.clone()).unwrap_or_else(|e| panic!("oracle {command}: {e}"));
             Some(kition_cad_io::read(&oracle.save(Some(FILE)).unwrap(), FILE).unwrap())
         };

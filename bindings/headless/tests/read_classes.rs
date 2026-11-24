@@ -197,14 +197,15 @@ async fn a_new_block_rests_on_its_name_being_free() {
     .await;
 }
 
-/// Held more before: CENTERMARK draws on CENTER, never on the current linetype it held; it rests
-/// on its stored extension default.
+/// Held more before: CENTERMARK draws on CENTER, never on the current linetype it held. Its
+/// extension default (CENTEREXE) is each person's own like the current linetype
+/// (kdm_model::CURRENT_VARS): a colleague's is theirs; the mark rests on its circle.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_centre_mark_rests_on_its_extension_not_on_the_current_linetype() {
+async fn a_centre_mark_rests_on_its_circle_not_on_a_colleagues_extension_or_linetype() {
     check(
         |f| ("centermark", json!({"handles":[f.circle]})),
-        |_| vec![("setvar", json!({"name":"CENTEREXE","value":7}))],
-        |_| vec![("linetype", json!({"load":"DASHED","current":"DASHED"}))],
+        |f| vec![("properties.set", json!({"handles":[f.circle],"radius":7}))],
+        |_| vec![("setvar", json!({"name":"CENTEREXE","value":7})), ("linetype", json!({"load":"DASHED","current":"DASHED"}))],
     )
     .await;
 }

@@ -72,27 +72,48 @@ async fn laycur_assigns_my_current_layer_not_a_colleagues() {
     }
 }
 
+/// DIMSCALE is the drawing's (a dimension whose style's scale is zero is drawn at it), shared:
+/// replacing it holds the value I observed.
 #[tokio::test(flavor = "multi_thread")]
 async fn stored_variable_writes_hold_the_value_they_replace() {
     for relevant in [false, true] {
         let mut d = drawing();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("setvar", json!({"name":"DIMDEC","value":3})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "setvar", json!({"name":"DIMDEC","value":1}), relevant).await;
+        f.colleague(&[if relevant { ("setvar", json!({"name":"DIMSCALE","value":3})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "setvar", json!({"name":"DIMSCALE","value":2}), relevant).await;
         f.kits.shutdown().await;
     }
 }
 
+/// The other DIM* variables are each person's own (kdm_model::is_current_var): a colleague's DIMDEC
+/// is theirs, my SETVAR DIMDEC applies over it, and the saved file carries mine.
 #[tokio::test(flavor = "multi_thread")]
-async fn pedit_holds_the_spline_segment_default() {
-    for relevant in [false, true] {
+async fn my_dimension_variable_applies_over_a_colleagues() {
+    for colleague_set in [false, true] {
+        let mut d = drawing();
+        let f = Fixture::new(&mut d);
+        let basis = f.basis().await;
+        f.colleague(&[if colleague_set { ("setvar", json!({"name":"DIMDEC","value":3})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "setvar", json!({"name":"DIMDEC","value":1}), false).await;
+        assert_eq!(f.saved().header.i64("DIMDEC", -1), 1, "the file carries my DIMDEC");
+        f.kits.shutdown().await;
+    }
+}
+
+/// The spline segment count PEDIT Spline uses is each person's own (kdm_model::CURRENT_VARS): a
+/// colleague's SPLINESEGS is theirs, so my PEDIT applies with mine and the file carries mine (the
+/// drawing had none: 8).
+#[tokio::test(flavor = "multi_thread")]
+async fn pedit_uses_my_spline_segment_default_not_a_colleagues() {
+    for colleague_set in [false, true] {
         let mut d = drawing();
         let h = d.execute("pline", json!({"points":[[0,0],[10,10],[20,0],[30,10]]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("setvar", json!({"name":"SPLINESEGS","value":12})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "pedit", json!({"handles":[h],"option":"spline"}), relevant).await;
+        f.colleague(&[if colleague_set { ("setvar", json!({"name":"SPLINESEGS","value":12})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "pedit", json!({"handles":[h],"option":"spline"}), false).await;
+        assert_eq!(f.saved().header.i64("SPLINESEGS", 8), 8, "the file carries my SPLINESEGS");
         f.kits.shutdown().await;
     }
 }
@@ -143,6 +164,10 @@ impl Fixture {
         let after = d.save(Some(FILE)).unwrap();
         assert_ne!(before, after, "independent writer must change the file");
         std::fs::write(path, after).unwrap();
+    }
+    /// The file as saved now.
+    fn saved(&self) -> kition_cad_doc::Drawing {
+        kition_cad_io::read(&std::fs::read(self.dir.path().join(FILE)).unwrap(), FILE).unwrap()
     }
     fn colleague_drawing(&self, edit: impl FnOnce(&mut kition_cad_doc::Drawing)) {
         let path = self.dir.path().join(FILE);
@@ -386,8 +411,6 @@ async fn definition_copying(family: &str) {
         let basis = f.basis().await;
         let change = if !relevant {
             ("layer.new", json!({"name":"Other"}))
-        } else if family == "attdef" {
-            ("setvar", json!({"name":"TEXTSIZE","value":9}))
         } else if family == "explode" {
             ("dimstyle", json!({"name":"ISO-25","extExtend":9,"current":false}))
         } else {
@@ -395,7 +418,6 @@ async fn definition_copying(family: &str) {
         };
         f.colleague(&[change]);
         let params = match family {
-            "attdef" => json!({"tag":"ID","at":[20,20],"default":"Door"}),
             "dimstyle" | "dimstyle.dimension" => json!({"name":"Copy","current":false}),
             _ => json!({"handles":[dm]}),
         };
@@ -404,9 +426,24 @@ async fn definition_copying(family: &str) {
     }
 }
 
+/// The text height new text takes (TEXTSIZE) is each person's own (kdm_model::CURRENT_VARS): a
+/// colleague's is theirs, so my ATTDEF without a height applies with mine (the drawing's 2.5), and
+/// the file carries mine.
 #[tokio::test(flavor = "multi_thread")]
-async fn attribute_defaults_are_premises() {
-    definition_copying("attdef").await;
+async fn attribute_definition_takes_my_text_height_not_a_colleagues() {
+    for colleague_set in [false, true] {
+        let mut d = drawing();
+        let f = Fixture::new(&mut d);
+        let basis = f.basis().await;
+        f.colleague(&[if colleague_set { ("setvar", json!({"name":"TEXTSIZE","value":9})) } else { ("layer.new", json!({"name":"Other"})) }]);
+        f.write(basis, "attdef", json!({"tag":"ID","at":[20,20],"default":"Door"}), false).await;
+        let saved = f.saved();
+        let heights: Vec<f64> =
+            saved.model.iter().filter_map(|e| if let kition_cad_doc::EntityKind::AttDef(a) = &e.kind { Some(a.text.height) } else { None }).collect();
+        assert_eq!(heights, vec![2.5], "my attribute definition takes my text height");
+        assert_eq!(saved.header.f64("TEXTSIZE", 0.0), 2.5, "the file carries my TEXTSIZE");
+        f.kits.shutdown().await;
+    }
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_style_copying_holds_the_source() {
@@ -421,8 +458,11 @@ async fn dimension_explosion_holds_the_style() {
     definition_copying("explode").await;
 }
 
+/// The defaults these commands take (FILLETRAD, CHAMFERA, CMLSCALE, REVCLOUDARCLEN, CENTEREXE)
+/// are each person's own (kdm_model::CURRENT_VARS): a colleague's is theirs, so my command applies
+/// with mine, and the file never carries the colleague's.
 async fn stored_default(family: &str) {
-    for relevant in [false, true] {
+    for colleague_set in [false, true] {
         let mut d = drawing();
         let a = d.execute("line", json!({"points":[[0,0],[20,0]]})).unwrap()["handles"][0].clone();
         let b = d.execute("line", json!({"points":[[0,0],[0,20]]})).unwrap()["handles"][0].clone();
@@ -436,8 +476,10 @@ async fn stored_default(family: &str) {
         };
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("setvar", json!({"name":var,"value":value})) } else { ("layer.new", json!({"name":"Other"})) }]);
-        f.write(basis, family, params, relevant).await;
+        f.colleague(&[if colleague_set { ("setvar", json!({"name":var,"value":value.clone()})) } else { ("layer.new", json!({"name":"Other"})) }]);
+        f.write(basis, family, params, false).await;
+        let saved = f.saved().header.get(var).and_then(kition_cad_doc::HVal::as_f64);
+        assert_ne!(saved, value.as_f64(), "{family}: the file carries my {var}, not the colleague's");
         f.kits.shutdown().await;
     }
 }
@@ -450,11 +492,11 @@ macro_rules! default_test {
         }
     };
 }
-default_test!(fillet_default_is_a_premise, "fillet");
-default_test!(chamfer_default_is_a_premise, "chamfer");
-default_test!(mline_defaults_are_premises, "mline");
-default_test!(revcloud_default_is_a_premise, "revcloud");
-default_test!(center_extension_default_is_a_premise, "centermark");
+default_test!(fillet_takes_my_radius_not_a_colleagues, "fillet");
+default_test!(chamfer_takes_my_distance_not_a_colleagues, "chamfer");
+default_test!(mline_takes_my_scale_not_a_colleagues, "mline");
+default_test!(revcloud_takes_my_arc_length_not_a_colleagues, "revcloud");
+default_test!(center_mark_takes_my_extension_not_a_colleagues, "centermark");
 
 #[tokio::test(flavor = "multi_thread")]
 async fn viewport_creation_holds_model_extents() {

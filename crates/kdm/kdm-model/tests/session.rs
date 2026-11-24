@@ -80,6 +80,13 @@ fn holds_compares_content_not_ids() {
     let mut dim = drawing();
     dim.header.set_str("DIMSTYLE", "Other");
     assert!(a.holds(&dim).unwrap(), "the current dimension style is each person's own, not the drawing's content");
+    let mut settings = drawing();
+    settings.header.set_f64("DIMASZ", 9.0);
+    settings.header.set_f64("FILLETRAD", 9.0);
+    assert!(a.holds(&settings).unwrap(), "the dimension settings and command defaults are each person's own, not the drawing's content");
+    let mut scale = drawing();
+    scale.header.set_f64("DIMSCALE", 9.0);
+    assert!(!a.holds(&scale).unwrap(), "DIMSCALE is the drawing's content");
 }
 
 #[test]

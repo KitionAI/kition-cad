@@ -14,8 +14,12 @@ async fn setting_assignments_keep_copied_style_dependencies() {
     .await;
 }
 
+/// The DIM* variables are each person's own (kdm_model::is_current_var): a colleague's DIMASZ is
+/// theirs, so my DIMSTYLE current, which sets my DIM* variables to the style's, applies over it;
+/// the saved file carries mine (the style's 2.5 where my drawing has DIMASZ, none where it has
+/// not), never the colleague's 3, and the colleague's unrelated move.
 #[tokio::test(flavor = "multi_thread")]
-async fn dimension_sync_holds_presence_and_written_numeric_values() {
+async fn dimension_sync_sets_my_dimension_variables_not_a_colleagues() {
     for present in [false, true] {
         let f = Fixture::new();
         if present {
@@ -23,17 +27,11 @@ async fn dimension_sync_holds_presence_and_written_numeric_values() {
         }
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
         f.colleague(&[("setvar", json!({"name":"DIMASZ","value":3})), ("move", json!({"handles":[f.circle],"delta":[1,0]}))]);
-        let before = f.disk();
-        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"dimstyle.current","params":{"name":"ISO-25"}}]})).await;
-        // same-field decision: synchronization replaces DIMASZ.
-        assert_eq!(answer.unwrap_err()["error"]["code"], "conflict");
-        assert_eq!(f.disk(), before);
-        // A fresh observation explicitly accepts replacing the colleague's value.
-        // Retain the original reset-value and unrelated-movement assertions on retry.
-        let fresh = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
-        f.call("run", json!({"basis":fresh,"steps":[{"command":"dimstyle.current","params":{"name":"ISO-25"}}]})).await.unwrap();
+        f.call("run", json!({"basis":basis,"steps":[{"command":"dimstyle.current","params":{"name":"ISO-25"}}]}))
+            .await
+            .unwrap_or_else(|e| panic!("a colleague's DIMASZ is theirs: {e}"));
         let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
-        assert_eq!(d.header.f64("DIMASZ", 0.0), 2.5);
+        assert_eq!(d.header.get("DIMASZ").and_then(kition_cad_doc::HVal::as_f64), if present { Some(2.5) } else { None }, "my DIMASZ is saved");
         let handle = kition_cad_doc::Handle::parse_hex(f.circle.as_str().unwrap()).unwrap();
         let kition_cad_doc::EntityKind::Circle(c) = &d.entity(handle).unwrap().kind else { panic!("circle") };
         assert_eq!(c.center.x, 101.0);

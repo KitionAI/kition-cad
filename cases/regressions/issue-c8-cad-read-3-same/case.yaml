@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-read-3-same
 feature: cad.agent.premises
-intent: Replacing an observed field refuses a colleague's same-field change and merges unrelated field changes, including settings and positional table text.
+intent: Replacing an observed field refuses a colleague's same-field change and merges unrelated field changes, including settings and positional table text; a command default such as the circle radius is each person's own, so a colleague's does not block mine.
 layer: gate
 source:
   kind: synthetic

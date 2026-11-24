@@ -119,7 +119,10 @@ my_current_layer_probe!(current_layer_is_my_own_setting, "layer.current");
 my_current_layer_probe!(make_layer_current_is_my_own_setting, "laymcur");
 my_current_layer_probe!(isolation_current_layer_is_my_own_setting, "layiso");
 
-async fn injected_header(command: &str, variable: &str, code: &str, value: &str, params: serde_json::Value) {
+/// `own`: the variable is each person's own (kdm_model::is_current_var), so a colleague's value is
+/// theirs and my write applies; otherwise it is the drawing's, and replacing it holds the value I
+/// observed.
+async fn injected_header(command: &str, variable: &str, code: &str, value: &str, params: serde_json::Value, own: bool) {
     for relevant in [false, true] {
         let f = Fixture::new();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
@@ -141,20 +144,29 @@ async fn injected_header(command: &str, variable: &str, code: &str, value: &str,
         }
         let before = f.disk();
         let answer = f.call("run", json!({"basis":basis,"steps":[{"command":command,"params":params}]})).await;
-        if relevant {
+        if relevant && !own {
             assert_eq!(answer.err().map(|e| e["error"]["code"].clone()), Some(json!("conflict")));
             assert_eq!(f.disk(), before);
         } else {
             answer.unwrap();
         }
+        if relevant && own {
+            let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
+            let colleague: f64 = value.parse().unwrap();
+            assert_ne!(
+                d.header.get(variable).and_then(kition_cad_doc::HVal::as_f64),
+                Some(colleague),
+                "the file never carries the colleague's {variable}"
+            );
+        }
         f.kits.shutdown().await;
     }
 }
 #[tokio::test(flavor = "multi_thread")]
-async fn injected_circle_radius_same_setting() {
-    injected_header("circle.cd", "CIRCLERAD", "40", "6", json!({"center":[750,0],"diameter":10})).await;
+async fn injected_circle_radius_is_my_own_setting() {
+    injected_header("circle.cd", "CIRCLERAD", "40", "6", json!({"center":[750,0],"diameter":10}), true).await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn injected_wipeout_frame_same_setting() {
-    injected_header("wipeout", "WIPEOUTFRAME", "70", "1", json!({"frames":"off"})).await;
+    injected_header("wipeout", "WIPEOUTFRAME", "70", "1", json!({"frames":"off"}), false).await;
 }

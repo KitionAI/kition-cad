@@ -60,13 +60,17 @@ const ADDRESSES: &[(&str, &str)] = &[
 struct Fixture {
     kits: KitManager,
     dir: tempfile::TempDir,
+    /// The file as first written: the one the matrix observes, and so where its own current
+    /// layer, styles and settings come from (kdm_model::is_current_var).
+    observed: Vec<u8>,
 }
 impl Fixture {
     fn new(d: &mut CadDocument) -> Self {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();
+        let observed = d.save(Some(FILE)).unwrap();
+        std::fs::write(dir.path().join(FILE), &observed).unwrap();
         let kit = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
-        Self { kits: KitManager::new(Some(dir.path().into()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-cad"))))]), dir }
+        Self { kits: KitManager::new(Some(dir.path().into()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-cad"))))]), dir, observed }
     }
     fn disk(&self) -> Vec<u8> {
         std::fs::read(self.dir.path().join(FILE)).unwrap()
@@ -317,7 +321,18 @@ impl Counts {
         match (&result, want) {
             (Ok(_), 'A') => {
                 // Independently run the same write on the colleague's file and compare saved geometry.
-                let mut oracle = CadDocument::open(FILE, &before).unwrap();
+                // The current layer, styles and settings (kdm_model::is_current_var) are each
+                // person's own: the matrix keeps those of the file it observed, whatever the
+                // colleague saved as theirs.
+                let mine = kition_cad_io::read(&f.observed, FILE).unwrap();
+                let mut file = kition_cad_io::read(&before, FILE).unwrap();
+                let oracle_bytes = if kdm_model::current_vars(&mine) != kdm_model::current_vars(&file) {
+                    kdm_model::carry_current(&mine, &mut file);
+                    kition_cad_io::write(&file, FILE).unwrap()
+                } else {
+                    before.clone()
+                };
+                let mut oracle = CadDocument::open(FILE, &oracle_bytes).unwrap();
                 for step in steps.as_array().unwrap() {
                     run(&mut oracle, step["command"].as_str().unwrap(), step["params"].clone());
                 }
@@ -541,16 +556,16 @@ async fn stored_settings_family_matrix() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn current_style_family_matrix() {
-    // The last field: the colleague changed their own current text or dimension style
-    // (TEXTSTYLE, DIMSTYLE: each person's own): my STYLE or DIMSTYLE, which makes the style my
-    // current one, applies, and the saved file carries mine. The DIM* variables stay the
-    // drawing's, shared: replacing one holds the value I observed.
+    // The last field: the colleague changed their own current text or dimension style or their
+    // own dimension settings (TEXTSTYLE, DIMSTYLE, the DIM* variables but DIMSCALE: each person's
+    // own, kdm_model::is_current_var): my STYLE or DIMSTYLE, which makes the style my current one
+    // and sets my DIM* variables to it, applies, and the saved file carries mine.
     let rows = [
         ("style", json!({"name":"S"}), "style.current", json!({"name":"T"}), true),
         ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
         ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
         ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3}), false),
+        ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3}), true),
     ];
     let mut counts = Counts::default();
     for (command, mine, other_command, theirs, own) in rows {
@@ -573,8 +588,6 @@ async fn current_style_family_matrix() {
                     if relevant { other_command } else { "unrelated" },
                     json!([{"command":command,"params":mine}]),
                     if relevant && !own { 'C' } else { 'A' }, // same-field decision for shared settings
-                    // SETVAR introduces DIMASZ into the header; synchronization then stores
-                    // a value that was absent at observation, without changing the style definition.
                     basis,
                 )
                 .await;

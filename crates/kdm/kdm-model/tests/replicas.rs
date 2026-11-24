@@ -367,3 +367,33 @@ fn each_person_keeps_their_own_current_dimension_style() {
         assert!(!header.iter().any(|(key, _)| key.eq_ignore_ascii_case("DIMSTYLE")), "the replica holds no current dimension style");
     }
 }
+
+/// The dimension settings (the DIM* variables but DIMSCALE) and the command defaults are each
+/// person's own: two people setting different ones at once both keep theirs, and the replica holds
+/// none of them; DIMSCALE is the drawing's and converges.
+#[test]
+fn each_person_keeps_their_own_dimension_settings_and_defaults() {
+    let (mut a, mut b) = pair();
+    edit(&mut a, |d| {
+        d.header.set_f64("DIMASZ", 0.5);
+        d.header.set_i64("DIMDEC", 2);
+        d.header.set_f64("FILLETRAD", 1.0);
+    });
+    edit(&mut b, |d| {
+        d.header.set_f64("DIMASZ", 1.5);
+        d.header.set_i64("DIMDEC", 3);
+        d.header.set_f64("FILLETRAD", 2.0);
+        d.header.set_f64("DIMSCALE", 4.0);
+    });
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    let header = |s: &Session| s.model().drawing.header.clone();
+    assert_eq!((header(&a).f64("DIMASZ", 0.0), header(&a).i64("DIMDEC", 0), header(&a).f64("FILLETRAD", 0.0)), (0.5, 2, 1.0));
+    assert_eq!((header(&b).f64("DIMASZ", 0.0), header(&b).i64("DIMDEC", 0), header(&b).f64("FILLETRAD", 0.0)), (1.5, 3, 2.0));
+    assert_eq!(header(&a).f64("DIMSCALE", 0.0), 4.0, "DIMSCALE is shared");
+    for s in [&a, &b] {
+        let held = s.replica().map_entries(&kition_kit::kdm::ObjectId::from_string("drawing"), "header").unwrap_or_default();
+        let own: Vec<_> = held.iter().map(|(key, _)| key).filter(|key| kdm_model::is_current_var(key)).collect();
+        assert!(own.is_empty(), "the replica holds nobody's own settings: {own:?}");
+    }
+}

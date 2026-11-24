@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-read
 feature: cad.agent.premises
-intent: Blind handler readings gate declaration drift and outside file rewrites exercise each audited premise class.
+intent: Blind handler readings gate declaration drift and outside file rewrites exercise each audited premise class; a colleague's centre mark extension is theirs, so a centre mark rests on its circle.
 layer: gate
 source:
   kind: synthetic

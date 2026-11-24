@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-3-settings
 feature: cad.agent.premises
-intent: Stored setting commands refuse overwriting a colleague's replacement of the same shared variable and allow independent geometry edits; the current colour, lineweight, linetype, text style and dimension style are each person's own, so setting mine applies over a colleague's.
+intent: Stored setting commands refuse overwriting a colleague's replacement of the same shared variable and allow independent geometry edits; the current colour, lineweight, linetype, text style, dimension style and dimension settings are each person's own, so setting mine applies over a colleague's.
 layer: gate
 source:
   kind: synthetic

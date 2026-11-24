@@ -361,6 +361,60 @@ fn each_person_dimensions_with_their_own_current_dimension_style() {
     assert_holds(&b, "b's drawing is its replica's, its current dimension style aside");
 }
 
+/// The dimension settings (the DIM* variables but DIMSCALE: kdm_model::is_current_var) are each
+/// person's own, like the current dimension style: two people setting different arrow sizes and
+/// text heights at once both keep theirs, a dimension each draws takes their own as its
+/// overrides (its own content, shared: everyone sees it alike), a colleague making a style
+/// current resets only their own settings, the replica holds none of them, and a file each saves
+/// carries their own.
+#[test]
+fn each_person_dimensions_with_their_own_dimension_settings() {
+    let mut a = new_session();
+    let mut b = peer(&mut a);
+    a.execute("setvar", &json!({"name": "DIMASZ", "value": 0.5})).unwrap();
+    a.execute("setvar", &json!({"name": "DIMTXT", "value": 0.3})).unwrap();
+    b.execute("setvar", &json!({"name": "DIMASZ", "value": 1.5})).unwrap();
+    b.execute("setvar", &json!({"name": "DIMTXT", "value": 0.7})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after both set their dimension settings");
+    assert_eq!(doc(&a).header.f64("DIMASZ", 0.0), 0.5, "a's arrow size survives b's");
+    assert_eq!(doc(&b).header.f64("DIMASZ", 0.0), 1.5, "b's arrow size survives a's");
+    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "both dimensions");
+    for s in [&a, &b] {
+        let overrides = |h: &str| match &doc(s).entity(Handle::parse_hex(h).unwrap()).unwrap().kind {
+            EntityKind::Dimension(d) => d.overrides.clone(),
+            other => panic!("not a dimension: {other:?}"),
+        };
+        assert_eq!(overrides(&x).get("arrowSize"), Some(&json!(0.5)), "a's dimension takes a's arrow size");
+        assert_eq!(overrides(&x).get("textHeight"), Some(&json!(0.3)), "a's dimension takes a's text height");
+        assert_eq!(overrides(&y).get("arrowSize"), Some(&json!(1.5)), "b's dimension takes b's arrow size");
+        assert_eq!(overrides(&y).get("textHeight"), Some(&json!(0.7)), "b's dimension takes b's text height");
+    }
+    // b makes the current style current again: that resets b's settings, not a's.
+    b.execute("dimstyle.current", &json!({"name": "Standard"})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after b reset their settings");
+    let standard = doc(&b).dim_style("Standard").unwrap().arrow_size;
+    assert_eq!(doc(&b).header.f64("DIMASZ", 0.0), standard, "b's settings are the style's again");
+    assert_eq!(doc(&a).header.f64("DIMASZ", 0.0), 0.5, "a's settings are a's");
+    for s in [&a, &b] {
+        let root = kdm_model::kition_kit::kdm::ObjectId::from_string("drawing");
+        let held = s.kdm().expect("an edit made the replica").replica().map_entries(&root, "header").unwrap_or_default();
+        let own: Vec<&String> = held.iter().map(|(key, _)| key).filter(|key| kdm_model::is_current_var(key)).collect();
+        assert!(own.is_empty(), "the replica holds nobody's own settings: {own:?}");
+        assert!(held.iter().any(|(key, _)| key == "DIMSCALE"), "DIMSCALE is the drawing's, shared");
+    }
+    for (s, arrow) in [(&a, 0.5), (&b, standard)] {
+        let file = kition_cad_io::read(&kition_cad_io::write(doc(s), "Plan.dxf").unwrap(), "Plan.dxf").unwrap();
+        assert_eq!(file.header.f64("DIMASZ", 0.0), arrow, "the saved file carries the saver's arrow size");
+    }
+    assert_holds(&a, "a's drawing is its replica's, its dimension settings aside");
+    assert_holds(&b, "b's drawing is its replica's, its dimension settings aside");
+}
+
 #[test]
 fn agent_edits_record_their_origin_and_undo_on_this_replica() {
     let mut s = new_session();

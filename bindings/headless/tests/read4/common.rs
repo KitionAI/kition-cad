@@ -117,12 +117,12 @@ async fn check_program_with_setup(
             let expected = if refuse {
                 None
             } else {
-                // The current layer, colour, styles… (kdm_model::CURRENT_VARS) are each person's
-                // own: the agent keeps those of the file it observed, whatever an outside writer
-                // saved as theirs, and its save writes its own.
+                // The current layer, colour, styles, dimension settings… (kdm_model::is_current_var)
+                // are each person's own: the agent keeps those of the file it observed, whatever
+                // an outside writer saved as theirs, and its save writes its own.
                 let observed = kition_cad_io::read(&observed, FILE).unwrap();
                 let mut file = kition_cad_io::read(&before, FILE).unwrap();
-                let oracle_bytes = if outside && kdm_model::CURRENT_VARS.iter().any(|v| observed.header.vars.get(*v) != file.header.vars.get(*v)) {
+                let oracle_bytes = if outside && kdm_model::current_vars(&observed) != kdm_model::current_vars(&file) {
                     kdm_model::carry_current(&observed, &mut file);
                     kition_cad_io::write(&file, FILE).unwrap()
                 } else {

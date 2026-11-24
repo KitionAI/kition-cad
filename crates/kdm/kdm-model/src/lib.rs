@@ -26,10 +26,11 @@
 //!   that, so the diff writes it). A record's `order` keeps the table's order; the identities
 //!   ever issued to records are the keys of the root's `recordIdsUsed` map (it only grows, so
 //!   two people adding records at once both keep theirs);
-//! - header variables are a map keyed by variable name, each its own register, except the
-//!   current properties and styles ([`CURRENT_VARS`]: the current layer, linetype, colour,
-//!   text style, dimension style…), which are each person's own: never written, kept by the view across
-//!   reloads ([`carry_current`]);
+//! - header variables are a map keyed by variable name, each its own register, except what each
+//!   person draws with ([`CURRENT_VARS`] and the `DIM*` settings but `DIMSCALE`: the current
+//!   layer, linetype, colour, styles, dimension settings, command defaults and drawing aids),
+//!   which are each person's own: never written, kept by the view across reloads
+//!   ([`carry_current`]);
 //! - constraints are `Constraint` objects in the root's `constraints` list, their references by
 //!   entity object id.
 //!
@@ -82,10 +83,10 @@ mod session;
 mod source;
 mod write;
 
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::Arc;
 
-use kition_cad_doc::{Drawing, Entity, EntityStore, Handle};
+use kition_cad_doc::{Drawing, Entity, EntityStore, HVal, Handle};
 use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, Replica, Schema, Tx};
 use kition_kit::session::{BlobSink, BlobSource, Damage, KitError, KitModel};
 
@@ -120,12 +121,27 @@ pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
     KdmError::Engine(error.to_string())
 }
 
-/// The header variables that are each person's own (the current layer, linetype, colour,
-/// lineweight, linetype scale, plot style, transparency, and the current text, dimension,
-/// multileader, table and multiline styles): a replica never holds them, the view keeps its own
-/// across reloads ([`carry_current`]), and a DXF file saves the view's. The styles themselves
-/// (and the DIM* variables) are the drawing's, shared; only which style is current is not.
-pub const CURRENT_VARS: [&str; 13] = [
+/// The header variables that are each person's own: what they draw with, not what the drawing
+/// is. A replica never holds them, the view keeps its own across reloads, undo and imports
+/// ([`carry_current`]), they are taken from the file when a file is opened, and a DXF or DWG file
+/// saves the saving person's. Besides these names, every `DIM*` variable but `DIMSCALE` is each
+/// person's own ([`is_current_var`]).
+///
+/// - the current layer, linetype, colour, lineweight, linetype scale, plot style, transparency,
+///   material and plot style name, and the current text, dimension, multileader, table and
+///   multiline styles;
+/// - the other values new objects take: text height, thickness, elevation, polyline and trace
+///   width, polyline linetype generation, multiline scale and justification, hatch pattern, scale
+///   and angle;
+/// - the drawing aids (ortho, the snap grid's base and angle) and the lineweight display;
+/// - the defaults commands remember for the next run: circle radius, donut diameters, polygon
+///   sides, fillet radius, chamfer distances, angle and method, trim mode, offset distance and
+///   options, trim and extend modes, revision cloud arc length, spline knots, spline segments and
+///   type, centre mark extension, the last inserted block and whether MIRROR mirrors text.
+///
+/// The styles, layers and other records are the drawing's, shared; so is everything an existing
+/// entity's look depends on (units, limits, `LTSCALE`, `PDMODE`, `FILLMODE`, `DIMSCALE`…).
+pub const CURRENT_VARS: &[&str] = &[
     "CLAYER",
     "CELTYPE",
     "CECOLOR",
@@ -134,30 +150,80 @@ pub const CURRENT_VARS: [&str; 13] = [
     "CELTSCALE",
     "CPLOTSTYLE",
     "CETRANSPARENCY",
+    "CMATERIAL",
+    "CEPSNTYPE",
+    "CEPSNID",
     "TEXTSTYLE",
     "DIMSTYLE",
     "CMLEADERSTYLE",
     "CTABLESTYLE",
     "CMLSTYLE",
+    "TEXTSIZE",
+    "THICKNESS",
+    "ELEVATION",
+    "PLINEWID",
+    "TRACEWID",
+    "PLINEGEN",
+    "CMLSCALE",
+    "CMLJUST",
+    "HPNAME",
+    "HPSCALE",
+    "HPANG",
+    "ORTHOMODE",
+    "SNAPBASE",
+    "SNAPANG",
+    "LWDISPLAY",
+    "CIRCLERAD",
+    "DONUTID",
+    "DONUTOD",
+    "POLYSIDES",
+    "FILLETRAD",
+    "CHAMFERA",
+    "CHAMFERB",
+    "CHAMFERC",
+    "CHAMFERD",
+    "CHAMMODE",
+    "TRIMMODE",
+    "OFFSETDIST",
+    "OFFSETERASE",
+    "OFFSETLAYER",
+    "TRIMEXTENDMODE",
+    "EDGEMODE",
+    "PROJMODE",
+    "REVCLOUDARCLEN",
+    "SPLKNOTS",
+    "SPLINESEGS",
+    "SPLINETYPE",
+    "CENTEREXE",
+    "INSNAME",
+    "MIRRTEXT",
 ];
 
-/// Whether a header variable is one of [`CURRENT_VARS`] (names compare without case).
+/// The one `DIM*` header variable that stays shared: a dimension or leader whose style's scale is
+/// zero is drawn at the drawing's `DIMSCALE`, so existing dimensions look the way it says.
+pub const SHARED_DIMVAR: &str = "DIMSCALE";
+
+/// Whether a header variable is each person's own (names compare without case): one of
+/// [`CURRENT_VARS`], or a `DIM*` variable (the current dimension settings new dimensions take
+/// as their overrides) other than [`SHARED_DIMVAR`].
 pub fn is_current_var(name: &str) -> bool {
     CURRENT_VARS.iter().any(|v| v.eq_ignore_ascii_case(name))
+        || (name.get(..3).is_some_and(|p| p.eq_ignore_ascii_case("DIM")) && !name.eq_ignore_ascii_case(SHARED_DIMVAR))
 }
 
-/// Puts `from`'s [`CURRENT_VARS`] into `to` (a view read again from the replica, which holds
-/// none), then sends every current name that names no record of `to` (a layer someone else
-/// deleted) back to its default, as the repair does.
+/// `d`'s own header variables ([`is_current_var`]), by name.
+pub fn current_vars(d: &Drawing) -> BTreeMap<&str, &HVal> {
+    d.header.vars.iter().filter(|(key, _)| is_current_var(key)).map(|(key, value)| (key.as_str(), value)).collect()
+}
+
+/// Puts `from`'s own header variables ([`is_current_var`]) into `to` in place of `to`'s (a view
+/// read again from the replica, which holds none), then sends every current name that names no
+/// record of `to` (a layer someone else deleted) back to its default, as the repair does.
 pub fn carry_current(from: &Drawing, to: &mut Drawing) {
-    for var in CURRENT_VARS {
-        match from.header.vars.get(var) {
-            Some(v) => {
-                to.header.vars.insert(var.to_owned(), v.clone());
-            }
-            None => {
-                to.header.vars.remove(var);
-            }
+    to.header.vars.retain(|key, _| !is_current_var(key));
+    for (key, value) in &from.header.vars {
+        if is_current_var(key) {
+            to.header.vars.insert(key.clone(), value.clone());
         }
     }
     repair::header_names(to);

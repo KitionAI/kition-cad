@@ -131,14 +131,26 @@ fn the_current_layer_and_styles_are_never_written() {
     let mut before = drawing();
     before.header.set_str("TEXTSTYLE", "Standard");
     before.header.set_str("DIMSTYLE", "Standard");
+    before.header.set_f64("DIMASZ", 0.18);
+    before.header.set_i64("DIMDEC", 4);
+    before.header.set_f64("FILLETRAD", 1.0);
+    before.header.set_f64("TEXTSIZE", 0.2);
+    before.header.set_f64("DIMSCALE", 1.0);
     let (mut replica, mut ids) = new_replica(&before);
-    for var in kdm_model::CURRENT_VARS {
+    for var in kdm_model::CURRENT_VARS.iter().chain(&["DIMASZ", "DIMDEC"]) {
         assert!(replica.map_get(&root(), "header", var).unwrap_or_default().is_null(), "{var} is each person's own");
     }
+    assert!(!replica.map_get(&root(), "header", "DIMSCALE").unwrap_or_default().is_null(), "DIMSCALE is the drawing's");
     let mut after = before.clone();
     after.header.set_str("CLAYER", "Walls");
     after.header.set_str("TEXTSTYLE", "Other");
     after.header.set_str("DIMSTYLE", "Other");
+    after.header.set_f64("DIMASZ", 0.5);
+    after.header.set_i64("DIMDEC", 2);
+    after.header.set_f64("DIMTXT", 0.3);
+    after.header.set_f64("FILLETRAD", 3.0);
+    after.header.set_f64("TEXTSIZE", 0.5);
+    after.header.set("SNAPBASE", kition_cad_doc::HVal::Point(kition_cad_doc::geom::Vec3::new(1.0, 1.0, 0.0)));
     replica.take_changed();
     let wrote = replica.transact(&person("t"), |tx| write_changes(tx, &before, &after, &mut ids)).unwrap_or_else(|error| panic!("write: {error}"));
     assert!(!wrote, "changing the current layer writes nothing");
@@ -146,6 +158,10 @@ fn the_current_layer_and_styles_are_never_written() {
     let (read, _) = kdm_model::read_document(&replica).unwrap_or_else(|error| panic!("read: {error}"));
     assert_eq!(read.header.get("CLAYER"), None);
     assert_eq!(read.header.get("DIMSTYLE"), None, "the current dimension style is each person's own");
+    for var in ["DIMASZ", "DIMDEC", "DIMTXT", "FILLETRAD", "TEXTSIZE", "SNAPBASE"] {
+        assert_eq!(read.header.get(var), None, "{var} is each person's own");
+    }
+    assert_eq!(read.header.f64("DIMSCALE", 0.0), 1.0, "DIMSCALE is the drawing's, read back");
     assert_eq!(read.header.f64("LTSCALE", 0.0), 2.0, "the shared variables are read back");
 }
 

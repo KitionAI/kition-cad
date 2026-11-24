@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-read-2-setters
 feature: cad.agent.premises
-intent: Absolute settings merge unrelated edits, while copied style definitions and header presence consumed by synchronization remain necessary premises.
+intent: Absolute settings merge unrelated edits, while copied style definitions remain necessary premises; the DIM* variables but DIMSCALE are each person's own, so synchronizing mine applies over a colleague's.
 layer: gate
 source:
   kind: synthetic
