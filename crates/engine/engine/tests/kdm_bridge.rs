@@ -118,8 +118,10 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
             s.execute("erase", &json!({"handles": [h]})).unwrap();
         }),
         ("rename a layer in use", |s| {
-            s.execute("layer.current", &json!({"name": "Walls"})).unwrap();
-            s.execute("line", &json!({"points": [[0, 20], [5, 20]]})).unwrap();
+            // The line goes onto Walls by LAYMCH: making Walls current writes nothing to the
+            // replica (the current layer and the LAYERP snapshot are each person's own).
+            let h = handle(&s.execute("line", &json!({"points": [[0, 20], [5, 20]]})).unwrap());
+            s.execute("laymch", &json!({"handles": [h], "layer": "Walls"})).unwrap();
             s.execute("rename", &json!({"table": "layer", "from": "Walls", "to": "Partitions"})).unwrap();
         }),
         ("bring to front", |s| {
@@ -480,7 +482,8 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
 fn each_person_keeps_their_own_layer_snapshots() {
     let mut a = new_session();
     a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
-    let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]], "layer": "Walls"})).unwrap());
+    let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
+    a.execute("laymch", &json!({"handles": [x], "layer": "Walls"})).unwrap();
     let mut b = peer(&mut a);
     a.execute("layiso", &json!({"handles": [x]})).unwrap();
     b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
