@@ -331,8 +331,8 @@ fn table_grid(tx: &Tx<'_>, entity: &ObjectId) -> KdmResult<Option<(Handle, HashS
 
 /// Whether every changed object is an existing entity of a kind that names no block, dimension
 /// style or other entity, on a layer and with a linetype (and a text style) that exist, or the
-/// root (entities added to model space; its current layer and styles must exist): then the
-/// drawing-level repair has nothing to do.
+/// root (entities added to model space; its header names no record): then the drawing-level
+/// repair has nothing to do.
 fn entities_only_and_sound(tx: &Tx<'_>, changed: &BTreeSet<ObjectId>) -> KdmResult<bool> {
     let root = root_id();
     let names = |table: Table| -> KdmResult<Names> {
@@ -352,14 +352,9 @@ fn entities_only_and_sound(tx: &Tx<'_>, changed: &BTreeSet<ObjectId>) -> KdmResu
         Ok(tables.get(&table).is_some_and(|n| n.has(name)))
     };
     for object in changed {
+        // The header names no record: the current layer and styles are each person's own,
+        // never replicated (`crate::CURRENT_VARS`).
         if *object == root {
-            // The current dimension style names a style that exists (the other current names
-            // are each person's own, never replicated: `crate::CURRENT_VARS`).
-            if let Some(name) = crate::refs::hval_in(tx.map_get(&root, "header", "DIMSTYLE")?).and_then(|v| v.as_str().map(str::to_owned))
-                && !has(Table::DimStyles, &name)?
-            {
-                return Ok(false);
-            }
             continue;
         }
         let ty = tx.object_type(object).ok();

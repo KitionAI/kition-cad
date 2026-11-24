@@ -308,21 +308,18 @@ async fn setting_my_current_colour_applies_over_a_colleagues() {
 
 /// review: these are not irrelevant reads. The colleague makes a
 /// formerly valid deletion illegal, so its accepted result is no longer available. A colleague's
-/// current text style or layer is theirs, not the drawing's (each person's own): it does not make
-/// my deletion or freeze illegal (`eligibility_ignores_a_colleagues_current_style_or_layer`).
+/// current text style, dimension style or layer is theirs, not the drawing's (each person's own):
+/// it does not make my deletion or freeze illegal
+/// (`eligibility_ignores_a_colleagues_current_style_or_layer`).
 #[tokio::test(flavor = "multi_thread")]
 async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
     let mut wrong = Vec::new();
-    for kind in ["usedtextstyle", "dimstyle", "layout"] {
+    for kind in ["usedtextstyle", "layout"] {
         let f = Fixture::new();
         let (command, params) = match kind {
             "usedtextstyle" => {
                 f.colleague(&[("style", json!({"name":"S","current":false}))]);
                 ("style.delete", json!({"name":"S"}))
-            }
-            "dimstyle" => {
-                f.colleague(&[("dimstyle", json!({"name":"D2","current":false}))]);
-                ("dimstyle.delete", json!({"name":"D2"}))
             }
             _ => ("layout.delete", json!({"name":"Layout2"})),
         };
@@ -333,7 +330,6 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
                 ("text", json!({"at":[300,300],"text":"uses S","height":3})),
                 ("style.current", json!({"name":"Standard"})),
             ],
-            "dimstyle" => vec![("dimstyle.current", json!({"name":"D2"}))],
             _ => vec![("layout.delete", json!({"name":"Layout1"}))],
         };
         f.colleague(&colleague);
@@ -350,20 +346,26 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
     assert!(wrong.is_empty(), "changed eligibility must be a premise conflict: {wrong:?}");
 }
 
-/// A colleague's current text style or current layer is theirs (each person's own): deleting the
-/// style they made current, or freezing the layer they made current, applies, and the saved file
-/// carries my current text style and layer.
+/// A colleague's current text style, dimension style or layer is theirs (each person's own):
+/// deleting the style they made current, or freezing the layer they made current, applies, and
+/// the saved file carries my current text style, dimension style and layer.
 #[tokio::test(flavor = "multi_thread")]
 async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
-    for kind in ["textstyle", "freeze"] {
+    for kind in ["textstyle", "dimstyle", "freeze"] {
         let f = Fixture::new();
+        let my_dimstyle = kition_cad_io::read(&f.disk(), FILE).unwrap().header.str("DIMSTYLE", "Standard");
         if kind == "textstyle" {
             f.colleague(&[("style", json!({"name":"S","current":false}))]);
+        } else if kind == "dimstyle" {
+            f.colleague(&[("dimstyle", json!({"name":"D2","current":false}))]);
         }
         let basis = f.basis().await;
         if kind == "textstyle" {
             f.colleague(&[("style.current", json!({"name":"S"}))]);
             f.write(basis, "style.delete", json!({"name":"S"})).await.unwrap();
+        } else if kind == "dimstyle" {
+            f.colleague(&[("dimstyle.current", json!({"name":"D2"}))]);
+            f.write(basis, "dimstyle.delete", json!({"name":"D2"})).await.unwrap();
         } else {
             f.colleague(&[("layer.current", json!({"name":"Walls"}))]);
             f.write(basis, "layer.set", json!({"name":"Walls","frozen":true})).await.unwrap();
@@ -371,10 +373,13 @@ async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
         let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
         if kind == "textstyle" {
             assert!(d.text_style("S").is_none(), "S is deleted");
+        } else if kind == "dimstyle" {
+            assert!(d.dim_style("D2").is_none(), "D2 is deleted");
         } else {
             assert!(d.layer("Walls").unwrap().frozen, "Walls is frozen");
         }
         assert_eq!(d.header.str("TEXTSTYLE", "Standard"), "Standard");
+        assert_eq!(d.header.str("DIMSTYLE", "Standard"), my_dimstyle, "the file carries my current dimension style");
         assert_eq!(d.header.str("CLAYER", "0"), "0");
         f.stop().await;
     }

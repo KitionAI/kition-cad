@@ -541,14 +541,15 @@ async fn stored_settings_family_matrix() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn current_style_family_matrix() {
-    // The last field: the colleague changed their own current text style (TEXTSTYLE, each
-    // person's own): my STYLE, which makes S my current style, applies. The current dimension
-    // style and the DIM* variables measured against it stay the drawing's, shared.
+    // The last field: the colleague changed their own current text or dimension style
+    // (TEXTSTYLE, DIMSTYLE: each person's own): my STYLE or DIMSTYLE, which makes the style my
+    // current one, applies, and the saved file carries mine. The DIM* variables stay the
+    // drawing's, shared: replacing one holds the value I observed.
     let rows = [
         ("style", json!({"name":"S"}), "style.current", json!({"name":"T"}), true),
-        ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
-        ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), false),
+        ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
+        ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
+        ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
         ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3}), false),
     ];
     let mut counts = Counts::default();

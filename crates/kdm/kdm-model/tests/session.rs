@@ -77,6 +77,9 @@ fn holds_compares_content_not_ids() {
     let mut current = drawing();
     current.header.set_str("CLAYER", "Walls");
     assert!(a.holds(&current).unwrap(), "the current layer is each person's own, not the drawing's content");
+    let mut dim = drawing();
+    dim.header.set_str("DIMSTYLE", "Other");
+    assert!(a.holds(&dim).unwrap(), "the current dimension style is each person's own, not the drawing's content");
 }
 
 #[test]

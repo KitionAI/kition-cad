@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-cad-review
 feature: cad.agent.premises
-intent: The covered independent-writer scenarios refuse named swaps, relevant defaults, implicit geometry, destination projection, copied or synchronized members and connected constraints; unrelated changes and table appends apply.
+intent: The covered independent-writer scenarios refuse named swaps, relevant defaults, implicit geometry, destination projection, copied or synchronized members and connected constraints; unrelated changes and table appends apply; a colleague's current layer or dimension style is theirs, so LAYCUR and DIMSTYLE Update assign mine.
 layer: gate
 source:
   kind: synthetic

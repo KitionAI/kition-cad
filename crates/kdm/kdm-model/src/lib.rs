@@ -28,7 +28,7 @@
 //!   two people adding records at once both keep theirs);
 //! - header variables are a map keyed by variable name, each its own register, except the
 //!   current properties and styles ([`CURRENT_VARS`]: the current layer, linetype, colour,
-//!   text style…), which are each person's own: never written, kept by the view across
+//!   text style, dimension style…), which are each person's own: never written, kept by the view across
 //!   reloads ([`carry_current`]);
 //! - constraints are `Constraint` objects in the root's `constraints` list, their references by
 //!   entity object id.
@@ -121,10 +121,11 @@ pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
 }
 
 /// The header variables that are each person's own (the current layer, linetype, colour,
-/// lineweight, linetype scale, plot style, transparency, and the current text, multileader,
-/// table and multiline styles): a replica never holds them, the view keeps its own across
-/// reloads ([`carry_current`]), and a DXF file saves the view's.
-pub const CURRENT_VARS: [&str; 12] = [
+/// lineweight, linetype scale, plot style, transparency, and the current text, dimension,
+/// multileader, table and multiline styles): a replica never holds them, the view keeps its own
+/// across reloads ([`carry_current`]), and a DXF file saves the view's. The styles themselves
+/// (and the DIM* variables) are the drawing's, shared; only which style is current is not.
+pub const CURRENT_VARS: [&str; 13] = [
     "CLAYER",
     "CELTYPE",
     "CECOLOR",
@@ -134,6 +135,7 @@ pub const CURRENT_VARS: [&str; 12] = [
     "CPLOTSTYLE",
     "CETRANSPARENCY",
     "TEXTSTYLE",
+    "DIMSTYLE",
     "CMLEADERSTYLE",
     "CTABLESTYLE",
     "CMLSTYLE",

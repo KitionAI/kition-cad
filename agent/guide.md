@@ -62,11 +62,11 @@ is not exported.
   `id` and `merged` span) and no text. Cell ids are the table's own and survive saving and
   reopening; change a cell with `table.set` (row and column), never by its object.
 - The current layer, linetype, colour, lineweight, linetype scale, plot style and the current
-  text, multileader, table and multiline styles (`CLAYER`, `CELTYPE`, `CECOLOR`, `CELWEIGHT`,
-  `CELTSCALE`, `CPLOTSTYLE`, `TEXTSTYLE`, `CMLEADERSTYLE`, `CTABLESTYLE`, `CMLSTYLE`…) are each
-  person's own: they are saved in the file but not shared with the others editing the drawing,
-  and setting them changes nothing anyone else sees. A drawing command takes an explicit `layer`
-  when the layer matters.
+  text, dimension, multileader, table and multiline styles (`CLAYER`, `CELTYPE`, `CECOLOR`,
+  `CELWEIGHT`, `CELTSCALE`, `CPLOTSTYLE`, `TEXTSTYLE`, `DIMSTYLE`, `CMLEADERSTYLE`, `CTABLESTYLE`,
+  `CMLSTYLE`…) are each person's own: they are saved in the file but not shared with the others
+  editing the drawing, and setting them changes nothing anyone else sees. The styles themselves
+  are shared. A drawing command takes an explicit `layer` when the layer matters.
 
 ## What a write holds
 

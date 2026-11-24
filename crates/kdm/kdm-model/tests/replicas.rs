@@ -341,3 +341,29 @@ fn each_person_keeps_their_own_current_layer() {
     assert_eq!(a.model().drawing.header.str("CLAYER", "?"), "Walls");
     assert_eq!(b.model().drawing.header.str("CLAYER", "?"), "Doors");
 }
+
+/// The current dimension style is each person's own: two people making different styles current
+/// at once both keep theirs, the styles themselves are shared, and the replica holds no DIMSTYLE.
+#[test]
+fn each_person_keeps_their_own_current_dimension_style() {
+    let (mut a, mut b) = pair();
+    edit(&mut a, |d| {
+        for name in ["Arch", "Mech"] {
+            d.dim_styles.push(kition_cad_doc::DimStyle { name: name.into(), ..kition_cad_doc::DimStyle::default() });
+        }
+        d.ensure_record_ids();
+    });
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    edit(&mut a, |d| d.header.set_str("DIMSTYLE", "Arch"));
+    edit(&mut b, |d| d.header.set_str("DIMSTYLE", "Mech"));
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    assert_eq!(a.model().drawing.header.str("DIMSTYLE", "?"), "Arch");
+    assert_eq!(b.model().drawing.header.str("DIMSTYLE", "?"), "Mech");
+    for s in [&a, &b] {
+        assert!(s.model().drawing.dim_style("Arch").is_some() && s.model().drawing.dim_style("Mech").is_some(), "the styles are shared");
+        let header = s.replica().map_entries(&kition_kit::kdm::ObjectId::from_string("drawing"), "header").unwrap_or_default();
+        assert!(!header.iter().any(|(key, _)| key.eq_ignore_ascii_case("DIMSTYLE")), "the replica holds no current dimension style");
+    }
+}

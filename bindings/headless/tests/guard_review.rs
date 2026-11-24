@@ -837,20 +837,32 @@ async fn attribute_sync_holds_every_reference_it_updates() {
     }
 }
 
+/// DIMSTYLE Update gives the dimensions my current dimension style. The current dimension style is
+/// each person's own: a colleague who made Other theirs changes nothing of mine, so the write
+/// applies, the dimension takes my current style (ISO-25), and the saved file carries mine.
 #[tokio::test(flavor = "multi_thread")]
-async fn dimension_style_update_holds_the_current_style_selection() {
-    for relevant in [false, true] {
+async fn dimension_style_update_assigns_my_current_style_not_a_colleagues() {
+    for colleague_current in [false, true] {
         let mut d = drawing();
+        d.execute("dimstyle", json!({"name":"Other"})).unwrap();
         let dim = d.execute("dimlinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]})).unwrap()["handle"].clone();
-        d.execute("dimstyle", json!({"name":"Other","current":false})).unwrap();
+        d.execute("dimstyle.current", json!({"name":"ISO-25"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        if relevant {
+        if colleague_current {
             f.colleague(&[("dimstyle.current", json!({"name":"Other"}))]);
         } else {
             f.colleague(&[("layer.new", json!({"name":"Far"}))]);
         }
-        f.write(basis, "dimstyle.update", json!({"handles":[dim]}), relevant).await;
+        f.write(basis, "dimstyle.update", json!({"handles":[dim]}), false).await;
+        let saved = kition_cad_io::read(&std::fs::read(f.dir.path().join(FILE)).unwrap(), FILE).unwrap();
+        let style = match &saved.entity(kition_cad_doc::Handle::parse_hex(dim.as_str().unwrap()).unwrap()).unwrap().kind {
+            kition_cad_doc::EntityKind::Dimension(d) => d.style.clone(),
+            other => panic!("not a dimension: {other:?}"),
+        };
+        assert_eq!(style, "ISO-25", "the dimension takes my current dimension style");
+        assert_eq!(saved.header.str("DIMSTYLE", "?"), "ISO-25", "the file carries the saving session's current dimension style");
+        assert!(saved.dim_style("Other").is_some(), "the colleague's style stays in the drawing");
         f.kits.shutdown().await;
     }
 }

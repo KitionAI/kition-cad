@@ -327,6 +327,40 @@ fn each_person_draws_on_their_own_current_layer() {
     assert_holds(&b, "b's drawing is its replica's, its current layer aside");
 }
 
+/// The current dimension style is each person's own (kdm_model::CURRENT_VARS): two people making
+/// different styles current at once both keep theirs after merging, a dimension each draws takes
+/// their own current style, the styles stay shared, and the replicas converge.
+#[test]
+fn each_person_dimensions_with_their_own_current_dimension_style() {
+    let mut a = new_session();
+    a.execute("dimstyle", &json!({"name": "Arch", "current": false})).unwrap();
+    a.execute("dimstyle", &json!({"name": "Mech", "current": false})).unwrap();
+    let mut b = peer(&mut a);
+    a.execute("dimstyle.current", &json!({"name": "Arch"})).unwrap();
+    b.execute("dimstyle.current", &json!({"name": "Mech"})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after both made a dimension style current");
+    assert_eq!(doc(&a).header.str("DIMSTYLE", "?"), "Arch", "a's current dimension style survives b's");
+    assert_eq!(doc(&b).header.str("DIMSTYLE", "?"), "Mech", "b's current dimension style survives a's");
+    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "both dimensions");
+    for s in [&a, &b] {
+        let style = |h: &str| match &doc(s).entity(Handle::parse_hex(h).unwrap()).unwrap().kind {
+            EntityKind::Dimension(d) => d.style.clone(),
+            other => panic!("not a dimension: {other:?}"),
+        };
+        assert_eq!(style(&x), "Arch", "a's dimension takes a's current style");
+        assert_eq!(style(&y), "Mech", "b's dimension takes b's current style");
+        assert!(doc(s).dim_style("Arch").is_some() && doc(s).dim_style("Mech").is_some(), "the styles are shared");
+    }
+    assert_eq!(doc(&a).header.str("DIMSTYLE", "?"), "Arch");
+    assert_eq!(doc(&b).header.str("DIMSTYLE", "?"), "Mech");
+    assert_holds(&a, "a's drawing is its replica's, its current dimension style aside");
+    assert_holds(&b, "b's drawing is its replica's, its current dimension style aside");
+}
+
 #[test]
 fn agent_edits_record_their_origin_and_undo_on_this_replica() {
     let mut s = new_session();
