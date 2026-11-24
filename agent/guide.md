@@ -69,8 +69,7 @@ is not exported.
   the dimension settings new dimensions take (every `DIM*` variable but `DIMSCALE`: `DIMASZ`,
   `DIMTXT`, `DIMDEC`, `DIMASSOC`…); the text height, thickness, elevation, polyline width,
   multiline scale and hatch pattern new objects take (`TEXTSIZE`, `THICKNESS`, `ELEVATION`,
-  `PLINEWID`, `CMLSCALE`, `HPNAME`…); ortho and the snap grid (`ORTHOMODE`, `SNAPBASE`,
-  `SNAPANG`); and the defaults commands remember (`CIRCLERAD`, `FILLETRAD`, `CHAMFERA`,
+  `PLINEWID`, `CMLSCALE`, `HPNAME`…); the snap grid (`SNAPBASE`, `SNAPANG`); and the defaults commands remember (`CIRCLERAD`, `FILLETRAD`, `CHAMFERA`,
   `OFFSETDIST`, `TRIMMODE`, `SPLINESEGS`, `CENTEREXE`, `INSNAME`…). The styles themselves, the
   dimensions already drawn (with their overrides) and everything an existing object's look
   depends on are shared: units, limits, `LTSCALE`, `PDMODE`, `FILLMODE` and `DIMSCALE` (a

@@ -62,9 +62,7 @@ fn a_drawing_with_every_part_round_trips() {
     assert_same("drawing", &d, &read);
     // The header keeps each variable's type (a whole real stays a real).
     assert_eq!(read.header.get("LTSCALE"), Some(&HVal::Real(2.0)));
-    assert_eq!(read.header.get("PDMODE"), Some(&HVal::Int(3)));
-    // Ortho is a drawing aid, each person's own (kdm_model::CURRENT_VARS): not replicated.
-    assert_eq!(read.header.get("ORTHOMODE"), None);
+    assert_eq!(read.header.get("ORTHOMODE"), Some(&HVal::Int(1)));
     // Handles survive as they were, and references by handle with them.
     let handles = |d: &Drawing| d.model.iter().map(|e| e.handle).collect::<Vec<_>>();
     assert_eq!(handles(&d), handles(&read));

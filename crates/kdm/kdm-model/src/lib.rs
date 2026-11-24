@@ -133,7 +133,7 @@ pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
 /// - the other values new objects take: text height, thickness, elevation, polyline and trace
 ///   width, polyline linetype generation, multiline scale and justification, hatch pattern, scale
 ///   and angle;
-/// - the drawing aids (ortho, the snap grid's base and angle) and the lineweight display;
+/// - the drawing aids kept in the header (the snap grid's base and angle);
 /// - the defaults commands remember for the next run: circle radius, donut diameters, polygon
 ///   sides, fillet radius, chamfer distances, angle and method, trim mode, offset distance and
 ///   options, trim and extend modes, revision cloud arc length, spline knots, spline segments and
@@ -169,10 +169,8 @@ pub const CURRENT_VARS: &[&str] = &[
     "HPNAME",
     "HPSCALE",
     "HPANG",
-    "ORTHOMODE",
     "SNAPBASE",
     "SNAPANG",
-    "LWDISPLAY",
     "CIRCLERAD",
     "DONUTID",
     "DONUTOD",
