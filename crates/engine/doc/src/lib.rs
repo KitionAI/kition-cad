@@ -27,6 +27,12 @@ pub use plotstyle::*;
 pub use store::EntityStore;
 pub use tables::*;
 
+/// The header variable holding the dimension scale one person draws new dimensions at, once
+/// making a dimension style current or editing the current one set it ([`Drawing::sync_dim_vars`]).
+/// It is each person's own (never replicated, never written to a file); the drawing's `DIMSCALE`
+/// stays shared because existing dimensions whose style's scale is 0 are drawn at it.
+pub const OWN_DIMSCALE: &str = "KITION_CAD_DIMSCALE";
+
 #[derive(Debug, thiserror::Error)]
 pub enum DocError {
     #[error("no such layer `{0}`")]
@@ -235,6 +241,22 @@ impl Drawing {
         self.dim_styles.iter().find(|l| l.name.eq_ignore_ascii_case(name))
     }
 
+    /// The value of a DIM* header variable this person draws with: `DIMSCALE` is their own
+    /// ([`OWN_DIMSCALE`]) once making a style current or editing it set it, else the drawing's;
+    /// every other variable is the header's.
+    pub fn my_dim_var(&self, var: &str) -> Option<&HVal> {
+        if var.eq_ignore_ascii_case("DIMSCALE") {
+            self.header.get(OWN_DIMSCALE).or_else(|| self.header.get("DIMSCALE"))
+        } else {
+            self.header.get(var)
+        }
+    }
+
+    /// The DIMSCALE new objects take ([`Drawing::my_dim_var`]), 1 when there is none.
+    pub fn my_dimscale(&self) -> f64 {
+        self.my_dim_var("DIMSCALE").and_then(HVal::as_f64).filter(|v| v.is_finite()).unwrap_or(1.0)
+    }
+
     /// The DIM* variables in the header that differ from the current dimension style, as
     /// [`DimStyle`] fields: AutoCAD's style overrides (set with SETVAR), which new dimensions
     /// take on.
@@ -243,7 +265,7 @@ impl Drawing {
         let Some(st) = self.dim_style(&self.header.str("DIMSTYLE", "Standard")) else { return out };
         let base = serde_json::to_value(st).unwrap_or_default();
         for (var, field) in DIMVARS {
-            let Some(v) = self.header.get(var).and_then(|h| serde_json::to_value(h).ok()) else { continue };
+            let Some(v) = self.my_dim_var(var).and_then(|h| serde_json::to_value(h).ok()) else { continue };
             let mut cand = st.clone();
             if !cand.apply_fields(&serde_json::Map::from_iter([((*field).to_string(), v)])).is_empty() {
                 continue;
@@ -267,12 +289,15 @@ impl Drawing {
 
     /// Set the header's DIM* variables to the current dimension style's values, clearing the
     /// overrides (as making a style current or editing it does). Variables the header doesn't
-    /// carry stay absent; ones that can't hold the style's value are removed.
+    /// carry stay absent; ones that can't hold the style's value are removed. These are the
+    /// person's own settings: `DIMSCALE` goes to [`OWN_DIMSCALE`], never to the drawing's
+    /// `DIMSCALE`, which existing dimensions whose style's scale is 0 are drawn at.
     pub fn sync_dim_vars(&mut self) {
         let Some(st) = self.dim_style(&self.header.str("DIMSTYLE", "Standard")) else { return };
         let v = serde_json::to_value(st).unwrap_or_default();
-        for (var, field) in DIMVARS {
-            let Some(old) = self.header.get(var) else { continue };
+        for (name, field) in DIMVARS {
+            let var = if *name == "DIMSCALE" { OWN_DIMSCALE } else { *name };
+            let Some(old) = self.my_dim_var(name) else { continue };
             let new = match (old, v.get(*field)) {
                 (HVal::Int(_), Some(serde_json::Value::Bool(b))) => Some(HVal::Int(i64::from(*b))),
                 (HVal::Int(_), Some(serde_json::Value::Number(n))) => {
@@ -285,7 +310,7 @@ impl Drawing {
             match new {
                 Some(h) => self.header.set(var, h),
                 None => {
-                    self.header.vars.remove(*var);
+                    self.header.vars.remove(var);
                 }
             }
         }

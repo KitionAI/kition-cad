@@ -28,7 +28,8 @@
 //!   two people adding records at once both keep theirs);
 //! - header variables are a map keyed by variable name, each its own register, except what each
 //!   person draws with ([`CURRENT_VARS`] and the `DIM*` settings but `DIMSCALE`: the current
-//!   layer, linetype, colour, styles, dimension settings, command defaults and drawing aids),
+//!   layer, linetype, colour, styles, dimension settings, command defaults, drawing aids, layer
+//!   snapshots and current UCS),
 //!   which are each person's own: never written, kept by the view across reloads
 //!   ([`carry_current`]);
 //! - constraints are `Constraint` objects in the root's `constraints` list, their references by
@@ -137,7 +138,18 @@ pub(crate) fn kdm_err(error: impl std::fmt::Display) -> KdmError {
 /// - the defaults commands remember for the next run: circle radius, donut diameters, polygon
 ///   sides, fillet radius, chamfer distances, angle and method, trim mode, offset distance and
 ///   options, trim and extend modes, revision cloud arc length, spline knots, spline segments and
-///   type, centre mark extension, the last inserted block and whether MIRROR mirrors text.
+///   type, centre mark extension, the last inserted block and whether MIRROR mirrors text;
+/// - the person's own dimension scale ([`kition_cad_doc::OWN_DIMSCALE`]): the scale making a
+///   dimension style current or editing it gives the dimensions they draw next, which leaves the
+///   drawing's `DIMSCALE` alone;
+/// - the layer snapshots of LAYERP and LAYUNISO (`KITION_CAD_LAYERP`, `KITION_CAD_LAYISO`): one
+///   person's previous layer state and the state before they isolated layers. Applying one writes
+///   the shared layer table as an ordinary change; no file carries them;
+/// - the coordinate system the person works in, as a DXF file brings it: the current UCS of
+///   model and paper space (`UCSNAME`, `UCSORG`, `UCSXDIR`, `UCSYDIR`, the orthographic
+///   `UCSBASE`, `UCSORTHOREF`, `UCSORTHOVIEW` and `UCSORG{TOP,BOTTOM,LEFT,RIGHT,FRONT,BACK}`, and
+///   their `PUCS*` paper-space twins). No entity depends on it (each keeps its own extrusion);
+///   the named UCSs are records, shared.
 ///
 /// The styles, layers and other records are the drawing's, shared; so is everything an existing
 /// entity's look depends on (units, limits, `LTSCALE`, `PDMODE`, `FILLMODE`, `DIMSCALE`…).
@@ -195,6 +207,35 @@ pub const CURRENT_VARS: &[&str] = &[
     "CENTEREXE",
     "INSNAME",
     "MIRRTEXT",
+    kition_cad_doc::OWN_DIMSCALE,
+    "KITION_CAD_LAYERP",
+    "KITION_CAD_LAYISO",
+    "UCSNAME",
+    "UCSORG",
+    "UCSXDIR",
+    "UCSYDIR",
+    "UCSBASE",
+    "UCSORTHOREF",
+    "UCSORTHOVIEW",
+    "UCSORGTOP",
+    "UCSORGBOTTOM",
+    "UCSORGLEFT",
+    "UCSORGRIGHT",
+    "UCSORGFRONT",
+    "UCSORGBACK",
+    "PUCSNAME",
+    "PUCSORG",
+    "PUCSXDIR",
+    "PUCSYDIR",
+    "PUCSBASE",
+    "PUCSORTHOREF",
+    "PUCSORTHOVIEW",
+    "PUCSORGTOP",
+    "PUCSORGBOTTOM",
+    "PUCSORGLEFT",
+    "PUCSORGRIGHT",
+    "PUCSORGFRONT",
+    "PUCSORGBACK",
 ];
 
 /// The one `DIM*` header variable that stays shared: a dimension or leader whose style's scale is

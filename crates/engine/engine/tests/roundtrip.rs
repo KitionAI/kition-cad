@@ -10,8 +10,9 @@
 //! `EXTMIN`/`EXTMAX`, `HANDSEED`), each dimension's drawn geometry as an anonymous `*D` block
 //! (kept as the dimension's `block` until an edit regenerates it), the text position of a
 //! dimension whose text the user did not move (`text_mid` is authoritative only with
-//! `user_text_pos`), and `KITION_CAD_LAYERP`, the LAYERP command's previous-layer snapshot (editing
-//! state, not drawing content, so the writer does not write it: AutoCAD keeps LAYERP's history for
+//! `user_text_pos`). The LAYERP command's previous-layer snapshot (`KITION_CAD_LAYERP`) is one
+//! person's editing state, not drawing content: each person's own (`kdm_model::CURRENT_VARS`, which
+//! `canonical` leaves out), and the writer does not write it (AutoCAD keeps LAYERP's history for
 //! the session only, and the DXF Reference has no header variable for it). Saving the reopened drawing again
 //! must then reproduce it exactly, apart from the header values every save computes afresh.
 
@@ -51,7 +52,7 @@ fn first_difference(a: &Value, b: &Value, at: &str) -> Option<String> {
 }
 
 /// Header values the writer computes for the file it writes (see the module comment).
-const FILE_HEADER: &[&str] = &["ACADVER", "DWGCODEPAGE", "EXTMIN", "EXTMAX", "HANDSEED", "KITION_CAD_LAYERP"];
+const FILE_HEADER: &[&str] = &["ACADVER", "DWGCODEPAGE", "EXTMIN", "EXTMAX", "HANDSEED"];
 
 /// `canonical` without the header values the writer computes afresh on every save.
 fn without_file_header(mut v: Value) -> Value {

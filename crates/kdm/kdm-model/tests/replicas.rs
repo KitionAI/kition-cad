@@ -397,3 +397,48 @@ fn each_person_keeps_their_own_dimension_settings_and_defaults() {
         assert!(own.is_empty(), "the replica holds nobody's own settings: {own:?}");
     }
 }
+
+/// One person's layer snapshots (LAYERP's previous layer state, LAYUNISO's state before
+/// isolating), their own dimension scale and the current UCS they work in are each person's own
+/// (kdm_model::CURRENT_VARS): two people setting different ones at once both keep theirs, and the
+/// replica holds none of them; the named UCS records stay shared.
+#[test]
+fn each_person_keeps_their_own_layer_snapshots_dimension_scale_and_ucs() {
+    use kition_cad_doc::HVal;
+    use kition_cad_doc::geom::Vec3;
+    let (mut a, mut b) = pair();
+    edit(&mut a, |d| {
+        d.header.set_str("KITION_CAD_LAYERP", "[]");
+        d.header.set_str("KITION_CAD_LAYISO", "[]");
+        d.header.set_f64(kition_cad_doc::OWN_DIMSCALE, 2.0);
+        d.header.set("UCSORG", HVal::Point(Vec3::new(1.0, 2.0, 0.0)));
+        d.header.set("PUCSXDIR", HVal::Point(Vec3::new(0.0, 1.0, 0.0)));
+        d.header.set_str("UCSNAME", "Mine");
+    });
+    edit(&mut b, |d| {
+        d.header.set_f64(kition_cad_doc::OWN_DIMSCALE, 4.0);
+        d.header.set("UCSORG", HVal::Point(Vec3::new(5.0, 5.0, 0.0)));
+        d.ucss.push(kition_cad_doc::Ucs {
+            name: "Shared".into(),
+            origin: Vec3::new(3.0, 0.0, 0.0),
+            x_axis: Vec3::new(1.0, 0.0, 0.0),
+            y_axis: Vec3::new(0.0, 1.0, 0.0),
+        });
+    });
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    let (ha, hb) = (a.model().drawing.header.clone(), b.model().drawing.header.clone());
+    assert_eq!(ha.str("KITION_CAD_LAYISO", "?"), "[]", "a's isolation snapshot is a's");
+    assert_eq!(hb.get("KITION_CAD_LAYISO"), None, "b has no isolation snapshot of a's");
+    assert_eq!(hb.get("KITION_CAD_LAYERP"), None, "b has no previous layer state of a's");
+    assert_eq!((ha.f64(kition_cad_doc::OWN_DIMSCALE, 0.0), hb.f64(kition_cad_doc::OWN_DIMSCALE, 0.0)), (2.0, 4.0));
+    assert_eq!(ha.get("UCSORG"), Some(&HVal::Point(Vec3::new(1.0, 2.0, 0.0))), "a works in a's UCS");
+    assert_eq!(hb.get("UCSORG"), Some(&HVal::Point(Vec3::new(5.0, 5.0, 0.0))), "b works in b's UCS");
+    assert_eq!((hb.get("UCSNAME"), hb.get("PUCSXDIR")), (None, None), "b has none of a's UCS settings");
+    for s in [&a, &b] {
+        assert!(s.model().drawing.ucss.iter().any(|u| u.name == "Shared"), "the named UCS is the drawing's, shared");
+        let held = s.replica().map_entries(&kition_kit::kdm::ObjectId::from_string("drawing"), "header").unwrap_or_default();
+        let own: Vec<_> = held.iter().map(|(key, _)| key).filter(|key| kdm_model::is_current_var(key)).collect();
+        assert!(own.is_empty(), "the replica holds nobody's own settings: {own:?}");
+    }
+}

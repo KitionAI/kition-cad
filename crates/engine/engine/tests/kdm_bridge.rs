@@ -415,6 +415,142 @@ fn each_person_dimensions_with_their_own_dimension_settings() {
     assert_holds(&b, "b's drawing is its replica's, its dimension settings aside");
 }
 
+/// Making a dimension style current, or editing the current one, sets the person's own dimension
+/// scale (kition_cad_doc::OWN_DIMSCALE), never the drawing's DIMSCALE: a colleague's dimension
+/// whose style's scale is 0 is drawn at the drawing's DIMSCALE and keeps its size when someone
+/// else makes another style current, and the dimensions each draws next take their own scale.
+#[test]
+fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size() {
+    let mut a = new_session();
+    a.execute("setvar", &json!({"name": "DIMSCALE", "value": 2})).unwrap();
+    a.execute("dimstyle", &json!({"name": "Fit", "DIMSCALE": 0})).unwrap();
+    a.execute("dimstyle", &json!({"name": "Big", "DIMSCALE": 5, "current": false})).unwrap();
+    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    let mut b = peer(&mut a);
+    let dimension = |s: &Session, h: &str| match &doc(s).entity(Handle::parse_hex(h).unwrap()).unwrap().kind {
+        EntityKind::Dimension(d) => d.clone(),
+        other => panic!("not a dimension: {other:?}"),
+    };
+    let size = |s: &Session, h: &str| kition_cad_engine::render::dimension_in(doc(s), &dimension(s, h)).text_height;
+    let fit = doc(&a).dim_style("Fit").unwrap().clone();
+    assert_eq!(fit.scale, 0.0);
+    assert!(dimension(&a, &x).overrides.is_empty(), "a's dimension is drawn at the drawing's DIMSCALE");
+    let drawn = size(&a, &x);
+    assert!((drawn - fit.text_height * 2.0).abs() < 1e-9, "{drawn}");
+    // b makes another style current and edits it: b's own scale, not the drawing's.
+    b.execute("dimstyle.current", &json!({"name": "Big"})).unwrap();
+    b.execute("dimstyle", &json!({"name": "Big", "DIMTXT": 0.25})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after b made a style current");
+    for s in [&a, &b] {
+        assert_eq!(doc(s).header.f64("DIMSCALE", 0.0), 2.0, "the drawing's DIMSCALE is as it was");
+        assert!((size(s, &x) - drawn).abs() < 1e-12, "a's dimension keeps its size: {} != {drawn}", size(s, &x));
+    }
+    assert_eq!(doc(&b).my_dimscale(), 5.0, "b draws at Big's scale");
+    assert_eq!(doc(&a).my_dimscale(), 0.0, "a still draws at Fit's");
+    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "b's dimension");
+    for s in [&a, &b] {
+        assert!(dimension(s, &y).overrides.get("scale").is_none(), "b's dimension is Big's, no scale override");
+        assert!((size(s, &y) - 0.25 * 5.0).abs() < 1e-9, "b's dimension is drawn at Big's scale: {}", size(s, &y));
+        assert!((size(s, &x) - drawn).abs() < 1e-12, "a's dimension still keeps its size");
+        let root = kdm_model::kition_kit::kdm::ObjectId::from_string("drawing");
+        let held = s.kdm().expect("an edit made the replica").replica().map_entries(&root, "header").unwrap_or_default();
+        assert!(!held.iter().any(|(key, _)| key == kition_cad_engine::doc::OWN_DIMSCALE), "the replica holds nobody's own scale");
+    }
+    // SETVAR DIMSCALE is the drawing's: it changes the shared value, and b draws at it again.
+    b.execute("setvar", &json!({"name": "DIMSCALE", "value": 3})).unwrap();
+    assert_eq!(doc(&b).my_dimscale(), 3.0);
+    sync(&mut a, &mut b);
+    assert_eq!(doc(&a).header.f64("DIMSCALE", 0.0), 3.0, "a colleague's SETVAR DIMSCALE is the drawing's");
+    // A saved file carries the drawing's DIMSCALE, not a person's own scale.
+    let file = kition_cad_io::read(&kition_cad_io::write(doc(&a), "Plan.dxf").unwrap(), "Plan.dxf").unwrap();
+    assert_eq!(file.header.f64("DIMSCALE", 0.0), 3.0);
+    assert_eq!(file.header.get(kition_cad_engine::doc::OWN_DIMSCALE), None);
+    assert_holds(&a, "a's drawing is its replica's, its own scale aside");
+    assert_holds(&b, "b's drawing is its replica's, its own scale aside");
+}
+
+/// The LAYERP and LAYUNISO snapshots (the previous layer state, the state before isolating) are
+/// one person's own (kdm_model::CURRENT_VARS): a colleague has no isolation of mine to undo,
+/// mine restores the shared layer table as an ordinary change everyone gets, the replica holds no
+/// snapshot, and no file carries one.
+#[test]
+fn each_person_keeps_their_own_layer_snapshots() {
+    let mut a = new_session();
+    a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
+    let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]], "layer": "Walls"})).unwrap());
+    let mut b = peer(&mut a);
+    a.execute("layiso", &json!({"handles": [x]})).unwrap();
+    b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after a isolated Walls");
+    let on = |s: &Session, name: &str| doc(s).layer(name).unwrap().on;
+    for s in [&a, &b] {
+        assert!(on(s, "Walls") && !on(s, "Doors") && !on(s, "0"), "a's isolation is the drawing's");
+    }
+    assert!(doc(&a).header.get("KITION_CAD_LAYISO").is_some() && doc(&a).header.get("KITION_CAD_LAYERP").is_some());
+    assert_eq!(doc(&b).header.get("KITION_CAD_LAYISO"), None, "b has no isolation snapshot");
+    assert!(b.execute("layuniso", &json!({})).is_err(), "b has no isolation of a's to undo");
+    a.execute("layuniso", &json!({})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after a unisolated");
+    for s in [&a, &b] {
+        assert!(on(s, "Walls") && on(s, "Doors") && on(s, "0"), "a's LAYUNISO restored the shared layers");
+        let root = kdm_model::kition_kit::kdm::ObjectId::from_string("drawing");
+        let held = s.kdm().expect("an edit made the replica").replica().map_entries(&root, "header").unwrap_or_default();
+        let snapshots: Vec<&String> = held.iter().map(|(key, _)| key).filter(|key| key.starts_with("KITION_CAD_LAY")).collect();
+        assert!(snapshots.is_empty(), "the replica holds no layer snapshot: {snapshots:?}");
+        let file = kition_cad_io::read(&kition_cad_io::write(doc(s), "Plan.dxf").unwrap(), "Plan.dxf").unwrap();
+        assert_eq!((file.header.get("KITION_CAD_LAYERP"), file.header.get("KITION_CAD_LAYISO")), (None, None), "no file carries a snapshot");
+    }
+    assert_holds(&a, "a's drawing is its replica's, its layer snapshots aside");
+    assert_holds(&b, "b's drawing is its replica's, its layer snapshots aside");
+}
+
+/// The current UCS a person works in (UCSORG, UCSXDIR, UCSNAME… and the PUCS* twins) is their
+/// own (kdm_model::CURRENT_VARS): two people setting different ones both keep theirs, the replica
+/// holds none, a file each saves carries their own (a UCS name naming no record is left out), and
+/// opening a file takes the file's.
+#[test]
+fn each_person_works_in_their_own_ucs() {
+    use kition_cad_engine::doc::HVal;
+    use kition_cad_engine::doc::geom::Vec3;
+    let mut a = new_session();
+    let snapshot = a.snapshot().unwrap();
+    let mut b = peer(&mut a);
+    a.execute("setvar", &json!({"name": "UCSORG", "value": [1, 2]})).unwrap();
+    a.execute("setvar", &json!({"name": "UCSXDIR", "value": [0, 1]})).unwrap();
+    a.execute("setvar", &json!({"name": "UCSNAME", "value": "Gone"})).unwrap();
+    b.execute("setvar", &json!({"name": "UCSORG", "value": [5, 5]})).unwrap();
+    a.execute("line", &json!({"points": [[0, 50], [5, 50]]})).unwrap();
+    sync(&mut a, &mut b);
+    assert_same(&mut a, &mut b, "after both set their UCS");
+    assert_eq!(doc(&a).header.get("UCSORG"), Some(&HVal::Point(Vec3::new(1.0, 2.0, 0.0))), "a's UCS survives b's");
+    assert_eq!(doc(&b).header.get("UCSORG"), Some(&HVal::Point(Vec3::new(5.0, 5.0, 0.0))), "b's UCS survives a's");
+    assert_eq!(doc(&b).header.get("UCSXDIR"), None, "b has none of a's UCS");
+    for s in [&a, &b] {
+        let root = kdm_model::kition_kit::kdm::ObjectId::from_string("drawing");
+        let held = s.kdm().expect("an edit made the replica").replica().map_entries(&root, "header").unwrap_or_default();
+        let ucs: Vec<&String> = held.iter().map(|(key, _)| key).filter(|key| key.contains("UCS")).collect();
+        assert!(ucs.is_empty(), "the replica holds nobody's UCS: {ucs:?}");
+    }
+    let saved = kition_cad_io::write(doc(&a), "Plan.dxf").unwrap();
+    let file = kition_cad_io::read(&saved, "Plan.dxf").unwrap();
+    assert_eq!(file.header.get("UCSORG"), Some(&HVal::Point(Vec3::new(1.0, 2.0, 0.0))), "the saved file carries the saver's UCS");
+    assert_eq!(file.header.get("UCSXDIR"), Some(&HVal::Point(Vec3::new(0.0, 1.0, 0.0))));
+    assert_eq!(file.header.get("UCSNAME"), None, "a UCS name naming no record is not written");
+    let other = kition_cad_io::read(&kition_cad_io::write(doc(&b), "Plan.dxf").unwrap(), "Plan.dxf").unwrap();
+    assert_eq!(other.header.get("UCSORG"), Some(&HVal::Point(Vec3::new(5.0, 5.0, 0.0))), "b's file carries b's UCS");
+    let mut c = Session::empty();
+    c.open_with_replica(&saved, &snapshot).unwrap();
+    assert_eq!(doc(&c).header.get("UCSORG"), Some(&HVal::Point(Vec3::new(1.0, 2.0, 0.0))), "opening a file takes the file's UCS");
+    assert_holds(&a, "a's drawing is its replica's, its UCS aside");
+    assert_holds(&b, "b's drawing is its replica's, its UCS aside");
+    assert_holds(&c, "c's drawing is its replica's, its UCS aside");
+}
+
 #[test]
 fn agent_edits_record_their_origin_and_undo_on_this_replica() {
     let mut s = new_session();

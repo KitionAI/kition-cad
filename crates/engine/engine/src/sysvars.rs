@@ -98,7 +98,8 @@ pub fn get(s: &Session, name: &str) -> Option<Value> {
         }
         _ => {
             let d = s.doc().ok()?;
-            match d.header.get(&n) {
+            // DIMSCALE reads the person's own scale when they have one (`Drawing::my_dim_var`).
+            match d.my_dim_var(&n) {
                 Some(h) => serde_json::to_value(h).ok()?,
                 // A dimension variable the header doesn't carry reads from the current style.
                 None => {
@@ -139,6 +140,15 @@ pub fn set(s: &mut Session, name: &str, v: &Value) -> Result<()> {
         return Err(EngineError::BadParams { cmd: "setvar".into(), msg: format!("{n} is read-only") });
     }
     let bad = || EngineError::BadParams { cmd: "setvar".into(), msg: format!("invalid value for {n}") };
+    // SETVAR DIMSCALE sets the drawing's (shared) DIMSCALE, which the person then draws with
+    // again: their own scale from making a style current gives way (`Drawing::my_dim_var`).
+    if n == "DIMSCALE" {
+        let k = as_f64(v).ok_or_else(bad)?;
+        let d = s.doc_mut()?;
+        d.header.vars.remove(kition_cad_doc::OWN_DIMSCALE);
+        d.header.set_f64("DIMSCALE", k);
+        return Ok(());
+    }
     let st = &mut s.settings;
     match n.as_str() {
         "OSMODE" => st.osmode = v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())).ok_or_else(bad)? as u32 & 0x7fff,
@@ -239,7 +249,7 @@ pub fn list(s: &Session) -> Value {
     }
     if let Ok(d) = s.doc() {
         for (k, v) in &d.header.vars {
-            if k == "ANGBASE" {
+            if k == "ANGBASE" || k == "DIMSCALE" {
                 m.insert(k.clone(), get(s, k).unwrap_or(Value::Null));
             } else if !k.starts_with("KITION_CAD_") {
                 m.insert(k.clone(), serde_json::to_value(v).unwrap_or(Value::Null));

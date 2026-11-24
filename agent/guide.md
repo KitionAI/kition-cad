@@ -70,11 +70,15 @@ is not exported.
   `DIMTXT`, `DIMDEC`, `DIMASSOC`…); the text height, thickness, elevation, polyline width,
   multiline scale and hatch pattern new objects take (`TEXTSIZE`, `THICKNESS`, `ELEVATION`,
   `PLINEWID`, `CMLSCALE`, `HPNAME`…); the snap grid (`SNAPBASE`, `SNAPANG`); and the defaults commands remember (`CIRCLERAD`, `FILLETRAD`, `CHAMFERA`,
-  `OFFSETDIST`, `TRIMMODE`, `SPLINESEGS`, `CENTEREXE`, `INSNAME`…). The styles themselves, the
-  dimensions already drawn (with their overrides) and everything an existing object's look
-  depends on are shared: units, limits, `LTSCALE`, `PDMODE`, `FILLMODE` and `DIMSCALE` (a
-  dimension whose style's scale is 0 is drawn at it). A drawing command takes an explicit `layer`
-  when the layer matters.
+  `OFFSETDIST`, `TRIMMODE`, `SPLINESEGS`, `CENTEREXE`, `INSNAME`…); the current UCS a file
+  brings (`UCSORG`, `UCSXDIR`, `UCSYDIR`, `UCSNAME`, `UCSBASE`… and the `PUCS*` twins); and the
+  layer states `LAYERP` and `LAYUNISO` go back to (never saved in a file; applying one changes
+  the shared layers for everyone). The styles themselves, the named UCSs, the dimensions already
+  drawn (with their overrides) and everything an existing object's look depends on are shared:
+  units, limits, `LTSCALE`, `PDMODE`, `FILLMODE` and `DIMSCALE` (a dimension whose style's scale
+  is 0 is drawn at it). Making a dimension style current, or editing the current one, sets only
+  the scale your own new dimensions take; `setvar DIMSCALE` changes the drawing's. A drawing
+  command takes an explicit `layer` when the layer matters.
 
 ## What a write holds
 

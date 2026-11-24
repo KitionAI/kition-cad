@@ -228,11 +228,50 @@ const HEADER_VARS: &[(&str, i32)] = &[
     ("INSUNITS", 70),
     ("MEASUREMENT", 70),
     ("PSLTSCALE", 70),
+    // The current UCS of model and paper space: the saving person's (each person's own, as the
+    // file brought it; `kdm_model::CURRENT_VARS`).
+    ("UCSBASE", 2),
+    ("UCSNAME", 2),
+    ("UCSORG", -3),
+    ("UCSORGTOP", -3),
+    ("UCSORGBOTTOM", -3),
+    ("UCSORGLEFT", -3),
+    ("UCSORGFRONT", -3),
+    ("UCSORGRIGHT", -3),
+    ("UCSORGBACK", -3),
+    ("UCSORTHOREF", 2),
+    ("UCSORTHOVIEW", 70),
+    ("UCSXDIR", -3),
+    ("UCSYDIR", -3),
+    ("PUCSBASE", 2),
+    ("PUCSNAME", 2),
+    ("PUCSORG", -3),
+    ("PUCSORGTOP", -3),
+    ("PUCSORGBOTTOM", -3),
+    ("PUCSORGLEFT", -3),
+    ("PUCSORGFRONT", -3),
+    ("PUCSORGRIGHT", -3),
+    ("PUCSORGBACK", -3),
+    ("PUCSORTHOREF", 2),
+    ("PUCSORTHOVIEW", 70),
+    ("PUCSXDIR", -3),
+    ("PUCSYDIR", -3),
 ];
+
+/// The header variables that name a UCS record: one naming no record (a colleague deleted it) is
+/// left out, so the file never points at a UCS it lacks; empty is the world UCS.
+const UCS_NAME_VARS: &[&str] = &["UCSBASE", "UCSNAME", "UCSORTHOREF", "PUCSBASE", "PUCSNAME", "PUCSORTHOREF"];
 
 fn header_vars(w: &mut W, d: &Drawing) {
     for (name, code) in HEADER_VARS {
         let Some(v) = d.header.get(name) else { continue };
+        if UCS_NAME_VARS.contains(name)
+            && let Some(ucs) = v.as_str()
+            && !ucs.is_empty()
+            && !d.ucss.iter().any(|u| u.name.eq_ignore_ascii_case(ucs))
+        {
+            continue;
+        }
         match (*code, v) {
             (-2 | -3, HVal::Point(p)) => {
                 w.s(9, format!("${name}"));

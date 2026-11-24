@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-cad-own-dimscale
+feature: cad.dimension.styles
+intent: >-
+  Making a dimension style current, or editing the current one, sets only the scale the person's
+  own new dimensions take: a colleague's dimension whose style's scale is 0 is drawn at the
+  drawing's DIMSCALE and keeps its size, the replica and the saved file hold the drawing's
+  DIMSCALE only, and SETVAR DIMSCALE still changes the drawing's.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/kdm_bridge.rs making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: kdm_bridge, filter: making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-24"
+timeout_s: 60

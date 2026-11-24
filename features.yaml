@@ -264,6 +264,7 @@ features:
     status: partial
     commands: [dimstyle.update, dimstyle, dimstyle.dimension, dimstyle.list, dimstyle.rename, dimstyle.delete, dimstyle.current, dimstyle.override]
     paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/props/rename.rs]
+    cases: [regressions/issue-cad-own-dimscale]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
