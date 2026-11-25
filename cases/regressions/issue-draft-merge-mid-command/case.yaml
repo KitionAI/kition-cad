@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-draft-merge-mid-command
+feature: cad.collab.drafts
+intent: >-
+  A draft merged while the person is in the middle of an interactive command (LINE, one segment
+  drawn) ends the command first, as starting another command does: what it drew stays as its own
+  step and the merge is the next, so the person's undo takes the draft back first, then the whole
+  LINE, and the drawing is what its replica holds throughout. Before, the command's edits so far
+  were written below the merge and the rest above it, and the LINE's undo took the merge back
+  with the rest of the line.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/kdm_bridge.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "a_draft_merged_in_the_middle_of_a_command_ends_the_command_first" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-25"

@@ -854,3 +854,144 @@ fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
         assert_holds(&s, what);
     }
 }
+
+fn circle_x(s: &Session) -> Option<f64> {
+    doc(s).model.iter().find_map(|e| if let EntityKind::Circle(c) = &e.kind { Some(c.center.x) } else { None })
+}
+
+/// A draft merged while the person is in the middle of an interactive command (LINE, one
+/// segment drawn) ends the command first, as starting another command does: what it drew stays
+/// as its own step, and the merge is the next. So the person's Undo takes the draft back first,
+/// then the whole LINE, and the drawing is what its replica holds throughout. Before, the
+/// command's edits so far were written below the merge and the rest above it, and the LINE's Undo
+/// took the merge back with the rest of the line.
+#[test]
+fn a_draft_merged_in_the_middle_of_a_command_ends_the_command_first() {
+    let mut a = new_session();
+    let base = a.version().unwrap();
+    let mut draft = peer(&mut a);
+    let c = doc(&draft).model.iter().find(|e| matches!(e.kind, EntityKind::Circle(_))).map(|e| e.handle.hex()).unwrap();
+    draft.execute("move", &json!({"handles": [c], "delta": [5, 0]})).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    for t in ["line", "30,30", "40,30"] {
+        a.cmdline(t).unwrap();
+    }
+    assert!(a.running.is_some(), "the LINE is running");
+    a.merge_changes(&changes, &Origin::agent("agent:drafter")).unwrap();
+    assert!(a.running.is_none(), "the merge ends the command");
+    assert_eq!(doc(&a).model.len(), 4, "what the command drew stays");
+    assert_eq!(circle_x(&a), Some(25.0), "the draft's move is in");
+    assert_holds(&a, "after the merge");
+    a.execute("u", &json!({})).unwrap();
+    assert_eq!(circle_x(&a), Some(20.0), "the person's undo takes the draft back first");
+    assert_eq!(doc(&a).model.len(), 4, "and leaves the line");
+    assert_holds(&a, "after the first undo");
+    a.execute("u", &json!({})).unwrap();
+    assert_eq!(doc(&a).model.len(), 3, "the next undo takes the whole LINE back");
+    assert_eq!(circle_x(&a), Some(20.0));
+    assert_holds(&a, "after the second undo");
+    assert_eq!(a.kdm_resets(), 0);
+}
+
+fn group_names(s: &Session) -> Vec<String> {
+    doc(s).groups.iter().map(|g| g.name.clone()).collect()
+}
+
+/// The person makes an unnamed group while an agent's draft makes another. The engine names both
+/// `*A1`, and both give the record the identity `*A1`, so after the merge the replica holds two
+/// group records with one stored identity (each under a key of its own object). The next edit
+/// keeps each record on its own object: the drawing stays exactly what its replica holds, and a
+/// fresh replica reads the same two groups.
+#[test]
+fn an_edit_after_an_unnamed_group_and_a_drafts_unnamed_group_keeps_both_records() {
+    let mut a = Session::new();
+    for points in [[[0, 0], [10, 0]], [[0, 5], [8, 9]], [[20, 0], [30, 0]], [[20, 5], [28, 9]]] {
+        a.execute("line", &json!({ "points": points })).unwrap();
+    }
+    let base = a.version().unwrap();
+    let mut draft = peer(&mut a);
+    let hs = model(&a);
+    draft.execute("group", &json!({ "handles": [hs[2], hs[3]] })).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    a.execute("group", &json!({ "handles": [hs[0], hs[1]] })).unwrap();
+    a.merge_changes(&changes, &Origin::agent("agent:drafter")).unwrap();
+    assert_eq!(group_names(&a), ["*A1", "*A1"], "both groups survive the merge");
+    assert_holds(&a, "after the merge");
+    a.execute("move", &json!({ "handles": [hs[0]], "delta": [1, 1] })).unwrap();
+    assert_holds(&a, "after an edit");
+    assert_eq!(group_names(&a), ["*A1", "*A1"], "the edit neither adds nor drops a group");
+    let c = peer(&mut a);
+    assert_eq!(canonical(doc(&a)), canonical(doc(&c)), "a fresh replica matches");
+    assert_eq!(a.kdm_resets(), 0);
+}
+
+/// A draft that deletes the layer the person has current: the current layer is the person's own
+/// (never replicated), so after the merge it names no layer, and goes back to `0`; the next line
+/// lands on `0` and does not bring the deleted layer back.
+#[test]
+fn a_draft_deleting_my_current_layer_sends_me_back_to_layer_0() {
+    let mut a = new_session();
+    a.execute("layer.current", &json!({"name": "Walls"})).unwrap();
+    let base = a.version().unwrap();
+    let mut draft = peer(&mut a);
+    draft.execute("layer.delete", &json!({"name": "Walls"})).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    a.merge_changes(&changes, &Origin::agent("agent:drafter")).unwrap();
+    assert!(doc(&a).layer("Walls").is_none(), "the draft deleted the layer");
+    assert_eq!(doc(&a).header.str("CLAYER", ""), "0", "the current layer that is gone goes back to 0");
+    let h = handle(&a.execute("line", &json!({"points": [[0, 40], [5, 40]]})).unwrap());
+    assert_eq!(doc(&a).entity(Handle::parse_hex(&h).unwrap()).map(|e| e.common.layer.clone()), Some("0".to_owned()));
+    assert!(doc(&a).layer("Walls").is_none(), "drawing does not bring the deleted layer back");
+    assert_holds(&a, "after the line");
+}
+
+/// The keys of the replica's `layers` map that start with `walls`.
+fn walls_keys(s: &Session) -> Vec<String> {
+    let root = kdm_model::kition_kit::kdm::ObjectId::from_string("drawing");
+    let replica = s.kdm().expect("a replica").replica();
+    replica.map_entries(&root, "layers").unwrap().into_iter().map(|(key, _)| key).filter(|key| key.starts_with("walls")).collect()
+}
+
+fn walls(s: &Session) -> Vec<String> {
+    doc(s).layers.iter().filter(|l| l.name.eq_ignore_ascii_case("walls")).map(|l| l.name.clone()).collect()
+}
+
+/// Layer names compare without case, and the replica keys a layer by its name folded to lower
+/// case: adding `Walls` when `WALLS` exists is one layer, by command (refused), by a draft merge
+/// (the draft adds `walls` while the person added `Walls`: both records take the key `walls`, so
+/// the merge is refused, D4) and from a DXF holding both (read as one layer).
+#[test]
+fn adding_layer_walls_when_walls_exists_is_one_layer() {
+    let mut a = Session::new();
+    a.execute("layer.new", &json!({"name": "WALLS"})).unwrap();
+    assert!(a.execute("layer.new", &json!({"name": "Walls"})).is_err(), "the command refuses the name");
+    assert_eq!(walls(&a), ["WALLS"]);
+    assert_eq!(walls_keys(&a), ["walls"]);
+    assert_holds(&a, "by command");
+
+    let mut b = Session::new();
+    let base = b.version().unwrap();
+    let mut draft = peer(&mut b);
+    draft.execute("layer.new", &json!({"name": "walls"})).unwrap();
+    let changes = draft.export_changes(&base).unwrap();
+    b.execute("layer.new", &json!({"name": "Walls"})).unwrap();
+    let at = b.version().unwrap();
+    assert!(b.merge_changes(&changes, &Origin::agent("agent:drafter")).is_err(), "the merge is refused");
+    assert_eq!(b.version().unwrap(), at, "and changes nothing");
+    assert_eq!(walls(&b), ["Walls"]);
+    assert_eq!(walls_keys(&b), ["walls"]);
+    assert_holds(&b, "by a draft merge");
+
+    let mut c = Session::new();
+    c.execute("layer.new", &json!({"name": "WALLS"})).unwrap();
+    let snapshot = c.snapshot().unwrap();
+    let mut outside = doc(&c).clone();
+    outside.layers.push(kition_cad_engine::doc::Layer::new("Xalls"));
+    let text = String::from_utf8(kition_cad_io::write(&outside, "Plan.dxf").unwrap()).unwrap();
+    let file = text.replace("Xalls", "Walls").into_bytes();
+    let mut e = Session::empty();
+    e.open_with_replica(&file, &snapshot).unwrap();
+    assert_eq!(walls(&e), ["Walls"], "the file's two records read as one layer");
+    assert_eq!(walls_keys(&e), ["walls"]);
+    assert_holds(&e, "from a DXF");
+}

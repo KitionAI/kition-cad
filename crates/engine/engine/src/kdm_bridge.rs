@@ -500,29 +500,40 @@ impl Session {
     }
 
     /// Takes a draft's changes (made on a replica forked from this one, `mergeChanges`) into the
-    /// active drawing as one undo step of `origin`'s scope, as a command's edit is: local edits not
-    /// written yet are written first, the drawing and its selection follow the replica, and one
-    /// Undo takes the whole draft back. A refused merge changes nothing.
+    /// active drawing as one undo step of the person who accepts it (KitModel M12a, data model
+    /// D9), whoever made the draft: the replica records it in the person's history whatever
+    /// `origin`'s kind, so the drawing's history does too, and the person's Undo takes the whole
+    /// draft back while an agent's does not. Local edits not written yet are written first, and
+    /// the drawing and its selection follow the replica. A refused merge changes nothing.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage> {
-        self.take_in(origin, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
+        self.take_in(UndoScope::Person, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
     }
 
     /// Writes the state a snapshot holds (a checkpoint of this drawing, `replica/restore`) over the
-    /// active drawing by object id, as one undo step of `origin`'s scope, taken in as a merged
-    /// draft is ([`Session::merge_changes`]). Nothing changes when the states are equal.
+    /// active drawing by object id, as one undo step of `origin`'s scope (the replica writes it as
+    /// a transaction of `origin`), taken in as a merged draft is ([`Session::merge_changes`]).
+    /// Nothing changes when the states are equal.
     pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage> {
-        self.take_in(origin, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
+        let scope = if matches!(origin.kind, OriginKind::Agent) { UndoScope::Agent } else { UndoScope::Person };
+        self.take_in(scope, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
     }
 
     /// One transaction `write` makes on the active drawing's replica, taken into the drawing as a
-    /// command's step: the drawing follows the replica (as after an import), and the history gets
-    /// the step, its replica undo steps the transaction's, when it is one.
+    /// command's step of `scope`: the drawing follows the replica (as after an import), and the
+    /// history gets the step, its replica undo steps the transaction's, when it is one.
+    ///
+    /// A running command ends first, as starting another command ends it (what it drew stays, as
+    /// its own step): the replica's history would otherwise hold the command's steps on both sides
+    /// of this one, and the command's Undo would take this one back with it.
     fn take_in(
         &mut self,
-        origin: &Origin,
+        scope: UndoScope,
         label: &str,
         write: impl FnOnce(&mut CadSession) -> (u32, kdm_model::kition_kit::session::Result<Damage>),
     ) -> Result<Damage> {
+        if self.running.is_some() {
+            self.cancel();
+        }
         let kdm = self.active_kdm(true)?;
         let before_version = kdm.version();
         let (steps, result) = write(kdm);
@@ -536,7 +547,6 @@ impl Session {
             st.detach_kdm();
         }
         if follow && steps > 0 {
-            let scope = if matches!(origin.kind, OriginKind::Agent) { UndoScope::Agent } else { UndoScope::Person };
             st.push_undo(crate::Snapshot { label: label.to_owned(), doc: before, selection, steps, scope });
             // The step is written already: the bridge has nothing of it left to record.
             st.link.mark = st.pushed;

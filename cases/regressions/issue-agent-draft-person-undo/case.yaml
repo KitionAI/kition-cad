@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-agent-draft-person-undo
+feature: cad.collab.drafts
+intent: >-
+  A draft an agent made merges as one undo step of the person who accepts it (KitModel M12a, data
+  model D9), in the engine's history as in the replica's: the agent's undo leaves it, the person's
+  undo gives back the exact state before the merge (the whole replicated state and the engine's
+  own view; a line drawn meanwhile stays), and the person's redo the exact merged state. Before,
+  the engine put the step in the agent's history while the replica recorded it in the person's.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/src/collab.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "an_agents_draft_merges_as_one_undo_step_of_the_person" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-25"

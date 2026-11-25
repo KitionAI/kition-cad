@@ -159,9 +159,10 @@ impl CadDocument {
         kdm.replica().state_json().map_err(engine_error)
     }
 
-    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of
-    /// `origin`'s scope (`mergeChanges`, as `kition-sdk`'s `export_kit_session!` answers it): the
-    /// engine's drawing follows, and one Undo takes the whole draft back. Answers `{"damage",
+    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of the
+    /// person who accepts it, whoever made the draft (`mergeChanges`, as `kition-sdk`'s
+    /// `export_kit_session!` answers it; KitModel M12a): the engine's drawing follows, and one
+    /// Undo of the person takes the whole draft back. Answers `{"damage",
     /// "summary"}`, `summary` the `StateDiff` of the replicated state before and after. A refused
     /// merge changes nothing and fails with the KDM's message.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
@@ -189,12 +190,25 @@ impl CadDocument {
     }
 
     /// An agent's reply (JSON text) with every object id it holds as a value or a key named as
-    /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
-    /// or when the schema declares no tool ids. The drawing keeps its own ids.
+    /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica,
+    /// when it names no object of the drawing, or when the schema declares no tool ids. The
+    /// drawing keeps its own ids.
+    ///
+    /// The editor sends every `ai/inspect`, `document/check` and `ai/run` reply through this: the
+    /// tool ids are read for the objects the reply names alone (`Replica::tool_ids_of`), not for
+    /// every entity of the drawing each time.
     pub fn model_reply(&self, value: &str) -> Result<String, String> {
         let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
         let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
-        let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
+        let replica = kdm.replica();
+        let mut texts = std::collections::BTreeSet::new();
+        texts_of(&value, &mut texts);
+        let named: std::collections::BTreeSet<kition_kit::kdm::ObjectId> =
+            texts.into_iter().map(kition_kit::kdm::ObjectId::from_string).filter(|id| replica.exists(id)).collect();
+        if named.is_empty() {
+            return Ok(value.to_string());
+        }
+        let ids = replica.tool_ids_of(&named);
         Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
     }
 
@@ -225,6 +239,28 @@ impl CadDocument {
         let request: Value = serde_json::from_str(request)
             .map_err(|failure| json!({ "code": "invalid-op", "index": null, "message": format!("the batch is not JSON: {failure}") }).to_string())?;
         kition_kit::session::model::Exchange::new().batch(self, &request, false).map_err(|failure| failure.to_json().to_string())
+    }
+}
+
+/// Every string and key `value` holds, and each `:`-separated segment of them (a map key made of
+/// object ids, such as a table cell's `<entity>:<cell>`): the texts that may name an object.
+fn texts_of(value: &Value, out: &mut std::collections::BTreeSet<String>) {
+    fn add(text: &str, out: &mut std::collections::BTreeSet<String>) {
+        out.insert(text.to_owned());
+        if text.contains(':') {
+            out.extend(text.split(':').filter(|part| !part.is_empty()).map(str::to_owned));
+        }
+    }
+    match value {
+        Value::String(text) => add(text, out),
+        Value::Array(items) => items.iter().for_each(|item| texts_of(item, out)),
+        Value::Object(map) => {
+            for (key, item) in map {
+                add(key, out);
+                texts_of(item, out);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -510,6 +546,78 @@ mod tests {
         assert_eq!(model_types(&doc), both);
     }
 
+    /// The engine's own view of the drawing, id-blind.
+    fn view(doc: &CadDocument) -> Value {
+        kdm_model::canonical(doc.session.doc().unwrap())
+    }
+
+    /// KitModel M12a: a draft an agent made merges as one undo step of the person who accepts it,
+    /// in the replica's history and in the engine's alike. The agent's Undo leaves it; the
+    /// person's takes it back to the exact state before the merge (a line drawn here meanwhile,
+    /// in the same model-space list, stays), and the person's Redo writes the exact merged state
+    /// again. Before, the engine put the step in the agent's history while the replica put it in
+    /// the person's.
+    #[test]
+    fn an_agents_draft_merges_as_one_undo_step_of_the_person() {
+        use kition_cad_engine::UndoScope;
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        let base = doc.version().unwrap();
+        let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
+        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        let changes = draft.export_changes(&base).unwrap();
+        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        let (prior_hash, prior_view) = (doc.session.state_hash().unwrap(), view(&doc));
+        assert_eq!(model_types(&doc), ["Line", "Line"]);
+        let agent = Origin::agent("agent:drafter");
+        doc.merge_changes(&changes, &agent).unwrap();
+        assert_eq!(model_types(&doc), ["Circle", "Line", "Line"], "the draft's circle and the line drawn here");
+        let (merged_hash, merged_view) = (doc.session.state_hash().unwrap(), view(&doc));
+        let st = doc.session.state().unwrap();
+        assert_eq!(st.undo.last().map(|step| step.scope), Some(UndoScope::Person), "the engine's history: a step of the person");
+        assert_eq!(st.undo.last().map(|step| step.steps), Some(1), "one replica step");
+        assert!(!doc.session.can_undo_in(UndoScope::Agent), "the engine's history: no step of the agent");
+        let kdm = doc.session.kdm().unwrap();
+        assert!(kdm.can_undo_in(UndoScope::Person), "the replica's history: a step of the person");
+        assert!(!kdm.can_undo_in(UndoScope::Agent), "the replica's history: no step of the agent");
+        let _ = doc.session.undo_in(UndoScope::Agent);
+        assert_eq!(doc.session.state_hash().unwrap(), merged_hash, "the agent's undo leaves the draft");
+        assert_eq!(view(&doc), merged_view);
+        assert!(doc.undo().unwrap().0);
+        assert_eq!(doc.session.state_hash().unwrap(), prior_hash, "the person's undo gives back the exact state before the merge");
+        assert_eq!(view(&doc), prior_view, "and the engine's own view of it");
+        assert_eq!(model_types(&doc), ["Line", "Line"]);
+        assert!(doc.redo().unwrap().0);
+        assert_eq!(doc.session.state_hash().unwrap(), merged_hash, "the person's redo writes the exact merged state again");
+        assert_eq!(view(&doc), merged_view);
+        assert_eq!(doc.session.kdm_resets(), 0);
+    }
+
+    /// `modelReply` reads the tool ids of the objects a reply names alone: in a drawing of many
+    /// entities, a reply naming one gets the tool id a read of the whole drawing gives it, and a
+    /// reply naming none comes back as it was.
+    #[test]
+    fn a_reply_reads_the_tool_ids_of_the_objects_it_names_alone() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        for i in 0..300 {
+            doc.execute("line", json!({ "points": [[i, 0], [i, 10]] })).unwrap();
+        }
+        doc.version().unwrap();
+        let kdm = doc.session.kdm().unwrap();
+        let mut entities = kdm.replica().objects_of_type("Entity");
+        entities.sort();
+        assert_eq!(entities.len(), 301);
+        let one = entities[150].as_str().to_owned();
+        let mut changed = serde_json::Map::new();
+        changed.insert(one.clone(), json!("moved"));
+        let reply = json!({ "target": one, "changed": changed, "note": "one line" });
+        let shown: Value = serde_json::from_str(&doc.model_reply(&reply.to_string()).unwrap()).unwrap();
+        let whole = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica()).show_json(&reply);
+        assert_eq!(shown, whole, "the tool id the whole drawing's ids give");
+        assert_ne!(shown["target"], json!(one), "the entity is named by its tool id: {shown}");
+        let plain = json!({ "summary": "Plan", "layers": ["0"], "count": 301 });
+        assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
+    }
+
     /// Comparing a draft names what merging it would do, and changes nothing.
     #[test]
     fn comparing_a_draft_names_what_the_merge_would_do_and_changes_nothing() {
@@ -539,10 +647,12 @@ mod tests {
         let before = entities(&doc);
         extra_edit(&mut doc);
         assert_eq!(entities(&doc), before + 2);
+        let (prior_hash, prior_view) = (doc.session.state_hash().unwrap(), view(&doc));
         let origin = Origin::person("person:local");
         let damage = doc.restore_state(&checkpoint, &origin).unwrap();
         assert_ne!(damage, Damage::None);
         assert_eq!(entities(&doc), before, "the engine's drawing follows the restore");
+        let (restored_hash, restored_view) = (doc.session.state_hash().unwrap(), view(&doc));
         let then = Replica::load(<kdm_model::CadModel as KitModel>::schema(), &checkpoint, ActorId::random()).unwrap().state_json().unwrap();
         assert_eq!(doc.replicated_state().unwrap()["objects"], then["objects"], "the checkpoint's objects, under their ids");
         let at = doc.version().unwrap();
@@ -550,6 +660,11 @@ mod tests {
         assert_eq!(doc.version().unwrap(), at);
         assert!(doc.undo().unwrap().0);
         assert_eq!(entities(&doc), before + 2, "one undo takes the restore back");
+        assert_eq!(doc.session.state_hash().unwrap(), prior_hash, "to the exact state before it");
+        assert_eq!(view(&doc), prior_view, "and the engine's own view of it");
+        assert!(doc.redo().unwrap().0);
+        assert_eq!(doc.session.state_hash().unwrap(), restored_hash, "one redo writes the restored state again exactly");
+        assert_eq!(view(&doc), restored_view);
         let mut other = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let other = other.snapshot().unwrap();
         assert!(doc.restore_state(&other, &origin).is_err(), "another document's state is refused");
