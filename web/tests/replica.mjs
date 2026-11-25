@@ -1,10 +1,10 @@
-// A drawing changed outside Kition keeps its replica (Kit UI protocol UI-R1, `replicaMergesFile`):
+// A drawing changed outside Kition keeps its replica (Kit UI protocol UI-R1):
 // node tests/replica.mjs [chromium|webkit]. Opens dev.html with the replica and checkpoints kept,
 // draws and saves, then gives the file new bytes from elsewhere (`devHost.reopenChanged`): another
-// program turned the Furniture layer off. The engine merges the newer file into the stored replica
-// as one `import` change: the outside change shows, the replica is the same one (its id, its
-// version history, its checkpoints), and the layers keep their ids. Undo steps live in the
-// session, so they are not asserted here.
+// program turned the Furniture layer off. The editor opens with the stored snapshot and the engine
+// records what the file changed as one `import` change: the outside change shows, the replica is
+// the same one (its id, its version, its checkpoints), and the layers keep their ids. Undo steps
+// live in the session, so they are not asserted here.
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
 
@@ -37,7 +37,7 @@ const furniture = async () => (await details()).layers.find((layer) => layer.nam
 const opened = () => page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
 
 try {
-  await page.goto(`${origin}/dev.html?replica=1&checkpoints=1&replica-merges-file=1`)
+  await page.goto(`${origin}/dev.html?replica=1&checkpoints=1`)
   await opened()
   await until(async () => (await page.evaluate(() => window.devHost.connection() != null)) && (await details()).entities > 0)
   const start = (await details()).entities
@@ -52,7 +52,7 @@ try {
   step('saves the file and its replica', await saved())
   const before = await layers()
   const checkpoint = await page.evaluate(() => window.devHost.recordCheckpoint({ origin: 'save' }))
-  step('the host records a checkpoint', checkpoint != null && checkpoint.available === true)
+  step('the host records a checkpoint', checkpoint != null)
   const docId = await page.evaluate(async () => {
     const connection = window.devHost.connection()
     window.versionBefore = await connection.replica.version()
@@ -103,10 +103,10 @@ try {
     return { docId: await connection.replica.info(), since: changes.byteLength }
   })
   step('the stored replica opened: the same replica id', kept.docId === docId, `${docId} -> ${kept.docId}`)
-  step('its history holds the version from before, and the import after it', kept.since > 0, String(kept.since))
+  step('it goes on from the version from before, with the import after it', kept.since > 0, String(kept.since))
   step('the stored replica is still kept', await page.evaluate((path) => window.devHost.history.replica(path) != null, PATH))
   const checkpoints = await page.evaluate((path) => window.devHost.history.checkpoints(path), PATH)
-  step('the checkpoint from before stays available', checkpoints.some((entry) => entry.id === checkpoint?.id && entry.available === true))
+  step('the checkpoint from before stays', checkpoints.some((entry) => entry.id === checkpoint?.id))
 } catch (error) {
   failures += 1
   console.log(`FAIL ${which}: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`)

@@ -3,8 +3,9 @@
 //! the post-command passes (constraint re-solve, associative dimensions) are part of it, undo
 //! after a remote edit keeps the remote edit, an interactive command is one undo step,
 //! selection-only changes write nothing, a remote deletion of a selected entity fixes the
-//! selection, two people drawing at once never mint the same handle, and two sessions running
-//! random commands converge with the engine's drawing equal to its own replica after every step.
+//! selection, each person's own settings stay theirs, and two sessions taking turns at random
+//! commands, exchanging after each, keep the engine's drawing equal to its own replica after
+//! every step and end the same.
 
 use kition_cad_engine::doc::{Drawing, EntityKind, Handle};
 use kition_cad_engine::{Origin, Session, Version};
@@ -226,6 +227,7 @@ fn undo_after_a_remote_edit_keeps_it() {
     let mut b = peer(&mut a);
     let h = first_line(&a);
     a.execute("move", &json!({"handles": [h], "delta": [20, 0]})).unwrap();
+    sync(&mut a, &mut b);
     b.execute("line", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "exchanged");
@@ -272,49 +274,23 @@ fn a_remote_deletion_of_a_selected_entity_fixes_the_selection() {
     assert_holds(&a, "an edit after the import");
 }
 
-#[test]
-fn two_people_drawing_at_once_never_mint_the_same_handle() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    let x = handle(&a.execute("line", &json!({"points": [[0, 40], [5, 40]]})).unwrap());
-    let y = handle(&b.execute("line", &json!({"points": [[0, 50], [5, 50]]})).unwrap());
-    assert_ne!(x, y);
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "both lines");
-    assert_eq!(doc(&a).model.len(), 5);
-    let (start, end) = a.kdm().unwrap().handle_range();
-    assert!((start..end).contains(&doc(&a).handseed), "the next handle is in a's own range");
-}
-
-#[test]
-fn a_layer_deleted_while_someone_draws_on_it_rehomes_to_layer_0() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    a.execute("layer.delete", &json!({"name": "Walls"})).unwrap();
-    b.execute("layer.current", &json!({"name": "Walls"})).unwrap();
-    let h = handle(&b.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    let e = doc(&a).entity(Handle::parse_hex(&h).unwrap()).cloned().unwrap();
-    assert_eq!(e.common.layer, "0");
-    assert_eq!(doc(&b).header.str("CLAYER", "?"), "0", "the current layer that is gone falls back to 0");
-}
-
 /// The current layer is each person's own (kdm_model::CURRENT_VARS): two people making different
-/// layers current at once both keep theirs after merging, a new line each draws lands on their own
-/// current layer, and the replicas converge.
+/// layers current one after the other both keep theirs after the exchange, a new line each draws
+/// lands on their own current layer, and the replicas end the same.
 #[test]
 fn each_person_draws_on_their_own_current_layer() {
     let mut a = new_session();
     a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
     let mut b = peer(&mut a);
     a.execute("layer.current", &json!({"name": "Walls"})).unwrap();
+    sync(&mut a, &mut b);
     b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both made a layer current");
     assert_eq!(doc(&a).header.str("CLAYER", "?"), "Walls", "a's current layer survives b's");
     assert_eq!(doc(&b).header.str("CLAYER", "?"), "Doors", "b's current layer survives a's");
     let x = handle(&a.execute("line", &json!({"points": [[0, 70], [5, 70]]})).unwrap());
+    sync(&mut a, &mut b);
     let y = handle(&b.execute("line", &json!({"points": [[0, 80], [5, 80]]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both lines");
@@ -330,8 +306,8 @@ fn each_person_draws_on_their_own_current_layer() {
 }
 
 /// The current dimension style is each person's own (kdm_model::CURRENT_VARS): two people making
-/// different styles current at once both keep theirs after merging, a dimension each draws takes
-/// their own current style, the styles stay shared, and the replicas converge.
+/// different styles current one after the other both keep theirs after the exchange, a dimension
+/// each draws takes their own current style, the styles stay shared, and the replicas end the same.
 #[test]
 fn each_person_dimensions_with_their_own_current_dimension_style() {
     let mut a = new_session();
@@ -339,12 +315,14 @@ fn each_person_dimensions_with_their_own_current_dimension_style() {
     a.execute("dimstyle", &json!({"name": "Mech", "current": false})).unwrap();
     let mut b = peer(&mut a);
     a.execute("dimstyle.current", &json!({"name": "Arch"})).unwrap();
+    sync(&mut a, &mut b);
     b.execute("dimstyle.current", &json!({"name": "Mech"})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both made a dimension style current");
     assert_eq!(doc(&a).header.str("DIMSTYLE", "?"), "Arch", "a's current dimension style survives b's");
     assert_eq!(doc(&b).header.str("DIMSTYLE", "?"), "Mech", "b's current dimension style survives a's");
     let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    sync(&mut a, &mut b);
     let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both dimensions");
@@ -365,7 +343,7 @@ fn each_person_dimensions_with_their_own_current_dimension_style() {
 
 /// The dimension settings (the DIM* variables but DIMSCALE: kdm_model::is_current_var) are each
 /// person's own, like the current dimension style: two people setting different arrow sizes and
-/// text heights at once both keep theirs, a dimension each draws takes their own as its
+/// text heights one after the other both keep theirs, a dimension each draws takes their own as its
 /// overrides (its own content, shared: everyone sees it alike), a colleague making a style
 /// current resets only their own settings, the replica holds none of them, and a file each saves
 /// carries their own.
@@ -375,6 +353,7 @@ fn each_person_dimensions_with_their_own_dimension_settings() {
     let mut b = peer(&mut a);
     a.execute("setvar", &json!({"name": "DIMASZ", "value": 0.5})).unwrap();
     a.execute("setvar", &json!({"name": "DIMTXT", "value": 0.3})).unwrap();
+    sync(&mut a, &mut b);
     b.execute("setvar", &json!({"name": "DIMASZ", "value": 1.5})).unwrap();
     b.execute("setvar", &json!({"name": "DIMTXT", "value": 0.7})).unwrap();
     sync(&mut a, &mut b);
@@ -382,6 +361,7 @@ fn each_person_dimensions_with_their_own_dimension_settings() {
     assert_eq!(doc(&a).header.f64("DIMASZ", 0.0), 0.5, "a's arrow size survives b's");
     assert_eq!(doc(&b).header.f64("DIMASZ", 0.0), 1.5, "b's arrow size survives a's");
     let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    sync(&mut a, &mut b);
     let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both dimensions");
@@ -485,8 +465,9 @@ fn each_person_keeps_their_own_layer_snapshots() {
     let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
     a.execute("laymch", &json!({"handles": [x], "layer": "Walls"})).unwrap();
     let mut b = peer(&mut a);
-    a.execute("layiso", &json!({"handles": [x]})).unwrap();
     b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
+    sync(&mut a, &mut b);
+    a.execute("layiso", &json!({"handles": [x]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after a isolated Walls");
     let on = |s: &Session, name: &str| doc(s).layer(name).unwrap().on;
@@ -526,7 +507,9 @@ fn each_person_works_in_their_own_ucs() {
     a.execute("setvar", &json!({"name": "UCSORG", "value": [1, 2]})).unwrap();
     a.execute("setvar", &json!({"name": "UCSXDIR", "value": [0, 1]})).unwrap();
     a.execute("setvar", &json!({"name": "UCSNAME", "value": "Gone"})).unwrap();
+    sync(&mut a, &mut b);
     b.execute("setvar", &json!({"name": "UCSORG", "value": [5, 5]})).unwrap();
+    sync(&mut a, &mut b);
     a.execute("line", &json!({"points": [[0, 50], [5, 50]]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both set their UCS");
@@ -717,24 +700,27 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
     format!("{id} {params} -> {}", if r.is_ok() { "ok" } else { "refused" })
 }
 
-/// Two sessions run ~250 random commands between them, exchanging changes every few commands.
-/// After every command the drawing is exactly what its own replica holds; after every exchange
-/// both hold the same replicated state and the same drawing.
+/// Two sessions take turns at ~250 random commands, each exchanging its changes with the other
+/// before the other's turn (one line of changes). After every command the drawing is exactly what
+/// its own replica holds; every few commands, and at the end, both hold the same replicated state
+/// and the same drawing.
 #[test]
-fn random_commands_keep_drawing_and_replica_equal_and_converge() {
+fn random_commands_keep_drawing_and_replica_equal() {
     for seed in [3u64, 11, 2026] {
         let mut rng = Rng(seed.wrapping_mul(0x9e37_79b9_7f4a_7c15) | 1);
         let mut a = new_session();
         let mut b = peer(&mut a);
         let mut log: Vec<String> = Vec::new();
         for step in 0..63 {
-            for (name, s) in [("a", &mut a), ("b", &mut b)] {
+            for turn in ["a", "b"] {
+                let s = if turn == "a" { &mut a } else { &mut b };
                 let what = random_command(s, &mut rng);
-                log.push(format!("{name}: {what}"));
-                let context = || format!("seed {seed}, step {step}, {name}; last commands:\n{}", log[log.len().saturating_sub(6)..].join("\n"));
+                log.push(format!("{turn}: {what}"));
+                let context = || format!("seed {seed}, step {step}, {turn}; last commands:\n{}", log[log.len().saturating_sub(6)..].join("\n"));
                 assert_eq!(s.kdm_resets(), 0, "{}", context());
                 let (mine, held) = (canonical(doc(s)), canonical(&replica_doc(s)));
                 assert!(mine == held, "the drawing is not what its replica holds: {}\n{:#?}", context(), differences(&mine, &held));
+                sync(&mut a, &mut b);
             }
             if step % 4 == 3 {
                 sync(&mut a, &mut b);

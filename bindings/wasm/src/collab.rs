@@ -340,6 +340,35 @@ mod tests {
         assert!(CadDocument::open("Plan.dxf", &b.save(Some("Plan.dxf")).unwrap()).is_ok(), "it still saves as DXF");
     }
 
+    /// The sorted object ids of the drawing's entities in its replica.
+    fn entity_ids(doc: &CadDocument) -> Vec<String> {
+        let kdm = doc.session.kdm().unwrap_or_else(|| panic!("the drawing has a replica"));
+        let mut ids: Vec<String> = kdm.replica().objects_of_type("Entity").iter().map(|id| id.as_str().to_owned()).collect();
+        ids.sort();
+        ids
+    }
+
+    /// An unchanged drawing saves the same bytes each time, and reopened with its stored replica
+    /// its entities keep their object ids; the reopened drawing, unchanged, saves the same bytes
+    /// again and again too.
+    #[test]
+    fn an_unchanged_drawing_saves_the_same_bytes_and_reopens_with_its_object_ids() {
+        let mut a = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        extra_edit(&mut a);
+        let bytes = a.save(Some("Plan.dxf")).unwrap();
+        assert_eq!(a.save(Some("Plan.dxf")).unwrap(), bytes, "saving again unchanged writes the same bytes");
+        let snapshot = a.snapshot().unwrap();
+        let before = entity_ids(&a);
+        assert_eq!(before.len(), 3, "the line and the two edits' entities");
+
+        let b = CadDocument::open_with_replica("Plan.dxf", &bytes, &snapshot, &[]).unwrap();
+        assert_eq!(entity_ids(&b), before, "the reopened drawing's entities keep their object ids");
+        assert!(!b.dirty());
+        let saved = b.save(Some("Plan.dxf")).unwrap();
+        assert_eq!(b.save(Some("Plan.dxf")).unwrap(), saved, "the reopened drawing saves the same bytes each time");
+        assert_eq!(entities(&CadDocument::open("Plan.dxf", &saved).unwrap()), entities(&a));
+    }
+
     /// A damaged (or missing) stored replica never stops the file from opening: it opens
     /// plainly, never as a blank drawing.
     #[test]
@@ -355,9 +384,9 @@ mod tests {
     }
 
     /// `a` saves with its replica; `b` opens with it. `a` draws more;
-    /// `b.importChanges(a.exportChanges(b.version()))` converges `b` to the same replicated state.
+    /// `b.importChanges(a.exportChanges(b.version()))` brings `b` to the same replicated state.
     #[test]
-    fn two_documents_converge_through_export_and_import_changes() {
+    fn a_second_document_follows_through_export_and_import_changes() {
         let mut a = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         extra_edit(&mut a);
         let bytes = a.save(Some("Plan.dxf")).unwrap();
@@ -371,11 +400,7 @@ mod tests {
         b.import_changes(&changes).unwrap();
         assert_eq!(a.version().unwrap(), b.version().unwrap());
         assert_eq!(entities(&a), entities(&b));
-        assert_eq!(
-            a.render(0.0, 0.0, 1.0, 400, 300).unwrap(),
-            b.render(0.0, 0.0, 1.0, 400, 300).unwrap(),
-            "converged replicas render the same drawing"
-        );
+        assert_eq!(a.render(0.0, 0.0, 1.0, 400, 300).unwrap(), b.render(0.0, 0.0, 1.0, 400, 300).unwrap(), "both replicas render the same drawing");
     }
     /// `kition-cad` serves the object model through `ReplicaPort`: a command and a model edit in
     /// batches reach the engine, and a read-only batch refuses writes.

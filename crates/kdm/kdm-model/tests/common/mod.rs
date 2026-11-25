@@ -1,5 +1,5 @@
-//! Shared test helpers: a small drawing to edit, and a multi-replica harness over
-//! `KitSession<CadModel>`. Each `tests/*.rs` binary uses only some.
+//! Shared test helpers: a small drawing to edit, and a two-replica harness over
+//! `KitSession<CadModel>` (one line of changes). Each `tests/*.rs` binary uses only some.
 #![allow(dead_code)]
 
 use std::collections::HashSet;
@@ -180,24 +180,6 @@ pub fn send(from: &Session, to: &mut Session) {
     to.import_changes(&bytes).unwrap_or_else(|error| panic!("import: {error}"));
 }
 
-/// Exchanges until every session holds the same version (repairs are changes too).
-pub fn sync_all(sessions: &mut [Session]) {
-    for _ in 0..8 {
-        for i in 0..sessions.len() {
-            for j in 0..sessions.len() {
-                if i != j {
-                    let bytes = sessions[i].export_changes(&sessions[j].version()).unwrap_or_else(|error| panic!("export: {error}"));
-                    sessions[j].import_changes(&bytes).unwrap_or_else(|error| panic!("import: {error}"));
-                }
-            }
-        }
-        if sessions.windows(2).all(|w| w[0].version() == w[1].version()) {
-            return;
-        }
-    }
-    panic!("the replicas did not converge");
-}
-
 pub fn sync(a: &mut Session, b: &mut Session) {
     for _ in 0..8 {
         send(a, b);
@@ -247,7 +229,7 @@ pub fn assert_same(what: &str, a: &Drawing, b: &Drawing) {
     assert!(x == y, "{what}: the drawings differ:\n{:#?}", differences(&x, &y));
 }
 
-/// The replica itself holds nothing a merge left dangling: no list or map entry names a deleted
+/// The replica itself holds nothing dangling: no list or map entry names a deleted
 /// object, every entity is listed, no two listed entities share a handle, no constraint names a
 /// deleted entity.
 pub fn assert_replica_clean(replica: &Replica) {

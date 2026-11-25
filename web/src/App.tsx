@@ -34,13 +34,11 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const t = useMemo(() => createKitStrings(CATALOGS, host.init.locale), [host])
   const manifest = useMemo(engineManifest, [])
   // An agent's constraint command takes the drawing's constraint lease too (`constraintLease.ts`).
-  // A drawing changed outside Kition opens with its stored replica whatever the file's stamp
-  // (`replicaMergesFile`, Kit UI protocol UI-R1): the engine records what the file changed as one
-  // `import` change onto the replica (`open_with_replica`), so the entities keep their object ids
-  // and the history goes on (tests/replica.mjs).
+  // A drawing changed outside Kition opens with its stored replica (Kit UI protocol UI-R1): the
+  // engine records what the file changed as one `import` change onto the replica
+  // (`open_with_replica`), so the entities keep their object ids (tests/replica.mjs).
   const session = useKitSession(host, manifest, describe, {
     agentLeaseScope: (command, params) => constraintLeaseScope(command, params),
-    replicaMergesFile: true,
   })
   // The person's constraint commands take the drawing's constraint lease while it is co-edited.
   const leases = useMemo(() => kitLeases(host), [host])

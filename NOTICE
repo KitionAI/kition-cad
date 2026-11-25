@@ -11,13 +11,11 @@ Third-party material
 - CADCraft Ukrainian interface catalog (web/src/i18n/upstream/uk.tsv, translated by
   @dmatviichuk) and sample drawing (examples/apartment.dxf): Copyright (c) 2026 ArtCraft Team and
   the CADCraft contributors, MIT License (below).
-- Loro (https://github.com/loro-dev/loro): Copyright (c) 2023 Zixuan Chen, MIT License (below).
-- MPL-2.0 crates used unmodified (source on crates.io): acadrust, bitmaps, im, sized-chunks.
+- MPL-2.0 crate used unmodified (source on crates.io): acadrust.
 
-MIT License (CADCraft, Loro)
+MIT License (CADCraft)
 
 Copyright (c) 2026 ArtCraft Team and the CADCraft contributors
-Copyright (c) 2023 Zixuan Chen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
