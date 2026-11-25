@@ -30,11 +30,11 @@ fn drawing() -> (CadDocument, String) {
     let mut doc = CadDocument::open("Plan.dxf", &bytes).unwrap();
     doc.execute("rectangle.add", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap();
     doc.execute("layer.add", json!({ "name": "Marks" })).unwrap();
-    let circle = handle(&doc.execute("circle", json!({ "center": [200, 25], "radius": 10, "layer": "Marks" })).unwrap());
+    let circle = handle(&doc.execute("circle.add", json!({ "center": [200, 25], "radius": 10, "layer": "Marks" })).unwrap());
     doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
     let square = handle(&doc.execute("rectangle.add", json!({ "p1": [10, 10], "p2": [30, 30] })).unwrap());
-    doc.execute("select", json!({ "handles": [square] })).unwrap();
-    doc.execute("zoom", json!({ "mode": "in" })).ok();
+    doc.execute("select.set", json!({ "handles": [square] })).unwrap();
+    doc.execute("view.zoomRealtime", json!({ "mode": "in" })).ok();
     (doc, circle)
 }
 
@@ -75,7 +75,7 @@ fn the_same_call_answers_the_same_bytes() {
     let (mut doc, _) = drawing();
     let a = render(&mut doc, json!({ "target": { "window": [-10, -10, 110, 60] } }));
     doc.execute("layout.set", json!({ "name": "Model" })).unwrap();
-    doc.execute("zoom", json!({ "mode": "extents" })).ok();
+    doc.execute("view.zoomRealtime", json!({ "mode": "extents" })).ok();
     let b = render(&mut doc, json!({ "target": { "window": [-10, -10, 110, 60] } }));
     assert_eq!(a, b);
 }

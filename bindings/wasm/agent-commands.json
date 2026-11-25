@@ -1,149 +1,5 @@
 {
- "attribute.editGlobal": {
-  "description": "Finds and replaces text in attribute values across block references filtered by block, tag and value, and answers how many changed.",
-  "params": {
-   "block": {
-    "type": "string"
-   },
-   "find": {
-    "type": "string"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "replace": {
-    "type": "string"
-   },
-   "tag": {
-    "type": "string"
-   },
-   "value": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "type": "number"
-     },
-     {
-      "type": "boolean"
-     }
-    ]
-   }
-  }
- },
- "block.add": {
-  "description": "Defines a block from objects and a base point, then deletes the objects by default (or keeps or converts them), as -BLOCK does.",
-  "params": {
-   "description": {
-    "type": "string"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "polyline.add3d": {
-  "description": "Draws a 3D polyline of straight segments through points with optional z values, optionally closed."
- },
- "edit.deselectAll": {
-  "description": "Clears the selection so no object is selected, and answers the selection count.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "selected": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  }
- },
- "align": {
-  "description": "Moves and rotates objects so one or two source points meet destination points, optionally scaling them to fit.",
-  "params": {
-   "d1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "d2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "s1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "s2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "measure.angle": {
-  "description": "Measures the angle at a vertex between two points, or between two lines, in degrees.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "angle": {
-     "type": "number"
-    },
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "vertex": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "arc": {
+ "arc.add": {
   "description": "Draws an arc through three points, from a centre, radius and start and end angles, or from start, centre and end points.",
   "params": {
    "center": {
@@ -169,24 +25,6 @@
      "type": "number"
     },
     "type": "array"
-   }
-  }
- },
- "arc.addContinue": {
-  "description": "Draws an arc tangent to the end of the last line or arc drawn, to an end point, or from a start point and direction.",
-  "params": {
-   "direction": {
-    "oneOf": [
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     },
-     {
-      "type": "number"
-     }
-    ]
    }
   }
  },
@@ -223,6 +61,24 @@
    },
    "length": {
     "type": "number"
+   }
+  }
+ },
+ "arc.addContinue": {
+  "description": "Draws an arc tangent to the end of the last line or arc drawn, to an end point, or from a start point and direction.",
+  "params": {
+   "direction": {
+    "oneOf": [
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     },
+     {
+      "type": "number"
+     }
+    ]
    }
   }
  },
@@ -286,37 +142,22 @@
  "arc.addStartEndRadius": {
   "description": "Draws an arc between a start and an end point with the given radius; a negative radius draws the major arc."
  },
- "area": {
-  "description": "Measures the area and perimeter of a closed polygon through points, or of a closed object.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "area": {
-     "type": "number"
-    },
-    "message": {
+ "arrange.bringToFront": {
+  "description": "Moves the given objects, or the selection, to the front of the draw order.",
+  "params": {
+   "handles": {
+    "items": {
      "type": "string"
     },
-    "perimeter": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
+    "type": "array"
+   }
+  }
+ },
+ "arrange.group": {
+  "description": "Makes a named or anonymous group of the given objects, or the selection, and answers its name and members.",
   "params": {
-   "handle": {
+   "description": {
     "type": "string"
-   }
-  }
- },
- "array": {
-  "description": "Copies objects in a rectangular, polar or path array, taking the parameters of arrayrect, arraypolar or arraypath."
- },
- "object.arrayPath": {
-  "description": "Copies the given objects, or the selection, along a path object, a count of copies or at a spacing, optionally aligned to it.",
-  "params": {
-   "count": {
-    "type": "integer"
    },
    "handles": {
     "items": {
@@ -326,15 +167,9 @@
    }
   }
  },
- "object.arrayPolar": {
-  "description": "Copies the given objects, or the selection, a number of times about a centre over an angle, optionally rotating them.",
+ "arrange.sendToBack": {
+  "description": "Moves the given objects, or the selection, to the back of the draw order.",
   "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
    "handles": {
     "items": {
      "type": "string"
@@ -343,23 +178,27 @@
    }
   }
  },
- "object.arrayRectangular": {
-  "description": "Copies the given objects, or the selection, into a grid of rows and columns at the given spacings.",
+ "arrange.ungroup": {
+  "description": "Dissolves the named groups, or every group holding one of the given or selected objects, and answers the groups removed.",
   "params": {
-   "colSpacing": {
-    "type": "number"
-   },
-   "cols": {
-    "type": "integer"
-   },
    "handles": {
     "items": {
      "type": "string"
     },
     "type": "array"
    },
-   "rowSpacing": {
-    "type": "number"
+   "name": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     }
+    ]
    }
   }
  },
@@ -397,22 +236,17 @@
    }
   }
  },
- "attribute.sync": {
-  "description": "Updates every reference of a block so its attributes match the block's current attribute definitions.",
+ "attribute.editGlobal": {
+  "description": "Finds and replaces text in attribute values across block references filtered by block, tag and value, and answers how many changed.",
   "params": {
+   "block": {
+    "type": "string"
+   },
+   "find": {
+    "type": "string"
+   },
    "handle": {
     "type": "string"
-   }
-  }
- },
- "audit": {
-  "description": "Checks the drawing's database for errors (dangling references, bad handles, invalid tables) and, with fix, repairs them; answers each issue found."
- },
- "constraint.auto": {
-  "description": "Infers and adds geometric constraints among the given or selected objects within distance and angle tolerances, of the chosen types.",
-  "params": {
-   "angleTolerance": {
-    "type": "number"
    },
    "handles": {
     "items": {
@@ -420,13 +254,26 @@
     },
     "type": "array"
    },
-   "tolerance": {
-    "type": "number"
+   "replace": {
+    "type": "string"
+   },
+   "tag": {
+    "type": "string"
+   },
+   "value": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "number"
+     },
+     {
+      "type": "boolean"
+     }
+    ]
    }
   }
- },
- "base": {
-  "description": "Sets the drawing's insertion base point ($INSBASE) used when it is inserted as a block."
  },
  "attribute.manage": {
   "description": "Answers the attribute definitions of the named block (tag, prompt, default and invisibility), as the Block Attribute Manager lists them.",
@@ -461,30 +308,29 @@
    "type": "object"
   }
  },
- "blend": {
-  "description": "Draws a spline that joins the picked ends of two open curves with tangent or smooth continuity.",
+ "attribute.sync": {
+  "description": "Updates every reference of a block so its attributes match the block's current attribute definitions.",
   "params": {
-   "h1": {
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "block.add": {
+  "description": "Defines a block from objects and a base point, then deletes the objects by default (or keeps or converts them), as -BLOCK does.",
+  "params": {
+   "description": {
     "type": "string"
    },
-   "h2": {
-    "type": "string"
-   },
-   "p1": {
+   "handles": {
     "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
+     "type": "string"
     },
     "type": "array"
    }
   }
  },
- "block": {
+ "block.addDialog": {
   "description": "Defines a block from objects and a base point, then converts the objects to a reference of it, keeps or deletes them.",
   "params": {
    "description": {
@@ -495,6 +341,27 @@
      "type": "string"
     },
     "type": "array"
+   }
+  }
+ },
+ "block.insert": {
+  "description": "Inserts a block reference at a point with scale and rotation, defining the block from a DXF or DWG file first when one is given.",
+  "params": {
+   "scale": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
    }
   }
  },
@@ -510,44 +377,30 @@
    "type": "object"
   }
  },
- "boundary": {
+ "block.setBase": {
+  "description": "Sets the drawing's insertion base point ($INSBASE) used when it is inserted as a block."
+ },
+ "block.write": {
+  "description": "Writes a block, or the given objects with a base point, to a new drawing file at a path.",
+  "params": {
+   "base": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "boundary.add": {
   "description": "Creates a closed polyline along the boundary of the area around each internal point."
  },
- "break": {
-  "description": "Removes the part of an object between two points on it, splitting it in two or shortening it.",
-  "params": {
-   "handle": {
-    "type": "string"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "object.breakAtPoint": {
-  "description": "Splits an object into two at one point, leaving no gap.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "cal": {
+ "calculator.open": {
   "description": "Evaluates an arithmetic expression, with optional named variables, as QuickCalc does, and answers the result.",
   "output": {
    "additionalProperties": true,
@@ -587,118 +440,8 @@
    }
   }
  },
- "chamfer": {
-  "description": "Bevels the corner between two lines by two distances or a length and angle, optionally trimming, or chamfers every polyline corner.",
-  "params": {
-   "d1": {
-    "type": "number"
-   },
-   "d2": {
-    "type": "number"
-   },
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "length": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "object.changeSpace": {
-  "description": "Moves the given objects between model space and a layout's paper space through a viewport, keeping their apparent size.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "to": {
-    "type": "string"
-   },
-   "viewport": {
-    "type": "string"
-   }
-  }
- },
- "circle": {
+ "circle.add": {
   "description": "Draws a circle from a centre and radius or diameter, two diameter end points, or three points on it.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "diameter": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p3": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "circle.addTwoPoints": {
-  "description": "Draws a circle whose diameter runs between two points.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "diameter": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "circle.addThreePoints": {
-  "description": "Draws the circle that passes through three points.",
   "params": {
    "center": {
     "items": {
@@ -798,29 +541,179 @@
    }
   }
  },
- "close": {
-  "description": "Closes the drawing at the given document index, or the current one, without saving it."
- },
- "file.closeAll": {
-  "description": "Closes every open drawing without saving, leaving no current document."
- },
- "color": {
-  "description": "Sets the current colour for new objects: ByLayer, ByBlock, a colour name, an index 1 to 255 or an r,g,b triple.",
+ "circle.addThreePoints": {
+  "description": "Draws the circle that passes through three points.",
   "params": {
-   "color": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "type": "integer"
-     }
-    ]
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "diameter": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p3": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "circle.addTwoPoints": {
+  "description": "Draws a circle whose diameter runs between two points.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "diameter": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    }
   }
  },
  "command.runLine": {
   "description": "Runs a line typed at the command line: a command name or alias with its prompts' answers, as the person types them."
+ },
+ "constraint.addDimensional": {
+  "description": "Adds a dimensional constraint (linear, aligned, horizontal, vertical, angular, radius or diameter) with a value or expression and re-solves.",
+  "params": {
+   "expr": {
+    "type": "string"
+   },
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "p1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "value": {
+    "type": "number"
+   }
+  }
+ },
+ "constraint.addGeometric": {
+  "description": "Adds a geometric constraint of a given type between points or objects and re-solves the drawing's constraints.",
+  "params": {
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "h3": {
+    "type": "string"
+   },
+   "p1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p3": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   }
+  }
+ },
+ "constraint.auto": {
+  "description": "Infers and adds geometric constraints among the given or selected objects within distance and angle tolerances, of the chosen types.",
+  "params": {
+   "angleTolerance": {
+    "type": "number"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "tolerance": {
+    "type": "number"
+   }
+  }
  },
  "constraint.bars": {
   "description": "Shows or hides the constraint bars of the given objects, or of every object.",
@@ -833,187 +726,167 @@
    }
   }
  },
- "constraint.hideAllBars": {
-  "description": "Hides the constraint bars of every constrained object."
- },
- "constraint.showAllBars": {
-  "description": "Shows the constraint bars of every constrained object."
- },
- "constraint.inspect": {
-  "description": "Answers the drawing's constraints, their glyph anchors, the parameters, the constraint settings and whether everything is satisfied.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "constraints": {
-     "type": "array"
-    },
-    "glyphs": {
-     "type": "array"
-    },
-    "parameters": {
-     "type": "array"
-    },
-    "satisfied": {
-     "type": "boolean"
-    },
-    "settings": {
-     "additionalProperties": true,
-     "properties": {
-      "angleTolerance": {
-       "type": "number"
-      },
-      "autoTypes": {
-       "items": {
-        "type": "string"
-       },
-       "type": "array"
-      },
-      "barExceptions": {
-       "type": "array"
-      },
-      "barTransparency": {
-       "type": "number"
-      },
-      "barsVisible": {
-       "type": "boolean"
-      },
-      "dimExceptions": {
-       "type": "array"
-      },
-      "dimsVisible": {
-       "type": "boolean"
-      },
-      "distanceTolerance": {
-       "type": "number"
-      },
-      "infer": {
-       "type": "boolean"
-      }
-     },
-     "type": "object"
-    }
-   },
-   "type": "object"
-  }
- },
- "constraint.settings": {
-  "description": "Sets constraint inference, distance and angle tolerances, auto-constrain types, and constraint bar and dimension visibility.",
+ "constraint.coincident": {
+  "description": "Constrains two points, or a point and an object, to coincide, and re-solves the constraints.",
   "params": {
-   "angleTolerance": {
-    "type": "number"
-   },
-   "barTransparency": {
-    "type": "number"
-   },
-   "barsVisible": {
-    "type": "boolean"
-   },
-   "dimsVisible": {
-    "type": "boolean"
-   },
-   "distanceTolerance": {
-    "type": "number"
-   },
-   "infer": {
-    "type": "boolean"
-   }
-  }
- },
- "copy": {
-  "description": "Copies the given objects, or the selection, by a delta or from a point to a point, once or count times.",
-  "params": {
-   "delta": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "to": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "edit.copyWithBasePoint": {
-  "description": "Copies the given objects, or the selection, to the clipboard with a base point that a later paste places; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "copied": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "edit.copy": {
-  "description": "Copies the given objects, or the selection, to the clipboard with their own coordinates; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "copied": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "count": {
-  "description": "Counts block references in model space, every block or the named one, and answers the counts with a message line.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "blocks": {
-     "additionalProperties": true,
-     "properties": {},
-     "type": "object"
-    },
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "block": {
+   "h1": {
     "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "h3": {
+    "type": "string"
+   },
+   "p1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p3": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
    }
   }
  },
- "edit.cut": {
-  "description": "Copies the given objects, or the selection, to the clipboard and erases them from the drawing.",
+ "constraint.collinear": {
+  "description": "Constrains two lines or segments to lie on the same infinite line, and re-solves the constraints.",
   "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "h3": {
+    "type": "string"
+   },
+   "p1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p3": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
    }
   }
+ },
+ "constraint.concentric": {
+  "description": "Constrains two arcs, circles or ellipses to share a centre, and re-solves the constraints.",
+  "params": {
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "h3": {
+    "type": "string"
+   },
+   "p1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "p3": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   }
+  }
+ },
+ "constraint.delete": {
+  "description": "Deletes the constraints on the given or selected objects, or the constraints with the given ids."
  },
  "constraint.dimensionAligned": {
   "description": "Adds an aligned distance constraint between two points or along a line, with a value or expression, and re-solves.",
@@ -1143,23 +1016,6 @@
     "type": "number"
    }
   }
- },
- "constraint.dynamicDimensions": {
-  "description": "Shows or hides the dynamic dimensional constraints of the given objects, or of every object.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "constraint.hideAllDynamicDimensions": {
-  "description": "Hides every dynamic dimensional constraint in the drawing."
- },
- "constraint.showAllDynamicDimensions": {
-  "description": "Shows every dynamic dimensional constraint in the drawing."
  },
  "constraint.dimensionHorizontal": {
   "description": "Adds a horizontal distance constraint between two points, with a value or expression, and re-solves.",
@@ -1333,1389 +1189,14 @@
    }
   }
  },
- "point.style": {
-  "description": "Sets how point objects display (PDMODE) and their size (PDSIZE).",
-  "params": {
-   "pdmode": {
-    "type": "integer"
-   },
-   "pdsize": {
-    "type": "number"
-   }
-  }
- },
- "constraint.delete": {
-  "description": "Deletes the constraints on the given or selected objects, or the constraints with the given ids."
- },
- "dim": {
-  "description": "Draws a dimension between two points with its line at a point, choosing the dimension kind from the geometry.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.addAligned": {
-  "description": "Draws a dimension parallel to the line between two points, its dimension line through a point, with optional override text.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.addAngular": {
-  "description": "Draws an angular dimension from a vertex and two points, between two lines, or for an arc, with its arc through a point.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "vertex": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.addArcLength": {
-  "description": "Draws an arc length dimension for an arc or polyline arc segment, its line through a point.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "dimension.addBaseline": {
-  "description": "Draws linear dimensions from the first extension line of the last linear dimension to each of the given points, spaced apart."
- },
- "constraint.addDimensional": {
-  "description": "Adds a dimensional constraint (linear, aligned, horizontal, vertical, angular, radius or diameter) with a value or expression and re-solves.",
-  "params": {
-   "expr": {
-    "type": "string"
-   },
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "p1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "value": {
-    "type": "number"
-   }
-  }
- },
- "dimension.addContinue": {
-  "description": "Draws linear dimensions that continue end to end from the last linear dimension to each of the given points."
- },
- "dimension.addDiameter": {
-  "description": "Draws a diameter dimension for an arc or circle, or from a centre and a point on the curve.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "point": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.disassociate": {
-  "description": "Removes the associativity of the given dimensions so they no longer follow their objects.",
+ "constraint.dynamicDimensions": {
+  "description": "Shows or hides the dynamic dimensional constraints of the given objects, or of every object.",
   "params": {
    "handles": {
     "items": {
      "type": "string"
     },
     "type": "array"
-   }
-  }
- },
- "dimension.addLinear": {
-  "description": "Draws a horizontal, vertical or rotated linear dimension between two points, or an associative one for an object, with the line at a point.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.addOrdinate": {
-  "description": "Draws an ordinate dimension giving a feature point's x or y datum value, with its leader to a point.",
-  "params": {
-   "feature": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "leader": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.override": {
-  "description": "Overrides dimension style fields or DIM variables on the given dimensions, or clears their overrides, and can set override text.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "text": {
-    "type": "string"
-   }
-  }
- },
- "dimension.addRadius": {
-  "description": "Draws a radius dimension for an arc or circle, or from a centre and a point on the curve.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "point": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.reassociate": {
-  "description": "Reassociates the given dimensions so their definition points attach to the objects under them.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.space": {
-  "description": "Spaces parallel linear or angular dimensions evenly from a base dimension, by the given spacing or DIMDLI."
- },
- "dimensionStyle.open": {
-  "description": "Creates or changes a dimension style from style fields or DIM variables, and by default makes it current; answers the styles.",
-  "params": {
-   "DIMBLK": {
-    "type": "string"
-   },
-   "DIMTAD": {
-    "type": "integer"
-   },
-   "DIMTSZ": {
-    "type": "number"
-   }
-  }
- },
- "dimensionStyle.setCurrent": {
-  "description": "Makes the named dimension style the current one for new dimensions."
- },
- "dimensionStyle.delete": {
-  "description": "Deletes a dimension style that is not Standard, current or used by any dimension."
- },
- "dimensionStyle.openManager": {
-  "description": "Creates or changes a dimension style from style fields or DIM variables, and by default makes it current, from the Dimension menu.",
-  "params": {
-   "DIMBLK": {
-    "type": "string"
-   },
-   "DIMTAD": {
-    "type": "integer"
-   },
-   "DIMTSZ": {
-    "type": "number"
-   }
-  }
- },
- "dimensionStyle.list": {
-  "description": "Answers the dimension styles and the current one, and every variable of the named style when one is given.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "current": {
-     "type": "string"
-    },
-    "styles": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    }
-   },
-   "type": "object"
-  }
- },
- "dimensionStyle.override": {
-  "description": "Sets per-dimension overrides of style fields or DIM variables on the given dimensions, or clears them.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimensionStyle.rename": {
-  "description": "Renames a dimension style from one name to another.",
-  "params": {
-   "from": {
-    "type": "string"
-   },
-   "to": {
-    "type": "string"
-   }
-  }
- },
- "dimension.updateStyle": {
-  "description": "Applies the current dimension style to the given dimensions, or the selected ones, removing their overrides.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.editText": {
-  "description": "Moves the text of the given dimensions to a point, or sets it home, to an angle, left, centre or right.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "mode": {
-    "type": "string"
-   }
-  }
- },
- "dimension.textAngle": {
-  "description": "Rotates the text of the given dimensions to an angle in degrees.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.textCenter": {
-  "description": "Centres the text of the given dimensions on the dimension line.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.textHome": {
-  "description": "Moves the text of the given dimensions back to its default position and angle.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.textLeft": {
-  "description": "Moves the text of the given linear dimensions towards the left extension line.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dimension.textRight": {
-  "description": "Moves the text of the given linear dimensions towards the right extension line.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "dist": {
-  "description": "Measures the distance between two points and answers it with the angle and the x and y deltas.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "angle": {
-     "type": "number"
-    },
-    "distance": {
-     "type": "number"
-    },
-    "dx": {
-     "type": "number"
-    },
-    "dy": {
-     "type": "number"
-    },
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "divide": {
-  "description": "Places points or block references at equal intervals that split an object into the given number of segments, optionally aligned to it.",
-  "params": {
-   "block": {
-    "type": "string"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "segments": {
-    "type": "integer"
-   }
-  }
- },
- "file.bytes": {
-  "description": "Answers the current drawing written as DXF, base64-encoded, without saving it to a file.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "data": {
-     "type": "json"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "format": {
-    "type": "string"
-   }
-  }
- },
- "file.switch": {
-  "description": "Makes the open drawing at the given document index the current one."
- },
- "donut": {
-  "description": "Draws a filled ring as a wide closed polyline, from a centre and inside and outside diameters.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "inside": {
-    "type": "number"
-   },
-   "outside": {
-    "type": "number"
-   }
-  }
- },
- "file.inspect": {
-  "description": "Answers an overview of the drawing: object counts by type, layers, blocks, styles, current settings and, optionally, a page of its objects.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "blocks": {
-     "type": "array"
-    },
-    "counts": {
-     "additionalProperties": true,
-     "properties": {
-      "Line": {
-       "type": "number"
-      },
-      "Text": {
-       "type": "number"
-      }
-     },
-     "type": "object"
-    },
-    "currentLayer": {
-     "type": "string"
-    },
-    "dimStyles": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    },
-    "dirty": {
-     "type": "boolean"
-    },
-    "object.query": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "color": {
-        "type": "string"
-       },
-       "geometry": {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       "handle": {
-        "type": "string"
-       },
-       "layer": {
-        "type": "string"
-       },
-       "transparency": {
-        "type": "string"
-       },
-       "type": {
-        "type": "string"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    },
-    "entityCount": {
-     "type": "number"
-    },
-    "extents": {
-     "items": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     },
-     "type": "array"
-    },
-    "layers": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "color": {
-        "type": "string"
-       },
-       "frozen": {
-        "type": "boolean"
-       },
-       "linetype": {
-        "type": "string"
-       },
-       "locked": {
-        "type": "boolean"
-       },
-       "name": {
-        "type": "string"
-       },
-       "on": {
-        "type": "boolean"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    },
-    "layouts": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    },
-    "linetypes": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    },
-    "path": {
-     "type": "string"
-    },
-    "selection": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    },
-    "space": {
-     "type": "string"
-    },
-    "textStyles": {
-     "items": {
-      "type": "string"
-     },
-     "type": "array"
-    },
-    "title": {
-     "type": "string"
-    },
-    "undo": {
-     "type": "array"
-    },
-    "view": {
-     "additionalProperties": true,
-     "properties": {
-      "center": {
-       "items": {
-        "type": "number"
-       },
-       "type": "array"
-      },
-      "height": {
-       "type": "number"
-      }
-     },
-     "type": "object"
-    }
-   },
-   "type": "object"
-  }
- },
- "arrange.sendToBack": {
-  "description": "Moves the given objects, or the selection, to the back of the draw order.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "arrange.bringToFront": {
-  "description": "Moves the given objects, or the selection, to the front of the draw order.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "drafting.settings": {
-  "description": "Sets drafting settings (snap and grid spacing, polar angle, major grid lines) and answers every drafting setting.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "annoallvisible": {
-     "type": "boolean"
-    },
-    "annoautoscale": {
-     "type": "boolean"
-    },
-    "aperture": {
-     "type": "number"
-    },
-    "cursorsize": {
-     "type": "number"
-    },
-    "drafting.dynamicInput": {
-     "type": "boolean"
-    },
-    "dynpiAbsolute": {
-     "type": "boolean"
-    },
-    "dynpiCartesian": {
-     "type": "boolean"
-    },
-    "gridmajor": {
-     "type": "number"
-    },
-    "gridmode": {
-     "type": "boolean"
-    },
-    "gridunit": {
-     "additionalProperties": true,
-     "properties": {
-      "x": {
-       "type": "number"
-      },
-      "y": {
-       "type": "number"
-      }
-     },
-     "type": "object"
-    },
-    "gripsize": {
-     "type": "number"
-    },
-    "drafting.isometric": {
-     "type": "boolean"
-    },
-    "drafting.lineweightDisplay": {
-     "type": "boolean"
-    },
-    "maxarray": {
-     "type": "number"
-    },
-    "orthomode": {
-     "type": "boolean"
-    },
-    "osmode": {
-     "type": "number"
-    },
-    "osnaphatch": {
-     "type": "boolean"
-    },
-    "drafting.objectSnapTracking": {
-     "type": "boolean"
-    },
-    "pickadd": {
-     "type": "boolean"
-    },
-    "pickbox": {
-     "type": "number"
-    },
-    "pickfirst": {
-     "type": "boolean"
-    },
-    "polarFlags": {
-     "type": "number"
-    },
-    "polaraddang": {
-     "type": "array"
-    },
-    "polarang": {
-     "type": "number"
-    },
-    "polarmode": {
-     "type": "boolean"
-    },
-    "drafting.quickProperties": {
-     "type": "boolean"
-    },
-    "selectionCycling": {
-     "type": "boolean"
-    },
-    "snapmode": {
-     "type": "boolean"
-    },
-    "snapunit": {
-     "additionalProperties": true,
-     "properties": {
-      "x": {
-       "type": "number"
-      },
-      "y": {
-       "type": "number"
-      }
-     },
-     "type": "object"
-    },
-    "transparencyDisplay": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "gridmajor": {
-    "type": "integer"
-   },
-   "polarang": {
-    "type": "number"
-   }
-  }
- },
- "drafting.dynamicInput": {
-  "description": "Turns dynamic input on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "edit.redo": {
-  "description": "Redoes the last undone step of the caller's undo scope, or of the given person or agent scope."
- },
- "edit.undo": {
-  "description": "Undoes the last step of the caller's undo scope, or of the given person or agent scope (KitModel M12a)."
- },
- "ellipse": {
-  "description": "Draws an ellipse, or an elliptical arc with start and end angles, from a centre, a major axis vector and a minor-to-major ratio.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "ratio": {
-    "type": "number"
-   }
-  }
- },
- "ellipse.addArc": {
-  "description": "Draws an elliptical arc between start and end angles, from a centre, major axis and ratio or from axis end points and a distance.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "distance": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "ratio": {
-    "type": "number"
-   }
-  }
- },
- "ellipse.addAxisEnd": {
-  "description": "Draws an ellipse from the two end points of one axis and half the length of the other, as a distance or a third point.",
-  "params": {
-   "distance": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p3": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "object.query": {
-  "description": "Answers a page of objects of one space (Model, or a layout by `layout`, without going there; default the space shown) filtered by type, layer and a crossing or inside window, with their handles, properties and geometry and the total count.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "count": {
-     "type": "number"
-    },
-    "object.query": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "color": {
-        "type": "string"
-       },
-       "geometry": {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       "handle": {
-        "type": "string"
-       },
-       "layer": {
-        "type": "string"
-       },
-       "transparency": {
-        "type": "string"
-       },
-       "type": {
-        "type": "string"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    },
-    "offset": {
-     "type": "number"
-    },
-    "returned": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "limit": {
-    "type": "integer"
-   },
-   "type": {
-    "type": "string"
-   }
-  }
- },
- "object.measure": {
-  "description": "Measures without changing anything: each entity's bounding box (`bounds`: handles), the minimum distance between two entities or points with the nearest points (`distance`: [a, b], each a handle or [x, y]), the points where two entities cross (`intersections`: [a, b] handles), or the pairs of duplicate objects in a space (`overlaps`: {layout?}, Model unless named; OVERKILL's report, nothing deleted). Give exactly one.",
-  "output": {
-   "type": "object",
-   "properties": {
-    "bounds": {
-     "type": "array",
-     "items": {
-      "type": "object",
-      "properties": {
-       "handle": {
-        "type": "string"
-       },
-       "min": {
-        "type": "array",
-        "items": {
-         "type": "number"
-        }
-       },
-       "max": {
-        "type": "array",
-        "items": {
-         "type": "number"
-        }
-       }
-      },
-      "additionalProperties": false
-     }
-    },
-    "distance": {
-     "type": "number"
-    },
-    "from": {
-     "type": "array",
-     "items": {
-      "type": "number"
-     }
-    },
-    "to": {
-     "type": "array",
-     "items": {
-      "type": "number"
-     }
-    },
-    "points": {
-     "type": "array",
-     "items": {
-      "type": "array",
-      "items": {
-       "type": "number"
-      }
-     }
-    },
-    "pairs": {
-     "type": "array",
-     "items": {
-      "type": "object",
-      "properties": {
-       "a": {
-        "type": "string"
-       },
-       "b": {
-        "type": "string"
-       },
-       "kind": {
-        "type": "string"
-       }
-      },
-      "additionalProperties": false
-     }
-    }
-   },
-   "additionalProperties": false
-  },
-  "params": {
-   "bounds": {
-    "type": "array",
-    "items": {
-     "type": "string"
-    },
-    "description": "entities' handles"
-   },
-   "distance": {
-    "type": "array",
-    "items": {
-     "oneOf": [
-      {
-       "type": "string",
-       "description": "an entity's handle"
-      },
-      {
-       "type": "array",
-       "items": {
-        "type": "number"
-       },
-       "description": "a point [x, y]"
-      }
-     ]
-    },
-    "description": "two entities (handles) or points ([x, y])"
-   },
-   "intersections": {
-    "type": "array",
-    "items": {
-     "type": "string"
-    },
-    "description": "two entities' handles"
-   },
-   "overlaps": {
-    "type": "object",
-    "properties": {
-     "layout": {
-      "type": "string",
-      "description": "a layout's name, or \"Model\" (the default)"
-     }
-    },
-    "description": "the space to report duplicates in",
-    "additionalProperties": false
-   }
-  }
- },
- "erase": {
-  "description": "Erases the given objects, or the selection, from the drawing."
- },
- "edit.delete": {
-  "description": "Erases every selected object from the drawing, as Edit > Clear does."
- },
- "explode": {
-  "description": "Breaks the given compound objects (blocks, polylines, dimensions, hatches), or the selection, into their component objects.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "file.exportPdf": {
-  "description": "Exports a layout or model space to PDF, on a paper and orientation, fitted or not, to a path or answered as base64.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "bytes": {
-     "type": "number"
-    },
-    "data": {
-     "type": "string"
-    },
-    "layout": {
-     "type": "string"
-    },
-    "path": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "fit": {
-    "type": "boolean"
-   },
-   "landscape": {
-    "type": "boolean"
-   },
-   "layout": {
-    "type": "string"
-   },
-   "lineweights": {
-    "type": "boolean"
-   },
-   "paper": {
-    "type": "string"
-   }
-  }
- },
- "extend": {
-  "description": "Extends an object to its boundary edges at the end that is picked, fenced or crossed.",
-  "params": {
-   "handle": {
-    "type": "string"
-   },
-   "pick": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "file.export": {
-  "description": "Exports the drawing as a PDF, SVG or PNG file: model space framed to its extents (a PDF fitted to its page's paper). Answers the file as base64 `data`, without saving the drawing or changing it.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "bytes": {
-     "type": "number"
-    },
-    "data": {
-     "type": "string"
-    },
-    "format": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "fillet": {
-  "description": "Joins two lines, arcs or circles with a tangent arc of a radius, optionally trimming them, or fillets every polyline corner.",
-  "params": {
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "find": {
-  "description": "Finds text in the text, mtext, attributes and dimensions of the current space, optionally replacing it, matching case or whole words.",
-  "params": {
-   "find": {
-    "type": "string"
-   },
-   "replace": {
-    "type": "string"
-   }
-  }
- },
- "flatten": {
-  "description": "Flattens the given objects, or the selection, onto z = 0, turning 3D polylines into 2D polylines.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "constraint.coincident": {
-  "description": "Constrains two points, or a point and an object, to coincide, and re-solves the constraints.",
-  "params": {
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "h3": {
-    "type": "string"
-   },
-   "p1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p3": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   }
-  }
- },
- "constraint.collinear": {
-  "description": "Constrains two lines or segments to lie on the same infinite line, and re-solves the constraints.",
-  "params": {
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "h3": {
-    "type": "string"
-   },
-   "p1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p3": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   }
-  }
- },
- "constraint.concentric": {
-  "description": "Constrains two arcs, circles or ellipses to share a centre, and re-solves the constraints.",
-  "params": {
-   "h1": {
-    "type": "string"
-   },
-   "h2": {
-    "type": "string"
-   },
-   "h3": {
-    "type": "string"
-   },
-   "p1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p3": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
    }
   }
  },
@@ -2825,6 +1306,12 @@
    }
   }
  },
+ "constraint.hideAllBars": {
+  "description": "Hides the constraint bars of every constrained object."
+ },
+ "constraint.hideAllDynamicDimensions": {
+  "description": "Hides every dynamic dimensional constraint in the drawing."
+ },
  "constraint.horizontal": {
   "description": "Constrains a line, segment or pair of points to stay horizontal, and re-solves the constraints.",
   "params": {
@@ -2876,6 +1363,63 @@
      }
     ]
    }
+  }
+ },
+ "constraint.inspect": {
+  "description": "Answers the drawing's constraints, their glyph anchors, the parameters, the constraint settings and whether everything is satisfied.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "constraints": {
+     "type": "array"
+    },
+    "glyphs": {
+     "type": "array"
+    },
+    "parameters": {
+     "type": "array"
+    },
+    "satisfied": {
+     "type": "boolean"
+    },
+    "settings": {
+     "additionalProperties": true,
+     "properties": {
+      "angleTolerance": {
+       "type": "number"
+      },
+      "autoTypes": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "barExceptions": {
+       "type": "array"
+      },
+      "barTransparency": {
+       "type": "number"
+      },
+      "barsVisible": {
+       "type": "boolean"
+      },
+      "dimExceptions": {
+       "type": "array"
+      },
+      "dimsVisible": {
+       "type": "boolean"
+      },
+      "distanceTolerance": {
+       "type": "number"
+      },
+      "infer": {
+       "type": "boolean"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "object"
   }
  },
  "constraint.parallel": {
@@ -2931,6 +1475,9 @@
    }
   }
  },
+ "constraint.parameters": {
+  "description": "Lists the constraint parameters, sets one by name to a value or expression (creating a user parameter), or deletes one, then re-solves."
+ },
  "constraint.perpendicular": {
   "description": "Constrains two lines or polyline segments to stay perpendicular, and re-solves the constraints.",
   "params": {
@@ -2983,6 +1530,35 @@
     ]
    }
   }
+ },
+ "constraint.settings": {
+  "description": "Sets constraint inference, distance and angle tolerances, auto-constrain types, and constraint bar and dimension visibility.",
+  "params": {
+   "angleTolerance": {
+    "type": "number"
+   },
+   "barTransparency": {
+    "type": "number"
+   },
+   "barsVisible": {
+    "type": "boolean"
+   },
+   "dimsVisible": {
+    "type": "boolean"
+   },
+   "distanceTolerance": {
+    "type": "number"
+   },
+   "infer": {
+    "type": "boolean"
+   }
+  }
+ },
+ "constraint.showAllBars": {
+  "description": "Shows the constraint bars of every constrained object."
+ },
+ "constraint.showAllDynamicDimensions": {
+  "description": "Shows every dynamic dimensional constraint in the drawing."
  },
  "constraint.smooth": {
   "description": "Constrains a spline to join another curve with smooth (curvature) continuity, and re-solves the constraints.",
@@ -3196,115 +1772,453 @@
    }
   }
  },
- "constraint.addGeometric": {
-  "description": "Adds a geometric constraint of a given type between points or objects and re-solves the drawing's constraints.",
+ "constructionLine.add": {
+  "description": "Draws an infinite construction line through two points, at an angle, horizontal or vertical, bisecting an angle, or offset from a line.",
   "params": {
-   "h1": {
-    "type": "string"
+   "base": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    },
-   "h2": {
-    "type": "string"
+   "through": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    },
-   "h3": {
-    "type": "string"
-   },
-   "p1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "p3": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
+   "vertex": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    }
   }
  },
- "variable.get": {
-  "description": "Answers the value of the named system variable.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "name": {
-     "type": "string"
+ "dimension.add": {
+  "description": "Draws a dimension between two points with its line at a point, choosing the dimension kind from the geometry.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
     },
-    "value": {
-     "type": "json"
-    }
+    "type": "array"
    },
-   "type": "object"
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
   }
  },
- "gradient": {
-  "description": "Fills areas around internal points, or inside closed objects, with a two-colour gradient at an angle.",
+ "dimension.addAligned": {
+  "description": "Draws a dimension parallel to the line between two points, its dimension line through a point, with optional override text.",
   "params": {
-   "color1": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "type": "integer"
-     }
-    ]
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    },
-   "color2": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "type": "integer"
-     }
-    ]
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
    },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addAngular": {
+  "description": "Draws an angular dimension from a vertex and two points, between two lines, or for an arc, with its arc through a point.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "vertex": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addArcLength": {
+  "description": "Draws an arc length dimension for an arc or polyline arc segment, its line through a point.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "dimension.addBaseline": {
+  "description": "Draws linear dimensions from the first extension line of the last linear dimension to each of the given points, spaced apart."
+ },
+ "dimension.addContinue": {
+  "description": "Draws linear dimensions that continue end to end from the last linear dimension to each of the given points."
+ },
+ "dimension.addDiameter": {
+  "description": "Draws a diameter dimension for an arc or circle, or from a centre and a point on the curve.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "point": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addLinear": {
+  "description": "Draws a horizontal, vertical or rotated linear dimension between two points, or an associative one for an object, with the line at a point.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addOrdinate": {
+  "description": "Draws an ordinate dimension giving a feature point's x or y datum value, with its leader to a point.",
+  "params": {
+   "feature": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "leader": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addQuick": {
+  "description": "Draws a continuous series of linear dimensions across the end points of the given objects, horizontal or vertical, at a point.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.addRadius": {
+  "description": "Draws a radius dimension for an arc or circle, or from a centre and a point on the curve.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "point": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.disassociate": {
+  "description": "Removes the associativity of the given dimensions so they no longer follow their objects.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.editText": {
+  "description": "Moves the text of the given dimensions to a point, or sets it home, to an angle, left, centre or right.",
+  "params": {
    "handles": {
     "items": {
      "type": "string"
     },
     "type": "array"
    },
-   "points": {
+   "mode": {
+    "type": "string"
+   }
+  }
+ },
+ "dimension.override": {
+  "description": "Overrides dimension style fields or DIM variables on the given dimensions, or clears their overrides, and can set override text.",
+  "params": {
+   "handles": {
     "items": {
-     "items": {
-      "type": "number"
-     },
-     "type": "array"
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "text": {
+    "type": "string"
+   }
+  }
+ },
+ "dimension.reassociate": {
+  "description": "Reassociates the given dimensions so their definition points attach to the objects under them.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
     },
     "type": "array"
    }
   }
  },
- "grid": {
+ "dimension.space": {
+  "description": "Spaces parallel linear or angular dimensions evenly from a base dimension, by the given spacing or DIMDLI."
+ },
+ "dimension.textAngle": {
+  "description": "Rotates the text of the given dimensions to an angle in degrees.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.textCenter": {
+  "description": "Centres the text of the given dimensions on the dimension line.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.textHome": {
+  "description": "Moves the text of the given dimensions back to its default position and angle.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.textLeft": {
+  "description": "Moves the text of the given linear dimensions towards the left extension line.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.textRight": {
+  "description": "Moves the text of the given linear dimensions towards the right extension line.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimension.updateStyle": {
+  "description": "Applies the current dimension style to the given dimensions, or the selected ones, removing their overrides.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimensionStyle.delete": {
+  "description": "Deletes a dimension style that is not Standard, current or used by any dimension."
+ },
+ "dimensionStyle.list": {
+  "description": "Answers the dimension styles and the current one, and every variable of the named style when one is given.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "current": {
+     "type": "string"
+    },
+    "styles": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "dimensionStyle.open": {
+  "description": "Creates or changes a dimension style from style fields or DIM variables, and by default makes it current; answers the styles.",
+  "params": {
+   "DIMBLK": {
+    "type": "string"
+   },
+   "DIMTAD": {
+    "type": "integer"
+   },
+   "DIMTSZ": {
+    "type": "number"
+   }
+  }
+ },
+ "dimensionStyle.openManager": {
+  "description": "Creates or changes a dimension style from style fields or DIM variables, and by default makes it current, from the Dimension menu.",
+  "params": {
+   "DIMBLK": {
+    "type": "string"
+   },
+   "DIMTAD": {
+    "type": "integer"
+   },
+   "DIMTSZ": {
+    "type": "number"
+   }
+  }
+ },
+ "dimensionStyle.override": {
+  "description": "Sets per-dimension overrides of style fields or DIM variables on the given dimensions, or clears them.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "dimensionStyle.rename": {
+  "description": "Renames a dimension style from one name to another.",
+  "params": {
+   "from": {
+    "type": "string"
+   },
+   "to": {
+    "type": "string"
+   }
+  }
+ },
+ "dimensionStyle.setCurrent": {
+  "description": "Makes the named dimension style the current one for new dimensions."
+ },
+ "donut.add": {
+  "description": "Draws a filled ring as a wide closed polyline, from a centre and inside and outside diameters.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "inside": {
+    "type": "number"
+   },
+   "outside": {
+    "type": "number"
+   }
+  }
+ },
+ "drafting.dynamicInput": {
+  "description": "Turns dynamic input on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.grid": {
   "description": "Turns the grid display on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
   "output": {
    "additionalProperties": true,
@@ -3314,6 +2228,814 @@
     },
     "on": {
      "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.isometric": {
+  "description": "Turns isometric drafting on or off, or toggles it with no value, and answers the new state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.lineweightDisplay": {
+  "description": "Turns the display of lineweights on or off, or toggles it with no value, and answers the new state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.objectSnap": {
+  "description": "Turns running object snaps on or off and sets their modes by name or OSMODE bits; answers the state and the active modes.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "modes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "on": {
+     "type": "boolean"
+    },
+    "osmode": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "modes": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "drafting.objectSnapTracking": {
+  "description": "Turns object snap tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.ortho": {
+  "description": "Turns ortho mode on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.polar": {
+  "description": "Turns polar tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.quickProperties": {
+  "description": "Turns the Quick Properties palette on or off, or toggles it with no value, and answers the new state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.selectionCycling": {
+  "description": "Turns selection cycling of overlapping objects on or off, or toggles it with no value, and answers the new state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.settings": {
+  "description": "Sets drafting settings (snap and grid spacing, polar angle, major grid lines) and answers every drafting setting.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "annoallvisible": {
+     "type": "boolean"
+    },
+    "annoautoscale": {
+     "type": "boolean"
+    },
+    "aperture": {
+     "type": "number"
+    },
+    "cursorsize": {
+     "type": "number"
+    },
+    "dynmode": {
+     "type": "boolean"
+    },
+    "dynpiAbsolute": {
+     "type": "boolean"
+    },
+    "dynpiCartesian": {
+     "type": "boolean"
+    },
+    "gridmajor": {
+     "type": "number"
+    },
+    "gridmode": {
+     "type": "boolean"
+    },
+    "gridunit": {
+     "additionalProperties": true,
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "gripsize": {
+     "type": "number"
+    },
+    "isodraft": {
+     "type": "boolean"
+    },
+    "lwdisplay": {
+     "type": "boolean"
+    },
+    "maxarray": {
+     "type": "number"
+    },
+    "orthomode": {
+     "type": "boolean"
+    },
+    "osmode": {
+     "type": "number"
+    },
+    "osnaphatch": {
+     "type": "boolean"
+    },
+    "otrack": {
+     "type": "boolean"
+    },
+    "pickadd": {
+     "type": "boolean"
+    },
+    "pickbox": {
+     "type": "number"
+    },
+    "pickfirst": {
+     "type": "boolean"
+    },
+    "polarFlags": {
+     "type": "number"
+    },
+    "polaraddang": {
+     "type": "array"
+    },
+    "polarang": {
+     "type": "number"
+    },
+    "polarmode": {
+     "type": "boolean"
+    },
+    "qpmode": {
+     "type": "boolean"
+    },
+    "selectionCycling": {
+     "type": "boolean"
+    },
+    "snapmode": {
+     "type": "boolean"
+    },
+    "snapunit": {
+     "additionalProperties": true,
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "transparencyDisplay": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "gridmajor": {
+    "type": "integer"
+   },
+   "polarang": {
+    "type": "number"
+   }
+  }
+ },
+ "drafting.snap": {
+  "description": "Turns snap mode on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drafting.transparencyDisplay": {
+  "description": "Turns the display of object transparency on or off, or toggles it with no value, and answers the new state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "on": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.copy": {
+  "description": "Copies the given objects, or the selection, to the clipboard with their own coordinates; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "copied": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "edit.copyWithBasePoint": {
+  "description": "Copies the given objects, or the selection, to the clipboard with a base point that a later paste places; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "copied": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "edit.cut": {
+  "description": "Copies the given objects, or the selection, to the clipboard and erases them from the drawing.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "edit.delete": {
+  "description": "Erases every selected object from the drawing, as Edit > Clear does."
+ },
+ "edit.deselectAll": {
+  "description": "Clears the selection so no object is selected, and answers the selection count.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selected": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.find": {
+  "description": "Finds text in the text, mtext, attributes and dimensions of the current space, optionally replacing it, matching case or whole words.",
+  "params": {
+   "find": {
+    "type": "string"
+   },
+   "replace": {
+    "type": "string"
+   }
+  }
+ },
+ "edit.paste": {
+  "description": "Pastes the clipboard's objects into the current space, putting their base point at the given point or at their original coordinates."
+ },
+ "edit.pasteAsBlock": {
+  "description": "Pastes the clipboard's objects as one new anonymous block reference inserted at the given point or at their original coordinates."
+ },
+ "edit.pasteToOriginalCoordinates": {
+  "description": "Pastes the clipboard's objects at their original coordinates into a drawing other than the one they were copied from."
+ },
+ "edit.redo": {
+  "description": "Redoes the last undone step of the caller's undo scope, or of the given person or agent scope."
+ },
+ "edit.redoStep": {
+  "description": "Redoes the last count undone steps of the caller's undo scope, or of the given person or agent scope."
+ },
+ "edit.selectAll": {
+  "description": "Selects every selectable object in the current space and answers how many are selected.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selected": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.undo": {
+  "description": "Undoes the last step of the caller's undo scope, or of the given person or agent scope (KitModel M12a)."
+ },
+ "edit.undoMany": {
+  "description": "Undoes the last count steps of the caller's undo scope, or of the given person or agent scope."
+ },
+ "edit.undoStep": {
+  "description": "Undoes the last step of the caller's undo scope (person or agent), as the U command does."
+ },
+ "ellipse.add": {
+  "description": "Draws an ellipse, or an elliptical arc with start and end angles, from a centre, a major axis vector and a minor-to-major ratio.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "ratio": {
+    "type": "number"
+   }
+  }
+ },
+ "ellipse.addArc": {
+  "description": "Draws an elliptical arc between start and end angles, from a centre, major axis and ratio or from axis end points and a distance.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "distance": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "ratio": {
+    "type": "number"
+   }
+  }
+ },
+ "ellipse.addAxisEnd": {
+  "description": "Draws an ellipse from the two end points of one axis and half the length of the other, as a distance or a third point.",
+  "params": {
+   "distance": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p3": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "file.audit": {
+  "description": "Checks the drawing's database for errors (dangling references, bad handles, invalid tables) and, with fix, repairs them; answers each issue found."
+ },
+ "file.bytes": {
+  "description": "Answers the current drawing written as DXF, base64-encoded, without saving it to a file.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "data": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "format": {
+    "type": "string"
+   }
+  }
+ },
+ "file.close": {
+  "description": "Closes the drawing at the given document index, or the current one, without saving it."
+ },
+ "file.closeAll": {
+  "description": "Closes every open drawing without saving, leaving no current document."
+ },
+ "file.export": {
+  "description": "Exports the drawing as a PDF, SVG or PNG file: model space framed to its extents (a PDF fitted to its page's paper). Answers the file as base64 `data`, without saving the drawing or changing it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "data": {
+     "type": "string"
+    },
+    "format": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.exportPdf": {
+  "description": "Exports a layout or model space to PDF, on a paper and orientation, fitted or not, to a path or answered as base64.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "data": {
+     "type": "string"
+    },
+    "layout": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "fit": {
+    "type": "boolean"
+   },
+   "landscape": {
+    "type": "boolean"
+   },
+   "layout": {
+    "type": "string"
+   },
+   "lineweights": {
+    "type": "boolean"
+   },
+   "paper": {
+    "type": "string"
+   }
+  }
+ },
+ "file.inspect": {
+  "description": "Answers an overview of the drawing: object counts by type, layers, blocks, styles, current settings and, optionally, a page of its objects.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "blocks": {
+     "type": "array"
+    },
+    "counts": {
+     "additionalProperties": true,
+     "properties": {
+      "Line": {
+       "type": "number"
+      },
+      "Text": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "currentLayer": {
+     "type": "string"
+    },
+    "dimStyles": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "dirty": {
+     "type": "boolean"
+    },
+    "entities": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "geometry": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "handle": {
+        "type": "string"
+       },
+       "layer": {
+        "type": "string"
+       },
+       "transparency": {
+        "type": "string"
+       },
+       "type": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "entityCount": {
+     "type": "number"
+    },
+    "extents": {
+     "items": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     },
+     "type": "array"
+    },
+    "layers": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "frozen": {
+        "type": "boolean"
+       },
+       "linetype": {
+        "type": "string"
+       },
+       "locked": {
+        "type": "boolean"
+       },
+       "name": {
+        "type": "string"
+       },
+       "on": {
+        "type": "boolean"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "layouts": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "linetypes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "path": {
+     "type": "string"
+    },
+    "selection": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "space": {
+     "type": "string"
+    },
+    "textStyles": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "title": {
+     "type": "string"
+    },
+    "undo": {
+     "type": "array"
+    },
+    "view": {
+     "additionalProperties": true,
+     "properties": {
+      "center": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "height": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.new": {
+  "description": "Opens a new empty drawing as a further document and makes it current: in millimetres with ISO-25 dimensions, as a new document is, or in inches with metric false."
+ },
+ "file.open": {
+  "description": "Opens a DXF or DWG drawing, from a path or from base64 data with a name, as a further document and makes it current.",
+  "params": {
+   "data": {
+    "type": "string"
+   }
+  }
+ },
+ "file.print": {
+  "description": "Plots a layout or model space to PDF, on a paper and orientation, at a scale or fitted, written to a path or answered as base64.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "data": {
+     "type": "string"
+    },
+    "layout": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "landscape": {
+    "type": "boolean"
+   },
+   "layout": {
+    "type": "string"
+   },
+   "paper": {
+    "type": "string"
+   }
+  }
+ },
+ "file.purge": {
+  "description": "Removes unused named items of one or every type (blocks, layers, styles and more) and zero-length or empty objects, matching names."
+ },
+ "file.recover": {
+  "description": "Opens a damaged drawing from a path or base64 data, repairs what audit finds, and answers the new document's index with the issues fixed.",
+  "params": {
+   "data": {
+    "type": "string"
+   }
+  }
+ },
+ "file.save": {
+  "description": "Saves the current drawing to its own file, or to the given path, in the format the file name says."
+ },
+ "file.saveAs": {
+  "description": "Saves the current drawing to a new path as DXF or DWG and makes that path the drawing's file."
+ },
+ "file.setLimits": {
+  "description": "Sets the drawing limits of model space from a lower-left and an upper-right corner."
+ },
+ "file.setUnits": {
+  "description": "Sets the drawing's length and angle unit formats and precisions, and its insertion units.",
+  "params": {
+   "insunits": {
+    "type": "integer"
+   }
+  }
+ },
+ "file.status": {
+  "description": "Answers a text report of the drawing's object count, limits, extents, current layer and settings, as STATUS prints it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.switch": {
+  "description": "Makes the open drawing at the given document index the current one."
+ },
+ "file.time": {
+  "description": "Answers the drawing's revision and the number of edits recorded in this session as a message.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
     }
    },
    "type": "object"
@@ -3413,20 +3135,6 @@
    }
   }
  },
- "group": {
-  "description": "Makes a named or anonymous group of the given objects, or the selection, and answers its name and members.",
-  "params": {
-   "description": {
-    "type": "string"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
  "group.edit": {
   "description": "Adds objects to a group, removes them, or renames it, and answers its members; removing every member deletes the group.",
   "params": {
@@ -3447,7 +3155,7 @@
    "type": "object"
   }
  },
- "hatch": {
+ "hatch.add": {
   "description": "Fills areas around internal points, or inside closed objects, with a hatch pattern at a scale and angle, optionally associative.",
   "params": {
    "associative": {
@@ -3455,6 +3163,46 @@
    },
    "points": {
     "items": {
+     "type": "array"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "hatch.addGradient": {
+  "description": "Fills areas around internal points, or inside closed objects, with a two-colour gradient at an angle.",
+  "params": {
+   "color1": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "integer"
+     }
+    ]
+   },
+   "color2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "integer"
+     }
+    ]
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "points": {
+    "items": {
+     "items": {
+      "type": "number"
+     },
      "type": "array"
     },
     "type": "array"
@@ -3475,7 +3223,7 @@
    }
   }
  },
- "helix": {
+ "helix.add": {
   "description": "Draws a helix as a 3D polyline from a centre, base and top radii, height, number of turns and twist direction.",
   "params": {
    "baseRadius": {
@@ -3498,102 +3246,6 @@
    }
   }
  },
- "id": {
-  "description": "Answers the coordinates of a point, as the ID command reports them.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "x": {
-     "type": "number"
-    },
-    "y": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "insert": {
-  "description": "Inserts a block reference at a point with scale and rotation, defining the block from a DXF or DWG file first when one is given.",
-  "params": {
-   "scale": {
-    "oneOf": [
-     {
-      "type": "number"
-     },
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   }
-  }
- },
- "drafting.isometric": {
-  "description": "Turns isometric drafting on or off, or toggles it with no value, and answers the new state.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "join": {
-  "description": "Joins the given lines, arcs, polylines or splines that meet end to end into single objects.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.changeToCurrent": {
-  "description": "Moves the given objects, or the selection, onto the current layer.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.deleteWithObjects": {
-  "description": "Deletes the named layers together with every object on them."
- },
- "layer": {
-  "description": "Answers every layer with its properties, whether it is current and in use, and the saved layer states, as the Layer Properties Manager shows."
- },
- "layer.setCurrent": {
-  "description": "Makes the named layer current, so new objects are drawn on it."
- },
- "layer.delete": {
-  "description": "Deletes the named layer when it is empty and is not layer 0, Defpoints or the current layer."
- },
  "layer.add": {
   "description": "Creates a layer with a name and optional colour, linetype and lineweight, optionally making it current.",
   "params": {
@@ -3611,6 +3263,106 @@
     ]
    }
   }
+ },
+ "layer.allOn": {
+  "description": "Turns every layer in the drawing on."
+ },
+ "layer.changeToCurrent": {
+  "description": "Moves the given objects, or the selection, onto the current layer.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.delete": {
+  "description": "Deletes the named layer when it is empty and is not layer 0, Defpoints or the current layer."
+ },
+ "layer.deleteWithObjects": {
+  "description": "Deletes the named layers together with every object on them."
+ },
+ "layer.freeze": {
+  "description": "Freezes the layers of the given objects, or the selection.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.isolate": {
+  "description": "Isolates the layers of the given objects, or the selection, by turning every other layer off.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.lock": {
+  "description": "Locks the layers of the given objects, or the selection, so their objects cannot be edited.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.makeObjectCurrent": {
+  "description": "Makes the layer of the given object, or the selected one, the current layer.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.match": {
+  "description": "Moves the given objects, or the selection, onto the named layer.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.merge": {
+  "description": "Moves the objects on the from layers onto a target layer, then deletes the from layers.",
+  "params": {
+   "to": {
+    "type": "string"
+   }
+  }
+ },
+ "layer.off": {
+  "description": "Turns off the layers of the given objects, or the selection.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "layer.open": {
+  "description": "Answers every layer with its properties, whether it is current and in use, and the saved layer states, as the Layer Properties Manager shows."
+ },
+ "layer.previous": {
+  "description": "Undoes the last change to layer settings, restoring the previous layer state."
  },
  "layer.set": {
   "description": "Changes a layer's properties: on, frozen, locked, plot, colour, linetype, lineweight, transparency, description, plot style, or name.",
@@ -3658,8 +3410,25 @@
    }
   }
  },
- "layer.previous": {
-  "description": "Undoes the last change to layer settings, restoring the previous layer state."
+ "layer.setCurrent": {
+  "description": "Makes the named layer current, so new objects are drawn on it."
+ },
+ "layer.thawAll": {
+  "description": "Thaws every frozen layer in the drawing."
+ },
+ "layer.unisolate": {
+  "description": "Restores the layers turned off by the last layer isolate."
+ },
+ "layer.unlock": {
+  "description": "Unlocks the layers of the given objects, or the selection.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
  },
  "layerState.delete": {
   "description": "Deletes the named saved layer state."
@@ -3696,90 +3465,11 @@
  "layerState.save": {
   "description": "Saves every layer's current settings as a named layer state."
  },
- "layer.freeze": {
-  "description": "Freezes the layers of the given objects, or the selection.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
+ "layout.add": {
+  "description": "Creates a paper space layout with a name, by default with one viewport, and answers its name and viewport."
  },
- "layer.isolate": {
-  "description": "Isolates the layers of the given objects, or the selection, by turning every other layer off.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.lock": {
-  "description": "Locks the layers of the given objects, or the selection, so their objects cannot be edited.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.match": {
-  "description": "Moves the given objects, or the selection, onto the named layer.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.makeObjectCurrent": {
-  "description": "Makes the layer of the given object, or the selected one, the current layer.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.merge": {
-  "description": "Moves the objects on the from layers onto a target layer, then deletes the from layers.",
-  "params": {
-   "to": {
-    "type": "string"
-   }
-  }
- },
- "layer.off": {
-  "description": "Turns off the layers of the given objects, or the selection.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.allOn": {
-  "description": "Turns every layer in the drawing on."
- },
- "layout": {
-  "description": "Creates, copies, deletes, renames, sets or lists paper space layouts, with the option prompts of LAYOUT.",
-  "params": {
-   "to": {
-    "type": "string"
-   }
-  }
+ "layout.delete": {
+  "description": "Deletes the named paper space layout."
  },
  "layout.duplicate": {
   "description": "Copies a layout with its page setup and viewports to a new layout name.",
@@ -3791,9 +3481,6 @@
     "type": "string"
    }
   }
- },
- "layout.delete": {
-  "description": "Deletes the named paper space layout."
  },
  "layout.list": {
   "description": "Answers every layout with its name, tab order, whether it is current, its page setup and its viewports.",
@@ -3864,8 +3551,13 @@
    "type": "array"
   }
  },
- "layout.add": {
-  "description": "Creates a paper space layout with a name, by default with one viewport, and answers its name and viewport."
+ "layout.manage": {
+  "description": "Creates, copies, deletes, renames, sets or lists paper space layouts, with the option prompts of LAYOUT.",
+  "params": {
+   "to": {
+    "type": "string"
+   }
+  }
  },
  "layout.rename": {
   "description": "Renames a layout, by default the current one, to a new name.",
@@ -3890,63 +3582,20 @@
    }
   }
  },
- "layer.thawAll": {
-  "description": "Thaws every frozen layer in the drawing."
- },
- "layer.unlock": {
-  "description": "Unlocks the layers of the given objects, or the selection.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "layer.unisolate": {
-  "description": "Restores the layers turned off by the last layer isolate."
- },
- "leader": {
+ "leader.add": {
   "description": "Draws a leader line through the given points, with optional annotation text at its end."
  },
- "object.lengthen": {
-  "description": "Changes an object's length at the picked end by a delta, percent, total or to a point, or alone measures its length.",
-  "params": {
-   "delta": {
-    "type": "number"
-   },
-   "deltaAngle": {
-    "type": "number"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "percent": {
-    "type": "number"
-   },
-   "total": {
-    "type": "number"
-   },
-   "totalAngle": {
-    "type": "number"
-   }
-  }
- },
- "limits": {
-  "description": "Sets the drawing limits of model space from a lower-left and an upper-right corner."
- },
- "line": {
+ "line.add": {
   "description": "Draws connected line segments through the given points, closing back to the first point when closed is set."
  },
- "linetype": {
-  "description": "Loads a linetype, or every one, from the built-in definitions, or sets the current linetype for new objects."
- },
- "list": {
-  "description": "Answers a text listing of the given or selected objects' database properties, as the LIST command prints them.",
+ "measure.angle": {
+  "description": "Measures the angle at a vertex between two points, or between two lines, in degrees.",
   "output": {
    "additionalProperties": true,
    "properties": {
+    "angle": {
+     "type": "number"
+    },
     "message": {
      "type": "string"
     }
@@ -3954,34 +3603,114 @@
    "type": "object"
   },
   "params": {
-   "handles": {
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "p1": {
     "items": {
-     "type": "string"
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "vertex": {
+    "items": {
+     "type": "number"
     },
     "type": "array"
    }
   }
  },
- "property.linetypeScale": {
-  "description": "Sets the drawing's global linetype scale factor (LTSCALE)."
- },
- "drafting.lineweightDisplay": {
-  "description": "Turns the display of lineweights on or off, or toggles it with no value, and answers the new state.",
+ "measure.area": {
+  "description": "Measures the area and perimeter of a closed polygon through points, or of a closed object.",
   "output": {
    "additionalProperties": true,
    "properties": {
+    "area": {
+     "type": "number"
+    },
     "message": {
      "type": "string"
     },
-    "on": {
-     "type": "boolean"
+    "perimeter": {
+     "type": "number"
     }
    },
    "type": "object"
+  },
+  "params": {
+   "handle": {
+    "type": "string"
+   }
   }
  },
- "property.lineweight": {
-  "description": "Sets the current lineweight for new objects, in millimetres or ByLayer."
+ "measure.distance": {
+  "description": "Measures the distance between two points and answers it with the angle and the x and y deltas.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "angle": {
+     "type": "number"
+    },
+    "distance": {
+     "type": "number"
+    },
+    "dx": {
+     "type": "number"
+    },
+    "dy": {
+     "type": "number"
+    },
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "measure.geometry": {
+  "description": "Measures a distance, a radius, an angle or an area, taking the parameters of measure.distance, measure.radius, measure.angle or measure.area.",
+  "output": {
+   "additionalProperties": true,
+   "description": "the answer of measure.distance, measure.radius, measure.angle or measure.area for the mode",
+   "type": "object"
+  },
+  "params": {
+   "handle": {
+    "type": "string"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "mode": {
+    "type": "string"
+   }
+  }
  },
  "measure.massProperties": {
   "description": "Answers the area, perimeter, centroid and moments of inertia of each given or selected closed object.",
@@ -4033,70 +3762,52 @@
    }
   }
  },
- "object.matchProperties": {
-  "description": "Copies the layer, colour, linetype, lineweight and other properties of a source object onto the target objects.",
-  "params": {
-   "source": {
-    "type": "string"
-   }
-  }
- },
- "measure": {
-  "description": "Places points or block references along an object at every given length, from one end, optionally aligned to it.",
-  "params": {
-   "block": {
-    "type": "string"
-   },
-   "handle": {
-    "type": "string"
-   },
-   "length": {
-    "type": "number"
-   }
-  }
- },
- "measure.geometry": {
-  "description": "Measures a distance, a radius, an angle or an area, taking the parameters of dist, measure.radius, measure.angle or area.",
+ "measure.point": {
+  "description": "Answers the coordinates of a point, as the ID command reports them.",
   "output": {
    "additionalProperties": true,
-   "description": "the answer of dist, measure.radius, measure.angle or area for the mode",
+   "properties": {
+    "message": {
+     "type": "string"
+    },
+    "x": {
+     "type": "number"
+    },
+    "y": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "measure.radius": {
+  "description": "Answers the radius and diameter of an arc or circle.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "diameter": {
+     "type": "number"
+    },
+    "message": {
+     "type": "string"
+    },
+    "radius": {
+     "type": "number"
+    }
+   },
    "type": "object"
   },
   "params": {
    "handle": {
     "type": "string"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "mode": {
-    "type": "string"
-   }
-  }
- },
- "mirror": {
-  "description": "Mirrors the given objects, or the selection, about the line through two points, optionally erasing the originals.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
    }
   }
  },
@@ -4137,46 +3848,6 @@
    }
   }
  },
- "move": {
-  "description": "Moves the given objects, or the selection, by a delta or from a base point to a target point.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "to": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "viewport.modelSpace": {
-  "description": "Makes a layout viewport active so editing happens in model space through it, by handle or by a paper point inside it.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "viewport": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
  "multilineText.add": {
   "description": "Draws multiline text at a point with optional height, wrap width, attachment, rotation, style and line spacing.",
   "params": {
@@ -4211,13 +3882,113 @@
    }
   }
  },
- "viewport.add": {
-  "description": "Creates one to four viewports in a layout over two corners, by default the printable area, in an arrangement.",
+ "namedObject.rename": {
+  "description": "Renames a named item (layer, linetype, text style, dimension style, block, multileader or table style, view or UCS).",
+  "params": {
+   "from": {
+    "type": "string"
+   },
+   "to": {
+    "type": "string"
+   }
+  }
+ },
+ "object.align": {
+  "description": "Moves and rotates objects so one or two source points meet destination points, optionally scaling them to fit.",
+  "params": {
+   "d1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "d2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "s1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "s2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.array": {
+  "description": "Copies objects in a rectangular, polar or path array, taking the parameters of arrayrect, arraypolar or arraypath."
+ },
+ "object.arrayPath": {
+  "description": "Copies the given objects, or the selection, along a path object, a count of copies or at a spacing, optionally aligned to it.",
   "params": {
    "count": {
     "type": "integer"
    },
-   "layout": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.arrayPolar": {
+  "description": "Copies the given objects, or the selection, a number of times about a centre over an angle, optionally rotating them.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.arrayRectangular": {
+  "description": "Copies the given objects, or the selection, into a grid of rows and columns at the given spacings.",
+  "params": {
+   "colSpacing": {
+    "type": "number"
+   },
+   "cols": {
+    "type": "integer"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "rowSpacing": {
+    "type": "number"
+   }
+  }
+ },
+ "object.blend": {
+  "description": "Draws a spline that joins the picked ends of two open curves with tangent or smooth continuity.",
+  "params": {
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
     "type": "string"
    },
    "p1": {
@@ -4227,6 +3998,115 @@
     "type": "array"
    },
    "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.break": {
+  "description": "Removes the part of an object between two points on it, splitting it in two or shortening it.",
+  "params": {
+   "handle": {
+    "type": "string"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.breakAtPoint": {
+  "description": "Splits an object into two at one point, leaving no gap.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "object.chamfer": {
+  "description": "Bevels the corner between two lines by two distances or a length and angle, optionally trimming, or chamfers every polyline corner.",
+  "params": {
+   "d1": {
+    "type": "number"
+   },
+   "d2": {
+    "type": "number"
+   },
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "length": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.changeSpace": {
+  "description": "Moves the given objects between model space and a layout's paper space through a viewport, keeping their apparent size.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "to": {
+    "type": "string"
+   },
+   "viewport": {
+    "type": "string"
+   }
+  }
+ },
+ "object.copy": {
+  "description": "Copies the given objects, or the selection, by a delta or from a point to a point, once or count times.",
+  "params": {
+   "delta": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "to": {
     "items": {
      "type": "number"
     },
@@ -4248,10 +4128,328 @@
    }
   }
  },
- "new": {
-  "description": "Opens a new empty drawing as a further document and makes it current: in millimetres with ISO-25 dimensions, as a new document is, or in inches with metric false."
+ "object.count": {
+  "description": "Counts block references in model space, every block or the named one, and answers the counts with a message line.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "blocks": {
+     "additionalProperties": true,
+     "properties": {},
+     "type": "object"
+    },
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "block": {
+    "type": "string"
+   }
+  }
  },
- "offset": {
+ "object.delete": {
+  "description": "Erases the given objects, or the selection, from the drawing."
+ },
+ "object.deleteDuplicates": {
+  "description": "Deletes duplicate and overlapping objects among the given ones, or the selection.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.explode": {
+  "description": "Breaks the given compound objects (blocks, polylines, dimensions, hatches), or the selection, into their component objects.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.extend": {
+  "description": "Extends an object to its boundary edges at the end that is picked, fenced or crossed.",
+  "params": {
+   "handle": {
+    "type": "string"
+   },
+   "pick": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.fillet": {
+  "description": "Joins two lines, arcs or circles with a tangent arc of a radius, optionally trimming them, or fillets every polyline corner.",
+  "params": {
+   "h1": {
+    "type": "string"
+   },
+   "h2": {
+    "type": "string"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.flatten": {
+  "description": "Flattens the given objects, or the selection, onto z = 0, turning 3D polylines into 2D polylines.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.join": {
+  "description": "Joins the given lines, arcs, polylines or splines that meet end to end into single objects.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.lengthen": {
+  "description": "Changes an object's length at the picked end by a delta, percent, total or to a point, or alone measures its length.",
+  "params": {
+   "delta": {
+    "type": "number"
+   },
+   "deltaAngle": {
+    "type": "number"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "percent": {
+    "type": "number"
+   },
+   "total": {
+    "type": "number"
+   },
+   "totalAngle": {
+    "type": "number"
+   }
+  }
+ },
+ "object.list": {
+  "description": "Answers a text listing of the given or selected objects' database properties, as the LIST command prints them.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.matchProperties": {
+  "description": "Copies the layer, colour, linetype, lineweight and other properties of a source object onto the target objects.",
+  "params": {
+   "source": {
+    "type": "string"
+   }
+  }
+ },
+ "object.measure": {
+  "description": "Measures without changing anything: each entity's bounding box (`bounds`: handles), the minimum distance between two entities or points with the nearest points (`distance`: [a, b], each a handle or [x, y]), the points where two entities cross (`intersections`: [a, b] handles), or the pairs of duplicate objects in a space (`overlaps`: {layout?}, Model unless named; OVERKILL's report, nothing deleted). Give exactly one.",
+  "output": {
+   "type": "object",
+   "properties": {
+    "bounds": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "handle": {
+        "type": "string"
+       },
+       "min": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        }
+       },
+       "max": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        }
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "distance": {
+     "type": "number"
+    },
+    "from": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "to": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "points": {
+     "type": "array",
+     "items": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      }
+     }
+    },
+    "pairs": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "a": {
+        "type": "string"
+       },
+       "b": {
+        "type": "string"
+       },
+       "kind": {
+        "type": "string"
+       }
+      },
+      "additionalProperties": false
+     }
+    }
+   },
+   "additionalProperties": false
+  },
+  "params": {
+   "bounds": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "description": "entities' handles"
+   },
+   "distance": {
+    "type": "array",
+    "items": {
+     "oneOf": [
+      {
+       "type": "string",
+       "description": "an entity's handle"
+      },
+      {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "description": "a point [x, y]"
+      }
+     ]
+    },
+    "description": "two entities (handles) or points ([x, y])"
+   },
+   "intersections": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "description": "two entities' handles"
+   },
+   "overlaps": {
+    "type": "object",
+    "properties": {
+     "layout": {
+      "type": "string",
+      "description": "a layout's name, or \"Model\" (the default)"
+     }
+    },
+    "description": "the space to report duplicates in",
+    "additionalProperties": false
+   }
+  }
+ },
+ "object.mirror": {
+  "description": "Mirrors the given objects, or the selection, about the line through two points, optionally erasing the originals.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.move": {
+  "description": "Moves the given objects, or the selection, by a delta or from a base point to a target point.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "to": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.offset": {
   "description": "Creates a copy of an object offset by a distance towards a side point, on the source or current layer, optionally erasing it.",
   "params": {
    "distance": {
@@ -4262,54 +4460,68 @@
    }
   }
  },
- "open": {
-  "description": "Opens a DXF or DWG drawing, from a path or from base64 data with a name, as a further document and makes it current.",
-  "params": {
-   "data": {
-    "type": "string"
-   }
-  }
- },
- "ortho": {
-  "description": "Turns ortho mode on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+ "object.properties": {
+  "description": "Answers the properties of the given objects, or the selection: type, handle, layer, colour, linetype, bounds and geometry.",
   "output": {
    "additionalProperties": true,
    "properties": {
-    "message": {
-     "type": "string"
+    "count": {
+     "type": "number"
     },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "drafting.objectSnap": {
-  "description": "Turns running object snaps on or off and sets their modes by name or OSMODE bits; answers the state and the active modes.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "modes": {
+    "objects": {
      "items": {
-      "type": "string"
+      "additionalProperties": true,
+      "properties": {
+       "angle": {
+        "type": "number"
+       },
+       "bounds": {
+        "type": "array"
+       },
+       "color": {
+        "type": "string"
+       },
+       "geometry": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "handle": {
+        "type": "string"
+       },
+       "layer": {
+        "type": "string"
+       },
+       "length": {
+        "type": "number"
+       },
+       "linetype": {
+        "type": "string"
+       },
+       "lineweight": {
+        "type": "string"
+       },
+       "ltscale": {
+        "type": "number"
+       },
+       "transparency": {
+        "type": "string"
+       },
+       "type": {
+        "type": "string"
+       },
+       "visible": {
+        "type": "boolean"
+       }
+      },
+      "type": "object"
      },
      "type": "array"
-    },
-    "on": {
-     "type": "boolean"
-    },
-    "osmode": {
-     "type": "number"
     }
    },
    "type": "object"
   },
   "params": {
-   "modes": {
+   "handles": {
     "items": {
      "type": "string"
     },
@@ -4317,27 +4529,151 @@
    }
   }
  },
- "drafting.objectSnapTracking": {
-  "description": "Turns object snap tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
+ "object.query": {
+  "description": "Answers a page of objects of one space (Model, or a layout by `layout`, without going there; default the space shown) filtered by type, layer and a crossing or inside window, with their handles, properties and geometry and the total count.",
   "output": {
    "additionalProperties": true,
    "properties": {
-    "message": {
-     "type": "string"
+    "count": {
+     "type": "number"
     },
-    "on": {
-     "type": "boolean"
+    "entities": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "geometry": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "handle": {
+        "type": "string"
+       },
+       "layer": {
+        "type": "string"
+       },
+       "transparency": {
+        "type": "string"
+       },
+       "type": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "offset": {
+     "type": "number"
+    },
+    "returned": {
+     "type": "number"
     }
    },
    "type": "object"
+  },
+  "params": {
+   "limit": {
+    "type": "integer"
+   },
+   "type": {
+    "type": "string"
+   }
   }
  },
- "object.deleteDuplicates": {
-  "description": "Deletes duplicate and overlapping objects among the given ones, or the selection.",
+ "object.reverse": {
+  "description": "Reverses the vertex order of the given lines, polylines, 3D polylines and splines.",
   "params": {
    "handles": {
     "items": {
      "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.rotate": {
+  "description": "Rotates the given objects, or the selection, about a base point by an angle in degrees, optionally keeping the originals.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.scale": {
+  "description": "Scales the given objects, or the selection, about a base point by a factor, optionally keeping the originals.",
+  "params": {
+   "factor": {
+    "type": "number"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "object.setProperties": {
+  "description": "Sets properties of the given objects, or the selection: layer, colour, linetype, lineweight, scale, transparency, visibility and geometry fields.",
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "linetype": {
+    "type": "string"
+   },
+   "lineweight": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "ltscale": {
+    "type": "number"
+   },
+   "transparency": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "object.stretch": {
+  "description": "Moves the vertices inside a crossing window by a delta, stretching the objects that cross it and moving those wholly inside."
+ },
+ "object.trim": {
+  "description": "Trims an object at its cutting edges where it is picked, fenced or crossed, in quick or standard mode.",
+  "params": {
+   "handle": {
+    "type": "string"
+   },
+   "pick": {
+    "items": {
+     "type": "number"
     },
     "type": "array"
    }
@@ -4378,72 +4714,104 @@
    }
   }
  },
- "pan": {
-  "description": "Moves the view by a delta, from one point to another, or to a new centre, without changing the zoom.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  },
+ "plot.style": {
+  "description": "Sets the named plot style of the given or selected objects, or the current one for new objects; with no name reports it.",
   "params": {
+   "handle": {
+    "type": "string"
+   },
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "name": {
+    "type": "string"
+   }
+  }
+ },
+ "plot.styleManager": {
+  "description": "Lists, reads, creates, changes, deletes, loads or saves plot style tables (colour-dependent .ctb or named .stb) and their styles.",
+  "params": {
+   "description": {
+    "type": "string"
+   },
+   "from": {
+    "type": "string"
+   },
+   "name": {
+    "type": "string"
+   }
+  }
+ },
+ "point.add": {
+  "description": "Draws a point object at a location, or one at each of the given points, in the current point style."
+ },
+ "point.addMultiple": {
+  "description": "Draws a point object at each of the given points in the current point style."
+ },
+ "point.divide": {
+  "description": "Places points or block references at equal intervals that split an object into the given number of segments, optionally aligned to it.",
+  "params": {
+   "block": {
+    "type": "string"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "segments": {
+    "type": "integer"
+   }
+  }
+ },
+ "point.measure": {
+  "description": "Places points or block references along an object at every given length, from one end, optionally aligned to it.",
+  "params": {
+   "block": {
+    "type": "string"
+   },
+   "handle": {
+    "type": "string"
+   },
+   "length": {
+    "type": "number"
+   }
+  }
+ },
+ "point.style": {
+  "description": "Sets how point objects display (PDMODE) and their size (PDSIZE).",
+  "params": {
+   "pdmode": {
+    "type": "integer"
+   },
+   "pdsize": {
+    "type": "number"
+   }
+  }
+ },
+ "polygon.add": {
+  "description": "Draws a regular closed polygon with the given number of sides, inscribed in or circumscribed about a circle, or from one edge.",
+  "params": {
+   "angle": {
+    "type": "number"
+   },
    "center": {
     "items": {
      "type": "number"
     },
     "type": "array"
    },
-   "from": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "to": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
+   "sides": {
+    "type": "integer"
    }
   }
  },
- "view.panDown": {
-  "description": "Pans the view a step downwards.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
+ "polyline.add": {
+  "description": "Draws one lightweight polyline through the vertices, each a point or a point with bulge and start and end widths, optionally closed."
  },
- "view.panLeft": {
-  "description": "Pans the view a step to the left.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.panRight": {
-  "description": "Pans the view a step to the right.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.panUp": {
-  "description": "Pans the view a step upwards.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "parameters": {
-  "description": "Lists the constraint parameters, sets one by name to a value or expression (creating a user parameter), or deletes one, then re-solves."
- },
- "edit.pasteAsBlock": {
-  "description": "Pastes the clipboard's objects as one new anonymous block reference inserted at the given point or at their original coordinates."
- },
- "edit.paste": {
-  "description": "Pastes the clipboard's objects into the current space, putting their base point at the given point or at their original coordinates."
- },
- "edit.pasteToOriginalCoordinates": {
-  "description": "Pastes the clipboard's objects at their original coordinates into a drawing other than the one they were copied from."
+ "polyline.add3d": {
+  "description": "Draws a 3D polyline of straight segments through points with optional z values, optionally closed."
  },
  "polyline.edit": {
   "description": "Edits polylines: close, open, join, width, fit, spline, decurve, reverse, linetype generation, or edit one vertex.",
@@ -4480,251 +4848,119 @@
    }
   }
  },
- "polyline.add": {
-  "description": "Draws one lightweight polyline through the vertices, each a point or a point with bulge and start and end widths, optionally closed."
- },
- "plot": {
-  "description": "Plots a layout or model space to PDF, on a paper and orientation, at a scale or fitted, written to a path or answered as base64.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "bytes": {
-     "type": "number"
-    },
-    "data": {
-     "type": "string"
-    },
-    "layout": {
-     "type": "string"
-    },
-    "path": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  },
+ "property.color": {
+  "description": "Sets the current colour for new objects: ByLayer, ByBlock, a colour name, an index 1 to 255 or an r,g,b triple.",
   "params": {
-   "landscape": {
-    "type": "boolean"
-   },
-   "layout": {
-    "type": "string"
-   },
-   "paper": {
-    "type": "string"
+   "color": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "integer"
+     }
+    ]
    }
   }
  },
- "plot.style": {
-  "description": "Sets the named plot style of the given or selected objects, or the current one for new objects; with no name reports it.",
+ "property.linetype": {
+  "description": "Loads a linetype, or every one, from the built-in definitions, or sets the current linetype for new objects."
+ },
+ "property.linetypeScale": {
+  "description": "Sets the drawing's global linetype scale factor (LTSCALE)."
+ },
+ "property.lineweight": {
+  "description": "Sets the current lineweight for new objects, in millimetres or ByLayer."
+ },
+ "ray.add": {
+  "description": "Draws a semi-infinite ray starting at a base point and passing through a second point.",
+  "params": {
+   "base": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "through": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "rectangle.add": {
+  "description": "Draws a closed rectangular polyline from two corners, dimensions or an area, with optional rotation, fillet or chamfer corners, width, elevation and thickness.",
+  "params": {
+   "elevation": {
+    "type": "number"
+   },
+   "fillet": {
+    "type": "number"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "thickness": {
+    "type": "number"
+   }
+  }
+ },
+ "region.add": {
+  "description": "Converts the given closed objects, or the selection, into regions.",
+  "params": {
+   "handles": {
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "revisionCloud.add": {
+  "description": "Draws a revision cloud of arcs from a rectangle, a polygon, a freehand path or an existing object, with optional arc length and style.",
   "params": {
    "handle": {
     "type": "string"
    },
-   "handles": {
+   "p1": {
     "items": {
-     "type": "string"
+     "type": "number"
     },
     "type": "array"
    },
-   "name": {
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "revisionCloud.addFreehand": {
+  "description": "Draws a revision cloud of arcs along a freehand path through the given points.",
+  "params": {
+   "arcLength": {
+    "type": "number"
+   },
+   "handle": {
     "type": "string"
    }
   }
  },
- "point": {
-  "description": "Draws a point object at a location, or one at each of the given points, in the current point style."
- },
- "point.addMultiple": {
-  "description": "Draws a point object at each of the given points in the current point style."
- },
- "polar": {
-  "description": "Turns polar tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "polygon": {
-  "description": "Draws a regular closed polygon with the given number of sides, inscribed in or circumscribed about a circle, or from one edge.",
+ "revisionCloud.addPolygonal": {
+  "description": "Draws a revision cloud of arcs along the closed polygon through the given points.",
   "params": {
-   "angle": {
+   "arcLength": {
     "type": "number"
    },
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "sides": {
-    "type": "integer"
-   }
-  }
- },
- "properties": {
-  "description": "Answers the properties of the given objects, or the selection: type, handle, layer, colour, linetype, bounds and geometry.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "count": {
-     "type": "number"
-    },
-    "objects": {
-     "items": {
-      "additionalProperties": true,
-      "properties": {
-       "angle": {
-        "type": "number"
-       },
-       "bounds": {
-        "type": "array"
-       },
-       "color": {
-        "type": "string"
-       },
-       "geometry": {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       "handle": {
-        "type": "string"
-       },
-       "layer": {
-        "type": "string"
-       },
-       "length": {
-        "type": "number"
-       },
-       "linetype": {
-        "type": "string"
-       },
-       "lineweight": {
-        "type": "string"
-       },
-       "property.linetypeScale": {
-        "type": "number"
-       },
-       "transparency": {
-        "type": "string"
-       },
-       "type": {
-        "type": "string"
-       },
-       "visible": {
-        "type": "boolean"
-       }
-      },
-      "type": "object"
-     },
-     "type": "array"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "object.setProperties": {
-  "description": "Sets properties of the given objects, or the selection: layer, colour, linetype, lineweight, scale, transparency, visibility and geometry fields.",
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "linetype": {
+   "handle": {
     "type": "string"
-   },
-   "lineweight": {
-    "oneOf": [
-     {
-      "type": "number"
-     },
-     {
-      "type": "string"
-     }
-    ]
-   },
-   "property.linetypeScale": {
-    "type": "number"
-   },
-   "transparency": {
-    "oneOf": [
-     {
-      "type": "number"
-     },
-     {
-      "type": "string"
-     }
-    ]
    }
   }
- },
- "viewport.paperSpace": {
-  "description": "Leaves the active viewport so editing happens in the layout's paper space again.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "space": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "purge": {
-  "description": "Removes unused named items of one or every type (blocks, layers, styles and more) and zero-length or empty objects, matching names."
- },
- "dimension.addQuick": {
-  "description": "Draws a continuous series of linear dimensions across the end points of the given objects, horizontal or vertical, at a point.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "drafting.quickProperties": {
-  "description": "Turns the Quick Properties palette on or off, or toggles it with no value, and answers the new state.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "file.save": {
-  "description": "Saves the current drawing to its own file, or to the given path, in the format the file name says."
  },
  "select.quick": {
   "description": "Selects objects by type and a property comparison (equals, differs, greater, less, wildcard), new, appended or excluded, over the drawing or the selection.",
@@ -4812,212 +5048,7 @@
    }
   }
  },
- "measure.radius": {
-  "description": "Answers the radius and diameter of an arc or circle.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "diameter": {
-     "type": "number"
-    },
-    "message": {
-     "type": "string"
-    },
-    "radius": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  },
-  "params": {
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "ray": {
-  "description": "Draws a semi-infinite ray starting at a base point and passing through a second point.",
-  "params": {
-   "base": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "through": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "recover": {
-  "description": "Opens a damaged drawing from a path or base64 data, repairs what audit finds, and answers the new document's index with the issues fixed.",
-  "params": {
-   "data": {
-    "type": "string"
-   }
-  }
- },
- "rectangle.add": {
-  "description": "Draws a closed rectangular polyline from two corners, dimensions or an area, with optional rotation, fillet or chamfer corners, width, elevation and thickness.",
-  "params": {
-   "elevation": {
-    "type": "number"
-   },
-   "fillet": {
-    "type": "number"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "thickness": {
-    "type": "number"
-   }
-  }
- },
- "redo": {
-  "description": "Redoes the last count undone steps of the caller's undo scope, or of the given person or agent scope."
- },
- "view.redraw": {
-  "description": "Repaints the current view to clear leftover marks; the drawing is unchanged.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.regen": {
-  "description": "Regenerates the current viewport's display from the drawing data; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "view.regenAll": {
-  "description": "Regenerates the display of every viewport from the drawing data; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "region": {
-  "description": "Converts the given closed objects, or the selection, into regions.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "rename": {
-  "description": "Renames a named item (layer, linetype, text style, dimension style, block, multileader or table style, view or UCS).",
-  "params": {
-   "from": {
-    "type": "string"
-   },
-   "to": {
-    "type": "string"
-   }
-  }
- },
- "revisionCloud.add": {
-  "description": "Draws a revision cloud of arcs from a rectangle, a polygon, a freehand path or an existing object, with optional arc length and style.",
-  "params": {
-   "handle": {
-    "type": "string"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "revisionCloud.addFreehand": {
-  "description": "Draws a revision cloud of arcs along a freehand path through the given points.",
-  "params": {
-   "arcLength": {
-    "type": "number"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "revisionCloud.addPolygonal": {
-  "description": "Draws a revision cloud of arcs along the closed polygon through the given points.",
-  "params": {
-   "arcLength": {
-    "type": "number"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "reverse": {
-  "description": "Reverses the vertex order of the given lines, polylines, 3D polylines and splines.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "rotate": {
-  "description": "Rotates the given objects, or the selection, about a base point by an angle in degrees, optionally keeping the originals.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "file.saveAs": {
-  "description": "Saves the current drawing to a new path as DXF or DWG and makes that path the drawing's file."
- },
- "scale": {
-  "description": "Scales the given objects, or the selection, about a base point by a factor, optionally keeping the originals.",
-  "params": {
-   "factor": {
-    "type": "number"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "select": {
+ "select.set": {
   "description": "Sets or extends the selection by handles, a window or crossing box, or a pick point, or clears it; answers the selected handles.",
   "output": {
    "additionalProperties": true,
@@ -5035,67 +5066,7 @@
    "type": "object"
   }
  },
- "edit.selectAll": {
-  "description": "Selects every selectable object in the current space and answers how many are selected.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "selected": {
-     "type": "number"
-    }
-   },
-   "type": "object"
-  }
- },
- "drafting.selectionCycling": {
-  "description": "Turns selection cycling of overlapping objects on or off, or toggles it with no value, and answers the new state.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "variable.set": {
-  "description": "Sets a system variable by name to a value, as SETVAR does.",
-  "params": {
-   "value": {
-    "oneOf": [
-     {
-      "type": "string"
-     },
-     {
-      "type": "number"
-     },
-     {
-      "type": "boolean"
-     }
-    ]
-   }
-  }
- },
- "snap": {
-  "description": "Turns snap mode on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "spline": {
+ "spline.add": {
   "description": "Draws a spline through fit points with optional end tangents, from control vertices, or converts a polyline into a spline.",
   "params": {
    "degree": {
@@ -5150,52 +5121,132 @@
    }
   }
  },
- "status": {
-  "description": "Answers a text report of the drawing's object count, limits, extents, current layer and settings, as STATUS prints it.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "stretch": {
-  "description": "Moves the vertices inside a crossing window by a delta, stretching the objects that cross it and moving those wholly inside."
- },
- "style": {
-  "description": "Creates or changes a text style: font, big font, height, width factor, oblique angle, flags, annotative, and optionally makes it current.",
+ "table.add": {
+  "description": "Draws a table at a point with rows and columns, row height and column width, and optional cell texts, title and header row.",
   "params": {
-   "annotative": {
-    "type": "boolean"
-   },
-   "backwards": {
-    "type": "boolean"
-   },
-   "bigFont": {
-    "type": "string"
-   },
-   "current": {
-    "type": "boolean"
-   },
-   "oblique": {
+   "colWidth": {
     "type": "number"
    },
-   "upsideDown": {
-    "type": "boolean"
+   "cols": {
+    "type": "integer"
    },
-   "vertical": {
-    "type": "boolean"
+   "rowHeight": {
+    "type": "number"
    },
-   "widthFactor": {
+   "textHeight": {
     "type": "number"
    }
   }
  },
- "textStyle.setCurrent": {
-  "description": "Makes the named text style the current one for new text."
+ "table.deleteColumn": {
+  "description": "Deletes one column of a table by its index.",
+  "params": {
+   "col": {
+    "type": "integer"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.deleteRow": {
+  "description": "Deletes one row of a table by its index.",
+  "params": {
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.insertColumn": {
+  "description": "Inserts a column into a table before a column, or appends one, with an optional width.",
+  "params": {
+   "col": {
+    "type": "integer"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.insertRow": {
+  "description": "Inserts a row into a table before a row, or appends one, with an optional height.",
+  "params": {
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.merge": {
+  "description": "Merges a block of table cells, from a row and column over a number of rows and columns, into one cell.",
+  "params": {
+   "col": {
+    "type": "integer"
+   },
+   "cols": {
+    "type": "integer"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.set": {
+  "description": "Sets the text of one cell of a table, by row and column.",
+  "params": {
+   "col": {
+    "type": "integer"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "table.unmerge": {
+  "description": "Splits the merged table cell at a row and column back into its single cells.",
+  "params": {
+   "col": {
+    "type": "integer"
+   },
+   "handle": {
+    "type": "string"
+   }
+  }
+ },
+ "tableStyle.open": {
+  "description": "Creates or changes a table style's text height, cell margin, title and header rows, optionally making it current.",
+  "params": {
+   "current": {
+    "type": "boolean"
+   },
+   "header": {
+    "type": "boolean"
+   },
+   "margin": {
+    "type": "number"
+   },
+   "textHeight": {
+    "type": "number"
+   }
+  }
+ },
+ "text.add": {
+  "description": "Draws single-line text at a point with optional height, rotation and justification, in the current text style.",
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "text.edit": {
+  "description": "Replaces the contents of a text, mtext, attribute definition, or a dimension's override text.",
+  "params": {
+   "handle": {
+    "type": "string"
+   }
+  }
  },
  "textStyle.delete": {
   "description": "Deletes a text style that is not Standard, current or used by any object."
@@ -5257,6 +5308,35 @@
    "type": "object"
   }
  },
+ "textStyle.open": {
+  "description": "Creates or changes a text style: font, big font, height, width factor, oblique angle, flags, annotative, and optionally makes it current.",
+  "params": {
+   "annotative": {
+    "type": "boolean"
+   },
+   "backwards": {
+    "type": "boolean"
+   },
+   "bigFont": {
+    "type": "string"
+   },
+   "current": {
+    "type": "boolean"
+   },
+   "oblique": {
+    "type": "number"
+   },
+   "upsideDown": {
+    "type": "boolean"
+   },
+   "vertical": {
+    "type": "boolean"
+   },
+   "widthFactor": {
+    "type": "number"
+   }
+  }
+ },
  "textStyle.rename": {
   "description": "Renames a text style from one name to another.",
   "params": {
@@ -5268,18 +5348,22 @@
    }
   }
  },
- "plot.styleManager": {
-  "description": "Lists, reads, creates, changes, deletes, loads or saves plot style tables (colour-dependent .ctb or named .stb) and their styles.",
-  "params": {
-   "description": {
-    "type": "string"
+ "textStyle.setCurrent": {
+  "description": "Makes the named text style the current one for new text."
+ },
+ "variable.get": {
+  "description": "Answers the value of the named system variable.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "value": {
+     "type": "json"
+    }
    },
-   "from": {
-    "type": "string"
-   },
-   "name": {
-    "type": "string"
-   }
+   "type": "object"
   }
  },
  "variable.list": {
@@ -5576,209 +5660,21 @@
    "type": "object"
   }
  },
- "table": {
-  "description": "Draws a table at a point with rows and columns, row height and column width, and optional cell texts, title and header row.",
+ "variable.set": {
+  "description": "Sets a system variable by name to a value, as SETVAR does.",
   "params": {
-   "colWidth": {
-    "type": "number"
-   },
-   "cols": {
-    "type": "integer"
-   },
-   "rowHeight": {
-    "type": "number"
-   },
-   "textHeight": {
-    "type": "number"
-   }
-  }
- },
- "table.deleteColumn": {
-  "description": "Deletes one column of a table by its index.",
-  "params": {
-   "col": {
-    "type": "integer"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.deleteRow": {
-  "description": "Deletes one row of a table by its index.",
-  "params": {
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.insertColumn": {
-  "description": "Inserts a column into a table before a column, or appends one, with an optional width.",
-  "params": {
-   "col": {
-    "type": "integer"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.insertRow": {
-  "description": "Inserts a row into a table before a row, or appends one, with an optional height.",
-  "params": {
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.merge": {
-  "description": "Merges a block of table cells, from a row and column over a number of rows and columns, into one cell.",
-  "params": {
-   "col": {
-    "type": "integer"
-   },
-   "cols": {
-    "type": "integer"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.set": {
-  "description": "Sets the text of one cell of a table, by row and column.",
-  "params": {
-   "col": {
-    "type": "integer"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "table.unmerge": {
-  "description": "Splits the merged table cell at a row and column back into its single cells.",
-  "params": {
-   "col": {
-    "type": "integer"
-   },
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "tableStyle.open": {
-  "description": "Creates or changes a table style's text height, cell margin, title and header rows, optionally making it current.",
-  "params": {
-   "current": {
-    "type": "boolean"
-   },
-   "header": {
-    "type": "boolean"
-   },
-   "margin": {
-    "type": "number"
-   },
-   "textHeight": {
-    "type": "number"
-   }
-  }
- },
- "text": {
-  "description": "Draws single-line text at a point with optional height, rotation and justification, in the current text style.",
-  "params": {
-   "at": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "text.edit": {
-  "description": "Replaces the contents of a text, mtext, attribute definition, or a dimension's override text.",
-  "params": {
-   "handle": {
-    "type": "string"
-   }
-  }
- },
- "time": {
-  "description": "Answers the drawing's revision and the number of edits recorded in this session as a message.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "drafting.transparencyDisplay": {
-  "description": "Turns the display of object transparency on or off, or toggles it with no value, and answers the new state.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    },
-    "on": {
-     "type": "boolean"
-    }
-   },
-   "type": "object"
-  }
- },
- "trim": {
-  "description": "Trims an object at its cutting edges where it is picked, fenced or crossed, in quick or standard mode.",
-  "params": {
-   "handle": {
-    "type": "string"
-   },
-   "pick": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "u": {
-  "description": "Undoes the last step of the caller's undo scope (person or agent), as the U command does."
- },
- "undo": {
-  "description": "Undoes the last count steps of the caller's undo scope, or of the given person or agent scope."
- },
- "ungroup": {
-  "description": "Dissolves the named groups, or every group holding one of the given or selected objects, and answers the groups removed.",
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   },
-   "name": {
+   "value": {
     "oneOf": [
      {
       "type": "string"
      },
      {
-      "items": {
-       "type": "string"
-      },
-      "type": "array"
+      "type": "number"
+     },
+     {
+      "type": "boolean"
      }
     ]
-   }
-  }
- },
- "units": {
-  "description": "Sets the drawing's length and angle unit formats and precisions, and its insertion units.",
-  "params": {
-   "insunits": {
-    "type": "integer"
    }
   }
  },
@@ -5806,6 +5702,92 @@
    "type": "object"
   }
  },
+ "view.pan": {
+  "description": "Moves the view by a delta, from one point to another, or to a new centre, without changing the zoom.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  },
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "from": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "to": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "view.panDown": {
+  "description": "Pans the view a step downwards.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.panLeft": {
+  "description": "Pans the view a step to the left.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.panRight": {
+  "description": "Pans the view a step to the right.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.panUp": {
+  "description": "Pans the view a step upwards.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.redraw": {
+  "description": "Repaints the current view to clear leftover marks; the drawing is unchanged.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.regen": {
+  "description": "Regenerates the current viewport's display from the drawing data; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.regenAll": {
+  "description": "Regenerates the display of every viewport from the drawing data; the drawing is unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
  "view.set": {
   "description": "Sets the view to a centre point and a visible height in drawing units.",
   "output": {
@@ -5813,45 +5795,156 @@
    "type": "null"
   }
  },
- "viewport.set": {
-  "description": "Sets layout viewport properties: scale, view height and centre, lock, layer freeze and thaw, and per-layer colour overrides.",
+ "view.zoomAll": {
+  "description": "Zooms the view to show the drawing limits and every object, whichever is larger.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.zoomIn": {
+  "description": "Zooms the view in by a factor of two about its centre.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.zoomObject": {
+  "description": "Zooms the view to fit the given objects, or the selection.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  },
   "params": {
-   "handle": {
-    "type": "string"
-   },
    "handles": {
     "items": {
      "type": "string"
     },
     "type": "array"
-   },
-   "scale": {
-    "oneOf": [
-     {
-      "type": "number"
-     },
-     {
-      "type": "string"
-     },
-     {
-      "items": {
-       "type": "number"
-      },
-      "type": "array"
-     }
-    ]
-   },
-   "viewHeight": {
-    "type": "number"
    }
   }
  },
- "viewport.sync": {
-  "description": "Tells the engine the editor viewport's pan offset, zoom and pixel size, so its view matches what is drawn on screen.",
+ "view.zoomOut": {
+  "description": "Zooms the view out by a factor of two about its centre.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.zoomPrevious": {
+  "description": "Restores the view saved before the last zoom or pan, if there is one.",
   "output": {
    "additionalProperties": true,
-   "description": "an empty object",
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
    "type": "object"
+  }
+ },
+ "view.zoomRealtime": {
+  "description": "Changes the view: to extents, all, a window, the previous view, in or out, a centre and height, a scale factor, or objects.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  },
+  "params": {
+   "center": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "factor": {
+    "type": "number"
+   },
+   "mode": {
+    "type": "string"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "view.zoomToFit": {
+  "description": "Zooms the view to fit the extents of every object in the current space.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  }
+ },
+ "view.zoomWindow": {
+  "description": "Zooms the view to fit the rectangle between two corner points.",
+  "output": {
+   "description": "nothing; the view changes",
+   "type": "null"
+  },
+  "params": {
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "viewport.add": {
+  "description": "Creates one to four viewports in a layout over two corners, by default the printable area, in an arrangement.",
+  "params": {
+   "count": {
+    "type": "integer"
+   },
+   "layout": {
+    "type": "string"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "viewport.four": {
+  "description": "Creates four equal viewports on a layout over two corners, by default the printable area.",
+  "params": {
+   "layout": {
+    "type": "string"
+   },
+   "p1": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "p2": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   }
   }
  },
  "viewport.freezeLayer": {
@@ -5878,6 +5971,29 @@
    },
    "viewHeight": {
     "type": "number"
+   }
+  }
+ },
+ "viewport.modelSpace": {
+  "description": "Makes a layout viewport active so editing happens in model space through it, by handle or by a paper point inside it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "viewport": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "at": {
+    "items": {
+     "type": "number"
+    },
+    "type": "array"
+   },
+   "handle": {
+    "type": "string"
    }
   }
  },
@@ -5927,24 +6043,57 @@
    }
   }
  },
- "viewport.two": {
-  "description": "Creates two viewports on a layout side by side or stacked, over two corners or the printable area.",
+ "viewport.paperSpace": {
+  "description": "Leaves the active viewport so editing happens in the layout's paper space again.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "space": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "viewport.set": {
+  "description": "Sets layout viewport properties: scale, view height and centre, lock, layer freeze and thaw, and per-layer colour overrides.",
   "params": {
-   "layout": {
+   "handle": {
     "type": "string"
    },
-   "p1": {
+   "handles": {
     "items": {
-     "type": "number"
+     "type": "string"
     },
     "type": "array"
    },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
+   "scale": {
+    "oneOf": [
+     {
+      "type": "number"
+     },
+     {
+      "type": "string"
+     },
+     {
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     }
+    ]
+   },
+   "viewHeight": {
+    "type": "number"
    }
+  }
+ },
+ "viewport.sync": {
+  "description": "Tells the engine the editor viewport's pan offset, zoom and pixel size, so its view matches what is drawn on screen.",
+  "output": {
+   "additionalProperties": true,
+   "description": "an empty object",
+   "type": "object"
   }
  },
  "viewport.three": {
@@ -5967,8 +6116,8 @@
    }
   }
  },
- "viewport.four": {
-  "description": "Creates four equal viewports on a layout over two corners, by default the printable area.",
+ "viewport.two": {
+  "description": "Creates two viewports on a layout side by side or stacked, over two corners or the printable area.",
   "params": {
    "layout": {
     "type": "string"
@@ -5987,160 +6136,11 @@
    }
   }
  },
- "block.write": {
-  "description": "Writes a block, or the given objects with a base point, to a new drawing file at a path.",
-  "params": {
-   "base": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "wipeout": {
+ "wipeout.add": {
   "description": "Draws a wipeout that masks the objects behind it, from points or a closed polyline, or sets whether wipeout frames show.",
   "params": {
    "handle": {
     "type": "string"
-   }
-  }
- },
- "constructionLine.add": {
-  "description": "Draws an infinite construction line through two points, at an angle, horizontal or vertical, bisecting an angle, or offset from a line.",
-  "params": {
-   "base": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "through": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "vertex": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "zoom": {
-  "description": "Changes the view: to extents, all, a window, the previous view, in or out, a centre and height, a scale factor, or objects.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  },
-  "params": {
-   "center": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "factor": {
-    "type": "number"
-   },
-   "mode": {
-    "type": "string"
-   },
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   }
-  }
- },
- "view.zoomAll": {
-  "description": "Zooms the view to show the drawing limits and every object, whichever is larger.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.zoomToFit": {
-  "description": "Zooms the view to fit the extents of every object in the current space.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.zoomIn": {
-  "description": "Zooms the view in by a factor of two about its centre.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.zoomObject": {
-  "description": "Zooms the view to fit the given objects, or the selection.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  },
-  "params": {
-   "handles": {
-    "items": {
-     "type": "string"
-    },
-    "type": "array"
-   }
-  }
- },
- "view.zoomOut": {
-  "description": "Zooms the view out by a factor of two about its centre.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  }
- },
- "view.zoomPrevious": {
-  "description": "Restores the view saved before the last zoom or pan, if there is one.",
-  "output": {
-   "additionalProperties": true,
-   "properties": {
-    "message": {
-     "type": "string"
-    }
-   },
-   "type": "object"
-  }
- },
- "view.zoomWindow": {
-  "description": "Zooms the view to fit the rectangle between two corner points.",
-  "output": {
-   "description": "nothing; the view changes",
-   "type": "null"
-  },
-  "params": {
-   "p1": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
-   },
-   "p2": {
-    "items": {
-     "type": "number"
-    },
-    "type": "array"
    }
   }
  }

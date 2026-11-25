@@ -113,7 +113,7 @@ fn paste_into_another_drawing_brings_layers_and_blocks() {
     assert_eq!(s.selection().len(), 2, "the pasted objects are selected");
 
     // Undo removes the paste.
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert!(s.doc().unwrap().model.is_empty());
 }
 
@@ -128,21 +128,21 @@ fn pasteorig_pastes_only_into_another_drawing() {
     // In the drawing it came from, PASTEORIG is unavailable (greyed in menus).
     assert!(clipboard::from_active(&s));
     assert!(s.execute("edit.pasteToOriginalCoordinates", &json!({})).is_err());
-    assert!(s.start("edit.pasteToOriginalCoordinates").is_err());
+    assert!(s.start("pasteorig").is_err());
     assert_eq!(s.doc().unwrap().model.len(), 2);
     let info = kition_cad_engine::find_command("edit.pasteToOriginalCoordinates").unwrap().info(&s);
     assert!(!info.enabled);
 
     // In another drawing it pastes at the same coordinates without asking.
     s.active = b;
-    s.start("edit.pasteToOriginalCoordinates").unwrap();
+    s.start("pasteorig").unwrap();
     assert!(s.running.is_none());
     let pasted = model(&s);
     assert!(matches!(&pasted[0].kind, EntityKind::Line(l) if l.a.x == 10.0 && l.b.x == 30.0 && l.a.y == 20.0));
     assert!(s.doc().unwrap().block("DOOR").is_some());
 
     // PASTECLIP asks for the insertion point and places the base point there.
-    s.start("edit.paste").unwrap();
+    s.start("pasteclip").unwrap();
     assert!(s.prompt_text().contains("insertion point"), "{}", s.prompt_text());
     s.input(kition_cad_engine::Input::Point(Vec2::new(0.0, 0.0))).unwrap();
     assert!(s.running.is_none());

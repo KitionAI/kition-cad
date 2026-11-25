@@ -20,9 +20,10 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let mut d = CadDocument::create(FILE, 420, 297).unwrap();
-        let a = d.execute("line", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
-        let b = d.execute("line", json!({"points":[[0,50],[100,50]]})).unwrap()["handles"][0].clone();
-        let table = d.execute("table", json!({"at":[200,0],"rows":3,"cols":2,"cells":[["A","B"],["C","D"],["E","F"]]})).unwrap()["handle"].clone();
+        let a = d.execute("line.add", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
+        let b = d.execute("line.add", json!({"points":[[0,50],[100,50]]})).unwrap()["handles"][0].clone();
+        let table =
+            d.execute("table.add", json!({"at":[200,0],"rows":3,"cols":2,"cells":[["A","B"],["C","D"],["E","F"]]})).unwrap()["handle"].clone();
         d.execute("layer.add", json!({"name":"Walls","color":"white"})).unwrap();
         let workspace = tempfile::tempdir().unwrap();
         std::fs::write(workspace.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();
@@ -99,7 +100,7 @@ async fn same_field_is_changed_and_a_deleted_target_is_deleted() {
         let f = Fixture::new();
         let basis = f.basis().await;
         f.colleague(&[(
-            if deleted { "erase" } else { "object.setProperties" },
+            if deleted { "object.delete" } else { "object.setProperties" },
             if deleted { json!({"handles":[f.a]}) } else { json!({"handles":[f.a],"color":"blue"}) },
         )]);
         let before = f.disk();
@@ -115,7 +116,7 @@ async fn geometry_changes_do_not_refuse_a_color_by_id_but_do_relocate_a_pick() {
     for pick in [false, true] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[("move", json!({"handles":[f.a],"delta":[0,20]}))]);
+        f.colleague(&[("object.move", json!({"handles":[f.a],"delta":[0,20]}))]);
         let params = if pick { json!({"pick":[50,0],"aperture":0.1,"color":"red"}) } else { json!({"handles":[f.a],"color":"red"}) };
         let answer = f.write(basis, "premise", "object.setProperties", params).await;
         if pick {
@@ -137,7 +138,7 @@ async fn unrelated_fields_on_the_same_object_apply_and_moves_hold_the_lock() {
         } else {
             f.colleague(&[("object.setProperties", json!({"handles":[f.a],"color":"blue"}))]);
         }
-        let answer = f.write(basis, "premise", "move", json!({"handles":[f.a],"delta":[2,0]})).await;
+        let answer = f.write(basis, "premise", "object.move", json!({"handles":[f.a],"delta":[2,0]})).await;
         if lock {
             reason(&answer.unwrap_err(), "changed");
         } else {
@@ -151,7 +152,7 @@ async fn unrelated_fields_on_the_same_object_apply_and_moves_hold_the_lock() {
 async fn another_object_moving_into_the_pick_is_refused() {
     let f = Fixture::new();
     let basis = f.basis().await;
-    f.colleague(&[("move", json!({"handles":[f.b],"delta":[0,-50]}))]);
+    f.colleague(&[("object.move", json!({"handles":[f.b],"delta":[0,-50]}))]);
     reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
     f.stop().await;
 }
@@ -159,7 +160,7 @@ async fn another_object_moving_into_the_pick_is_refused() {
 #[tokio::test(flavor = "multi_thread")]
 async fn overlapping_draw_order_changes_relocate_a_pick() {
     let f = Fixture::new();
-    f.colleague(&[("move", json!({"handles":[f.b],"delta":[0,-50]}))]);
+    f.colleague(&[("object.move", json!({"handles":[f.b],"delta":[0,-50]}))]);
     let basis = f.basis().await;
     f.colleague(&[("arrange.bringToFront", json!({"handles":[f.a]}))]);
     reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
@@ -170,11 +171,11 @@ async fn overlapping_draw_order_changes_relocate_a_pick() {
 async fn a_parent_move_relocates_a_pick_of_its_children() {
     let f = Fixture::new();
     let mut d = CadDocument::open(FILE, &f.disk()).unwrap();
-    d.execute("block", json!({"name":"Parent","base":[0,0],"handles":[f.a],"keep":"delete"})).unwrap();
-    let parent = d.execute("insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
+    d.execute("block.addDialog", json!({"name":"Parent","base":[0,0],"handles":[f.a],"keep":"delete"})).unwrap();
+    let parent = d.execute("block.insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
     std::fs::write(f.path(), d.save(Some(FILE)).unwrap()).unwrap();
     let basis = f.basis().await;
-    f.colleague(&[("move", json!({"handles":[parent],"delta":[0,20]}))]);
+    f.colleague(&[("object.move", json!({"handles":[parent],"delta":[0,20]}))]);
     reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
     f.stop().await;
 }
@@ -200,7 +201,7 @@ async fn an_empty_insertion_gap_holds_its_ordinal() {
     let read = f.call("query", json!({"objects":[f.a],"fields":["common","kind"]})).await.unwrap();
     let fields = &read["objects"][0]["fields"];
     let basis = f.basis().await;
-    f.colleague(&[("line", json!({"points":[[0,100],[100,100]]})), ("arrange.sendToBack", json!({"handles":[f.b]}))]);
+    f.colleague(&[("line.add", json!({"points":[[0,100],[100,100]]})), ("arrange.sendToBack", json!({"handles":[f.b]}))]);
     let saved = f.disk();
     let answer = f.call("batch", json!({"basis":basis,"ops":[{"op":"create","type":"Entity","in":"root.model","at":1,"fields":fields}]})).await;
     reason(&answer.unwrap_err(), "relocated");
@@ -231,7 +232,7 @@ async fn creation_holds_my_current_layer_not_a_colleagues_and_respects_explicit_
         if explicit {
             p["layer"] = json!("Walls");
         }
-        let result = f.write(basis, "premise", "line", p).await.unwrap();
+        let result = f.write(basis, "premise", "line.add", p).await.unwrap();
         let h = result["completed"][0]["result"]["handles"][0].as_str().unwrap().to_owned();
         let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
         let line = saved.entity(kition_cad_doc::Handle::parse_hex(&h).unwrap()).unwrap();
@@ -280,7 +281,7 @@ async fn fifty_unrelated_rounds() {
         let mut refused = 0;
         for round in 0..50 {
             let basis = f.basis().await;
-            f.colleague(&[("move", json!({"handles":[f.b],"delta":[1,0]}))]);
+            f.colleague(&[("object.move", json!({"handles":[f.b],"delta":[1,0]}))]);
             let r = f.write(basis, guard, "object.setProperties", json!({"handles":[f.a],"color":if round%2==0 {"red"}else{"green"}})).await;
             refused += usize::from(r.is_err());
         }
@@ -315,14 +316,14 @@ async fn mixed_fifty_rounds_fixed_seed() {
             let change = match kind {
                 0 => ("object.setProperties", json!({"handles":[f.b],"color":"blue"})),
                 1 => ("object.setProperties", json!({"handles":[f.a],"color":"blue"})),
-                2 => ("move", json!({"handles":[f.a],"delta":[0,20]})),
-                3 => ("move", json!({"handles":[f.b],"delta":[0,-50]})),
-                4 => ("erase", json!({"handles":[f.a]})),
+                2 => ("object.move", json!({"handles":[f.a],"delta":[0,20]})),
+                3 => ("object.move", json!({"handles":[f.b],"delta":[0,-50]})),
+                4 => ("object.delete", json!({"handles":[f.a]})),
                 5 => ("layer.set", json!({"name":"Walls","newName":"Away"})),
                 6 => ("layer.set", json!({"name":"Walls","color":"blue"})),
                 7 => ("layer.add", json!({"name":"Other"})),
                 8 => ("object.setProperties", json!({"handles":[f.a],"visible":false})),
-                _ => ("move", json!({"handles":[f.b],"delta":[1,0]})),
+                _ => ("object.move", json!({"handles":[f.b],"delta":[1,0]})),
             };
             f.colleague(&[change]);
             let necessary = match form {
@@ -336,7 +337,7 @@ async fn mixed_fifty_rounds_fixed_seed() {
                 0 => ("object.setProperties", json!({"handles":[f.a],"color":"red"})),
                 1 => ("layer.set", json!({"name":"Walls","color":"red"})),
                 2 => ("object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})),
-                _ => ("erase", json!({"handles":[f.a]})),
+                _ => ("object.delete", json!({"handles":[f.a]})),
             };
             let before = f.disk();
             let result = if form == 4 {
@@ -378,7 +379,7 @@ async fn mixed_fifty_rounds_fixed_seed() {
             if class == 0 {
                 let mut d = CadDocument::open(FILE, &f.disk()).unwrap();
                 if form == 0 || form == 2 {
-                    let p = d.execute("properties", json!({"handles":[f.a]})).unwrap();
+                    let p = d.execute("object.properties", json!({"handles":[f.a]})).unwrap();
                     assert_eq!(p["objects"][0]["color"], "Red", "{p}");
                 }
                 if form == 1 {
@@ -395,7 +396,7 @@ async fn mixed_fifty_rounds_fixed_seed() {
                     );
                 }
                 if form == 4 {
-                    let p = d.execute("properties", json!({"handles":[f.a,f.b]})).unwrap();
+                    let p = d.execute("object.properties", json!({"handles":[f.a,f.b]})).unwrap();
                     assert_eq!(p["objects"].as_array().unwrap().len(), 2);
                     assert!(p["objects"].as_array().unwrap().iter().all(|o| o["color"] == "Red"), "query result must be saved: {p}");
                 }

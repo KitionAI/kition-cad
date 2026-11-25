@@ -15,25 +15,25 @@ fn toggle(s: &mut Session, p: &Value, get: fn(&mut crate::Settings) -> &mut bool
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("ortho", "Ortho Mode", |s, p| toggle(s, p, |st| &mut st.orthomode, "Ortho"))
+        CommandSpec::new("drafting.ortho", "Ortho Mode", |s, p| toggle(s, p, |st| &mut st.orthomode, "Ortho"))
             .key("F8")
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("grid", "Grid Display", |s, p| toggle(s, p, |st| &mut st.gridmode, "Grid"))
+        CommandSpec::new("drafting.grid", "Grid Display", |s, p| toggle(s, p, |st| &mut st.gridmode, "Grid"))
             .key("F7")
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("snap", "Snap Mode", |s, p| toggle(s, p, |st| &mut st.snapmode, "Snap"))
+        CommandSpec::new("drafting.snap", "Snap Mode", |s, p| toggle(s, p, |st| &mut st.snapmode, "Snap"))
             .key("F9")
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("polar", "Polar Tracking", |s, p| toggle(s, p, |st| &mut st.polarmode, "Polar"))
+        CommandSpec::new("drafting.polar", "Polar Tracking", |s, p| toggle(s, p, |st| &mut st.polarmode, "Polar"))
             .key("F10")
             .params("{on?: bool}")
             .enabled(always)

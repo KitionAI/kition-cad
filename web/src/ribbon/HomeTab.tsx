@@ -2,12 +2,12 @@ import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, Penc
 import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
 
-const DRAW = ['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'polygon', 'ellipse', 'spline', 'hatch']
-const MODIFY = ['move', 'copy', 'rotate', 'scale', 'mirror', 'offset', 'trim', 'extend', 'fillet']
-const ANNOTATION = ['multilineText.add', 'text', 'dimension.addLinear', 'dimension.addAligned', 'dimension.addRadius']
+const DRAW = ['line.add', 'polyline.add', 'circle.add', 'arc.add', 'rectangle.add', 'polygon.add', 'ellipse.add', 'spline.add', 'hatch.add']
+const MODIFY = ['object.move', 'object.copy', 'object.rotate', 'object.scale', 'object.mirror', 'object.offset', 'object.trim', 'object.extend', 'object.fillet']
+const ANNOTATION = ['multilineText.add', 'text.add', 'dimension.addLinear', 'dimension.addAligned', 'dimension.addRadius']
 
 /** The tools Single line's row shows. */
-const PRIMARY = new Set(['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'move', 'copy', 'rotate', 'trim', 'offset', 'erase', 'multilineText.add', 'dimension.addLinear'])
+const PRIMARY = new Set(['line.add', 'polyline.add', 'circle.add', 'arc.add', 'rectangle.add', 'object.move', 'object.copy', 'object.rotate', 'object.trim', 'object.offset', 'object.delete', 'multilineText.add', 'dimension.addLinear'])
 
 /** One of the engine's tools by id, with its icon and its label translated; `primary` shows it in Single line's row. */
 function Tool({ id, size = 'small', primary }: { id: string; size?: 'large' | 'small'; primary?: boolean }) {
@@ -23,10 +23,10 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
   return (
     <>
       <RibbonGroup label={p('Draw')} icon={Pencil}>
-        <Tool id="line" primary={PRIMARY.has('line')} size="large" />
+        <Tool id="line.add" primary={PRIMARY.has('line.add')} size="large" />
         <Tool id="polyline.add" primary={PRIMARY.has('polyline.add')} size="large" />
-        <Tool id="circle" primary={PRIMARY.has('circle')} size="large" />
-        <Tool id="arc" primary={PRIMARY.has('arc')} size="large" />
+        <Tool id="circle.add" primary={PRIMARY.has('circle.add')} size="large" />
+        <Tool id="arc.add" primary={PRIMARY.has('arc.add')} size="large" />
         <RibbonStack>
           {DRAW.slice(4, 7).map((id) => (
             <Tool key={id} id={id} primary={PRIMARY.has(id)} />
@@ -48,9 +48,9 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
           </RibbonStack>
         ))}
         <RibbonStack>
-          <Tool id="erase" primary={PRIMARY.has('erase')} />
-          <CommandButton command="explode" icon={Ungroup} label={p('Explode')} ask />
-          <CommandButton command="stretch" icon={SquareSplitHorizontal} label={p('Stretch')} ask />
+          <Tool id="object.delete" primary={PRIMARY.has('object.delete')} />
+          <CommandButton command="object.explode" icon={Ungroup} label={p('Explode')} ask />
+          <CommandButton command="object.stretch" icon={SquareSplitHorizontal} label={p('Stretch')} ask />
         </RibbonStack>
       </RibbonGroup>
 

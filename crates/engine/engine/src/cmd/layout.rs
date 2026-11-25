@@ -17,7 +17,7 @@ mod prompts;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("layout", "Layout", run_layout)
+        CommandSpec::new("layout.manage", "Layout", run_layout)
             .alias(&["lo"])
             .params("{option: new|copy|delete|rename|set|list, name?, to?} (typed LAYOUT / -LAYOUT: option prompts)")
             .interactive(|_| Ok(Box::new(prompts::LayoutM::default()))),
@@ -64,7 +64,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .params(
                 "{layout?: current, paper?: \"A4\"|\"A3\"|\"Letter\"|\"ANSI B\"|…, width?, height? (mm), landscape?, margins?: [l,b,r,t] mm, lineweights?, plotArea?, scale?, scaleToFit?, center?, plotStyleTable?: \"monochrome.ctb\"|\"grayscale.ctb\"|\"default.ctb\"|\"None\"|…, displayPlotStyles?: bool}",
             ),
-        CommandSpec::new("plot", "Print...", |s, p| run_plot(s, p, "plot"))
+        CommandSpec::new("file.print", "Print...", |s, p| run_plot(s, p, "file.print"))
             .menu(&["File", "Print..."])
             .key("Cmd+P")
             .alias(&["print"])
@@ -329,7 +329,7 @@ pub fn layout_operation(p: &Value) -> Result<(&'static str, Value)> {
         "rename" | "r" => "layout.rename",
         "set" | "s" => "layout.set",
         "list" | "?" => "layout.list",
-        _ => return Err(bad("layout", "option must be new, copy, delete, rename, set or list")),
+        _ => return Err(bad("layout.manage", "option must be new, copy, delete, rename, set or list")),
     };
     let mut q = p.clone();
     if matches!(command, "layout.duplicate" | "layout.rename")
@@ -350,11 +350,11 @@ fn run_layout(s: &mut Session, p: &Value) -> Result<Value> {
         "layout.delete" => run_delete(s, &p),
         "layout.rename" => run_rename(s, &p),
         "layout.set" => {
-            let set = find_command("layout.set").ok_or_else(|| bad("layout", "layout.set is missing"))?;
+            let set = find_command("layout.set").ok_or_else(|| bad("layout.manage", "layout.set is missing"))?;
             (set.run)(s, &p)
         }
         "layout.list" => run_list(s, &p),
-        _ => Err(bad("layout", "layout command is missing")),
+        _ => Err(bad("layout.manage", "layout command is missing")),
     }
 }
 
@@ -913,9 +913,9 @@ mod tests {
         assert_ne!(a[0].0, b[0].0, "copied entities get new handles");
         s.execute("layout.delete", &json!({"name": "sheet a"})).unwrap();
         assert_eq!(s.space(), Space::Model, "deleting the current layout returns to Model");
-        s.execute("layout", &json!({"option": "delete", "name": "Layout2"})).unwrap();
+        s.execute("layout.manage", &json!({"option": "delete", "name": "Layout2"})).unwrap();
         assert!(s.execute("layout.delete", &json!({"name": "Sheet A (2)"})).is_err(), "last layout stays");
-        let l = s.execute("layout", &json!({"option": "list"})).unwrap();
+        let l = s.execute("layout.manage", &json!({"option": "list"})).unwrap();
         assert_eq!(l.as_array().unwrap().len(), 1);
         assert!(s.execute("layout.delete", &json!({"name": "Model"})).is_err());
     }
@@ -923,13 +923,13 @@ mod tests {
     #[test]
     fn new_layout_from_the_menu_asks_for_a_name() {
         let mut s = session_with_model();
-        s.start("layout.add").unwrap();
+        s.start("layout.new").unwrap();
         assert_eq!(s.current_prompt().map(|p| p.display()).as_deref(), Some("Enter name of new layout <Layout3>:"));
         s.cmdline("Layout1").unwrap();
         assert!(s.running.is_some(), "a taken name asks again");
         s.cmdline("Sheet A").unwrap();
         assert!(s.running.is_none());
-        s.start("layout.add").unwrap();
+        s.start("layout.new").unwrap();
         s.cmdline("").unwrap();
         let d = s.doc().unwrap();
         assert!(d.layout("Sheet A").is_some() && d.layout("Layout3").is_some(), "Enter takes the default name");
@@ -1042,18 +1042,18 @@ mod tests {
         if io().and_then(|h| h.plot).is_none() {
             return; // another test installed hooks without a plotter first
         }
-        let r = s.execute("plot", &json!({"layout": "Layout1", "paper": "A4"})).unwrap();
+        let r = s.execute("file.print", &json!({"layout": "Layout1", "paper": "A4"})).unwrap();
         let data = super::super::file::base64_decode(r["data"].as_str().unwrap()).unwrap();
         let text = String::from_utf8(data).unwrap();
         assert!(text.starts_with("%PDF") && text.contains("Paper(\"Layout1\")") && text.contains("A4"));
         let r = s.execute("file.exportPdf", &json!({})).unwrap();
         assert_eq!(r["layout"], "Model");
-        assert!(s.execute("plot", &json!({"layout": "Nope"})).is_err());
+        assert!(s.execute("file.print", &json!({"layout": "Nope"})).is_err());
         #[cfg(not(target_arch = "wasm32"))]
         {
             let path = std::env::temp_dir().join(format!("kition-cad-plot-test-{}.pdf", std::process::id()));
             let ps = path.to_string_lossy().to_string();
-            let r = s.execute("plot", &json!({"path": ps})).unwrap();
+            let r = s.execute("file.print", &json!({"path": ps})).unwrap();
             assert!(r["bytes"].as_u64().unwrap() > 0);
             assert!(std::fs::read(&path).unwrap().starts_with(b"%PDF"));
             let _ = std::fs::remove_file(&path);

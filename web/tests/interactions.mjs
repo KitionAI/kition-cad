@@ -80,7 +80,7 @@ try {
   await page.keyboard.type('line')
   assert.equal(await input.inputValue(), 'line', 'the first character must not be lost when focus moves')
   await page.keyboard.press('Enter')
-  await until('canvas typing starts LINE', async () => (await details()).running === 'line')
+  await until('canvas typing starts LINE', async () => (await details()).running === 'line.add')
   await command('10,10', '100,10', '')
   await until('keyboard coordinates add one line', async () => (await details()).entities === 8)
   await input.press('ArrowUp')
@@ -104,7 +104,7 @@ try {
   await page.mouse.wheel(0, -250)
   await until('plain wheel zooms the CAD canvas', async () => (await kit.getByTestId('kit-zoom').innerText()) !== initialZoom)
   const zoomed = await kit.getByTestId('kit-zoom').innerText()
-  await command('view.zoomToFit')
+  await command('zoom.extents')
   await until('typed Zoom Extents changes the viewport', async () => (await kit.getByTestId('kit-zoom').innerText()) !== zoomed)
   const fitZoom = await kit.getByTestId('kit-zoom').innerText()
   await page.mouse.move(700, 500)
@@ -141,9 +141,9 @@ try {
       await input.fill(text)
       await input.press('Enter')
     }
-    await kit.getByTestId('cad-tool-circle').click()
+    await kit.getByTestId('cad-tool-circle.add').click()
     await until(`rapid transition ${round + 1}: Circle stays active`, async () =>
-      (await details()).running === 'circle' && await kit.getByTestId('cad-tool-circle').getAttribute('aria-pressed') === 'true')
+      (await details()).running === 'circle.add' && await kit.getByTestId('cad-tool-circle.add').getAttribute('aria-pressed') === 'true')
     await command('250,180', '10')
     await until(`rapid transition ${round + 1}: both entities survive`, async () =>
       (await details()).entities === start + 2 && (await details()).running === null)

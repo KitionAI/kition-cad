@@ -89,7 +89,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Tools", "Parametric", "Delete Constraints"])
             .params("{handles? | ids?: [n]}")
             .interactive(|_| Ok(Box::new(SelM::new(SelOp::Delete)))),
-        CommandSpec::new("parameters", "Parameters Manager", run_parameters)
+        CommandSpec::new("constraint.parameters", "Parameters Manager", run_parameters)
             .menu(&["Tools", "Parametric", "Parameters Manager"])
             .alias(&["par", "parametersclose"])
             .params("{name?: string, expr?: string, value?: number, description?: string, delete?: string (a parameter name)} (no keys lists the parameters; name with expr or value sets one, a new name making a user parameter, and re-solves; delete removes one)"),
@@ -849,7 +849,7 @@ fn run_parameters(s: &mut Session, p: &Value) -> Result<Value> {
         let expr = match (str_param(p, "expr"), p.get("value").and_then(Value::as_f64)) {
             (Some(e), _) => e.to_string(),
             (None, Some(v)) if v.is_finite() => cs::format_value(v),
-            _ => return Err(bad("parameters", "`expr` or `value` is required")),
+            _ => return Err(bad("constraint.parameters", "`expr` or `value` is required")),
         };
         let mut d = s.doc()?.clone();
         cs::set_parameter(&mut d, name.trim(), &expr, &cs::SolveOptions::default()).map_err(err)?;

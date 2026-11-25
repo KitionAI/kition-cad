@@ -37,31 +37,31 @@ export function describe(info: KitEngineInfo): CadInfo {
 }
 
 /** File commands the host's own Save, Open, and Close already cover. */
-export const HOST_FILE_COMMANDS = ['new', 'open', 'close', 'file.closeAll', 'file.save', 'file.saveAs']
+export const HOST_FILE_COMMANDS = ['file.new', 'file.open', 'file.close', 'file.closeAll', 'file.save', 'file.saveAs']
 
 /** The ribbon's tabs after Home, each the engine's menu of that name. */
 export const MENU_TABS = ['File', 'Edit', 'Insert', 'Format', 'Tools', 'Draw', 'Dimension', 'Modify', 'View']
 
 /** The engine commands each menu tab shows in Single line's row (AutoCAD's most-used), by menu. */
 export const CAD_PRIMARY: Record<string, readonly string[]> = {
-  File: ['file.exportPdf', 'plot', 'plot.pageSetup'],
-  Edit: ['edit.cut', 'edit.copy', 'edit.paste', 'edit.delete', 'edit.selectAll', 'find'],
-  Insert: ['insert', 'layout.add'],
-  Format: ['layer', 'color', 'linetype', 'property.lineweight', 'style', 'dimensionStyle.open', 'units'],
-  Tools: ['dist', 'area', 'list', 'group', 'ungroup', 'arrange.bringToFront', 'arrange.sendToBack'],
-  Draw: ['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'polygon', 'ellipse', 'spline', 'hatch', 'multilineText.add'],
+  File: ['file.exportPdf', 'file.print', 'plot.pageSetup'],
+  Edit: ['edit.cut', 'edit.copy', 'edit.paste', 'edit.delete', 'edit.selectAll', 'edit.find'],
+  Insert: ['block.insert', 'layout.add'],
+  Format: ['layer.open', 'property.color', 'property.linetype', 'property.lineweight', 'textStyle.open', 'dimensionStyle.open', 'file.setUnits'],
+  Tools: ['measure.distance', 'measure.area', 'object.list', 'arrange.group', 'arrange.ungroup', 'arrange.bringToFront', 'arrange.sendToBack'],
+  Draw: ['line.add', 'polyline.add', 'circle.add', 'arc.add', 'rectangle.add', 'polygon.add', 'ellipse.add', 'spline.add', 'hatch.add', 'multilineText.add'],
   Dimension: ['dimension.addLinear', 'dimension.addAligned', 'dimension.addAngular', 'dimension.addRadius', 'dimension.addDiameter', 'dimension.addContinue', 'dimension.addBaseline', 'multileader.add', 'dimension.addQuick'],
-  Modify: ['move', 'copy', 'rotate', 'scale', 'mirror', 'offset', 'trim', 'extend', 'fillet', 'erase', 'explode', 'object.arrayRectangular'],
-  View: ['view.zoomToFit', 'view.zoomWindow', 'view.zoomIn', 'view.zoomOut', 'view.zoomPrevious', 'pan', 'view.regen'],
+  Modify: ['object.move', 'object.copy', 'object.rotate', 'object.scale', 'object.mirror', 'object.offset', 'object.trim', 'object.extend', 'object.fillet', 'object.delete', 'object.explode', 'object.arrayRectangular'],
+  View: ['view.zoomToFit', 'view.zoomWindow', 'view.zoomIn', 'view.zoomOut', 'view.zoomPrevious', 'view.pan', 'view.regen'],
 }
 
-/** The status bar's drafting modes, in AutoCAD's order, and the commands that set them. */
-export const DRAFTING: Array<{ id: keyof Drafting; label: string }> = [
-  { id: 'grid', label: 'Grid' },
-  { id: 'snap', label: 'Snap' },
-  { id: 'ortho', label: 'Ortho' },
-  { id: 'polar', label: 'Polar' },
-  { id: 'drafting.objectSnap', label: 'Osnap' },
-  { id: 'drafting.objectSnapTracking', label: 'Otrack' },
-  { id: 'drafting.lineweightDisplay', label: 'Lineweight' },
+/** The status bar's drafting modes, in AutoCAD's order: the key of each in `Drafting` and the command that sets it. */
+export const DRAFTING: Array<{ id: keyof Drafting; command: string; label: string }> = [
+  { id: 'grid', command: 'drafting.grid', label: 'Grid' },
+  { id: 'snap', command: 'drafting.snap', label: 'Snap' },
+  { id: 'ortho', command: 'drafting.ortho', label: 'Ortho' },
+  { id: 'polar', command: 'drafting.polar', label: 'Polar' },
+  { id: 'osnap', command: 'drafting.objectSnap', label: 'Osnap' },
+  { id: 'otrack', command: 'drafting.objectSnapTracking', label: 'Otrack' },
+  { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
 ]

@@ -12,7 +12,7 @@ use crate::{Result, Session};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("layer", "Layers", run_list)
+        CommandSpec::new("layer.open", "Layers", run_list)
             .menu(&["Format", "Layers"])
             .alias(&["la", "layers", "-layer"])
             .params("{} → layers, states (typed -LAYER: option prompts)")
@@ -134,7 +134,7 @@ fn apply(l: &mut Layer, p: &Value) -> Result<()> {
     }
     if let Some(v) = str_param(p, "plotStyle").map(str::trim) {
         if v.is_empty() || v.eq_ignore_ascii_case("bylayer") || v.eq_ignore_ascii_case("byblock") {
-            return Err(bad("layer", "a layer's plot style is a style name (such as Normal)"));
+            return Err(bad("layer.open", "a layer's plot style is a style name (such as Normal)"));
         }
         l.plot_style = v.chars().take(255).collect();
     }
@@ -143,9 +143,9 @@ fn apply(l: &mut Layer, p: &Value) -> Result<()> {
             .as_str()
             .and_then(Color::parse)
             .or_else(|| c.as_u64().and_then(|i| u8::try_from(i).ok()).filter(|i| *i > 0).map(Color::Index))
-            .ok_or_else(|| bad("layer", "bad colour"))?;
+            .ok_or_else(|| bad("layer.open", "bad colour"))?;
         if matches!(c, Color::ByLayer | Color::ByBlock) {
-            return Err(bad("layer", "a layer colour must be an index or true colour"));
+            return Err(bad("layer.open", "a layer colour must be an index or true colour"));
         }
         l.color = c;
     }
@@ -153,7 +153,7 @@ fn apply(l: &mut Layer, p: &Value) -> Result<()> {
         l.linetype = lt.to_string();
     }
     if let Some(lw) = p.get("lineweight") {
-        l.lineweight = parse_lw(lw).ok_or_else(|| bad("layer", "bad lineweight"))?;
+        l.lineweight = parse_lw(lw).ok_or_else(|| bad("layer.open", "bad lineweight"))?;
     }
     if let Some(t) = p.get("transparency").and_then(Value::as_u64) {
         l.transparency = t.min(90) as u8;
@@ -478,8 +478,8 @@ mod tests {
         s.execute("layerState.delete", &json!({ "name": "start" })).unwrap();
         assert!(s.execute("layerState.list", &json!({})).unwrap()["states"].as_array().unwrap().is_empty());
         // `used` flags in the layer list.
-        s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
-        let v = s.execute("layer", &json!({})).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
+        let v = s.execute("layer.open", &json!({})).unwrap();
         let used: Vec<bool> = v["layers"].as_array().unwrap().iter().map(|l| l["used"].as_bool().unwrap()).collect();
         assert!(used.contains(&true) && used.contains(&false));
     }
@@ -507,12 +507,12 @@ mod tests {
         let mut s = Session::new();
         s.execute("layer.add", &json!({ "name": "A", "color": 1 })).unwrap();
         s.execute("layer.setCurrent", &json!({ "name": "A" })).unwrap();
-        let l = s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
-        s.execute("block", &json!({ "name": "B", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
+        let l = s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
+        s.execute("block.addDialog", &json!({ "name": "B", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
         s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
-        s.execute("insert", &json!({ "name": "B", "at": [5, 5] })).unwrap();
+        s.execute("block.insert", &json!({ "name": "B", "at": [5, 5] })).unwrap();
         assert!(s.execute("layer.delete", &json!({ "name": "A" })).is_err());
-        s.execute("purge", &json!({})).unwrap();
+        s.execute("file.purge", &json!({})).unwrap();
         assert!(s.doc().unwrap().layer("A").is_some());
     }
 
@@ -520,11 +520,11 @@ mod tests {
     fn rename_repoints_paper_space_and_block_entities() {
         let mut s = Session::new();
         s.execute("layer.add", &json!({ "name": "A", "color": "red", "current": true })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
         s.execute("edit.selectAll", &json!({})).unwrap();
-        s.execute("block", &json!({ "name": "Part", "base": [0, 0], "keep": "delete" })).unwrap();
+        s.execute("block.addDialog", &json!({ "name": "Part", "base": [0, 0], "keep": "delete" })).unwrap();
         s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
         s.execute("layer.set", &json!({ "name": "A", "newName": "B" })).unwrap();
         let d = s.doc().unwrap();
         let on_layer = |name: &str| {

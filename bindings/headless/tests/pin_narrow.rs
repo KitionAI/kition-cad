@@ -7,12 +7,12 @@ use serde_json::json;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn repeated_block_inserts_hold_copied_attribute_definitions_only() {
-    for command in ["divide", "measure"] {
+    for command in ["point.divide", "point.measure"] {
         check_with_setup(
             |f| {
                 (
                     command,
-                    if command == "divide" {
+                    if command == "point.divide" {
                         json!({"handle":f.circle,"segments":3,"block":"Repeated"})
                     } else {
                         json!({"handle":f.circle,"length":3,"block":"Repeated"})
@@ -23,12 +23,12 @@ async fn repeated_block_inserts_hold_copied_attribute_definitions_only() {
                 let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
                 let attdef =
                     d.model.iter().find(|e| matches!(&e.kind, kition_cad_doc::EntityKind::AttDef(ad) if ad.tag == "NEW")).unwrap().handle.hex();
-                vec![("block", json!({"name":"Repeated","base":[0,0],"handles":[attdef],"keep":"retain"}))]
+                vec![("block.addDialog", json!({"name":"Repeated","base":[0,0],"handles":[attdef],"keep":"retain"}))]
             },
-            |f| vec![("block", json!({"name":"Repeated","base":[10,10],"handles":[f.rect],"keep":"retain"}))],
+            |f| vec![("block.addDialog", json!({"name":"Repeated","base":[10,10],"handles":[f.rect],"keep":"retain"}))],
             |f| {
                 vec![
-                    ("block", json!({"name":"Repeated","base":[0,0],"handles":[f.joined],"keep":"retain"})),
+                    ("block.addDialog", json!({"name":"Repeated","base":[0,0],"handles":[f.joined],"keep":"retain"})),
                     ("attribute.define", json!({"tag":"NEW","default":"copied","at":[200,200],"height":3})),
                 ]
             },

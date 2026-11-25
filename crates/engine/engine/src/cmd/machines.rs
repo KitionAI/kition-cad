@@ -177,13 +177,13 @@ mod tests {
     fn selection_commands_prompt_without_pickfirst() {
         let mut s = Session::new();
         s.execute("layer.add", &json!({ "name": "A", "current": true })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
         s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 5], [10, 5]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 5], [10, 5]] })).unwrap();
         let hs: Vec<Handle> = s.doc().unwrap().model.iter().map(|e| e.handle).collect();
         let undo_before = s.state().unwrap().undo.len();
 
-        s.start("edit.cut").unwrap();
+        s.start("cutclip").unwrap();
         assert!(s.prompt_text().contains("Select objects"), "{}", s.prompt_text());
         s.input(Input::Pick(vec![hs[1]])).unwrap();
         s.input(Input::Enter).unwrap();
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(s.state().unwrap().undo.len(), undo_before + 1, "one undo step");
 
         // COPYBASE asks for the base point first, then for objects.
-        s.start("edit.copyWithBasePoint").unwrap();
+        s.start("copybase").unwrap();
         assert!(s.prompt_text().contains("Specify base point"), "{}", s.prompt_text());
         s.input(Input::Point(Vec2::new(3.0, 4.0))).unwrap();
         assert!(s.prompt_text().contains("Select objects"), "{}", s.prompt_text());
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(s.clipboard_base, Vec2::new(3.0, 4.0));
 
         // LAYFRZ picks one object and freezes its layer.
-        s.start("layer.freeze").unwrap();
+        s.start("layfrz").unwrap();
         assert!(s.prompt_text().contains("layer to be frozen"), "{}", s.prompt_text());
         s.input(Input::Pick(vec![hs[0]])).unwrap();
         assert!(s.running.is_none());
@@ -214,10 +214,10 @@ mod tests {
     #[test]
     fn selection_commands_pickfirst_and_json_unchanged() {
         let mut s = Session::new();
-        s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
         let h = s.doc().unwrap().model.iter().next().unwrap().handle;
         s.set_selection(vec![h]);
-        s.start("edit.copy").unwrap();
+        s.start("copyclip").unwrap();
         assert!(s.running.is_none(), "pickfirst: no prompt");
         assert_eq!(s.clipboard.len(), 1);
 
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn pick_box_at_object_selection_prompts() {
         let mut s = Session::new();
-        s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+        s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
         assert!(s.picking_objects(), "idle with PICKFIRST on");
         s.settings.pickfirst = false;
         assert!(!s.picking_objects(), "idle with PICKFIRST off");
@@ -326,7 +326,7 @@ mod tests {
         s.cancel();
 
         // JSON calls are not affected by what was remembered.
-        let r = s.execute("polygon", &json!({"center": [60, 0], "radius": 1, "sides": 4})).unwrap();
+        let r = s.execute("polygon.add", &json!({"center": [60, 0], "radius": 1, "sides": 4})).unwrap();
         let h = Handle::parse_hex(r["handle"].as_str().unwrap()).unwrap();
         match &s.doc().unwrap().entity(h).unwrap().kind {
             EntityKind::LwPolyline(p) => assert!((p.vertices[0].p.dist(Vec2::new(60.0, 0.0)) - 1.0).abs() < 1e-9, "inscribed"),

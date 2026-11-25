@@ -13,7 +13,7 @@ use crate::{Accept, Input, Interactive, Prompt, Result, Session, Step, snap};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("line", "Line", run_line)
+        CommandSpec::new("line.add", "Line", run_line)
             .menu(&["Draw", "Line"])
             .alias(&["l"])
             .params("{points: [[x,y],...], closed?: bool}")
@@ -23,12 +23,12 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["pl"])
             .params("{vertices: [[x,y] | {p:[x,y], bulge, startWidth, endWidth}], closed?, width?} | {points: [[x,y] | {p:[x,y], bulge, startWidth, endWidth}], closed?, width?} (points: another name for vertices)")
             .interactive(|_| Ok(Box::new(PlineM::default()))),
-        CommandSpec::new("circle", "Circle", run_circle)
+        CommandSpec::new("circle.add", "Circle", run_circle)
             .menu(&["Draw", "Circle", "Center, Radius"])
             .alias(&["c"])
             .params("{center, radius} | {center, diameter} | {p1, p2} | {p1, p2, p3}")
             .interactive(|_| Ok(Box::new(CircleM::default()))),
-        CommandSpec::new("arc", "Arc", run_arc)
+        CommandSpec::new("arc.add", "Arc", run_arc)
             .menu(&["Draw", "Arc", "3 Points"])
             .alias(&["a"])
             .params("{p1, p2, p3} | {center, radius, start, end (degrees)} | {start, center, end}")
@@ -38,17 +38,17 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["rec", "rectangle"])
             .params("{p1, p2?: [x,y] (the opposite corner; with dimensions it picks the quadrant), dimensions?: [l, w], area?: number, length?: number, breadth?: number (area with length or breadth), rotation? (deg), fillet?, chamfer?: [d1, d2], width?, elevation?, thickness?}")
             .interactive(|_| Ok(Box::new(super::draw2::RectM2::default()))),
-        CommandSpec::new("polygon", "Polygon", run_polygon)
+        CommandSpec::new("polygon.add", "Polygon", run_polygon)
             .menu(&["Draw", "Polygon"])
             .alias(&["pol"])
             .params("{sides, center, radius, inscribed?: bool, angle?: deg to a vertex (inscribed) or edge midpoint (default: bottom edge horizontal)} | {sides, edge: [[x,y],[x,y]]}")
             .interactive(|_| Ok(Box::new(PolygonM::default()))),
-        CommandSpec::new("ellipse", "Ellipse", run_ellipse)
+        CommandSpec::new("ellipse.add", "Ellipse", run_ellipse)
             .menu(&["Draw", "Ellipse", "Center"])
             .alias(&["el"])
             .params("{center, major: [dx,dy], ratio, start?, end? (degrees)}")
             .interactive(|_| Ok(Box::new(EllipseM::default()))),
-        CommandSpec::new("point", "Point", run_point)
+        CommandSpec::new("point.add", "Point", run_point)
             .menu(&["Draw", "Point", "Single Point"])
             .alias(&["po"])
             .params("{at: [x,y]} | {points: [...]}")
@@ -62,21 +62,21 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["xl"])
             .params("{base, through} | {base, angle (degrees)} | {base, hor|ver: true} | {vertex, start, end} (bisect) | {handle, distance, side} | {handle, through} (offset)")
             .interactive(|_| Ok(Box::new(super::draw2::XlineM2::default()))),
-        CommandSpec::new("ray", "Ray", run_ray)
+        CommandSpec::new("ray.add", "Ray", run_ray)
             .menu(&["Draw", "Ray"])
             .params("{base, through}")
             .interactive(|_| Ok(Box::new(RayM::default()))),
-        CommandSpec::new("spline", "Spline", run_spline)
+        CommandSpec::new("spline.add", "Spline", run_spline)
             .menu(&["Draw", "Spline", "Fit Points"])
             .alias(&["spl"])
             .params("{fit: [[x,y],...], closed?, knots?: chord|sqrt|uniform, startTangent?, endTangent? ([dx,dy]), tolerance?} | {control: [...], degree?} | {object: handle|true, handles?} (polyline to spline)")
             .interactive(|_| Ok(Box::new(SplineM::default()))),
-        CommandSpec::new("donut", "Donut", run_donut)
+        CommandSpec::new("donut.add", "Donut", run_donut)
             .menu(&["Draw", "Donut"])
             .alias(&["do", "doughnut"])
             .params("{center, inside, outside}")
             .interactive(|_| Ok(Box::new(DonutM::default()))),
-        CommandSpec::new("text", "Single Line Text", run_text)
+        CommandSpec::new("text.add", "Single Line Text", run_text)
             .menu(&["Draw", "Text", "Single Line Text"])
             .alias(&["dt", "dtext"])
             .params("{at, text, height?, rotation? (degrees), justify?: L|C|R|M|TL|TC|TR|ML|MC|MR|BL|BC|BR}")
@@ -96,14 +96,14 @@ fn added(h: kition_cad_doc::Handle) -> Result<Value> {
 // ---------------- JSON forms ----------------
 
 fn run_line(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts = points_param(p, "points").ok_or_else(|| bad("line", "`points` [[x,y],...] (2 or more) is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("line.add", "`points` [[x,y],...] (2 or more) is required"))?;
     if pts.len() < 2 {
-        return Err(bad("line", "need at least 2 points"));
+        return Err(bad("line.add", "need at least 2 points"));
     }
     // A repeated point would make a zero-length line.
     let pts = distinct_points(&pts);
     if pts.len() < 2 {
-        return Err(bad("line", "need at least 2 different points"));
+        return Err(bad("line.add", "need at least 2 different points"));
     }
     let mut hs = Vec::new();
     for w in pts.windows(2) {
@@ -170,44 +170,44 @@ fn run_pline(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_circle(s: &mut Session, p: &Value) -> Result<Value> {
     let c = if let Some(center) = point_param(p, "center") {
         // Checked before `Circle::new`, which would turn a negative radius positive.
-        let r = match size_param("circle", p, "radius", false)? {
+        let r = match size_param("circle.add", p, "radius", false)? {
             Some(r) => r,
-            None => size_param("circle", p, "diameter", false)?.ok_or_else(|| bad("circle", "`radius` or `diameter` is required"))? / 2.0,
+            None => size_param("circle.add", p, "diameter", false)?.ok_or_else(|| bad("circle.add", "`radius` or `diameter` is required"))? / 2.0,
         };
         Circle::new(center, r)
     } else if let (Some(a), Some(b)) = (point_param(p, "p1"), point_param(p, "p2")) {
         match point_param(p, "p3") {
-            Some(c3) => Circle::from_3_points(a, b, c3).ok_or_else(|| bad("circle", "points are collinear"))?,
+            Some(c3) => Circle::from_3_points(a, b, c3).ok_or_else(|| bad("circle.add", "points are collinear"))?,
             None => Circle::from_2_points(a, b),
         }
     } else {
-        return Err(bad("circle", "give {center, radius} or {p1, p2[, p3]}"));
+        return Err(bad("circle.add", "give {center, radius} or {p1, p2[, p3]}"));
     };
     if !(c.radius > 1e-12 && c.radius.is_finite()) {
-        return Err(bad("circle", "radius must be positive"));
+        return Err(bad("circle.add", "radius must be positive"));
     }
     added(s.add_entity(circle(c.center, c.radius))?)
 }
 
 fn run_arc(s: &mut Session, p: &Value) -> Result<Value> {
     let a = if let (Some(a), Some(b), Some(c)) = (point_param(p, "p1"), point_param(p, "p2"), point_param(p, "p3")) {
-        Arc::from_3_points(a, b, c).ok_or_else(|| bad("arc", "points are collinear"))?
+        Arc::from_3_points(a, b, c).ok_or_else(|| bad("arc.add", "points are collinear"))?
     } else if let (Some(st), Some(c), Some(e)) = (point_param(p, "start"), point_param(p, "center"), point_param(p, "end")) {
         Arc::from_start_center_end(st, c, e)
     } else if let Some(c) = point_param(p, "center") {
-        let r = f64_req("arc", p, "radius")?;
+        let r = f64_req("arc.add", p, "radius")?;
         // Checked before `Arc::new`, which would turn a negative radius positive (zero is
         // refused below).
         if r < 0.0 {
-            return Err(bad("arc", "`radius` must be positive"));
+            return Err(bad("arc.add", "`radius` must be positive"));
         }
-        Arc::new(c, r, f64_req("arc", p, "start")?.to_radians(), f64_req("arc", p, "end")?.to_radians())
+        Arc::new(c, r, f64_req("arc.add", p, "start")?.to_radians(), f64_req("arc.add", p, "end")?.to_radians())
     } else {
-        return Err(bad("arc", "give {p1,p2,p3}, {start,center,end} or {center,radius,start,end}"));
+        return Err(bad("arc.add", "give {p1,p2,p3}, {start,center,end} or {center,radius,start,end}"));
     };
     // Zero or non-finite radius (e.g. start == center): refuse, like the interactive ARC and the
     // arc.* variants, before anything is added.
-    let a = super::curves::finite_arc(a).ok_or_else(|| bad("arc", "these values do not define an arc"))?;
+    let a = super::curves::finite_arc(a).ok_or_else(|| bad("arc.add", "these values do not define an arc"))?;
     added(s.add_entity(arc(&a))?)
 }
 
@@ -218,17 +218,17 @@ fn run_polygon(s: &mut Session, p: &Value) -> Result<Value> {
         Some(v) => v.as_u64().and_then(|n| usize::try_from(n).ok()).unwrap_or(0),
     };
     if !(3..=1024).contains(&n) {
-        return Err(bad("polygon", "sides must be 3..1024"));
+        return Err(bad("polygon.add", "sides must be 3..1024"));
     }
     let vs = if let Some(e) = points_param(p, "edge") {
-        let (Some(a), Some(b)) = (e.first(), e.get(1)) else { return Err(bad("polygon", "edge needs 2 points")) };
+        let (Some(a), Some(b)) = (e.first(), e.get(1)) else { return Err(bad("polygon.add", "edge needs 2 points")) };
         if a.near(*b, 1e-12) {
-            return Err(bad("polygon", "edge endpoints must differ"));
+            return Err(bad("polygon.add", "edge endpoints must differ"));
         }
         polygon_from_edge(*a, *b, n)
     } else {
-        let c = point_req("polygon", p, "center")?;
-        let r = size_param("polygon", p, "radius", false)?.ok_or_else(|| bad("polygon", "`radius` (number) is required"))?;
+        let c = point_req("polygon.add", p, "center")?;
+        let r = size_param("polygon.add", p, "radius", false)?.ok_or_else(|| bad("polygon.add", "`radius` (number) is required"))?;
         let inscribed = bool_or(p, "inscribed", true);
         // Without an angle, the bottom edge is horizontal, as with a typed radius.
         let rp = match p.get("angle").and_then(Value::as_f64).filter(|a| a.is_finite()) {
@@ -241,11 +241,11 @@ fn run_polygon(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_ellipse(s: &mut Session, p: &Value) -> Result<Value> {
-    let c = point_req("ellipse", p, "center")?;
-    let m = point_req("ellipse", p, "major")?;
-    let ratio = f64_req("ellipse", p, "ratio")?;
+    let c = point_req("ellipse.add", p, "center")?;
+    let m = point_req("ellipse.add", p, "major")?;
+    let ratio = f64_req("ellipse.add", p, "ratio")?;
     if !(ratio > 0.0 && ratio <= 1.0) || m.len() < 1e-12 {
-        return Err(bad("ellipse", "ratio must be in (0, 1] and major non-zero"));
+        return Err(bad("ellipse.add", "ratio must be in (0, 1] and major non-zero"));
     }
     let start = f64_or(p, "start", 0.0).to_radians();
     let end = f64_or(p, "end", 360.0).to_radians();
@@ -255,7 +255,7 @@ fn run_ellipse(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_point(s: &mut Session, p: &Value) -> Result<Value> {
     let pts = match point_param(p, "at") {
         Some(a) => vec![a],
-        None => points_param(p, "points").ok_or_else(|| bad("point", "`at` or `points` is required"))?,
+        None => points_param(p, "points").ok_or_else(|| bad("point.add", "`at` or `points` is required"))?,
     };
     let mut hs = Vec::new();
     for q in pts {
@@ -265,11 +265,11 @@ fn run_point(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_ray(s: &mut Session, p: &Value) -> Result<Value> {
-    let b = point_req("ray", p, "base")?;
-    let t = point_req("ray", p, "through")?;
+    let b = point_req("ray.add", p, "base")?;
+    let t = point_req("ray.add", p, "through")?;
     let dir = (t - b).normalized();
     if dir == Vec2::ZERO {
-        return Err(bad("ray", "through point equals base"));
+        return Err(bad("ray.add", "through point equals base"));
     }
     added(s.add_entity(EntityKind::Ray(RayLine { base: v3(b), dir: v3(dir) }))?)
 }
@@ -280,18 +280,18 @@ fn run_spline(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let sp = if let Some(f) = points_param(p, "fit") {
         if distinct_points(&f).len() < 2 {
-            return Err(bad("spline", "need 2+ different fit points"));
+            return Err(bad("spline.add", "need 2+ different fit points"));
         }
         Spline::fit_with(&f, bool_or(p, "closed", false), super::spline_opts::json_options(s, p)?)
     } else if let Some(c) = points_param(p, "control") {
         if c.len() < 2 {
-            return Err(bad("spline", "need 2+ control points"));
+            return Err(bad("spline.add", "need 2+ control points"));
         }
         // Degree 1..=10 as at the Degree prompt, `spline.addControlVertices` and DXF input (tessellation grows
         // with its square).
         Spline::from_control(c, p.get("degree").and_then(Value::as_u64).unwrap_or(3).clamp(1, 10) as usize)
     } else {
-        return Err(bad("spline", "`fit` or `control` points are required"));
+        return Err(bad("spline.add", "`fit` or `control` points are required"));
     };
     added(s.add_entity(EntityKind::Spline(sp))?)
 }
@@ -307,11 +307,11 @@ fn donut(center: Vec2, inside: f64, outside: f64) -> EntityKind {
 }
 
 fn run_donut(s: &mut Session, p: &Value) -> Result<Value> {
-    let c = point_req("donut", p, "center")?;
-    let inside = size_param("donut", p, "inside", true)?.unwrap_or(0.5);
-    let outside = size_param("donut", p, "outside", false)?.unwrap_or(1.0);
+    let c = point_req("donut.add", p, "center")?;
+    let inside = size_param("donut.add", p, "inside", true)?.unwrap_or(0.5);
+    let outside = size_param("donut.add", p, "outside", false)?.unwrap_or(1.0);
     if inside > outside {
-        return Err(bad("donut", "`inside` must not be larger than `outside`"));
+        return Err(bad("donut.add", "`inside` must not be larger than `outside`"));
     }
     added(s.add_entity(donut(c, inside, outside))?)
 }
@@ -357,13 +357,13 @@ pub(crate) fn make_text(s: &Session, at: Vec2, value: &str, height: f64, rotatio
 }
 
 fn run_text(s: &mut Session, p: &Value) -> Result<Value> {
-    let at = point_req("text", p, "at")?;
-    let text = str_param(p, "text").ok_or_else(|| bad("text", "`text` is required"))?;
+    let at = point_req("text.add", p, "at")?;
+    let text = str_param(p, "text").ok_or_else(|| bad("text.add", "`text` is required"))?;
     let height = f64_or(p, "height", s.doc()?.header.f64("TEXTSIZE", 0.2));
     if height <= 0.0 {
-        return Err(bad("text", "height must be positive"));
+        return Err(bad("text.add", "height must be positive"));
     }
-    let j = justify(str_param(p, "justify").unwrap_or("L")).ok_or_else(|| bad("text", "unknown justification"))?;
+    let j = justify(str_param(p, "justify").unwrap_or("L")).ok_or_else(|| bad("text.add", "unknown justification"))?;
     let k = make_text(s, at, text, height, f64_or(p, "rotation", 0.0).to_radians(), j);
     added(s.add_entity(k)?)
 }

@@ -7,8 +7,8 @@ use serde_json::json;
 #[test]
 fn malformed_filters_are_errors() {
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
-    s.execute("circle", &json!({"center": [100, 100], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [100, 100], "radius": 1})).unwrap();
     for p in [
         json!({"window": [-5, -5, 5, 5]}),
         json!({"window": [[-5, -5]]}),

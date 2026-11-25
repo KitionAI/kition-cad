@@ -19,7 +19,7 @@ pub use attribs::{attribute_references, attsync_block};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("block", "Make...", run_block)
+        CommandSpec::new("block.addDialog", "Make...", run_block)
             .menu(&["Draw", "Block", "Make..."])
             .alias(&["b", "bmake"])
             .params("{name, base: [x,y], handles?, keep?: \"convert\"|\"retain\"|\"delete\" (default \"convert\"), description?}")
@@ -29,7 +29,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["-b"])
             .params("{name, base: [x,y], handles?, keep?: \"delete\"|\"retain\"|\"convert\" (default \"delete\"), description?}")
             .interactive(|_| Ok(Box::new(BlockM { dash: true, ..BlockM::default() }))),
-        CommandSpec::new("insert", "Block...", run_insert)
+        CommandSpec::new("block.insert", "Block...", run_insert)
             .menu(&["Insert", "Block..."])
             .alias(&["i", "-insert", "ddinsert"])
             .params("{name (\"*NAME\": exploded), file?: DXF/DWG path (defines or redefines block `name`, default the file name, from its model space; base point $INSBASE), at: [x,y], scale?: number | [x, y], rotation? (degrees), basePoint?: [x,y] (block coordinates), attribs?: {TAG: value}, explode?: bool}")
@@ -42,8 +42,8 @@ pub fn specs() -> Vec<CommandSpec> {
         attedit::attedit_spec(),
         attedit::dash_attedit_spec(),
         CommandSpec::new("block.write", "Write Block", run_wblock).alias(&["w"]).params("{path, name?: string (a block to write), handles? (objects to write instead of a block), base?}"),
-        CommandSpec::new("base", "Base", run_base).menu(&["Draw", "Block", "Base"]).params("{at: [x,y]}"),
-        CommandSpec::new("purge", "Purge", purge::run)
+        CommandSpec::new("block.setBase", "Base", run_base).menu(&["Draw", "Block", "Base"]).params("{at: [x,y]}"),
+        CommandSpec::new("file.purge", "Purge", purge::run)
             .alias(&["pu", "-purge"])
             .params("{type?: all|blocks|dimstyles|groups|layers|linetypes|mleaderstyles|tablestyles|textstyles|zerolength|emptytext (default all: every named type), names?: \"A*,B\" (default *)} → purged")
             .interactive(|_| Ok(Box::new(purge::PurgeM::default()))),
@@ -86,15 +86,15 @@ fn references_block(d: &kition_cad_doc::Drawing, ents: &[Entity], name: &str) ->
 /// Create a block from entities. Returns the insert handle when converting.
 pub(crate) fn make_block(s: &mut Session, name: &str, base: Vec2, hs: &[Handle], keep: &str, description: &str) -> Result<Option<Handle>> {
     if !valid_block_name(name) {
-        return Err(bad("block", "invalid block name"));
+        return Err(bad("block.addDialog", "invalid block name"));
     }
     let d = s.doc()?;
     let ents: Vec<Entity> = hs.iter().filter_map(|h| d.entity(*h).map(|e| (**e).clone())).collect();
     if ents.is_empty() {
-        return Err(bad("block", "no objects selected"));
+        return Err(bad("block.addDialog", "no objects selected"));
     }
     if references_block(d, &ents, name) {
-        return Err(bad("block", format!("Block \"{name}\" references itself.")));
+        return Err(bad("block.addDialog", format!("Block \"{name}\" references itself.")));
     }
     // Block names are case-insensitive: redefining keeps the existing definition's name.
     let name = d.blocks.keys().find(|k| k.eq_ignore_ascii_case(name)).cloned().unwrap_or_else(|| name.to_string());
@@ -186,7 +186,7 @@ pub(crate) fn insert_with(
 }
 
 fn run_block(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("block", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("block.addDialog", "`name` is required"))?.to_string();
     let base = point_param(p, "base").unwrap_or(Vec2::ZERO);
     let hs = targets(s, p)?;
     let keep = str_param(p, "keep").unwrap_or("convert").to_string();
@@ -196,24 +196,24 @@ fn run_block(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_insert(s: &mut Session, p: &Value) -> Result<Value> {
     let p = &insert_file::json_params(s, p)?;
-    let name = str_param(p, "name").ok_or_else(|| bad("insert", "`name` is required"))?.to_string();
-    let at = point_req("insert", p, "at")?;
+    let name = str_param(p, "name").ok_or_else(|| bad("block.insert", "`name` is required"))?.to_string();
+    let at = point_req("block.insert", p, "at")?;
     // `scale`: one factor, or [x, y] for different X and Y scale factors.
     let scale = match p.get("scale") {
-        Some(v) if v.is_array() => point_value(v).ok_or_else(|| bad("insert", "`scale` must be a number or [x, y]"))?,
+        Some(v) if v.is_array() => point_value(v).ok_or_else(|| bad("block.insert", "`scale` must be a number or [x, y]"))?,
         _ => {
             let f = f64_or(p, "scale", 1.0);
             Vec2::new(f, f)
         }
     };
     if scale.x == 0.0 || scale.y == 0.0 {
-        return Err(bad("insert", "scale cannot be 0"));
+        return Err(bad("block.insert", "scale cannot be 0"));
     }
     let rot = f64_or(p, "rotation", 0.0).to_radians();
     let vals = p.get("attribs").and_then(Value::as_object).cloned().unwrap_or_default();
     let h = insert_with(s, &name, at, scale, rot, point_param(p, "basePoint"), &vals)?;
     if bool_or(p, "explode", false) {
-        return s.execute("explode", &json!({ "handles": [h.hex()] }));
+        return s.execute("object.explode", &json!({ "handles": [h.hex()] }));
     }
     Ok(attedit::with_unknown_tags(s, h, &vals, json!({ "handle": h.hex() })))
 }
@@ -297,11 +297,11 @@ fn run_wblock(s: &mut Session, p: &Value) -> Result<Value> {
     let bytes = (hooks.write)(&d, &path).map_err(|e| bad("block.write", e))?;
     #[cfg(not(target_arch = "wasm32"))]
     std::fs::write(&path, &bytes).map_err(|e| bad("block.write", format!("{path}: {e}")))?;
-    Ok(json!({ "path": path, "object.query": d.model.len(), "bytes": bytes.len() }))
+    Ok(json!({ "path": path, "entities": d.model.len(), "bytes": bytes.len() }))
 }
 
 fn run_base(s: &mut Session, p: &Value) -> Result<Value> {
-    let at = point_req("base", p, "at")?;
+    let at = point_req("block.setBase", p, "at")?;
     s.doc_mut()?.header.set("INSBASE", kition_cad_doc::HVal::Point(v3(at)));
     ok()
 }
@@ -309,7 +309,7 @@ fn run_base(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_list(s: &mut Session, _p: &Value) -> Result<Value> {
     let d = s.doc()?;
     Ok(
-        json!({ "blocks": d.blocks.values().filter(|b| !b.anonymous).map(|b| json!({"name": b.name, "object.query": b.entities.len(), "base": [b.base.x, b.base.y], "description": b.description})).collect::<Vec<_>>() }),
+        json!({ "blocks": d.blocks.values().filter(|b| !b.anonymous).map(|b| json!({"name": b.name, "entities": b.entities.len(), "base": [b.base.x, b.base.y], "description": b.description})).collect::<Vec<_>>() }),
     )
 }
 

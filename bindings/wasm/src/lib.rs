@@ -81,30 +81,30 @@ const CROSSING: [u8; 4] = [22, 163, 74, 255];
 /// The drawing tools on the rail, in AutoCAD's order: (command, group, icon). Icon names are
 /// `tool-<kind>`, which Kition's editor maps to its own icons.
 const TOOLS: &[(&str, usize, &str)] = &[
-    ("line", 1, "tool-line"),
+    ("line.add", 1, "tool-line"),
     ("polyline.add", 1, "tool-pen"),
-    ("circle", 2, "tool-ellipse"),
-    ("arc", 2, "tool-arc"),
-    ("ellipse", 2, "tool-ellipse"),
+    ("circle.add", 2, "tool-ellipse"),
+    ("arc.add", 2, "tool-arc"),
+    ("ellipse.add", 2, "tool-ellipse"),
     ("rectangle.add", 3, "tool-rect"),
-    ("polygon", 3, "tool-polygon"),
-    ("spline", 4, "tool-curvature"),
-    ("hatch", 4, "tool-bucket"),
+    ("polygon.add", 3, "tool-polygon"),
+    ("spline.add", 4, "tool-curvature"),
+    ("hatch.add", 4, "tool-bucket"),
     ("multilineText.add", 5, "tool-type"),
-    ("text", 5, "tool-type"),
+    ("text.add", 5, "tool-type"),
     ("dimension.addLinear", 6, "tool-measure"),
     ("dimension.addAligned", 6, "tool-measure"),
     ("dimension.addRadius", 6, "tool-measure"),
-    ("move", 7, "tool-move"),
-    ("copy", 7, "tool-copy"),
-    ("rotate", 8, "tool-rotate"),
-    ("scale", 8, "tool-scale"),
-    ("mirror", 8, "tool-reflect"),
-    ("offset", 9, "tool-offset"),
-    ("trim", 9, "tool-scissors"),
-    ("extend", 9, "tool-extend"),
-    ("fillet", 9, "tool-fillet"),
-    ("erase", 10, "tool-eraser"),
+    ("object.move", 7, "tool-move"),
+    ("object.copy", 7, "tool-copy"),
+    ("object.rotate", 8, "tool-rotate"),
+    ("object.scale", 8, "tool-scale"),
+    ("object.mirror", 8, "tool-reflect"),
+    ("object.offset", 9, "tool-offset"),
+    ("object.trim", 9, "tool-scissors"),
+    ("object.extend", 9, "tool-extend"),
+    ("object.fillet", 9, "tool-fillet"),
+    ("object.delete", 10, "tool-eraser"),
 ];
 
 /// Document pixels of the drawing: `px = (x - x0) * k`, `py = (y1 - y) * k`.
@@ -194,7 +194,10 @@ fn names_a_file(params: &str) -> bool {
 /// ([`OPEN_PARAMETERS`]) check their keys themselves.
 fn command_line_gate(command: &str, params: Option<&Value>) -> Result<(), String> {
     if kition_cad_engine::cmd::find_command(command).is_some_and(|spec| names_a_file(spec.params)) {
-        return Err(format!("{} reads or writes files, which the command line cannot do here", command.to_ascii_uppercase()));
+        return Err(format!(
+            "{} reads or writes files, which the command line cannot do here",
+            kition_cad_engine::cmd::typed_name(command).to_ascii_uppercase()
+        ));
     }
     match params {
         Some(params) if !OPEN_PARAMETERS.contains(&command) => kition_kit::dispatch::may_run(command, params),
@@ -204,8 +207,19 @@ fn command_line_gate(command: &str, params: Option<&Value>) -> Result<(), String
 
 /// Commands that change the drawing although the engine does not record them as undoable steps:
 /// the history itself, and the commands that make, open, close, recover, save, or switch drawings.
-const DOCUMENT_COMMANDS: &[&str] =
-    &["u", "undo", "redo", "new", "open", "close", "file.closeAll", "recover", "file.save", "file.saveAs", "file.switch"];
+const DOCUMENT_COMMANDS: &[&str] = &[
+    "edit.undoStep",
+    "edit.undoMany",
+    "edit.redoStep",
+    "file.new",
+    "file.open",
+    "file.close",
+    "file.closeAll",
+    "file.recover",
+    "file.save",
+    "file.saveAs",
+    "file.switch",
+];
 
 /// Whether running a command changes the drawing (the catalog's `mutates`): its edits (the
 /// engine's undoable commands) and [`DOCUMENT_COMMANDS`]. Selection, zoom and pan, drafting
@@ -635,7 +649,7 @@ impl KitDocument for CadDocument {
     fn execute(&mut self, command: &str, params: Value) -> Result<Value, String> {
         let params = place::resolve(&self.session, command, params)?;
         let params = params::resolve(self.session.doc().map_err(engine_error)?, command, params)?;
-        if self.session.host_files_only && command == "insert" && params.get("file").is_some() {
+        if self.session.host_files_only && command == "block.insert" && params.get("file").is_some() {
             return Err("command disabled: the host opens files; insert takes an existing block name".into());
         }
         if !OPEN_PARAMETERS.contains(&command)
@@ -802,7 +816,7 @@ impl KitDocument for CadDocument {
         agent_text::apply(&mut commands);
         kition_kit::files::declare(&mut commands, files::FILES);
         if self.session.host_files_only {
-            for c in commands.iter_mut().filter(|c| c.id == "insert") {
+            for c in commands.iter_mut().filter(|c| c.id == "block.insert") {
                 if let Some(schema) = c.schema.as_mut().and_then(Value::as_object_mut) {
                     schema.remove("file");
                 }
@@ -983,7 +997,7 @@ impl CadDocument {
                 let scope = kition_kit::session::history_scope(&params, &self.session.origin()).map_err(|e| e.to_string())?;
                 self.session.redo_in(scope).map(|label| json!({ "redone": label })).map_err(engine_error)
             }
-            "command.runLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
+            "commandLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
             "file.export" => self.export_command(&params),
             render::RENDER => self.render_view(&params),
             _ => self.session.execute(command, &params).map_err(engine_error),
@@ -1026,20 +1040,20 @@ impl CadDocument {
                     "on": layer.on,
                     "frozen": layer.frozen,
                     "locked": layer.locked,
-                    "object.query": per_layer.get(&layer.name.to_ascii_lowercase()).copied().unwrap_or(0),
+                    "entities": per_layer.get(&layer.name.to_ascii_lowercase()).copied().unwrap_or(0),
                 })
             })
             .collect();
         let mut layouts: Vec<&kition_cad_doc::Layout> = doc.layouts.iter().collect();
         layouts.sort_by_key(|l| l.tab_order);
-        let spaces: Vec<Value> = std::iter::once(json!({ "name": "Model", "part": { "layout": "Model" }, "object.query": doc.model.len() }))
+        let spaces: Vec<Value> = std::iter::once(json!({ "name": "Model", "part": { "layout": "Model" }, "entities": doc.model.len() }))
             .chain(layouts.iter().map(|l| {
                 let viewports = l.entities.iter().filter(|e| matches!(e.kind, kition_cad_doc::EntityKind::Viewport(_))).count();
                 json!({
                     "name": l.name,
                     "id": format!("layout:{}", doc.record_id("layout", &l.name, 0).unwrap_or(&l.name)),
                     "part": { "layout": l.name },
-                    "object.query": l.entities.len(),
+                    "entities": l.entities.len(),
                     "viewports": viewports,
                 })
             }))
@@ -1048,7 +1062,7 @@ impl CadDocument {
             .blocks
             .iter()
             .filter(|(name, _)| !name.starts_with('*'))
-            .map(|(name, block)| json!({ "id": format!("block:{}", doc.record_id("block", name, 0).unwrap_or(name)), "name": name, "object.query": block.entities.len() }))
+            .map(|(name, block)| json!({ "id": format!("block:{}", doc.record_id("block", name, 0).unwrap_or(name)), "name": name, "entities": block.entities.len() }))
             .collect();
         let views: Vec<Value> = doc
             .views
@@ -1062,7 +1076,7 @@ impl CadDocument {
         let links = links::report(doc);
         let mut inspected = json!({
             "title": state.title,
-            "object.query": doc.model.len(),
+            "entities": doc.model.len(),
             "layouts": spaces,
             "layers": layers,
             "blocks": blocks,
@@ -1076,11 +1090,11 @@ impl CadDocument {
             "drafting": {
                 "ortho": settings.orthomode,
                 "polar": settings.polarmode,
-                "drafting.objectSnap": settings.osmode != 0 && settings.osmode & 16384 == 0,
-                "drafting.objectSnapTracking": settings.otrack,
+                "osnap": settings.osmode != 0 && settings.osmode & 16384 == 0,
+                "otrack": settings.otrack,
                 "grid": settings.gridmode,
                 "snap": settings.snapmode,
-                "drafting.lineweightDisplay": settings.lwdisplay,
+                "lwdisplay": settings.lwdisplay,
             },
             "selection": self.session.selection().len(),
             "selectedObjects": self.selected_objects(),

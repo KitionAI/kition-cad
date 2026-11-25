@@ -28,7 +28,7 @@ async fn constraints_setting_preserves_other_setting() {
 async fn constraints_new_constraint_preserves_source_color() {
     check(
         |f| ("constraint.coincident", json!({"h1":f.line,"p1":"end","h2":f.joined,"p2":"start"})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[10,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[10,0]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
     )
     .await;
@@ -38,7 +38,7 @@ async fn constraints_showall_noop_preserves_geometry() {
     check_with_setup(
         |_| ("constraint.showAllBars", json!({})),
         |_| vec![("constraint.hideAllBars", json!({}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[5,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[5,0]}))],
         |f| vec![("constraint.perpendicular", json!({"h1":f.line,"h2":f.joined}))],
     )
     .await;
@@ -48,7 +48,7 @@ async fn constraints_delete_last_preserves_removed_constraint_geometry() {
     check_with_setup(
         |_| ("constraint.delete", json!({"ids":[1]})),
         |_| vec![("constraint.delete", json!({"ids":[1]}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[5,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[5,0]}))],
         |f| vec![("constraint.perpendicular", json!({"h1":f.line,"h2":f.joined}))],
     )
     .await;

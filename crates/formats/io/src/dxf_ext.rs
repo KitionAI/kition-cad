@@ -48,14 +48,14 @@ pub(crate) fn named_record(kind: &str, tags: &[Tag], names: &std::collections::H
         "LAYER" => ("layer", 2),
         "LTYPE" => ("linetype", 2),
         "STYLE" => ("textstyle", 2),
-        "DIMSTYLE" => ("dimensionStyle.open", 2),
+        "DIMSTYLE" => ("dimstyle", 2),
         "VIEW" => ("view", 2),
         "UCS" => ("ucs", 2),
         "BLOCK" => ("block", 2),
         "LAYOUT" => ("layout", 1),
         "GROUP" => ("group", 0),
-        "MLEADERSTYLE" => ("multileaderStyle.open", 0),
-        "TABLESTYLE" => ("tableStyle.open", 0),
+        "MLEADERSTYLE" => ("mleaderstyle", 0),
+        "TABLESTYLE" => ("tablestyle", 0),
         _ => return None,
     };
     let tags = if kind == "LAYOUT" { tags.get(tags.iter().position(|t| t.code == 100 && t.str() == "AcDbLayout")?..)? } else { tags };

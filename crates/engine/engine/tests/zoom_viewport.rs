@@ -19,8 +19,8 @@ fn session() -> (Session, String) {
     let mut s = Session::new();
     s.new_drawing(true);
     s.viewport_px = (1600.0, 900.0);
-    s.execute("line", &json!({"points": [[0, 0], [1000, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 0], [0, 500]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [1000, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [0, 500]]})).unwrap();
     s.execute("layout.set", &json!({"name": "Layout1"})).unwrap();
     let r = s.execute("viewport.add", &json!({"p1": [20, 20], "p2": [120, 100]})).unwrap();
     let h = r["viewports"][0].as_str().unwrap().to_string();
@@ -61,7 +61,7 @@ fn zoom_inside_a_viewport_acts_on_the_viewport() {
     assert!((v.view_height - 160.0).abs() < 1e-9, "{}", v.view_height);
 
     // The JSON form agrees, and the sheet itself never moves.
-    s.execute("zoom", &json!({"mode": "scale", "factor": 0.25, "xp": true})).unwrap();
+    s.execute("view.zoomRealtime", &json!({"mode": "scale", "factor": 0.25, "xp": true})).unwrap();
     assert!((viewport(&s, &h).view_height - 320.0).abs() < 1e-9);
     assert_eq!(s.state().unwrap().paper_view(), paper);
 }
@@ -82,7 +82,7 @@ fn zoom_in_a_locked_viewport_or_on_the_model_tab_is_unchanged() {
     let mut s = Session::new();
     s.new_drawing(true);
     s.viewport_px = (1600.0, 900.0);
-    s.execute("line", &json!({"points": [[0, 0], [1000, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [1000, 0]]})).unwrap();
     s.cmdline("zoom e").unwrap();
     let v = s.state().unwrap().view();
     assert!((v.height - 1000.0 / (1600.0 / 900.0) * 1.05).abs() < 1e-6, "{}", v.height);

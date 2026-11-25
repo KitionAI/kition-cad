@@ -303,7 +303,7 @@ fn reach(code: &[u8], with_strings: &[u8]) -> Reach {
             let module = qualifier(code, at).filter(|m| !["crate", "super", "self", "Self", "cmd"].contains(m));
             found.calls.insert(module.map_or_else(|| name.to_owned(), |m| format!("{m}::{name}")));
         }
-        // `s.execute("zoom", …)`, or a command found by id (`find_command("object.arrayRectangular")`): the
+        // `s.execute("view.zoomRealtime", …)`, or a command found by id (`find_command("object.arrayRectangular")`): the
         // command runs another, and reads what it reads.
         if matches!(name, "find_command" | "execute") && code.get(after) == Some(&b'(') {
             let rest = strings[after + 1..].trim_start();
@@ -744,11 +744,11 @@ fn the_published_commands_pass_the_sdks_checks() {
     let commands = doc.commands();
     kition_kit::testing::check_commands(&commands, &[]).unwrap_or_else(|problems| panic!("{}", problems.join("\n")));
     let by_id = |id: &str| commands.iter().find(|c| c.id == id).unwrap_or_else(|| panic!("no {id}"));
-    for id in ["erase", "move", "object.setProperties"] {
+    for id in ["object.delete", "object.move", "object.setProperties"] {
         assert_eq!(by_id(id).targets, Some("handles"), "{id}");
         assert!(by_id(id).reads.contains(&kition_kit::EditorState::Selection), "{id}");
     }
-    for id in ["line", "circle", "rectangle.add", "text", "dimension.addLinear"] {
+    for id in ["line.add", "circle.add", "rectangle.add", "text.add", "dimension.addLinear"] {
         let command = by_id(id);
         assert!(command.reads.contains(&kition_kit::EditorState::Active) && command.reads.contains(&kition_kit::EditorState::Part), "{id}");
         let schema = command.schema.as_ref().unwrap();

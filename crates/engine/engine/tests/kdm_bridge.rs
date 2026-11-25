@@ -15,9 +15,9 @@ use serde_json::{Value, json};
 fn new_session() -> Session {
     let mut s = Session::new();
     s.execute("layer.add", &json!({"name": "Walls"})).unwrap();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 5], [8, 9]]})).unwrap();
-    s.execute("circle", &json!({"center": [20, 10], "radius": 3})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 5], [8, 9]]})).unwrap();
+    s.execute("circle.add", &json!({"center": [20, 10], "radius": 3})).unwrap();
     s
 }
 
@@ -103,11 +103,11 @@ fn first_line(s: &Session) -> String {
 fn one_command_one_transaction_reproduces_in_a_peer() {
     let cases: Vec<(&str, fn(&mut Session))> = vec![
         ("draw a line", |s| {
-            s.execute("line", &json!({"points": [[1, 1], [4, 6]]})).unwrap();
+            s.execute("line.add", &json!({"points": [[1, 1], [4, 6]]})).unwrap();
         }),
         ("move an entity", |s| {
             let h = first_line(s);
-            s.execute("move", &json!({"handles": [h], "delta": [3, 2]})).unwrap();
+            s.execute("object.move", &json!({"handles": [h], "delta": [3, 2]})).unwrap();
         }),
         ("an interactive LINE", |s| {
             for t in ["line", "30,30", "40,30", "40,40", ""] {
@@ -116,14 +116,14 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
         }),
         ("erase", |s| {
             let h = first_line(s);
-            s.execute("erase", &json!({"handles": [h]})).unwrap();
+            s.execute("object.delete", &json!({"handles": [h]})).unwrap();
         }),
         ("rename a layer in use", |s| {
             // The line goes onto Walls by LAYMCH: making Walls current writes nothing to the
             // replica (the current layer and the LAYERP snapshot are each person's own).
-            let h = handle(&s.execute("line", &json!({"points": [[0, 20], [5, 20]]})).unwrap());
+            let h = handle(&s.execute("line.add", &json!({"points": [[0, 20], [5, 20]]})).unwrap());
             s.execute("layer.match", &json!({"handles": [h], "layer": "Walls"})).unwrap();
-            s.execute("rename", &json!({"table": "layer", "from": "Walls", "to": "Partitions"})).unwrap();
+            s.execute("namedObject.rename", &json!({"table": "layer", "from": "Walls", "to": "Partitions"})).unwrap();
         }),
         ("bring to front", |s| {
             let h = model(s)[0].clone();
@@ -136,19 +136,19 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
         ("an associative dimension follows its line", |s| {
             let h = first_line(s);
             s.execute("dimension.addLinear", &json!({"object": h, "at": [5, -4]})).unwrap();
-            s.execute("move", &json!({"handles": [h], "delta": [0, 2]})).unwrap();
+            s.execute("object.move", &json!({"handles": [h], "delta": [0, 2]})).unwrap();
         }),
         ("a block from model space objects", |s| {
             let hs = model(s);
-            s.execute("block", &json!({"name": "Pair", "base": [0, 0], "handles": [hs[0], hs[1]]})).unwrap();
+            s.execute("block.addDialog", &json!({"name": "Pair", "base": [0, 0], "handles": [hs[0], hs[1]]})).unwrap();
         }),
         ("a group", |s| {
             let hs = model(s);
-            s.execute("group", &json!({"name": "G", "handles": [hs[0], hs[2]]})).unwrap();
+            s.execute("arrange.group", &json!({"name": "G", "handles": [hs[0], hs[2]]})).unwrap();
         }),
         ("copy", |s| {
             let h = first_line(s);
-            s.execute("copy", &json!({"handles": [h], "delta": [0, 30]})).unwrap();
+            s.execute("object.copy", &json!({"handles": [h], "delta": [0, 30]})).unwrap();
         }),
     ];
     for (name, run) in cases {
@@ -178,10 +178,10 @@ fn an_interactive_command_is_one_undo_step() {
     assert_eq!(doc(&s).model.len(), 6, "three segments");
     assert_eq!(s.state().unwrap().undo.len(), entries + 1, "one history step");
     assert_eq!(last_steps(&s), 1, "one replica step");
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert!(canonical(doc(&s)) == before, "one undo takes the whole command back");
     assert_holds(&s, "after the undo");
-    s.execute("redo", &json!({})).unwrap();
+    s.execute("edit.redoStep", &json!({})).unwrap();
     assert_eq!(doc(&s).model.len(), 6);
 }
 
@@ -191,9 +191,9 @@ fn undo_back_to_the_saved_drawing_is_clean() {
     let st = s.state_mut().unwrap();
     st.saved = st.doc.clone();
     let h = first_line(&s);
-    s.execute("move", &json!({"handles": [h], "delta": [1, 1]})).unwrap();
+    s.execute("object.move", &json!({"handles": [h], "delta": [1, 1]})).unwrap();
     assert!(s.state().unwrap().is_dirty());
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert!(!s.state().unwrap().is_dirty(), "the replica's undo result is the saved drawing");
 }
 
@@ -202,13 +202,13 @@ fn undo_after_a_remote_edit_keeps_it() {
     let mut a = new_session();
     let mut b = peer(&mut a);
     let h = first_line(&a);
-    a.execute("move", &json!({"handles": [h], "delta": [20, 0]})).unwrap();
+    a.execute("object.move", &json!({"handles": [h], "delta": [20, 0]})).unwrap();
     sync(&mut a, &mut b);
-    b.execute("line", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
+    b.execute("line.add", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "exchanged");
     assert_eq!(doc(&a).model.len(), 4);
-    a.execute("u", &json!({})).unwrap();
+    a.execute("edit.undoStep", &json!({})).unwrap();
     let x = doc(&a).entity(Handle::parse_hex(&h).unwrap()).map(|e| match &e.kind {
         EntityKind::Line(l) => l.a.x,
         _ => f64::NAN,
@@ -226,9 +226,9 @@ fn selection_only_changes_write_nothing() {
     let mut b = peer(&mut a);
     let version = a.version().unwrap();
     let hs = model(&a);
-    a.execute("select", &json!({"handles": hs})).unwrap();
+    a.execute("select.set", &json!({"handles": hs})).unwrap();
     a.execute("edit.selectAll", &json!({})).unwrap();
-    a.execute("zoom", &json!({"mode": "extents"})).unwrap();
+    a.execute("view.zoomRealtime", &json!({"mode": "extents"})).unwrap();
     a.idle_click(kition_cad_engine::geom::Vec2::new(500.0, 500.0), false).unwrap();
     assert_eq!(a.version().unwrap(), version, "no transaction");
     assert!(b.selection().is_empty(), "the peer's own selection is untouched");
@@ -241,12 +241,12 @@ fn a_remote_deletion_of_a_selected_entity_fixes_the_selection() {
     let mut a = new_session();
     let mut b = peer(&mut a);
     let hs = model(&a);
-    a.execute("select", &json!({"handles": [hs[0], hs[2]]})).unwrap();
-    b.execute("erase", &json!({"handles": [hs[0]]})).unwrap();
+    a.execute("select.set", &json!({"handles": [hs[0], hs[2]]})).unwrap();
+    b.execute("object.delete", &json!({"handles": [hs[0]]})).unwrap();
     send(&mut b, &mut a);
     let selected: Vec<String> = a.selection().iter().map(|h| h.hex()).collect();
     assert_eq!(selected, vec![hs[2].clone()], "the deleted entity is no longer selected");
-    a.execute("line", &json!({"points": [[1, 2], [3, 4]]})).unwrap();
+    a.execute("line.add", &json!({"points": [[1, 2], [3, 4]]})).unwrap();
     assert_holds(&a, "an edit after the import");
 }
 
@@ -265,9 +265,9 @@ fn each_person_draws_on_their_own_current_layer() {
     assert_same(&mut a, &mut b, "after both made a layer current");
     assert_eq!(doc(&a).header.str("CLAYER", "?"), "Walls", "a's current layer survives b's");
     assert_eq!(doc(&b).header.str("CLAYER", "?"), "Doors", "b's current layer survives a's");
-    let x = handle(&a.execute("line", &json!({"points": [[0, 70], [5, 70]]})).unwrap());
+    let x = handle(&a.execute("line.add", &json!({"points": [[0, 70], [5, 70]]})).unwrap());
     sync(&mut a, &mut b);
-    let y = handle(&b.execute("line", &json!({"points": [[0, 80], [5, 80]]})).unwrap());
+    let y = handle(&b.execute("line.add", &json!({"points": [[0, 80], [5, 80]]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both lines");
     for s in [&a, &b] {
@@ -438,7 +438,7 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
 fn each_person_keeps_their_own_layer_snapshots() {
     let mut a = new_session();
     a.execute("layer.add", &json!({"name": "Doors"})).unwrap();
-    let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
+    let x = handle(&a.execute("line.add", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
     a.execute("layer.match", &json!({"handles": [x], "layer": "Walls"})).unwrap();
     let mut b = peer(&mut a);
     b.execute("layer.setCurrent", &json!({"name": "Doors"})).unwrap();
@@ -486,7 +486,7 @@ fn each_person_works_in_their_own_ucs() {
     sync(&mut a, &mut b);
     b.execute("variable.set", &json!({"name": "UCSORG", "value": [5, 5]})).unwrap();
     sync(&mut a, &mut b);
-    a.execute("line", &json!({"points": [[0, 50], [5, 50]]})).unwrap();
+    a.execute("line.add", &json!({"points": [[0, 50], [5, 50]]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both set their UCS");
     assert_eq!(doc(&a).header.get("UCSORG"), Some(&HVal::Point(Vec3::new(1.0, 2.0, 0.0))), "a's UCS survives b's");
@@ -517,10 +517,10 @@ fn each_person_works_in_their_own_ucs() {
 fn agent_edits_record_their_origin_and_undo_on_this_replica() {
     let mut s = new_session();
     let agent = Origin::agent("test");
-    s.execute_as("line", &json!({"points": [[0, 70], [5, 70]]}), &agent).unwrap();
+    s.execute_as("line.add", &json!({"points": [[0, 70], [5, 70]]}), &agent).unwrap();
     assert_eq!(s.origin(), kition_cad_engine::kdm_bridge::local_person(), "the origin is restored after the call");
     assert_eq!(doc(&s).model.len(), 4);
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert_eq!(doc(&s).model.len(), 3);
 }
 
@@ -529,7 +529,7 @@ fn a_file_newer_than_its_stored_replica_wins_on_open() {
     let mut a = new_session();
     let snapshot = a.snapshot().unwrap();
     let doc_id = a.doc_id().unwrap();
-    a.execute("line", &json!({"points": [[0, 80], [5, 80]]})).unwrap();
+    a.execute("line.add", &json!({"points": [[0, 80], [5, 80]]})).unwrap();
     let file = kition_cad_io::write(doc(&a), "Plan.dxf").unwrap();
 
     let mut b = Session::empty();
@@ -568,13 +568,13 @@ fn erasing_the_object_of_a_dimension_inside_a_block_drops_its_attachment() {
     let mut a = new_session();
     let line = first_line(&a);
     let dim = handle(&a.execute("dimension.addLinear", &json!({"object": line, "at": [5, -4]})).unwrap());
-    a.execute("block", &json!({"name": "D", "base": [0, 0], "handles": [dim]})).unwrap();
+    a.execute("block.addDialog", &json!({"name": "D", "base": [0, 0], "handles": [dim]})).unwrap();
     let in_block = |a: &Session| -> Vec<usize> {
         doc(a).blocks["D"].entities.iter().filter_map(|e| if let EntityKind::Dimension(d) = &e.kind { Some(d.assoc.len()) } else { None }).collect()
     };
     assert_eq!(in_block(&a), vec![2], "the block's dimension is still attached to the line");
     assert_holds(&a, "block made");
-    a.execute("erase", &json!({"handles": [line]})).unwrap();
+    a.execute("object.delete", &json!({"handles": [line]})).unwrap();
     assert_eq!(in_block(&a), vec![0], "the attachment to the erased line is dropped");
     assert_holds(&a, "line erased");
     let mut b = peer(&mut a);
@@ -625,7 +625,7 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
     let pick = |rng: &mut Rng| hs.get(rng.below(hs.len() as u64) as usize).cloned();
     let lines: Vec<String> = doc(s).model.iter().filter(|e| matches!(e.kind, EntityKind::Line(_))).map(|e| e.handle.hex()).collect();
     let (id, params): (&str, Value) = match rng.below(18) {
-        0 | 1 => ("line", json!({"points": [[rng.coord(), rng.coord()], [rng.coord() + 101, rng.coord()]]})),
+        0 | 1 => ("line.add", json!({"points": [[rng.coord(), rng.coord()], [rng.coord() + 101, rng.coord()]]})),
         2 => {
             let pts = [rng.coord(), rng.coord(), rng.coord() + 101, rng.coord()];
             for t in ["line".to_owned(), format!("{},{}", pts[0], pts[1]), format!("{},{}", pts[2], pts[3]), String::new()] {
@@ -633,44 +633,44 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
             }
             return "interactive line".into();
         }
-        3 => ("circle", json!({"center": [rng.coord(), rng.coord()], "radius": 1 + rng.below(9)})),
+        3 => ("circle.add", json!({"center": [rng.coord(), rng.coord()], "radius": 1 + rng.below(9)})),
         4 | 5 => match pick(rng) {
-            Some(h) => ("move", json!({"handles": [h], "delta": [rng.coord() - 50, rng.coord() - 50]})),
-            None => ("line", json!({"points": [[0, 0], [1, 1]]})),
+            Some(h) => ("object.move", json!({"handles": [h], "delta": [rng.coord() - 50, rng.coord() - 50]})),
+            None => ("line.add", json!({"points": [[0, 0], [1, 1]]})),
         },
         6 => match pick(rng) {
-            Some(h) => ("copy", json!({"handles": [h], "delta": [rng.coord(), 0]})),
-            None => ("circle", json!({"center": [0, 0], "radius": 1})),
+            Some(h) => ("object.copy", json!({"handles": [h], "delta": [rng.coord(), 0]})),
+            None => ("circle.add", json!({"center": [0, 0], "radius": 1})),
         },
         7 => match pick(rng) {
-            Some(h) => ("erase", json!({"handles": [h]})),
-            None => ("circle", json!({"center": [3, 3], "radius": 1})),
+            Some(h) => ("object.delete", json!({"handles": [h]})),
+            None => ("circle.add", json!({"center": [3, 3], "radius": 1})),
         },
         8 => match pick(rng) {
             Some(h) => (if rng.below(2) == 0 { "arrange.bringToFront" } else { "arrange.sendToBack" }, json!({"handles": [h]})),
-            None => ("line", json!({"points": [[2, 0], [3, 1]]})),
+            None => ("line.add", json!({"points": [[2, 0], [3, 1]]})),
         },
         9 => ("layer.add", json!({"name": format!("L{}", rng.below(5)), "current": rng.below(2) == 0})),
         10 => ("layer.setCurrent", json!({"name": "0"})),
-        11 => ("rename", json!({"table": "layer", "from": format!("L{}", rng.below(5)), "to": format!("R{}", rng.below(50))})),
+        11 => ("namedObject.rename", json!({"table": "layer", "from": format!("L{}", rng.below(5)), "to": format!("R{}", rng.below(50))})),
         12 => match lines.get(rng.below(lines.len() as u64) as usize) {
             Some(h) => ("constraint.addGeometric", json!({"type": if rng.below(2) == 0 { "horizontal" } else { "fix" }, "h1": h})),
-            None => ("line", json!({"points": [[4, 0], [9, 1]]})),
+            None => ("line.add", json!({"points": [[4, 0], [9, 1]]})),
         },
         13 => match lines.get(rng.below(lines.len() as u64) as usize) {
             Some(h) => ("dimension.addLinear", json!({"object": h, "at": [rng.coord(), rng.coord() - 60]})),
-            None => ("line", json!({"points": [[5, 0], [7, 1]]})),
+            None => ("line.add", json!({"points": [[5, 0], [7, 1]]})),
         },
         14 => match (pick(rng), pick(rng)) {
-            (Some(x), Some(y)) if x != y => ("group", json!({"handles": [x, y]})),
-            _ => ("line", json!({"points": [[6, 0], [8, 2]]})),
+            (Some(x), Some(y)) if x != y => ("arrange.group", json!({"handles": [x, y]})),
+            _ => ("line.add", json!({"points": [[6, 0], [8, 2]]})),
         },
         15 => match pick(rng) {
-            Some(h) => ("block", json!({"name": format!("B{}", rng.below(1000)), "base": [0, 0], "handles": [h]})),
-            None => ("line", json!({"points": [[7, 0], [9, 3]]})),
+            Some(h) => ("block.addDialog", json!({"name": format!("B{}", rng.below(1000)), "base": [0, 0], "handles": [h]})),
+            None => ("line.add", json!({"points": [[7, 0], [9, 3]]})),
         },
-        16 => ("redo", json!({})),
-        _ => ("u", json!({})),
+        16 => ("edit.redoStep", json!({})),
+        _ => ("edit.undoStep", json!({})),
     };
     let r = s.execute(id, &params);
     format!("{id} {params} -> {}", if r.is_ok() { "ok" } else { "refused" })
@@ -745,20 +745,20 @@ fn the_persons_undo_keeps_the_agents_step_and_the_agents_undo_takes_it_back() {
     let mut s = new_session();
     let agent = Origin::agent("test");
     let before = model(&s);
-    s.execute("line", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
-    s.execute_as("circle", &json!({"center": [40, 40], "radius": 2}), &agent).unwrap();
+    s.execute("line.add", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
+    s.execute_as("circle.add", &json!({"center": [40, 40], "radius": 2}), &agent).unwrap();
     assert_eq!(model(&s).len(), before.len() + 2);
-    s.execute("undo", &json!({})).unwrap();
+    s.execute("edit.undoMany", &json!({})).unwrap();
     assert!(!has_line(&s), "the person's undo takes back the person's line");
     assert!(has_circle(&s), "and keeps the agent's later circle");
-    s.execute("redo", &json!({})).unwrap();
+    s.execute("edit.redoStep", &json!({})).unwrap();
     assert!(has_line(&s));
-    s.execute_as("undo", &json!({}), &agent).unwrap();
+    s.execute_as("edit.undoMany", &json!({}), &agent).unwrap();
     assert!(!has_circle(&s), "the agent's undo takes back the agent's circle");
     assert!(has_line(&s), "and keeps the person's line");
-    s.execute("redo", &json!({"scope": "agent"})).unwrap();
+    s.execute("edit.redoStep", &json!({"scope": "agent"})).unwrap();
     assert!(has_circle(&s), "the person can redo the agent's step by naming its scope");
-    assert!(s.execute("undo", &json!({"scope": "everyone"})).is_err(), "an unknown scope is refused");
+    assert!(s.execute("edit.undoMany", &json!({"scope": "everyone"})).is_err(), "an unknown scope is refused");
     assert_eq!(model(&s).len(), before.len() + 2);
 }
 
@@ -766,16 +766,16 @@ fn the_persons_undo_keeps_the_agents_step_and_the_agents_undo_takes_it_back() {
 fn an_agent_undo_under_the_persons_later_step_keeps_the_persons_edit() {
     let mut s = new_session();
     let agent = Origin::agent("test");
-    s.execute_as("circle", &json!({"center": [40, 40], "radius": 2}), &agent).unwrap();
-    s.execute("line", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
+    s.execute_as("circle.add", &json!({"center": [40, 40], "radius": 2}), &agent).unwrap();
+    s.execute("line.add", &json!({"points": [[50, 50], [60, 60]]})).unwrap();
     let with_both = model(&s);
-    s.execute_as("undo", &json!({}), &agent).unwrap();
+    s.execute_as("edit.undoMany", &json!({}), &agent).unwrap();
     assert_eq!(model(&s).len(), with_both.len() - 1, "only the agent's circle goes");
     assert!(!has_circle(&s));
     assert!(has_line(&s), "the person's later line stays");
-    s.execute("undo", &json!({})).unwrap();
+    s.execute("edit.undoMany", &json!({})).unwrap();
     assert!(!has_line(&s), "then the person's undo takes back the line");
-    s.execute_as("redo", &json!({}), &agent).unwrap();
+    s.execute_as("edit.redoStep", &json!({}), &agent).unwrap();
     assert!(has_circle(&s), "and the agent's redo brings the circle back");
     assert!(!has_line(&s));
 }
@@ -820,18 +820,18 @@ fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
         let mut other = peer(&mut s);
         let lines: Vec<String> = doc(&s).model.iter().filter(|e| matches!(e.kind, EntityKind::Line(_))).map(|e| e.handle.hex()).collect();
         let (first, second) = (lines[0].clone(), lines[1].clone());
-        s.execute("move", &json!({"handles": [first], "delta": [20, 0]})).unwrap();
-        s.execute("move", &json!({"handles": [second], "delta": [0, 30]})).unwrap();
+        s.execute("object.move", &json!({"handles": [first], "delta": [20, 0]})).unwrap();
+        s.execute("object.move", &json!({"handles": [second], "delta": [0, 30]})).unwrap();
         if by_agent {
-            s.execute_as("erase", &json!({"handles": [second]}), &Origin::agent("test")).unwrap();
+            s.execute_as("object.delete", &json!({"handles": [second]}), &Origin::agent("test")).unwrap();
         } else {
             sync(&mut s, &mut other);
-            other.execute("erase", &json!({"handles": [second]})).unwrap();
+            other.execute("object.delete", &json!({"handles": [second]})).unwrap();
             sync(&mut s, &mut other);
         }
         assert!(doc(&s).entity(Handle::parse_hex(&second).unwrap()).is_none(), "{what}");
         let (entries, (undo, redo)) = (person_steps(&s, false), s.kdm().unwrap().steps());
-        s.execute("undo", &json!({})).unwrap();
+        s.execute("edit.undoMany", &json!({})).unwrap();
         assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}: the step below is taken back");
         assert_eq!(person_steps(&s, false), entries - 2, "{what}: both history steps are taken back together");
         assert_eq!(person_steps(&s, true), 1, "{what}: as one redo step");
@@ -840,14 +840,14 @@ fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
         assert_holds(&s, what);
         // The next undo takes back the step below those, exactly.
         assert!(has_first_circle(&s));
-        s.execute("undo", &json!({})).unwrap();
+        s.execute("edit.undoMany", &json!({})).unwrap();
         assert!(!has_first_circle(&s), "{what}: the circle drawn last before is taken back");
         assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}");
         assert_holds(&s, what);
-        s.execute("redo", &json!({})).unwrap();
+        s.execute("edit.redoStep", &json!({})).unwrap();
         assert!(has_first_circle(&s), "{what}: the redo brings the circle back");
         assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}");
-        s.execute("redo", &json!({})).unwrap();
+        s.execute("edit.redoStep", &json!({})).unwrap();
         assert_eq!(line_start_x(&s, &first), Some(20.0), "{what}: the redo brings the step below back");
         assert_eq!(person_steps(&s, true), 0, "{what}: nothing of the person's is left to redo");
         assert_eq!(s.kdm_resets(), 0, "{what}");
@@ -871,7 +871,7 @@ fn a_draft_merged_in_the_middle_of_a_command_ends_the_command_first() {
     let base = a.version().unwrap();
     let mut draft = peer(&mut a);
     let c = doc(&draft).model.iter().find(|e| matches!(e.kind, EntityKind::Circle(_))).map(|e| e.handle.hex()).unwrap();
-    draft.execute("move", &json!({"handles": [c], "delta": [5, 0]})).unwrap();
+    draft.execute("object.move", &json!({"handles": [c], "delta": [5, 0]})).unwrap();
     let changes = draft.export_changes(&base).unwrap();
     for t in ["line", "30,30", "40,30"] {
         a.cmdline(t).unwrap();
@@ -882,11 +882,11 @@ fn a_draft_merged_in_the_middle_of_a_command_ends_the_command_first() {
     assert_eq!(doc(&a).model.len(), 4, "what the command drew stays");
     assert_eq!(circle_x(&a), Some(25.0), "the draft's move is in");
     assert_holds(&a, "after the merge");
-    a.execute("u", &json!({})).unwrap();
+    a.execute("edit.undoStep", &json!({})).unwrap();
     assert_eq!(circle_x(&a), Some(20.0), "the person's undo takes the draft back first");
     assert_eq!(doc(&a).model.len(), 4, "and leaves the line");
     assert_holds(&a, "after the first undo");
-    a.execute("u", &json!({})).unwrap();
+    a.execute("edit.undoStep", &json!({})).unwrap();
     assert_eq!(doc(&a).model.len(), 3, "the next undo takes the whole LINE back");
     assert_eq!(circle_x(&a), Some(20.0));
     assert_holds(&a, "after the second undo");
@@ -906,18 +906,18 @@ fn group_names(s: &Session) -> Vec<String> {
 fn an_edit_after_an_unnamed_group_and_a_drafts_unnamed_group_keeps_both_records() {
     let mut a = Session::new();
     for points in [[[0, 0], [10, 0]], [[0, 5], [8, 9]], [[20, 0], [30, 0]], [[20, 5], [28, 9]]] {
-        a.execute("line", &json!({ "points": points })).unwrap();
+        a.execute("line.add", &json!({ "points": points })).unwrap();
     }
     let base = a.version().unwrap();
     let mut draft = peer(&mut a);
     let hs = model(&a);
-    draft.execute("group", &json!({ "handles": [hs[2], hs[3]] })).unwrap();
+    draft.execute("arrange.group", &json!({ "handles": [hs[2], hs[3]] })).unwrap();
     let changes = draft.export_changes(&base).unwrap();
-    a.execute("group", &json!({ "handles": [hs[0], hs[1]] })).unwrap();
+    a.execute("arrange.group", &json!({ "handles": [hs[0], hs[1]] })).unwrap();
     a.merge_changes(&changes, &Origin::agent("agent:drafter")).unwrap();
     assert_eq!(group_names(&a), ["*A1", "*A1"], "both groups survive the merge");
     assert_holds(&a, "after the merge");
-    a.execute("move", &json!({ "handles": [hs[0]], "delta": [1, 1] })).unwrap();
+    a.execute("object.move", &json!({ "handles": [hs[0]], "delta": [1, 1] })).unwrap();
     assert_holds(&a, "after an edit");
     assert_eq!(group_names(&a), ["*A1", "*A1"], "the edit neither adds nor drops a group");
     let c = peer(&mut a);
@@ -939,7 +939,7 @@ fn a_draft_deleting_my_current_layer_sends_me_back_to_layer_0() {
     a.merge_changes(&changes, &Origin::agent("agent:drafter")).unwrap();
     assert!(doc(&a).layer("Walls").is_none(), "the draft deleted the layer");
     assert_eq!(doc(&a).header.str("CLAYER", ""), "0", "the current layer that is gone goes back to 0");
-    let h = handle(&a.execute("line", &json!({"points": [[0, 40], [5, 40]]})).unwrap());
+    let h = handle(&a.execute("line.add", &json!({"points": [[0, 40], [5, 40]]})).unwrap());
     assert_eq!(doc(&a).entity(Handle::parse_hex(&h).unwrap()).map(|e| e.common.layer.clone()), Some("0".to_owned()));
     assert!(doc(&a).layer("Walls").is_none(), "drawing does not bring the deleted layer back");
     assert_holds(&a, "after the line");

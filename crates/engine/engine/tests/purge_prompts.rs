@@ -10,13 +10,13 @@ use serde_json::json;
 fn drawing() -> Session {
     let mut s = Session::new();
     for name in ["U1", "U2"] {
-        s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
         s.execute("edit.selectAll", &json!({})).unwrap();
-        s.execute("block", &json!({ "name": name, "base": [0, 0], "keep": "delete" })).unwrap();
+        s.execute("block.addDialog", &json!({ "name": name, "base": [0, 0], "keep": "delete" })).unwrap();
     }
     s.execute("layer.add", &json!({ "name": "Spare" })).unwrap();
-    s.execute("linetype", &json!({ "load": "DASHED" })).unwrap();
-    s.execute("style", &json!({ "name": "Notes", "current": false })).unwrap();
+    s.execute("property.linetype", &json!({ "load": "DASHED" })).unwrap();
+    s.execute("textStyle.open", &json!({ "name": "Notes", "current": false })).unwrap();
     s.execute("dimensionStyle.open", &json!({ "name": "Arch", "current": false })).unwrap();
     s
 }
@@ -87,18 +87,18 @@ fn verify_asks_for_each_name_and_absent_types_take_their_tokens() {
 #[test]
 fn json_type_and_names_and_kept_linetypes() {
     let mut s = drawing();
-    let r = s.execute("purge", &json!({ "type": "blocks", "names": "U2" })).unwrap();
+    let r = s.execute("file.purge", &json!({ "type": "blocks", "names": "U2" })).unwrap();
     assert_eq!(r["purged"]["blocks"], json!(["U2"]));
     assert_eq!(kinds(&s), (1, true, true, true, true));
-    assert!(s.execute("purge", &json!({ "type": "nonsense" })).is_err());
+    assert!(s.execute("file.purge", &json!({ "type": "nonsense" })).is_err());
     // A linetype used only inside a block definition, or the current linetype, is kept.
-    s.execute("linetype", &json!({ "load": "HIDDEN" })).unwrap();
-    s.execute("linetype", &json!({ "load": "CENTER" })).unwrap();
-    let l = s.execute("line", &json!({ "points": [[0, 0], [1, 0]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
+    s.execute("property.linetype", &json!({ "load": "HIDDEN" })).unwrap();
+    s.execute("property.linetype", &json!({ "load": "CENTER" })).unwrap();
+    let l = s.execute("line.add", &json!({ "points": [[0, 0], [1, 0]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
     s.execute("object.setProperties", &json!({ "handles": [l], "linetype": "HIDDEN" })).unwrap();
-    s.execute("block", &json!({ "name": "Part", "base": [0, 0], "handles": [l], "keep": "convert" })).unwrap();
-    s.execute("linetype", &json!({ "current": "CENTER" })).unwrap();
-    s.execute("purge", &json!({ "type": "ltypes" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "Part", "base": [0, 0], "handles": [l], "keep": "convert" })).unwrap();
+    s.execute("property.linetype", &json!({ "current": "CENTER" })).unwrap();
+    s.execute("file.purge", &json!({ "type": "ltypes" })).unwrap();
     let d = s.doc().unwrap();
     assert!(d.linetype("HIDDEN").is_some() && d.linetype("CENTER").is_some());
     assert!(d.linetype("DASHED").is_none());

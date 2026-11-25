@@ -19,9 +19,15 @@ async fn new_layers_hold_the_observed_name_gap() {
 async fn group_creation_and_rename_hold_the_destination_gap() {
     for rename in [false, true] {
         check(
-            |f| if rename { ("group.edit", json!({"name":"Group","rename":"Taken"})) } else { ("group", json!({"name":"Taken","handles":[f.line]})) },
-            |f| vec![("group", json!({"name":"Taken","handles":[f.circle]}))],
-            |f| vec![("group", json!({"name":"Other","handles":[f.circle]}))],
+            |f| {
+                if rename {
+                    ("group.edit", json!({"name":"Group","rename":"Taken"}))
+                } else {
+                    ("arrange.group", json!({"name":"Taken","handles":[f.line]}))
+                }
+            },
+            |f| vec![("arrange.group", json!({"name":"Taken","handles":[f.circle]}))],
+            |f| vec![("arrange.group", json!({"name":"Other","handles":[f.circle]}))],
         )
         .await;
     }
@@ -40,14 +46,14 @@ async fn record_renames_hold_destination_names_within_their_type() {
                 vec![match command {
                     "layer.set" => ("layer.add", json!({"name":"Taken"})),
                     "layout.rename" => ("layout.add", json!({"name":"Taken","viewport":false})),
-                    "textStyle.rename" => ("style", json!({"name":"Taken","current":false})),
+                    "textStyle.rename" => ("textStyle.open", json!({"name":"Taken","current":false})),
                     "dimensionStyle.rename" => ("dimensionStyle.open", json!({"name":"Taken","current":false})),
                     _ => ("layerState.save", json!({"name":"Taken"})),
                 }]
             },
             |_| vec![("layer.add", json!({"name":"Other"}))],
             |_| match command {
-                "textStyle.rename" => vec![("style", json!({"name":"Source","current":false}))],
+                "textStyle.rename" => vec![("textStyle.open", json!({"name":"Source","current":false}))],
                 "dimensionStyle.rename" => vec![("dimensionStyle.open", json!({"name":"Source","current":false}))],
                 "layerState.rename" => vec![("layerState.save", json!({"name":"Source"}))],
                 _ => vec![],
@@ -66,9 +72,9 @@ async fn implicit_names_hold_the_first_free_candidate() {
     )
     .await;
     check(
-        |f| ("group", json!({"handles":[f.line]})),
-        |f| vec![("group", json!({"handles":[f.circle]}))],
-        |f| vec![("group", json!({"name":"Other","handles":[f.circle]}))],
+        |f| ("arrange.group", json!({"handles":[f.line]})),
+        |f| vec![("arrange.group", json!({"handles":[f.circle]}))],
+        |f| vec![("arrange.group", json!({"name":"Other","handles":[f.circle]}))],
     )
     .await;
 }
@@ -79,7 +85,7 @@ async fn command_line_assignments_hold_the_same_field() {
         check(
             |_| ("command.runLine", json!({"text":text})),
             |_| vec![("property.linetypeScale", json!({"scale":3}))],
-            |_| vec![("units", json!({"insunits":1}))],
+            |_| vec![("file.setUnits", json!({"insunits":1}))],
         )
         .await;
     }
@@ -89,7 +95,7 @@ async fn command_line_assignments_hold_the_same_field() {
 async fn an_empty_clipboard_does_not_consume_drawing_defaults() {
     let f = Fixture::new();
     let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
-    f.colleague(&[("color", json!({"color":"red"}))]);
+    f.colleague(&[("property.color", json!({"color":"red"}))]);
     let saved = f.disk();
     let error = f.call("run", json!({"basis":basis,"steps":[{"command":"edit.pasteAsBlock","params":{"at":[0,0]}}]})).await.unwrap_err();
     assert_eq!(error["error"]["code"], "command-failed", "{error}");
@@ -100,13 +106,13 @@ async fn an_empty_clipboard_does_not_consume_drawing_defaults() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn radius_is_assigned_even_by_a_transform_with_unit_scale() {
-    for command in ["move", "grip.move", "grip.rotate", "grip.mirror"] {
+    for command in ["object.move", "grip.move", "grip.rotate", "grip.mirror"] {
         check(
             |f| {
                 (
                     command,
                     match command {
-                        "move" => json!({"handles":[f.circle],"delta":[1,0]}),
+                        "object.move" => json!({"handles":[f.circle],"delta":[1,0]}),
                         "grip.move" => json!({"handles":[f.circle],"base":[100,100],"to":[101,100],"mode":"move"}),
                         "grip.rotate" => json!({"handles":[f.circle],"base":[0,0],"angle":30}),
                         _ => json!({"handles":[f.circle],"base":[0,0],"to":[0,10]}),
@@ -141,7 +147,7 @@ async fn unavailable_layer_histories_do_not_consume_layer_values() {
 async fn a_single_circle_cannot_infer_a_constraint() {
     check(
         |f| ("constraint.auto", json!({"handles":[f.circle]})),
-        |f| vec![("erase", json!({"handles":[f.circle]}))],
+        |f| vec![("object.delete", json!({"handles":[f.circle]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":8}))],
     )
     .await;
@@ -153,7 +159,7 @@ async fn display_exception_handles_are_opaque_membership_ids() {
         check(
             |f| (command, json!({"mode":"show","handles":[f.circle]})),
             |f| vec![(command, json!({"mode":"hide","handles":[f.circle]}))],
-            |f| vec![("erase", json!({"handles":[f.circle]}))],
+            |f| vec![("object.delete", json!({"handles":[f.circle]}))],
         )
         .await;
     }
@@ -162,9 +168,9 @@ async fn display_exception_handles_are_opaque_membership_ids() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_command_line_without_parameters_holds_its_native_snapshot() {
     check(
-        |_| ("command.runLine", json!({"text":"layer.allOn"})),
+        |_| ("command.runLine", json!({"text":"layon"})),
         |_| vec![("layer.set", json!({"name":"Editable","color":"blue"}))],
-        |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
     )
     .await;
 }
@@ -174,7 +180,7 @@ async fn find_then_first_recipient_edit_holds_match_order() {
     for outside in [false, true] {
         for relevant in [false, true] {
             let f = Fixture::new();
-            f.colleague(&[("text", json!({"at":[200,30],"text":"Before second"}))]);
+            f.colleague(&[("text.add", json!({"at":[200,30],"text":"Before second"}))]);
             let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
             let params = json!({"handles":[if relevant { &f.text } else { &f.circle }]});
             if outside {
@@ -207,7 +213,7 @@ async fn find_then_first_recipient_edit_holds_match_order() {
                 answer.unwrap();
                 use kition_kit::KitDocument;
                 let mut actual = kition_cad_kit::CadDocument::open(FILE, &f.disk()).unwrap();
-                let p = actual.execute("properties", json!({"handles":[f.text]})).unwrap();
+                let p = actual.execute("object.properties", json!({"handles":[f.text]})).unwrap();
                 assert_eq!(p["objects"][0]["geometry"]["value"], "Mine", "{p}");
             }
             f.kits.shutdown().await;
@@ -217,7 +223,7 @@ async fn find_then_first_recipient_edit_holds_match_order() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn terminal_close_has_no_document_or_save_and_stops_the_run() {
-    for command in ["close", "file.closeAll"] {
+    for command in ["file.close", "file.closeAll"] {
         for guard in ["premise", "off"] {
             let f = Fixture::new();
             let before = f.disk();
@@ -254,7 +260,7 @@ async fn terminal_close_has_no_document_or_save_and_stops_the_run() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn guarded_planning_stops_after_terminal_close() {
-    for command in ["close", "file.closeAll"] {
+    for command in ["file.close", "file.closeAll"] {
         let f = Fixture::new();
         let before = f.disk();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
@@ -278,7 +284,7 @@ async fn a_new_display_exception_holds_its_live_recipient() {
     for command in ["constraint.bars", "constraint.dynamicDimensions"] {
         check(
             |f| (command, json!({"mode":"hide","handles":[f.circle]})),
-            |f| vec![("erase", json!({"handles":[f.circle]}))],
+            |f| vec![("object.delete", json!({"handles":[f.circle]}))],
             |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
         )
         .await;

@@ -83,7 +83,7 @@ assert.equal(constraintLeaseScope('circle', {}), null)
   assert.deepEqual(leases.calls.at(-1), ['release', CONSTRAINT_SCOPE])
   // Other commands never ask.
   const calls = leases.calls.length
-  assert.equal(await run('line', { points: [[0, 0], [1, 1]] }), '{}')
+  assert.equal(await run('line.add', { points: [[0, 0], [1, 1]] }), '{}')
   assert.equal(leases.calls.length, calls)
   // An interactive constraint command keeps the lease while it runs.
   assert.equal(await run('constraint.parallel', {}), '{}')
@@ -110,7 +110,7 @@ assert.equal(constraintLeaseScope('circle', {}), null)
   assert.equal(await run('constraint.addDimensional', {}), null)
   assert.deepEqual(ran, [])
   assert.deepEqual(refused, ['Ada'])
-  assert.equal(await run('line', {}), '{}', 'commands that solve nothing go ahead')
+  assert.equal(await run('line.add', {}), '{}', 'commands that solve nothing go ahead')
 }
 
 // Without co-editing nothing is leased.

@@ -57,25 +57,24 @@ fn fingerprint(state: &EditorState) -> String {
 pub(crate) fn moves_the_editor(command: &str) -> bool {
     matches!(
         command,
-        "zoom"
-            | "pan"
+        "view.zoomRealtime"
+            | "view.pan"
             | "view.set"
             | "layout.set"
             | "viewport.modelSpace"
             | "viewport.paperSpace"
-            | "select"
+            | "select.set"
             | "select.quick"
             | "edit.selectAll"
-            | "find"
+            | "edit.find"
             | "edit.deselectAll"
-    ) || command.starts_with("zoom.")
-        || command.starts_with("pan.")
+    ) || crate::acts::zooms_or_pans(command)
 }
 
 /// Navigation that changes a view: inside an MSPACE viewport it writes the viewport's view, which
 /// the drawing saves.
 fn changes_a_view(command: &str) -> bool {
-    matches!(command, "zoom" | "pan" | "view.set") || command.starts_with("zoom.") || command.starts_with("pan.")
+    matches!(command, "view.zoomRealtime" | "view.pan" | "view.set") || crate::acts::zooms_or_pans(command)
 }
 
 /// Where the inspect tool lists what a call may name.

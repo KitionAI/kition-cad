@@ -197,7 +197,7 @@ fn moving_entities_into_a_block_keeps_their_objects() {
     write(&mut replica, &mut ids, &before, &after);
     assert!(replica.exists(&object), "the entity kept its object");
     let edge = ids.block("Edge").cloned().unwrap_or_else(|| panic!("block"));
-    assert_eq!(replica.list(&edge, "object.query").unwrap_or_default(), vec![object.clone()]);
+    assert_eq!(replica.list(&edge, "entities").unwrap_or_default(), vec![object.clone()]);
     assert!(!replica.list(&root(), "model").unwrap_or_default().contains(&object));
 }
 

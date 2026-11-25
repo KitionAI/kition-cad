@@ -19,12 +19,12 @@ const MAX_GROUPS: usize = 100_000;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("group", "Group", run_group)
+        CommandSpec::new("arrange.group", "Group", run_group)
             .menu(&["Tools", "Group"])
             .alias(&["g"])
             .params("{name? (default: an unnamed group *A1, *A2…), description?, handles? (default the selection), selectable?: bool (default true)} → {name, members}")
             .interactive(|_| Ok(Box::new(GroupM::default()))),
-        CommandSpec::new("ungroup", "Ungroup", run_ungroup)
+        CommandSpec::new("arrange.ungroup", "Ungroup", run_ungroup)
             .menu(&["Tools", "Ungroup"])
             .params("{name?: \"G1\" | \"G1,G2\" | [names]} | {handles?} (default the selection: every group holding one of the objects) → {ungrouped: [names]}")
             .interactive(|_| Ok(Box::new(UngroupM::default()))),
@@ -72,18 +72,18 @@ fn existing(d: &Drawing, hs: &[Handle]) -> Vec<Handle> {
 pub(crate) fn create(s: &mut Session, name: Option<&str>, description: &str, hs: &[Handle], selectable: bool) -> Result<String> {
     let d = s.doc()?;
     if let Some(h) = hs.iter().find(|h| d.entity(**h).is_none()) {
-        return Err(bad("group", format!("no object `{}`", h.hex())));
+        return Err(bad("arrange.group", format!("no object `{}`", h.hex())));
     }
     let members = existing(d, hs);
     if members.is_empty() {
-        return Err(bad("group", "no objects to group"));
+        return Err(bad("arrange.group", "no objects to group"));
     }
     if d.groups.len() >= MAX_GROUPS {
-        return Err(bad("group", "the drawing has too many groups"));
+        return Err(bad("arrange.group", "the drawing has too many groups"));
     }
     let name = match name.map(str::trim).filter(|n| !n.is_empty()) {
-        Some(n) if !valid_name(n) => return Err(bad("group", format!("\"{n}\" is not a valid group name"))),
-        Some(n) if find(d, n).is_some() => return Err(bad("group", format!("a group named \"{n}\" already exists"))),
+        Some(n) if !valid_name(n) => return Err(bad("arrange.group", format!("\"{n}\" is not a valid group name"))),
+        Some(n) if find(d, n).is_some() => return Err(bad("arrange.group", format!("a group named \"{n}\" already exists"))),
         Some(n) => n.to_string(),
         None => next_unnamed(d),
     };
@@ -247,19 +247,21 @@ pub fn ungroup_targets(s: &Session, p: &Value) -> Result<Vec<String>> {
         Some(Value::Array(a)) => Some(
             a.iter()
                 .take(MAX_GROUPS)
-                .map(|v| v.as_str().map(|x| x.trim().to_string()).ok_or_else(|| bad("ungroup", "`name` must hold group names")))
+                .map(|v| v.as_str().map(|x| x.trim().to_string()).ok_or_else(|| bad("arrange.ungroup", "`name` must hold group names")))
                 .collect::<Result<_>>()?,
         ),
-        Some(v) => return Err(bad("ungroup", format!("`name` must be a group name or an array of names, got {v}"))),
+        Some(v) => return Err(bad("arrange.ungroup", format!("`name` must be a group name or an array of names, got {v}"))),
     };
     let mut idx: Vec<usize> = match names {
-        Some(names) => names.iter().map(|n| find(d, n).ok_or_else(|| bad("ungroup", format!("no group named \"{n}\"")))).collect::<Result<_>>()?,
+        Some(names) => {
+            names.iter().map(|n| find(d, n).ok_or_else(|| bad("arrange.ungroup", format!("no group named \"{n}\"")))).collect::<Result<_>>()?
+        }
         None => targets(s, p)?.iter().flat_map(|h| groups_of(d, *h)).collect(),
     };
     idx.sort_unstable();
     idx.dedup();
     if idx.is_empty() {
-        return Err(bad("ungroup", "the objects are not in a group"));
+        return Err(bad("arrange.ungroup", "the objects are not in a group"));
     }
     Ok(idx.iter().filter_map(|i| d.groups.get(*i).map(|g| g.name.clone())).collect())
 }

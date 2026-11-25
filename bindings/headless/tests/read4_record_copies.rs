@@ -16,8 +16,8 @@ async fn layout_copy_ignores_source_layer_lock() {
 #[tokio::test(flavor = "multi_thread")]
 async fn block_reference_ignores_member_layer_lock() {
     check(
-        |_| ("insert", json!({"name":"Marker","at":[700,0]})),
-        |f| vec![("block", json!({"name":"Marker","base":[500,0],"handles":[f.rect],"keep":"retain"}))],
+        |_| ("block.insert", json!({"name":"Marker","at":[700,0]})),
+        |f| vec![("block.addDialog", json!({"name":"Marker","base":[500,0],"handles":[f.rect],"keep":"retain"}))],
         |_| vec![("layer.set", json!({"name":"0","locked":true}))],
     )
     .await;
@@ -25,10 +25,10 @@ async fn block_reference_ignores_member_layer_lock() {
 #[tokio::test(flavor = "multi_thread")]
 async fn ungroup_ignores_a_preceding_group_deletion() {
     check_with_setup(
-        |_| ("ungroup", json!({"name":"Group"})),
+        |_| ("arrange.ungroup", json!({"name":"Group"})),
         |f| vec![("group.edit", json!({"name":"Group","add":[f.rect]}))],
-        |_| vec![("ungroup", json!({"name":"Before"}))],
-        |f| vec![("group.edit", json!({"name":"Group","rename":"Before"})), ("group", json!({"name":"Group","handles":[f.circle]}))],
+        |_| vec![("arrange.ungroup", json!({"name":"Before"}))],
+        |f| vec![("group.edit", json!({"name":"Group","rename":"Before"})), ("arrange.group", json!({"name":"Group","handles":[f.circle]}))],
     )
     .await;
 }

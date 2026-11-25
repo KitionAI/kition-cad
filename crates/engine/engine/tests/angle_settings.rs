@@ -63,7 +63,7 @@ fn rotate_reference_angles_follow_angbase_and_angdir() {
     let mut s = Session::new();
     setvar(&mut s, "ANGBASE", json!(45));
     setvar(&mut s, "ANGDIR", json!(1));
-    s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
     // Reference 0 (= 45° here) to new angle 90 (= -45°): a quarter turn clockwise.
     for t in ["rotate", "all", "", "0,0", "r", "0", "90"] {
         s.cmdline(t).unwrap();
@@ -81,7 +81,7 @@ fn json_and_default_parsing_keep_degrees_from_east() {
     setvar(&mut s, "ANGDIR", json!(1));
     setvar(&mut s, "AUNITS", json!(3));
     // JSON params are unaffected by the drawing's angle settings.
-    let r = s.execute("line", &json!({ "points": ["0,0", "@10<90"] })).unwrap();
+    let r = s.execute("line.add", &json!({ "points": ["0,0", "@10<90"] })).unwrap();
     assert!(r.is_object());
     match &s.doc().unwrap().model.last().unwrap().kind {
         EntityKind::Line(l) => assert_near(l.b.xy(), 0.0, 10.0, "JSON @10<90"),

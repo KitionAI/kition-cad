@@ -17,8 +17,8 @@ fn near(a: f64, b: f64) -> bool {
 fn zoom_center_scale_dynamic_and_paper_space_all() {
     let mut s = Session::new();
     s.viewport_px = (1600.0, 900.0);
-    s.execute("limits", &json!({ "min": [0, 0], "max": [420, 297] })).unwrap();
-    s.execute("line", &json!({ "points": [[0, 0], [1000, 0]] })).unwrap();
+    s.execute("file.setLimits", &json!({ "min": [0, 0], "max": [420, 297] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [1000, 0]] })).unwrap();
 
     // Center: point, then a height; nX is a magnification of the current height.
     s.cmdline("ZOOM C").unwrap();

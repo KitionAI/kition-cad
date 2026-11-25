@@ -20,7 +20,7 @@ fn dash_block_erases_the_selection_and_asks_before_redefining() {
     assert!(s.running.is_none());
     assert_eq!(s.doc().unwrap().model.len(), 0, "the line is erased, not converted");
     assert_eq!(s.doc().unwrap().block("B").unwrap().entities.len(), 1);
-    s.execute("insert", &json!({ "name": "B", "at": [20, 0] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "B", "at": [20, 0] })).unwrap();
     assert_eq!(references(&s), 1, "INSERT after -BLOCK leaves one reference");
 
     // An existing name (in any case): No, the default, asks for the name again.
@@ -50,9 +50,9 @@ fn block_and_the_json_forms_keep_their_defaults() {
     s.script("LINE 0,0 10,0\n\nBLOCK A 0,0 L\n\n").unwrap();
     assert_eq!(references(&s), 1);
     // JSON: block converts unless `keep` says otherwise; -block deletes unless it says otherwise.
-    let l = |s: &mut Session| s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap()["handles"][0].clone();
+    let l = |s: &mut Session| s.execute("line.add", &json!({ "points": [[0, 0], [1, 1]] })).unwrap()["handles"][0].clone();
     let h = l(&mut s);
-    let r = s.execute("block", &json!({ "name": "C", "base": [0, 0], "handles": [h] })).unwrap();
+    let r = s.execute("block.addDialog", &json!({ "name": "C", "base": [0, 0], "handles": [h] })).unwrap();
     assert!(r["insert"].is_string());
     let h = l(&mut s);
     let r = s.execute("block.add", &json!({ "name": "D", "base": [0, 0], "handles": [h] })).unwrap();

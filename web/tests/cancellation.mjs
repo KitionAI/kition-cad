@@ -73,12 +73,12 @@ try {
   await kit.getByTestId('cad-undo').click()
   await until('cancelled gesture adds no undo step', async () => !(await inspect()).dirty)
   await kit.getByTestId('cad-redo').click()
-  await command('edit.selectAll')
+  await command('selectall')
   await until('Redo restores the subsequent edit', async () => JSON.stringify((await circle())?.center) === '[280,142]')
   await kit.getByTestId('cad-save').click()
   await until('subsequent edit saves through the host', async () => !(await inspect()).dirty)
   await page.evaluate(async () => { const file = window.devHost.files.get('Sample.dxf'); await window.devHost.open('Sample.dxf', file.bytes) })
-  await command('edit.selectAll')
+  await command('selectall')
   await until('subsequent edit survives reopening', async () => JSON.stringify((await circle())?.center) === '[280,142]')
 
   await open()
@@ -96,7 +96,7 @@ try {
   await until('next grip also cancels while retaining selection', () => idleWithSelection(1))
 
   await open()
-  await command('edit.selectAll')
+  await command('selectall')
   await until('mixed selection includes all seven objects', async () => (await details()).selection === 7)
   const selected = (await details()).selectedObjects
   await page.mouse.click(737, 592)

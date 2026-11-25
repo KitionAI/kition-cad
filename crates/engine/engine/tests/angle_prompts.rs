@@ -33,7 +33,7 @@ fn diff(a: f64, b: f64) -> f64 {
 #[test]
 fn rotate_angle_is_a_rotation_in_aunits() {
     let mut s = session();
-    s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
     s.script(&format!("ROTATE ALL\n\n0,0 {QUARTER}\n")).unwrap();
     assert!(s.running.is_none(), "{}", s.prompt_text());
     // A quarter turn clockwise (ANGDIR 1), not 1.57 degrees counterclockwise.

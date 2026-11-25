@@ -8,7 +8,7 @@ use serde_json::json;
 fn loaded(metric: bool, name: &str) -> Vec<f64> {
     let mut s = Session::empty();
     s.new_drawing(metric);
-    s.execute("linetype", &json!({ "load": name })).unwrap();
+    s.execute("property.linetype", &json!({ "load": name })).unwrap();
     let d = s.doc().unwrap();
     d.linetype(name).unwrap().pattern.iter().map(|e| e.length).collect()
 }
@@ -29,7 +29,7 @@ fn metric_drawings_load_millimetre_patterns() {
 fn embedded_text_scales_with_the_pattern() {
     let mut s = Session::empty();
     s.new_drawing(true);
-    s.execute("linetype", &json!({ "load": "*" })).unwrap();
+    s.execute("property.linetype", &json!({ "load": "*" })).unwrap();
     let d = s.doc().unwrap();
     let fence = d.linetype("FENCELINE1").unwrap();
     let text = fence.pattern.iter().find(|e| e.text.is_some()).unwrap();
@@ -40,8 +40,8 @@ fn embedded_text_scales_with_the_pattern() {
 fn centerline_loads_the_metric_center_linetype() {
     let mut s = Session::empty();
     s.new_drawing(true);
-    s.execute("line", &json!({ "points": [[0, 0], [100, 0]] })).unwrap();
-    s.execute("line", &json!({ "points": [[0, 20], [100, 20]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [100, 0]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 20], [100, 20]] })).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
     let (h1, h2) = (&hs[0], &hs[1]);
     s.execute("centerLine.add", &json!({ "h1": h1, "h2": h2 })).unwrap();

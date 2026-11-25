@@ -6,12 +6,12 @@ use common::*;
 use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn lock_conflicts_for_discarded_join_sources() {
-    for command in ["join", "polyline.edit"] {
+    for command in ["object.join", "polyline.edit"] {
         check(
             |f| {
                 (
                     command,
-                    if command == "join" {
+                    if command == "object.join" {
                         json!({"handles":[f.line,f.joined]})
                     } else {
                         json!({"handle":f.line,"option":"join","handles2":[f.joined]})
@@ -19,7 +19,7 @@ async fn lock_conflicts_for_discarded_join_sources() {
                 )
             },
             |_| vec![("layer.set", json!({"name":"Secondary","locked":true}))],
-            |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+            |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
         )
         .await;
     }
@@ -40,7 +40,7 @@ async fn lock_conflicts_for_field_writes() {
                 )
             },
             |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
-            |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+            |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
         )
         .await;
     }
@@ -63,9 +63,9 @@ async fn locks_of_solver_neighbours_are_guarded() {
 #[tokio::test(flavor = "multi_thread")]
 async fn find_holds_both_matching_words_and_lock_eligibility() {
     check(
-        |_| ("find", json!({"find":"Before","replace":"After"})),
+        |_| ("edit.find", json!({"find":"Before","replace":"After"})),
         |f| vec![("text.edit", json!({"handle":f.text,"text":"Before colleague"}))],
-        |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
     )
     .await;
 }

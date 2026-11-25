@@ -15,69 +15,69 @@ use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, St
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("erase", "Erase", run_erase)
+        CommandSpec::new("object.delete", "Erase", run_erase)
             .menu(&["Modify", "Erase"])
             .alias(&["e", "delete"])
             .params("{handles?: [str] (handles)} (default: selection)")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Erase)))),
-        CommandSpec::new("move", "Move", run_move)
+        CommandSpec::new("object.move", "Move", run_move)
             .menu(&["Modify", "Move"])
             .alias(&["m"])
             .params("{handles?, from?: [x,y], to?: [x,y] | delta: [dx,dy]}")
             .interactive(|_| Ok(Box::new(DisplaceM::new(Op::Move)))),
-        CommandSpec::new("copy", "Copy", run_copy)
+        CommandSpec::new("object.copy", "Copy", run_copy)
             .menu(&["Modify", "Copy"])
             .alias(&["co", "cp"])
             .params("{handles?, delta: [dx,dy] | from,to, count?: n}")
             .interactive(|_| Ok(Box::new(DisplaceM::new(Op::Copy)))),
-        CommandSpec::new("rotate", "Rotate", run_rotate)
+        CommandSpec::new("object.rotate", "Rotate", run_rotate)
             .menu(&["Modify", "Rotate"])
             .alias(&["ro"])
             .params("{handles?, base: [x,y], angle (degrees), copy?: bool}")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Rotate)))),
-        CommandSpec::new("scale", "Scale", run_scale)
+        CommandSpec::new("object.scale", "Scale", run_scale)
             .menu(&["Modify", "Scale"])
             .alias(&["sc"])
             .params("{handles?, base: [x,y], factor, copy?: bool}")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Scale)))),
-        CommandSpec::new("mirror", "Mirror", run_mirror)
+        CommandSpec::new("object.mirror", "Mirror", run_mirror)
             .menu(&["Modify", "Mirror"])
             .alias(&["mi"])
             .params("{handles?, p1, p2, erase?: bool}")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Mirror)))),
-        CommandSpec::new("stretch", "Stretch", run_stretch)
+        CommandSpec::new("object.stretch", "Stretch", run_stretch)
             .menu(&["Modify", "Stretch"])
             .alias(&["s"])
             .params("{window: [[x,y],[x,y]], delta: [dx,dy]}")
             .interactive(|_| Ok(Box::new(StretchM::default()))),
-        CommandSpec::new("offset", "Offset", run_offset)
+        CommandSpec::new("object.offset", "Offset", run_offset)
             .menu(&["Modify", "Offset"])
             .alias(&["o"])
             .params("{handle, distance, side: [x,y], erase?: bool, layer?: \"source\"|\"current\"}")
             .interactive(|s| Ok(Box::new(OffsetM::new(s)))),
-        CommandSpec::new("trim", "Trim", trimextend::run_trim)
+        CommandSpec::new("object.trim", "Trim", trimextend::run_trim)
             .menu(&["Modify", "Trim"])
             .alias(&["tr"])
             .params(
                 "{handle, pick: [x,y] | fence: [[x,y],...] | crossing: [[x,y],[x,y]], edges?: [str] (handles), edgeMode?: \"extend\"|\"none\", mode?: \"quick\"|\"standard\"}",
             )
             .interactive(|_| Ok(Box::new(TrimM::new(false)))),
-        CommandSpec::new("extend", "Extend", trimextend::run_extend)
+        CommandSpec::new("object.extend", "Extend", trimextend::run_extend)
             .menu(&["Modify", "Extend"])
             .alias(&["ex"])
             .params("{handle, pick: [x,y] | fence: [[x,y],...] | crossing: [[x,y],[x,y]], edges?: [str] (handles), edgeMode?: \"extend\"|\"none\"}")
             .interactive(|_| Ok(Box::new(TrimM::new(true)))),
-        CommandSpec::new("fillet", "Fillet", run_fillet)
+        CommandSpec::new("object.fillet", "Fillet", run_fillet)
             .menu(&["Modify", "Fillet"])
             .alias(&["f"])
             .params("{h1, p1, h2, p2, radius?, trim?: bool} | {handle, polyline: true, radius?} (the first fillets lines, arcs and circles; the second every corner of a polyline)")
             .interactive(|s| Ok(Box::new(FilletM::new(s, false)))),
-        CommandSpec::new("chamfer", "Chamfer", run_chamfer)
+        CommandSpec::new("object.chamfer", "Chamfer", run_chamfer)
             .menu(&["Modify", "Chamfer"])
             .alias(&["cha"])
             .params("{h1, p1, h2, p2, d1?, d2?, length?, angle? (degrees), trim?: bool} | {handle, polyline: true, d1?, d2?, length?, angle?} (distances d1 and d2, or length with angle)")
             .interactive(|s| Ok(Box::new(FilletM::new(s, true)))),
-        CommandSpec::new("explode", "Explode", run_explode)
+        CommandSpec::new("object.explode", "Explode", run_explode)
             .menu(&["Modify", "Explode"])
             .alias(&["x"])
             .params("{handles?}")
@@ -90,13 +90,13 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Tools", "Draw Order", "Send to Back"])
             .params("{handles?}")
             .interactive(|_| Ok(Box::new(SelectRun::new("arrange.sendToBack", "DRAWORDER")))),
-        CommandSpec::new("break", "Break", run_break)
+        CommandSpec::new("object.break", "Break", run_break)
             .menu(&["Modify", "Break"])
             .alias(&["br"])
             .params("{handle, p1, p2}")
             .interactive(|_| Ok(Box::new(BreakM::default()))),
         CommandSpec::new("object.breakAtPoint", "Break At Point", run_breakat).menu(&["Modify", "Break At Point"]).params("{handle, at}"),
-        CommandSpec::new("join", "Join", run_join)
+        CommandSpec::new("object.join", "Join", run_join)
             .menu(&["Modify", "Join"])
             .alias(&["j"])
             .params("{handles?}")
@@ -163,14 +163,14 @@ fn delta_of(cmd: &str, p: &Value) -> Result<Vec2> {
 
 fn run_move(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let d = delta_of("move", p)?;
+    let d = delta_of("object.move", p)?;
     let moved = transform_entities(s, &hs, &Mat3::translate(d), false)?;
     Ok(json!({ "moved": moved.len() }))
 }
 
 fn run_copy(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let d = delta_of("copy", p)?;
+    let d = delta_of("object.copy", p)?;
     let n = p.get("count").and_then(Value::as_u64).unwrap_or(1).clamp(1, 10_000);
     let mut out = Vec::new();
     for k in 1..=n {
@@ -181,18 +181,18 @@ fn run_copy(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_rotate(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let base = point_req("rotate", p, "base")?;
-    let a = f64_req("rotate", p, "angle")?.to_radians();
+    let base = point_req("object.rotate", p, "base")?;
+    let a = f64_req("object.rotate", p, "angle")?.to_radians();
     let r = transform_entities(s, &hs, &Mat3::rotate_about(base, a), bool_or(p, "copy", false))?;
     Ok(json!({ "handles": r.iter().map(|h| h.hex()).collect::<Vec<_>>() }))
 }
 
 fn run_scale(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let base = point_req("scale", p, "base")?;
-    let f = f64_req("scale", p, "factor")?;
+    let base = point_req("object.scale", p, "base")?;
+    let f = f64_req("object.scale", p, "factor")?;
     if f <= 0.0 {
-        return Err(bad("scale", "factor must be positive"));
+        return Err(bad("object.scale", "factor must be positive"));
     }
     let r = transform_entities(s, &hs, &Mat3::scale_about(base, f), bool_or(p, "copy", false))?;
     Ok(json!({ "handles": r.iter().map(|h| h.hex()).collect::<Vec<_>>() }))
@@ -200,10 +200,10 @@ fn run_scale(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_mirror(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let a = point_req("mirror", p, "p1")?;
-    let b = point_req("mirror", p, "p2")?;
+    let a = point_req("object.mirror", p, "p1")?;
+    let b = point_req("object.mirror", p, "p2")?;
     if a.near(b, 1e-12) {
-        return Err(bad("mirror", "mirror line points coincide"));
+        return Err(bad("object.mirror", "mirror line points coincide"));
     }
     let erase_src = bool_or(p, "erase", false);
     let r = transform_entities(s, &hs, &Mat3::mirror(a, b), !erase_src)?;
@@ -255,10 +255,10 @@ fn stretch_entity(e: &mut Entity, wins: &[kition_cad_geom::Bounds2], d: Vec2) {
 }
 
 fn run_stretch(s: &mut Session, p: &Value) -> Result<Value> {
-    let w = points_param(p, "window").ok_or_else(|| bad("stretch", "`window` [[x,y],[x,y]] is required"))?;
-    let (Some(a), Some(b)) = (w.first(), w.get(1)) else { return Err(bad("stretch", "window needs 2 corners")) };
+    let w = points_param(p, "window").ok_or_else(|| bad("object.stretch", "`window` [[x,y],[x,y]] is required"))?;
+    let (Some(a), Some(b)) = (w.first(), w.get(1)) else { return Err(bad("object.stretch", "window needs 2 corners")) };
     let bx = kition_cad_geom::Bounds2::new(*a, *b);
-    let d = delta_of("stretch", p)?;
+    let d = delta_of("object.stretch", p)?;
     let space = s.space();
     let mut hs = crate::select::select_window(s.doc()?, &space, bx, true);
     hs.retain(|h| !super::curves::is_locked(s, *h));
@@ -639,15 +639,15 @@ fn join_point(a: &Segment, b: &Segment) -> Option<Vec2> {
 }
 
 fn run_offset(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("offset", "`handle` is required"))?;
-    let dist = f64_req("offset", p, "distance")?;
-    let side = point_req("offset", p, "side")?;
-    let e = s.doc()?.entity(h).map(|e| (**e).clone()).ok_or_else(|| bad("offset", "no such object"))?;
-    let k = offset_kind(&e.kind, dist.abs(), side).ok_or_else(|| bad("offset", "cannot offset that object"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("object.offset", "`handle` is required"))?;
+    let dist = f64_req("object.offset", p, "distance")?;
+    let side = point_req("object.offset", p, "side")?;
+    let e = s.doc()?.entity(h).map(|e| (**e).clone()).ok_or_else(|| bad("object.offset", "no such object"))?;
+    let k = offset_kind(&e.kind, dist.abs(), side).ok_or_else(|| bad("object.offset", "cannot offset that object"))?;
     let current_layer = match str_param(p, "layer").map(str::to_ascii_lowercase).as_deref() {
         None | Some("source") => false,
         Some("current") => true,
-        Some(_) => return Err(bad("offset", "`layer` is \"source\" or \"current\"")),
+        Some(_) => return Err(bad("object.offset", "`layer` is \"source\" or \"current\"")),
     };
     let nh = add_offset(s, &e, k, current_layer, bool_or(p, "erase", false))?;
     Ok(json!({ "handle": nh.hex() }))
@@ -1108,13 +1108,13 @@ fn h_param(p: &Value, k: &str) -> Option<Handle> {
 
 fn run_fillet(s: &mut Session, p: &Value) -> Result<Value> {
     if bool_or(p, "polyline", false) {
-        let h = h_param(p, "handle").or_else(|| h_param(p, "h1")).ok_or_else(|| bad("fillet", "`handle` (polyline) is required"))?;
+        let h = h_param(p, "handle").or_else(|| h_param(p, "h1")).ok_or_else(|| bad("object.fillet", "`handle` (polyline) is required"))?;
         let r = f64_or(p, "radius", s.doc()?.header.f64("FILLETRAD", 0.0));
         let n = super::modify2::fillet_polyline(s, h, r)?;
         return Ok(json!({ "filleted": n }));
     }
-    let h1 = h_param(p, "h1").ok_or_else(|| bad("fillet", "`h1` is required"))?;
-    let h2 = h_param(p, "h2").ok_or_else(|| bad("fillet", "`h2` is required"))?;
+    let h1 = h_param(p, "h1").ok_or_else(|| bad("object.fillet", "`h1` is required"))?;
+    let h2 = h_param(p, "h2").ok_or_else(|| bad("object.fillet", "`h2` is required"))?;
     let r = f64_or(p, "radius", s.doc()?.header.f64("FILLETRAD", 0.0));
     let p1 = point_param(p, "p1").unwrap_or_default();
     let p2 = point_param(p, "p2").unwrap_or_default();
@@ -1131,14 +1131,14 @@ fn run_chamfer(s: &mut Session, p: &Value) -> Result<Value> {
             let d1 = f64_or(p, "d1", s.doc()?.header.f64("CHAMFERA", 0.0));
             ChamferCut::Dist(d1, f64_or(p, "d2", d1))
         }
-        _ => return Err(bad("chamfer", "`length` (>= 0) and `angle` (degrees, 0 to 180) go together")),
+        _ => return Err(bad("object.chamfer", "`length` (>= 0) and `angle` (degrees, 0 to 180) go together")),
     };
     if bool_or(p, "polyline", false) {
-        let h = h_param(p, "handle").or_else(|| h_param(p, "h1")).ok_or_else(|| bad("chamfer", "`handle` (polyline) is required"))?;
+        let h = h_param(p, "handle").or_else(|| h_param(p, "h1")).ok_or_else(|| bad("object.chamfer", "`handle` (polyline) is required"))?;
         return Ok(json!({ "chamfered": chamfer_polyline(s, h, cut)? }));
     }
-    let h1 = h_param(p, "h1").ok_or_else(|| bad("chamfer", "`h1` is required"))?;
-    let h2 = h_param(p, "h2").ok_or_else(|| bad("chamfer", "`h2` is required"))?;
+    let h1 = h_param(p, "h1").ok_or_else(|| bad("object.chamfer", "`h1` is required"))?;
+    let h2 = h_param(p, "h2").ok_or_else(|| bad("object.chamfer", "`h2` is required"))?;
     let p1 = point_param(p, "p1").unwrap_or_default();
     let p2 = point_param(p, "p2").unwrap_or_default();
     let a = fillet_corner(s, h1, p1, h2, p2, 0.0, Some(cut), bool_or(p, "trim", true))?;
@@ -1410,8 +1410,8 @@ pub(crate) fn break_entity(s: &mut Session, h: Handle, p1: Vec2, p2: Vec2) -> Re
 }
 
 fn run_break(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("break", "`handle` is required"))?;
-    let p1 = point_req("break", p, "p1")?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("object.break", "`handle` is required"))?;
+    let p1 = point_req("object.break", p, "p1")?;
     let p2 = point_param(p, "p2").unwrap_or(p1);
     let r = break_entity(s, h, p1, p2)?;
     Ok(json!({ "handles": r.iter().map(|h| h.hex()).collect::<Vec<_>>() }))

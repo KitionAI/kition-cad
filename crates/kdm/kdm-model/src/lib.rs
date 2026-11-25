@@ -17,7 +17,7 @@
 //!   map under `<entity object>:<cell id>`, so two people typing in one table, or in one cell,
 //!   both keep their typing ([`table_cell_key`]);
 //! - draw order is a list of entity objects per entity store: the root's `model`, and each
-//!   `Layout`'s and `Block`'s `object.query` (so bringing an entity to the front is one list move);
+//!   `Layout`'s and `Block`'s `entities` (so bringing an entity to the front is one list move);
 //! - named tables (layers, linetypes, text, dimension, multileader and table styles, views,
 //!   UCSs, layer states, groups, plot style tables), blocks and layouts are objects in maps of
 //!   the root keyed by their name (folded to lower case, as the drawing compares names): two
@@ -415,7 +415,7 @@ impl CadModel {
 
 impl std::fmt::Debug for CadModel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CadModel").field("object.query", &self.drawing.entity_count()).finish_non_exhaustive()
+        f.debug_struct("CadModel").field("entities", &self.drawing.entity_count()).finish_non_exhaustive()
     }
 }
 

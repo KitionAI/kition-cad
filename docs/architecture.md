@@ -42,9 +42,10 @@ About 77,000 lines of Rust in 11 library crates, 1 app (`kition-cad`) and `xtask
 
 ## Commands
 
-Every user-visible action is a `CommandSpec` (`crates/engine/engine/src/cmd/mod.rs`): id = AutoCAD's
-command name in lower case, label, menu path, shortcut, aliases, a JSON `run`, an `enabled`
-check and an optional interactive prompt machine. More than 300 engine commands are registered, many
+Every user-visible action is a `CommandSpec` (`crates/engine/engine/src/cmd/mod.rs`): an id that follows
+the Kition command naming standard (`line.add`, `object.fillet`), the classic CAD name a person
+types at the command line (`line`, `fillet`; `cmd/names.rs`), label, menu path, shortcut, aliases, a
+JSON `run`, an `enabled` check and an optional interactive prompt machine. More than 300 engine commands are registered, many
 with interactive prompts; [writing-format.md](writing-format.md) lists every one. The kit's editor (`web/`) and the headless
 kit executable (`bindings/headless`) both reach the same commands through `KitTools`. JSON calls never
 open dialogs.

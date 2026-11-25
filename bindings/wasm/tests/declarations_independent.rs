@@ -52,8 +52,8 @@ pub fn fixture() -> (CadDocument, Vec<(&'static str, String)>) {
     let mut d = <CadDocument as KitDocument>::create(FILE, 420, 297).unwrap();
     run(&mut d, "layer.add", json!({"name":"Walls","color":1}));
     run(&mut d, "layer.add", json!({"name":"Notes","color":3}));
-    run(&mut d, "linetype", json!({"load":"DASHED"}));
-    run(&mut d, "style", json!({"name":"S","height":2,"current":false}));
+    run(&mut d, "property.linetype", json!({"load":"DASHED"}));
+    run(&mut d, "textStyle.open", json!({"name":"S","height":2,"current":false}));
     // A metric drawing starts on ISO-25; the readers were told the fixture's current dimension
     // style is Standard.
     run(&mut d, "dimensionStyle.setCurrent", json!({"name":"Standard"}));
@@ -69,24 +69,24 @@ pub fn fixture() -> (CadDocument, Vec<(&'static str, String)>) {
                 .unwrap(),
         );
     });
-    let member = run(&mut d, "line", json!({"points":[[0,80],[10,80]],"layer":"0"}))["handles"][0].clone();
-    run(&mut d, "block", json!({"name":"Door","base":[0,80],"handles":[member],"keep":"delete"}));
+    let member = run(&mut d, "line.add", json!({"points":[[0,80],[10,80]],"layer":"0"}))["handles"][0].clone();
+    run(&mut d, "block.addDialog", json!({"name":"Door","base":[0,80],"handles":[member],"keep":"delete"}));
     let rect = run(&mut d, "rectangle.add", json!({"p1":[0,0],"p2":[10,10],"layer":"Walls"}))["handle"].clone();
-    let l1 = run(&mut d, "line", json!({"points":[[20,0],[30,0]],"layer":"Walls"}))["handles"][0].clone();
-    let l2 = run(&mut d, "line", json!({"points":[[30,0],[30,10]],"layer":"Walls"}))["handles"][0].clone();
-    let circ = run(&mut d, "circle", json!({"center":[50,5],"radius":5}))["handle"].clone();
-    let arc = run(&mut d, "arc", json!({"center":[70,5],"radius":5,"start":0,"end":180}))["handle"].clone();
-    let text = run(&mut d, "text", json!({"at":[0,20],"text":"Hello","height":2.5,"layer":"Notes"}))["handle"].clone();
+    let l1 = run(&mut d, "line.add", json!({"points":[[20,0],[30,0]],"layer":"Walls"}))["handles"][0].clone();
+    let l2 = run(&mut d, "line.add", json!({"points":[[30,0],[30,10]],"layer":"Walls"}))["handles"][0].clone();
+    let circ = run(&mut d, "circle.add", json!({"center":[50,5],"radius":5}))["handle"].clone();
+    let arc = run(&mut d, "arc.add", json!({"center":[70,5],"radius":5,"start":0,"end":180}))["handle"].clone();
+    let text = run(&mut d, "text.add", json!({"at":[0,20],"text":"Hello","height":2.5,"layer":"Notes"}))["handle"].clone();
     let mtext = run(&mut d, "multilineText.add", json!({"at":[20,20],"text":"World","height":2.5,"layer":"Notes"}))["handle"].clone();
-    let spline = run(&mut d, "spline", json!({"fit":[[0,40],[10,45],[20,40]]}))["handle"].clone();
-    let ins = run(&mut d, "insert", json!({"name":"Door","at":[100,0]}))["handle"].clone();
-    let tab = run(&mut d, "table", json!({"at":[150,0],"rows":2,"cols":2}))["handle"].clone();
+    let spline = run(&mut d, "spline.add", json!({"fit":[[0,40],[10,45],[20,40]]}))["handle"].clone();
+    let ins = run(&mut d, "block.insert", json!({"name":"Door","at":[100,0]}))["handle"].clone();
+    let tab = run(&mut d, "table.add", json!({"at":[150,0],"rows":2,"cols":2}))["handle"].clone();
     let dim = run(&mut d, "dimension.addLinear", json!({"object":l1,"at":[25,-5]}))["handle"].clone();
-    let hatch = run(&mut d, "hatch", json!({"handles":[rect]}))["handle"].clone();
+    let hatch = run(&mut d, "hatch.add", json!({"handles":[rect]}))["handle"].clone();
     let vp = run(&mut d, "viewport.add", json!({"layout":"Layout1","p1":[10,10],"p2":[100,80]}))["viewports"][0].clone();
-    run(&mut d, "group", json!({"name":"G1","handles":[l1, l2]}));
+    run(&mut d, "arrange.group", json!({"name":"G1","handles":[l1, l2]}));
     run(&mut d, "layerState.save", json!({"name":"LS1"}));
-    run(&mut d, "select", json!({"handles":[circ]}));
+    run(&mut d, "select.set", json!({"handles":[circ]}));
     let saved = kition_cad_io::read(&d.save(Some(FILE)).unwrap(), FILE).unwrap();
     let door_line = saved.block("Door").unwrap().entities.iter().next().unwrap().handle.hex();
     let mut roles: Vec<(&'static str, String)> = vec![
@@ -122,7 +122,7 @@ pub fn fixture() -> (CadDocument, Vec<(&'static str, String)>) {
         ("$Dashed", "linetype", "DASHED"),
         ("$Standard", "textstyle", "Standard"),
         ("$S", "textstyle", "S"),
-        ("$DimStandard", "dimensionStyle.open", "Standard"),
+        ("$DimStandard", "dimstyle", "Standard"),
         ("$Door", "block", "Door"),
         ("$Layout1", "layout", "Layout1"),
         ("$Layout2", "layout", "Layout2"),
@@ -130,8 +130,8 @@ pub fn fixture() -> (CadDocument, Vec<(&'static str, String)>) {
         ("$LS1", "layerstate", "LS1"),
         ("$V1", "view", "V1"),
         ("$U1", "ucs", "U1"),
-        ("$TableStandard", "tableStyle.open", "Standard"),
-        ("$MLeaderStandard", "multileaderStyle.open", "Standard"),
+        ("$TableStandard", "tablestyle", "Standard"),
+        ("$MLeaderStandard", "mleaderstyle", "Standard"),
     ] {
         if let Some(id) = saved.record_id(ty, name, 0) {
             roles.push((role, format!("{ty}:{id}")));
@@ -146,7 +146,7 @@ pub fn constrained() -> (CadDocument, Vec<(&'static str, String)>) {
     let l1 = roles.iter().find(|(r, _)| *r == "$L1").unwrap().1.clone();
     let l2 = roles.iter().find(|(r, _)| *r == "$L2").unwrap().1.clone();
     run(&mut d, "constraint.perpendicular", json!({"h1": l1, "h2": l2}));
-    run(&mut d, "select", json!({"handles":[roles.iter().find(|(r, _)| *r == "$Circ").unwrap().1]}));
+    run(&mut d, "select.set", json!({"handles":[roles.iter().find(|(r, _)| *r == "$Circ").unwrap().1]}));
     (d, roles)
 }
 
@@ -292,7 +292,13 @@ fn held(
                 && command.places.contains(&"name")
                 && matches!(
                     command.id.as_str(),
-                    "block" | "block.add" | "insert" | "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "layerState.save"
+                    "block.addDialog"
+                        | "block.add"
+                        | "block.insert"
+                        | "textStyle.open"
+                        | "dimensionStyle.open"
+                        | "dimensionStyle.openManager"
+                        | "layerState.save"
                 )
                 && let Some(name) = params.get("name").and_then(Value::as_str)
                 && let Some((_, types)) = command.object_types.iter().find(|(key, _)| *key == "name")
@@ -307,9 +313,12 @@ fn held(
                         .map(|(_, name)| name)
                 });
                 let name = resolved.as_deref().unwrap_or(name);
-                let name =
-                    if matches!(command.id.as_str(), "style" | "dimensionStyle.open" | "dimensionStyle.openManager") { name.trim() } else { name };
-                let name = if command.id == "insert" { name.strip_prefix('*').unwrap_or(name) } else { name };
+                let name = if matches!(command.id.as_str(), "textStyle.open" | "dimensionStyle.open" | "dimensionStyle.openManager") {
+                    name.trim()
+                } else {
+                    name
+                };
+                let name = if command.id == "block.insert" { name.strip_prefix('*').unwrap_or(name) } else { name };
                 let key = name.to_ascii_lowercase().bytes().map(|b| format!("{b:02x}")).collect::<String>();
                 let entry = holds.entry("drawing".into()).or_insert((Some(BTreeSet::new()), false));
                 if let Some(fields) = &mut entry.0 {
@@ -384,7 +393,7 @@ type Fixture = (&'static str, fn() -> (CadDocument, Vec<(&'static str, String)>)
 fn selected_group_member() -> (CadDocument, Vec<(&'static str, String)>) {
     let (mut doc, roles) = fixture();
     let member = roles.iter().find(|(role, _)| *role == "$L1").unwrap().1.clone();
-    run(&mut doc, "select", json!({"handles":[member]}));
+    run(&mut doc, "select.set", json!({"handles":[member]}));
     (doc, roles)
 }
 
@@ -393,7 +402,7 @@ const FIXTURES: &[Fixture] = &[
     ("constrained", constrained, CONSTRAINED),
     // review: restore the removed selection path on an actual group
     // member. The shared fixture's selected circle belongs to no group.
-    ("selected-group-member", selected_group_member, &[r("ungroup", r##"{}"##, "selection", &[("$L1", "~groups", "-")])]),
+    ("selected-group-member", selected_group_member, &[r("arrange.ungroup", r##"{}"##, "selection", &[("$L1", "~groups", "-")])]),
 ];
 
 #[test]
@@ -443,11 +452,11 @@ fn every_write_rests_on_what_its_handler_reads() {
                 | "dimension.textHome"
                 | "dimension.textLeft"
                 | "dimension.textRight"
-                | "extend"
-                | "join"
+                | "object.extend"
+                | "object.join"
                 | "object.copyNested"
                 | "dimension.addQuick"
-                | "spline"
+                | "spline.add"
                 | "table.deleteColumn"
                 | "table.deleteRow"
                 | "table.insertColumn"
@@ -455,9 +464,9 @@ fn every_write_rests_on_what_its_handler_reads() {
                 | "table.merge"
                 | "table.set"
                 | "table.unmerge"
-                | "ungroup" => "selection",
+                | "arrange.ungroup" => "selection",
                 // layout.rs:234-258,345-376,617-630: default current layout/viewport.
-                "layout" | "layout.delete" | "layout.rename" | "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two"
+                "layout.manage" | "layout.delete" | "layout.rename" | "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two"
                 | "viewport.three" | "viewport.four" => "part",
                 "viewport.freezeLayer" => "part,selection",
                 // Literal current-header reads, including validation and reply-only reads:
@@ -470,7 +479,7 @@ fn every_write_rests_on_what_its_handler_reads() {
                 | "dimension.updateStyle"
                 | "layer.changeToCurrent"
                 | "layer.deleteWithObjects"
-                | "layer"
+                | "layer.open"
                 | "layer.delete"
                 | "layer.set"
                 | "layer.freeze"
@@ -479,12 +488,12 @@ fn every_write_rests_on_what_its_handler_reads() {
                 | "layer.off"
                 | "layer.unlock"
                 | "multileaderStyle.open"
-                | "purge"
-                | "style"
+                | "file.purge"
+                | "textStyle.open"
                 | "textStyle.delete"
                 | "textStyle.rename"
                 | "tableStyle.open"
-                | "rename" => "active",
+                | "namedObject.rename" => "active",
                 "variable.set" => "active,part",
                 // targets() with explicit null falls back (cmd/mod.rs:293-300), even when
                 // normal non-null explicit samples don't consume the selection.
@@ -527,7 +536,7 @@ fn every_write_rests_on_what_its_handler_reads() {
             // review / R13: discarded stored values and containing
             // groups matter; visibility does not. Locks are marked separately as
             // the transaction-level lock policy is accounted for separately below.
-            if matches!(row.command, "join" | "polyline.edit") {
+            if matches!(row.command, "object.join" | "polyline.edit") {
                 for (object, (fields, _)) in &mut expected {
                     if fields.is_none() && stored(&id_of(object)).is_some() {
                         *fields = fields_of("common,kind,~groups");
@@ -552,9 +561,12 @@ fn every_write_rests_on_what_its_handler_reads() {
                     | "dimension.textHome"
                     | "dimension.textLeft"
                     | "dimension.textRight"
-            ) || row.command.starts_with("table.");
+            ) || row.command.starts_with("table.") && row.command != "table.add";
             if lock_policy
-                || matches!(row.command, "join" | "polyline.edit" | "layer.changeToCurrent" | "layer.match" | "object.matchProperties" | "region")
+                || matches!(
+                    row.command,
+                    "object.join" | "polyline.edit" | "layer.changeToCurrent" | "layer.match" | "object.matchProperties" | "region.add"
+                )
             {
                 for (object, (fields, _)) in &mut expected {
                     let is_source =
@@ -574,7 +586,9 @@ fn every_write_rests_on_what_its_handler_reads() {
             // R1 is a source-reading correction, not a spelling equivalence.
             // current_common copies CELTYPE; resolve the actual named record instead
             // of assuming the fixture can only ever use ByLayer.
-            if row.command != "linetype" && expected.get("drawing").is_some_and(|(f, _)| f.as_ref().is_some_and(|f| f.contains("header.CELTYPE"))) {
+            if row.command != "property.linetype"
+                && expected.get("drawing").is_some_and(|(f, _)| f.as_ref().is_some_and(|f| f.contains("header.CELTYPE")))
+            {
                 let name = drawing.header.str("CELTYPE", "ByLayer");
                 let id = drawing.record_id("linetype", &name, 0).map_or_else(|| name.clone(), str::to_owned);
                 expected.entry(role_of(&format!("linetype:{id}"))).or_insert((fields_of("name"), false));
@@ -823,7 +837,7 @@ const ROWS: &[Row] = &[
     // C8-cad-read-3 source correction: assoc.rs:92-112 / annotate.rs:149-160,646-668: ranked snap membership is replayed; selected source geometry remains explicit; absolute list indices are not inputs.
     // C8-cad-read-4 source correction: io/dxf_write.rs:1033-1037,1323-1337 generates dimension blocks; render/lib.rs:817-826 reads these four font metrics.
     r(
-        "dim",
+        "dimension.add",
         r##"{"p1":[200,200],"p2":[210,200],"at":[205,190]}"##,
         "active,part",
         &[
@@ -843,7 +857,7 @@ const ROWS: &[Row] = &[
     // source directly; add_dim does not scan other objects or their order on this path.
     // C8-cad-read-4 source correction: io/dxf_write.rs:1033-1037,1323-1337 generates dimension blocks; render/lib.rs:817-826 reads these four font metrics.
     r(
-        "dim",
+        "dimension.add",
         r##"{"object":"$L1","at":[25,-5]}"##,
         "active,part",
         &[
@@ -1300,7 +1314,7 @@ const ROWS: &[Row] = &[
     // leader: leader entity; style name copied from DIMSTYLE
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/annotate.rs:551-558 stores the current dimension-style reference; add $DimStandard name identity]
     r(
-        "leader",
+        "leader.add",
         r##"{"points":[[0,0],[10,10]]}"##,
         "active,part",
         &[
@@ -1316,7 +1330,7 @@ const ROWS: &[Row] = &[
     // leader: plus an MText whose height is the DIMSTYLE record's text height (style "Standard" hard-coded)
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/annotate.rs:560-572 stores the Standard text-style reference; add $Standard name identity]
     r(
-        "leader",
+        "leader.add",
         r##"{"points":[[0,0],[10,10]],"text":"N"}"##,
         "active,part",
         &[
@@ -1501,7 +1515,7 @@ const ROWS: &[Row] = &[
     // spline {object:true} without handles falls back to the selection [$Circ] -> error (not a polyline); not written.
     // arc: 3-point arc with current properties
     r(
-        "arc",
+        "arc.add",
         r##"{"p1":[0,60],"p2":[5,65],"p3":[10,60]}"##,
         "active,part",
         &[
@@ -1511,7 +1525,7 @@ const ROWS: &[Row] = &[
     ),
     // arc: center/radius/angles
     r(
-        "arc",
+        "arc.add",
         r##"{"center":[0,60],"radius":3,"start":0,"end":90}"##,
         "active,part",
         &[
@@ -1521,7 +1535,7 @@ const ROWS: &[Row] = &[
     ),
     // circle: center+radius with current properties
     r(
-        "circle",
+        "circle.add",
         r##"{"center":[0,60],"radius":2}"##,
         "active,part",
         &[
@@ -1531,7 +1545,7 @@ const ROWS: &[Row] = &[
     ),
     // circle: two points
     r(
-        "circle",
+        "circle.add",
         r##"{"p1":[0,60],"p2":[4,60]}"##,
         "active,part",
         &[
@@ -1541,7 +1555,7 @@ const ROWS: &[Row] = &[
     ),
     // donut: closed wide lwpolyline
     r(
-        "donut",
+        "donut.add",
         r##"{"center":[0,60],"inside":1,"outside":2}"##,
         "active,part",
         &[
@@ -1551,7 +1565,7 @@ const ROWS: &[Row] = &[
     ),
     // ellipse: ellipse from params
     r(
-        "ellipse",
+        "ellipse.add",
         r##"{"center":[0,60],"major":[4,0],"ratio":0.5}"##,
         "active,part",
         &[
@@ -1561,7 +1575,7 @@ const ROWS: &[Row] = &[
     ),
     // line: lines between points
     r(
-        "line",
+        "line.add",
         r##"{"points":[[0,60],[10,60],[10,70]]}"##,
         "active,part",
         &[
@@ -1616,7 +1630,7 @@ const ROWS: &[Row] = &[
     ),
     // point: single point
     r(
-        "point",
+        "point.add",
         r##"{"at":[0,60]}"##,
         "active,part",
         &[
@@ -1636,7 +1650,7 @@ const ROWS: &[Row] = &[
     ),
     // polygon: inscribed polygon
     r(
-        "polygon",
+        "polygon.add",
         r##"{"sides":6,"center":[0,60],"radius":3}"##,
         "active,part",
         &[
@@ -1646,7 +1660,7 @@ const ROWS: &[Row] = &[
     ),
     // polygon: polygon from edge
     r(
-        "polygon",
+        "polygon.add",
         r##"{"sides":5,"edge":[[0,60],[4,60]]}"##,
         "active,part",
         &[
@@ -1656,7 +1670,7 @@ const ROWS: &[Row] = &[
     ),
     // ray: ray base+through
     r(
-        "ray",
+        "ray.add",
         r##"{"base":[0,60],"through":[5,65]}"##,
         "active,part",
         &[
@@ -1686,7 +1700,7 @@ const ROWS: &[Row] = &[
     ),
     // spline: fit points, knots from SPLKNOTS
     r(
-        "spline",
+        "spline.add",
         r##"{"fit":[[0,60],[5,65],[10,60]]}"##,
         "active,part",
         &[
@@ -1697,7 +1711,7 @@ const ROWS: &[Row] = &[
     ),
     // spline: fit points, knots given
     r(
-        "spline",
+        "spline.add",
         r##"{"fit":[[0,60],[5,65],[10,60]],"knots":"chord"}"##,
         "active,part",
         &[
@@ -1707,7 +1721,7 @@ const ROWS: &[Row] = &[
     ),
     // spline: control points
     r(
-        "spline",
+        "spline.add",
         r##"{"control":[[0,60],[5,65],[10,60],[15,65]]}"##,
         "active,part",
         &[
@@ -1716,12 +1730,22 @@ const ROWS: &[Row] = &[
         ],
     ),
     // spline: convert polyline by handle (refuses locked), knots from SPLKNOTS
-    r("spline", r##"{"object":"$Rect"}"##, "", &[("$Rect", "kind.type,kind.vertices,kind.closed,~locked", "-"), ("drawing", "header.SPLKNOTS", "-")]),
+    r(
+        "spline.add",
+        r##"{"object":"$Rect"}"##,
+        "",
+        &[("$Rect", "kind.type,kind.vertices,kind.closed,~locked", "-"), ("drawing", "header.SPLKNOTS", "-")],
+    ),
     // spline: convert polyline via object:true + handles, knots given
-    r("spline", r##"{"object":true,"handles":["$Rect"],"knots":"uniform"}"##, "", &[("$Rect", "kind.type,kind.vertices,kind.closed,~locked", "-")]),
+    r(
+        "spline.add",
+        r##"{"object":true,"handles":["$Rect"],"knots":"uniform"}"##,
+        "",
+        &[("$Rect", "kind.type,kind.vertices,kind.closed,~locked", "-")],
+    ),
     // text: height given, style from TEXTSTYLE
     r(
-        "text",
+        "text.add",
         r##"{"at":[0,60],"text":"Hi","height":2}"##,
         "active,part",
         &[
@@ -1733,7 +1757,7 @@ const ROWS: &[Row] = &[
     ),
     // text: height from TEXTSIZE
     r(
-        "text",
+        "text.add",
         r##"{"at":[0,60],"text":"Hi"}"##,
         "active,part",
         &[
@@ -1788,7 +1812,7 @@ const ROWS: &[Row] = &[
     // boundary: pick by internal point: scan of the current space
     // C8-cad-read-3 source correction: hatch.rs:24-57,102-154: replay visible boundary membership; retain chosen Rect geometry and exact extent-dependent sampled outlines; other candidates are query inputs.
     r(
-        "boundary",
+        "boundary.add",
         r##"{"points":[[5,5]]}"##,
         "active,part",
         &[
@@ -1802,7 +1826,7 @@ const ROWS: &[Row] = &[
     ),
     // hatch: boundary by handle, pattern/scale/angle from HPNAME/HPSCALE/HPANG
     r(
-        "hatch",
+        "hatch.add",
         r##"{"handles":["$Rect"]}"##,
         "active,part",
         &[
@@ -1814,7 +1838,7 @@ const ROWS: &[Row] = &[
     ),
     // hatch: boundary by handle, all settings given
     r(
-        "hatch",
+        "hatch.add",
         r##"{"handles":["$Rect"],"pattern":"ANSI37","scale":2,"angle":45}"##,
         "active,part",
         &[
@@ -1825,7 +1849,7 @@ const ROWS: &[Row] = &[
     ),
     // hatch: selection fallback ($Circ), header defaults
     r(
-        "hatch",
+        "hatch.add",
         r##"{}"##,
         "active,part,selection",
         &[
@@ -1838,7 +1862,7 @@ const ROWS: &[Row] = &[
     // hatch: pick by internal point, settings given
     // C8-cad-read-3 source correction: hatch.rs:24-57,102-154: replay visible boundary membership; retain chosen Rect geometry and exact extent-dependent sampled outlines; other candidates are query inputs.
     r(
-        "hatch",
+        "hatch.add",
         r##"{"points":[[5,5]],"pattern":"ANSI31","scale":1,"angle":0}"##,
         "active,part",
         &[
@@ -1853,7 +1877,7 @@ const ROWS: &[Row] = &[
     // hatch: pick by internal point, header defaults
     // C8-cad-read-3 source correction: hatch.rs:24-57,102-154: replay visible boundary membership; retain chosen Rect geometry and exact extent-dependent sampled outlines; other candidates are query inputs.
     r(
-        "hatch",
+        "hatch.add",
         r##"{"points":[[5,5]]}"##,
         "active,part",
         &[
@@ -1868,7 +1892,7 @@ const ROWS: &[Row] = &[
     ),
     // gradient: boundary by handle, scale/angle from HPSCALE/HPANG (HPNAME overridden by SOLID)
     r(
-        "gradient",
+        "hatch.addGradient",
         r##"{"handles":["$Rect"],"color1":"1","color2":"3"}"##,
         "active,part",
         &[
@@ -1880,7 +1904,7 @@ const ROWS: &[Row] = &[
     ),
     // gradient: boundary by handle, scale and angle given
     r(
-        "gradient",
+        "hatch.addGradient",
         r##"{"handles":["$Rect"],"scale":1,"angle":30}"##,
         "active,part",
         &[
@@ -1891,7 +1915,7 @@ const ROWS: &[Row] = &[
     ),
     // gradient: selection fallback ($Circ)
     r(
-        "gradient",
+        "hatch.addGradient",
         r##"{}"##,
         "active,part,selection",
         &[
@@ -1904,7 +1928,7 @@ const ROWS: &[Row] = &[
     // gradient: pick by internal point, scale and angle given
     // C8-cad-read-3 source correction: hatch.rs:24-57,102-154: replay visible boundary membership; retain chosen Rect geometry and exact extent-dependent sampled outlines; other candidates are query inputs.
     r(
-        "gradient",
+        "hatch.addGradient",
         r##"{"points":[[5,5]],"scale":1,"angle":0}"##,
         "active,part",
         &[
@@ -1926,16 +1950,16 @@ const ROWS: &[Row] = &[
     // hatchedit: selection fallback ($Circ): object.setProperties dispatches on kind, circle unchanged
     r("hatch.edit", r##"{"scale":2}"##, "selection", &[("$Circ", "kind.type", "-")]),
     // region: closed object by handle -> closed lwpolyline (kind replaced)
-    r("region", r##"{"handles":["$Circ"]}"##, "", &[("$Circ", "kind.type,kind.center,kind.radius", "-")]),
+    r("region.add", r##"{"handles":["$Circ"]}"##, "", &[("$Circ", "kind.type,kind.center,kind.radius", "-")]),
     // region: closed polyline by handle
-    r("region", r##"{"handles":["$Rect"]}"##, "", &[("$Rect", "kind.type,kind.vertices,kind.closed", "-")]),
+    r("region.add", r##"{"handles":["$Rect"]}"##, "", &[("$Rect", "kind.type,kind.vertices,kind.closed", "-")]),
     // region: non-closed object skipped silently
-    r("region", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.type", "-")]),
+    r("region.add", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.type", "-")]),
     // region: selection fallback ($Circ)
-    r("region", r##"{}"##, "selection", &[("$Circ", "kind.type,kind.center,kind.radius", "-")]),
+    r("region.add", r##"{}"##, "selection", &[("$Circ", "kind.type,kind.center,kind.radius", "-")]),
     // table: style from CTABLESTYLE, text height from style, col width from MEASUREMENT
     r(
-        "table",
+        "table.add",
         r##"{"at":[200,0],"rows":2,"cols":2}"##,
         "active,part",
         &[
@@ -1948,7 +1972,7 @@ const ROWS: &[Row] = &[
     ),
     // table: textHeight and colWidth given: style margin still read
     r(
-        "table",
+        "table.add",
         r##"{"at":[200,0],"rows":2,"cols":2,"textHeight":2.5,"colWidth":20,"title":"T","header":["a","b"]}"##,
         "active,part",
         &[
@@ -2275,7 +2299,7 @@ const ROWS: &[Row] = &[
     ),
     // divide: handle given -> point markers along $Circ
     r(
-        "divide",
+        "point.divide",
         r##"{"handle":"$Circ","segments":4}"##,
         "active,part",
         &[
@@ -2286,7 +2310,7 @@ const ROWS: &[Row] = &[
     ),
     // divide: no handle -> first object of the session selection ($Circ)
     r(
-        "divide",
+        "point.divide",
         r##"{"segments":4}"##,
         "active,part,selection",
         &[
@@ -2298,7 +2322,7 @@ const ROWS: &[Row] = &[
     // [corrected C8-cad-pin: blocks.rs:151-184 / draw2.rs:713-718 copy only ordered nonconstant AttDefs, their text/tag/visibility and the base when such definitions exist; ordinary members and their order are not copied.]
     // divide: block markers -> inserts of Door (attdefs of its members copied as attribs)
     r(
-        "divide",
+        "point.divide",
         r##"{"handle":"$L1","segments":3,"block":"Door"}"##,
         "active,part",
         &[
@@ -2310,7 +2334,7 @@ const ROWS: &[Row] = &[
     ),
     // measure: handle given -> point markers every 3 units along $L1
     r(
-        "measure",
+        "point.measure",
         r##"{"handle":"$L1","length":3}"##,
         "active,part",
         &[
@@ -2321,7 +2345,7 @@ const ROWS: &[Row] = &[
     ),
     // measure: no handle -> first selected object ($Circ)
     r(
-        "measure",
+        "point.measure",
         r##"{"length":5}"##,
         "active,part,selection",
         &[
@@ -2333,7 +2357,7 @@ const ROWS: &[Row] = &[
     // [corrected C8-cad-pin: blocks.rs:151-184 / draw2.rs:713-718 copy only ordered nonconstant AttDefs, their text/tag/visibility and the base when such definitions exist; ordinary members and their order are not copied.]
     // measure: block Door, measured from the end nearest `from`
     r(
-        "measure",
+        "point.measure",
         r##"{"handle":"$L1","length":3,"block":"Door","from":[30,0]}"##,
         "active,part",
         &[
@@ -2392,10 +2416,10 @@ const ROWS: &[Row] = &[
     ),
     // wipeout: frames switch -> only writes WIPEOUTFRAME
     // same-field decision; layer.rs:264-392 / props.rs:838-905 / draw2.rs:509-559,1160-1168 / blocks/attribs.rs:50: hold assigned settings.
-    r("wipeout", r##"{"frames":"off"}"##, "", &[("drawing", "header.WIPEOUTFRAME", "-")]),
+    r("wipeout.add", r##"{"frames":"off"}"##, "", &[("drawing", "header.WIPEOUTFRAME", "-")]),
     // wipeout: from closed polyline $Rect (kept)
     r(
-        "wipeout",
+        "wipeout.add",
         r##"{"handle":"$Rect"}"##,
         "active,part",
         &[
@@ -2406,7 +2430,7 @@ const ROWS: &[Row] = &[
     ),
     // wipeout: from $Rect and erase it (no lock check)
     r(
-        "wipeout",
+        "wipeout.add",
         r##"{"handle":"$Rect","erase":true}"##,
         "active,part",
         &[
@@ -2417,7 +2441,7 @@ const ROWS: &[Row] = &[
     ),
     // wipeout: from points
     r(
-        "wipeout",
+        "wipeout.add",
         r##"{"points":[[0,0],[10,0],[10,10]]}"##,
         "active,part",
         &[
@@ -2461,7 +2485,7 @@ const ROWS: &[Row] = &[
     ),
     // helix: 3D polyline approximation
     r(
-        "helix",
+        "helix.add",
         r##"{"center":[0,0],"baseRadius":5}"##,
         "active,part",
         &[
@@ -2529,46 +2553,46 @@ const ROWS: &[Row] = &[
     // ---------------- group D ----------------
 
     // erase: by handle; locked objects skipped silently (~locked), entity removed whole
-    r("erase", r##"{"handles":["$L1"]}"##, "", &[("$L1", "*", "-")]),
+    r("object.delete", r##"{"handles":["$L1"]}"##, "", &[("$L1", "*", "-")]),
     // erase: selection fallback
-    r("erase", r##"{}"##, "selection", &[("$Circ", "*", "-")]),
+    r("object.delete", r##"{}"##, "selection", &[("$Circ", "*", "-")]),
     // move: by handle, in-place transform, locked skipped silently
-    r("move", r##"{"handles":["$L1"],"delta":[5,0]}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
+    r("object.move", r##"{"handles":["$L1"],"delta":[5,0]}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
     // move: selection fallback with from/to
     // [corrected C8-cad-pin: crates/engine/doc/src/entity.rs:889-906 transforms and assigns circle radius even for unit scale; add kind.radius]
-    r("move", r##"{"from":[0,0],"to":[5,5]}"##, "selection", &[("$Circ", "kind.center,~locked,kind.radius", "-")]),
+    r("object.move", r##"{"from":[0,0],"to":[5,5]}"##, "selection", &[("$Circ", "kind.center,~locked,kind.radius", "-")]),
     // copy: clones the whole entity into its own space (no lock check)
     // C8-cad-read-4 sampled audit: modify.rs:108-124 clones stored common/kind into the source space; derived picks/groups are not copied.
-    r("copy", r##"{"handles":["$L1"],"delta":[0,20],"count":2}"##, "", &[("$L1", "common,kind,~space", "-")]),
+    r("object.copy", r##"{"handles":["$L1"],"delta":[0,20],"count":2}"##, "", &[("$L1", "common,kind,~space", "-")]),
     // copy: selection fallback
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("copy", r##"{"delta":[0,20]}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
+    r("object.copy", r##"{"delta":[0,20]}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
     // rotate: in place, locked skipped silently
-    r("rotate", r##"{"handles":["$L1"],"base":[20,0],"angle":90}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
+    r("object.rotate", r##"{"handles":["$L1"],"base":[20,0],"angle":90}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
     // rotate: copy=true clones whole
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("rotate", r##"{"handles":["$L1"],"base":[20,0],"angle":90,"copy":true}"##, "", &[("$L1", "common,kind,~space", "-")]),
+    r("object.rotate", r##"{"handles":["$L1"],"base":[20,0],"angle":90,"copy":true}"##, "", &[("$L1", "common,kind,~space", "-")]),
     // rotate: selection fallback
     // C8-cad-read-4 sampled audit: doc/entity.rs:903-905 rewrites radius even under rotation.
-    r("rotate", r##"{"base":[0,0],"angle":45}"##, "selection", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
+    r("object.rotate", r##"{"base":[0,0],"angle":45}"##, "selection", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
     // scale: in place
-    r("scale", r##"{"handles":["$Circ"],"base":[50,5],"factor":2}"##, "", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
+    r("object.scale", r##"{"handles":["$Circ"],"base":[50,5],"factor":2}"##, "", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
     // scale: copy=true
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("scale", r##"{"handles":["$L1"],"base":[20,0],"factor":2,"copy":true}"##, "", &[("$L1", "common,kind,~space", "-")]),
+    r("object.scale", r##"{"handles":["$L1"],"base":[20,0],"factor":2,"copy":true}"##, "", &[("$L1", "common,kind,~space", "-")]),
     // scale: selection fallback
-    r("scale", r##"{"base":[50,5],"factor":2}"##, "selection", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
+    r("object.scale", r##"{"base":[50,5],"factor":2}"##, "selection", &[("$Circ", "kind.center,kind.radius,~locked", "-")]),
     // mirror: default keeps the source and adds a mirrored clone (no lock check)
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("mirror", r##"{"handles":["$L1"],"p1":[0,0],"p2":[0,10]}"##, "", &[("$L1", "common,kind,~space", "-")]),
+    r("object.mirror", r##"{"handles":["$L1"],"p1":[0,0],"p2":[0,10]}"##, "", &[("$L1", "common,kind,~space", "-")]),
     // mirror: erase:true mirrors in place, locked skipped silently
-    r("mirror", r##"{"handles":["$L1"],"p1":[0,0],"p2":[0,10],"erase":true}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
+    r("object.mirror", r##"{"handles":["$L1"],"p1":[0,0],"p2":[0,10],"erase":true}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
     // mirror: selection fallback
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("mirror", r##"{"p1":[0,0],"p2":[0,10]}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
+    r("object.mirror", r##"{"p1":[0,0],"p2":[0,10]}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
     // stretch: crossing-window scan of the current space finds $L1 and $L2; locked skipped silently
     r(
-        "stretch",
+        "object.stretch",
         r##"{"window":[[25,-1],[35,11]],"delta":[5,0]}"##,
         "part",
         &[("$L1", "kind.a,kind.b,~pick,~locked", "-"), ("$L2", "kind.a,kind.b,~pick,~locked", "-")],
@@ -2576,16 +2600,16 @@ const ROWS: &[Row] = &[
     // stretch: window over a $Rect corner also finds the hatch (moved whole if its first grip is inside)
     // UNSURE: whether $Hatch's first grip is inside the window (only whether it moves, not what is held)
     r(
-        "stretch",
+        "object.stretch",
         r##"{"window":[[8,8],[12,12]],"delta":[2,2]}"##,
         "part",
         &[("$Rect", "kind.vertices,~pick,~locked", "-"), ("$Hatch", "kind,~pick,~locked", "-")],
     ),
     // offset: copy keeps the source's common, pushed into the current space
-    r("offset", r##"{"handle":"$L1","distance":2,"side":[25,5]}"##, "part", &[("$L1", "common,kind.a,kind.b", "-")]),
+    r("object.offset", r##"{"handle":"$L1","distance":2,"side":[25,5]}"##, "part", &[("$L1", "common,kind.a,kind.b", "-")]),
     // offset: layer current -> CLAYER replaces the source layer
     r(
-        "offset",
+        "object.offset",
         r##"{"handle":"$L1","distance":2,"side":[25,5],"layer":"current"}"##,
         "active,part",
         &[
@@ -2599,12 +2623,12 @@ const ROWS: &[Row] = &[
         ],
     ),
     // offset: erase:true removes the source unless locked (skip silently)
-    r("offset", r##"{"handle":"$L1","distance":2,"side":[25,5],"erase":true}"##, "part", &[("$L1", "*", "-")]),
+    r("object.offset", r##"{"handle":"$L1","distance":2,"side":[25,5],"erase":true}"##, "part", &[("$L1", "*", "-")]),
     // offset: selection fallback (first selected)
-    r("offset", r##"{"distance":2,"side":[50,5]}"##, "part,selection", &[("$Circ", "common,kind.center,kind.radius", "-")]),
+    r("object.offset", r##"{"distance":2,"side":[50,5]}"##, "part,selection", &[("$Circ", "common,kind.center,kind.radius", "-")]),
     // trim: handle, implicit edges = every visible cutter of the current space; quick mode erases a target no edge crosses; locked target -> error
     r(
-        "trim",
+        "object.trim",
         r##"{"handle":"$L1","pick":[25,0],"mode":"quick"}"##,
         "part",
         &[
@@ -2620,42 +2644,42 @@ const ROWS: &[Row] = &[
     ),
     // trim: explicit edges (kept only if visible and in the current space)
     r(
-        "trim",
+        "object.trim",
         r##"{"handle":"$L1","pick":[25,0],"edges":["$L2"],"mode":"quick"}"##,
         "part",
         &[("$L1", "*", "-"), ("$L2", "kind.a,kind.b,~pick.visible,~pick.space", "-")],
     ),
     // trim: fence scan of the current space finds $L1
     r(
-        "trim",
+        "object.trim",
         r##"{"fence":[[25,-1],[25,1]],"edges":["$L2"],"mode":"quick"}"##,
         "part",
         &[("$L1", "*", "-"), ("$L2", "kind.a,kind.b,~pick.visible,~pick.space", "-")],
     ),
     // trim: crossing window scan finds $L1
     r(
-        "trim",
+        "object.trim",
         r##"{"crossing":[[24,-1],[26,1]],"edges":["$L2"],"mode":"quick"}"##,
         "part",
         &[("$L1", "*", "-"), ("$L2", "kind.a,kind.b,~pick.visible,~pick.space", "-")],
     ),
     // trim: selection fallback; a circle with < 2 crossings is erased in quick mode
     r(
-        "trim",
+        "object.trim",
         r##"{"pick":[55,5],"edges":["$L2"],"mode":"quick"}"##,
         "part,selection",
         &[("$Circ", "*", "-"), ("$L2", "kind.a,kind.b,~pick.visible,~pick.space", "-")],
     ),
     // extend: explicit boundary edge; locked target -> error; kind rewritten in place
     r(
-        "extend",
+        "object.extend",
         r##"{"handle":"$L1","pick":[21,0],"edges":["$Rect"]}"##,
         "part",
         &[("$L1", "kind.a,kind.b,~locked", "-"), ("$Rect", "kind.vertices,kind.closed,~pick.visible,~pick.space", "-")],
     ),
     // extend: implicit edges = every visible cutter of the current space
     r(
-        "extend",
+        "object.extend",
         r##"{"handle":"$L1","pick":[21,0]}"##,
         "part",
         &[
@@ -2671,81 +2695,81 @@ const ROWS: &[Row] = &[
     ),
     // extend: fence scan finds $L1
     r(
-        "extend",
+        "object.extend",
         r##"{"fence":[[21,-1],[21,1]],"edges":["$Rect"]}"##,
         "part",
         &[("$L1", "kind.a,kind.b,~locked,~pick", "-"), ("$Rect", "kind.vertices,kind.closed,~pick.visible,~pick.space", "-")],
     ),
     // fillet: two lines, radius given; arc copies h1's common, pushed into the current space; locks -> error
     r(
-        "fillet",
+        "object.fillet",
         r##"{"h1":"$L1","p1":[22,0],"h2":"$L2","p2":[30,8],"radius":2}"##,
         "part",
         &[("$L1", "common,kind.a,kind.b,~locked", "-"), ("$L2", "kind.a,kind.b,~locked", "-")],
     ),
     // fillet: radius omitted -> FILLETRAD
     r(
-        "fillet",
+        "object.fillet",
         r##"{"h1":"$L1","p1":[22,0],"h2":"$L2","p2":[30,8]}"##,
         "part",
         &[("$L1", "common,kind.a,kind.b,~locked", "-"), ("$L2", "kind.a,kind.b,~locked", "-"), ("drawing", "header.FILLETRAD", "-")],
     ),
     // fillet: line + circle (fillet_curves): arc goes to h1's own space
     r(
-        "fillet",
+        "object.fillet",
         r##"{"h1":"$L2","p1":[30,8],"h2":"$Circ","p2":[46,5],"radius":8}"##,
         "",
         &[("$L2", "common,kind.a,kind.b,~locked,~pick.space", "-"), ("$Circ", "kind.center,kind.radius,~locked", "-")],
     ),
     // fillet: polyline option, radius given
-    r("fillet", r##"{"handle":"$Rect","polyline":true,"radius":1}"##, "", &[("$Rect", "kind,~locked", "-")]),
+    r("object.fillet", r##"{"handle":"$Rect","polyline":true,"radius":1}"##, "", &[("$Rect", "kind,~locked", "-")]),
     // fillet: polyline option, FILLETRAD default
-    r("fillet", r##"{"handle":"$Rect","polyline":true}"##, "", &[("$Rect", "kind,~locked", "-"), ("drawing", "header.FILLETRAD", "-")]),
+    r("object.fillet", r##"{"handle":"$Rect","polyline":true}"##, "", &[("$Rect", "kind,~locked", "-"), ("drawing", "header.FILLETRAD", "-")]),
     // chamfer: two lines, distances given
     r(
-        "chamfer",
+        "object.chamfer",
         r##"{"h1":"$L1","p1":[22,0],"h2":"$L2","p2":[30,8],"d1":1,"d2":2}"##,
         "part",
         &[("$L1", "common,kind.a,kind.b,~locked", "-"), ("$L2", "kind.a,kind.b,~locked", "-")],
     ),
     // chamfer: distances omitted -> CHAMFERA for both (CHAMFERB not read)
     r(
-        "chamfer",
+        "object.chamfer",
         r##"{"h1":"$L1","p1":[22,0],"h2":"$L2","p2":[30,8]}"##,
         "part",
         &[("$L1", "common,kind.a,kind.b,~locked", "-"), ("$L2", "kind.a,kind.b,~locked", "-"), ("drawing", "header.CHAMFERA", "-")],
     ),
     // chamfer: length + angle
     r(
-        "chamfer",
+        "object.chamfer",
         r##"{"h1":"$L1","p1":[22,0],"h2":"$L2","p2":[30,8],"length":1,"angle":30}"##,
         "part",
         &[("$L1", "common,kind.a,kind.b,~locked", "-"), ("$L2", "kind.a,kind.b,~locked", "-")],
     ),
     // chamfer: polyline option with d1
-    r("chamfer", r##"{"handle":"$Rect","polyline":true,"d1":1}"##, "", &[("$Rect", "kind,~locked", "-")]),
+    r("object.chamfer", r##"{"handle":"$Rect","polyline":true,"d1":1}"##, "", &[("$Rect", "kind,~locked", "-")]),
     // chamfer: polyline option, CHAMFERA default
-    r("chamfer", r##"{"handle":"$Rect","polyline":true}"##, "", &[("$Rect", "kind,~locked", "-"), ("drawing", "header.CHAMFERA", "-")]),
+    r("object.chamfer", r##"{"handle":"$Rect","polyline":true}"##, "", &[("$Rect", "kind,~locked", "-"), ("drawing", "header.CHAMFERA", "-")]),
     // explode: insert -> block by name, its base and members (in block order), parts into the current space
     r(
-        "explode",
+        "object.explode",
         r##"{"handles":["$Ins"]}"##,
         "part",
         &[("$Ins", "*", "-"), ("$Door", "name,data.base,~memberOrder", "-"), ("$DoorLine", "common,kind", "-")],
     ),
     // explode: polyline into lines
-    r("explode", r##"{"handles":["$Rect"]}"##, "part", &[("$Rect", "*", "-")]),
+    r("object.explode", r##"{"handles":["$Rect"]}"##, "part", &[("$Rect", "*", "-")]),
     // explode: dimension -> rendered geometry with its dim style (+ text style)
     // UNSURE: kition_cad_render::dimension_in reads more drawing state (DIMSCALE/header, text style font) than read here
     // C8-cad-read-4 source correction: io/dxf_write.rs:1033-1037,1323-1337 generates dimension blocks; render/lib.rs:817-826 reads these four font metrics.
     r(
-        "explode",
+        "object.explode",
         r##"{"handles":["$Dim"]}"##,
         "part",
         &[("$Dim", "*", "-"), ("$DimStandard", "name,data", "-"), ("$Standard", "name,data.font,data.height,data.widthFactor,data.oblique", "-")],
     ),
     // explode: selection fallback; a circle is not explodable (silent no-op), lock checked first
-    r("explode", r##"{}"##, "selection", &[("$Circ", "kind.type,~locked", "-")]),
+    r("object.explode", r##"{}"##, "selection", &[("$Circ", "kind.type,~locked", "-")]),
     // C8-cad-read-2: modify.rs::run_front/run_back resolve space_of(handle);
     // explicit handles no longer read the current part.
     // C8-cad-read-4 source correction: modify.rs:1301-1319 changes order in space; display/pick eligibility is unused.
@@ -2760,16 +2784,16 @@ const ROWS: &[Row] = &[
     // C8-cad-read-4 source correction: modify.rs:1301-1319 changes order in space; display/pick eligibility is unused.
     r("arrange.sendToBack", r##"{}"##, "selection", &[("$Circ", "~pick.order,~space", "*")]),
     // break: no lock check; target replaced by pieces in the current space
-    r("break", r##"{"handle":"$L1","p1":[22,0],"p2":[24,0]}"##, "part", &[("$L1", "*", "-")]),
+    r("object.break", r##"{"handle":"$L1","p1":[22,0],"p2":[24,0]}"##, "part", &[("$L1", "*", "-")]),
     // break: selection fallback (circle -> arc)
-    r("break", r##"{"p1":[55,5],"p2":[50,10]}"##, "part,selection", &[("$Circ", "*", "-")]),
+    r("object.break", r##"{"p1":[55,5],"p2":[50,10]}"##, "part,selection", &[("$Circ", "*", "-")]),
     // breakatpoint: by handle
     r("object.breakAtPoint", r##"{"handle":"$L1","at":[25,0]}"##, "part", &[("$L1", "*", "-")]),
     // join: two connected lines -> polyline (first's common), no lock check
-    r("join", r##"{"handles":["$L1","$L2"]}"##, "part", &[("$L1", "*", "-"), ("$L2", "*", "-")]),
+    r("object.join", r##"{"handles":["$L1","$L2"]}"##, "part", &[("$L1", "*", "-"), ("$L2", "*", "-")]),
     // join: an unconnected arc is read (decides the chain) but kept
     r(
-        "join",
+        "object.join",
         r##"{"handles":["$L1","$L2","$Arc"]}"##,
         "part",
         &[("$L1", "*", "-"), ("$L2", "*", "-"), ("$Arc", "kind.center,kind.radius,kind.start,kind.end", "-")],
@@ -2780,21 +2804,21 @@ const ROWS: &[Row] = &[
     r("object.deleteDuplicates", r##"{"handles":["$L1","$L2"]}"##, "", &[("$L1", "common,kind", "-"), ("$L2", "common,kind", "-")]),
     // array: dispatch to arrayrect (default type)
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("array", r##"{"handles":["$L1"],"rows":2,"cols":2,"rowSpacing":10,"colSpacing":15}"##, "", &[("$L1", "common,kind,~space", "-")]),
+    r("object.array", r##"{"handles":["$L1"],"rows":2,"cols":2,"rowSpacing":10,"colSpacing":15}"##, "", &[("$L1", "common,kind,~space", "-")]),
     // array: dispatch to arraypolar
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("array", r##"{"type":"polar","handles":["$Circ"],"center":[50,20],"count":4}"##, "", &[("$Circ", "common,kind,~space", "-")]),
+    r("object.array", r##"{"type":"polar","handles":["$Circ"],"center":[50,20],"count":4}"##, "", &[("$Circ", "common,kind,~space", "-")]),
     // array: dispatch to arraypath, path curve geometry read
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
     r(
-        "array",
+        "object.array",
         r##"{"type":"path","handles":["$Circ"],"path":"$L1","count":3}"##,
         "",
         &[("$Circ", "common,kind,~space", "-"), ("$L1", "kind.a,kind.b", "-")],
     ),
     // array: selection fallback (rectangular defaults 3x4)
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
-    r("array", r##"{}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
+    r("object.array", r##"{}"##, "selection", &[("$Circ", "common,kind,~space", "-")]),
     // arrayrect: by handle
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
     r(
@@ -2885,12 +2909,12 @@ const ROWS: &[Row] = &[
     // ---- Reading E ----
     // ---------------- group E ----------------
     // audit: report only, no fix — nothing written
-    r("audit", r##"{"fix":false}"##, "", &[]),
+    r("file.audit", r##"{"fix":false}"##, "", &[]),
     // audit: fix — the whole drawing is replaced by its repaired copy
-    r("audit", r##"{"fix":true}"##, "", &[("drawing", "~audit", "-")]),
+    r("file.audit", r##"{"fix":true}"##, "", &[("drawing", "~audit", "-")]),
     // UNSURE: whether the DXF reader accepts this minimal file; recover opens a NEW document and never reads the current one
     // recover: base64 data opened as a new drawing
-    r("recover", r##"{"data":"MApTRUNUSU9OCjIKRU5USVRJRVMKMApFTkRTRUMKMApFT0YK","name":"r.dxf"}"##, "", &[]),
+    r("file.recover", r##"{"data":"MApTRUNUSU9OCjIKRU5USVRJRVMKMApFTkRTRUMKMApFT0YK","name":"r.dxf"}"##, "", &[]),
     // -block: handles given, default keep=delete — copies and erases the target; an existing name would be redefined silently
     r("block.add", r##"{"name":"B1","base":[20,0],"handles":["$L1"]}"##, "", &[("$L1", "*", "-"), ("drawing", "~recordNames.block:b1", "-")]),
     // -block: selection fallback
@@ -2912,7 +2936,7 @@ const ROWS: &[Row] = &[
     ),
     // block: default keep=convert — block from the targets, targets erased, insert with current props in current space
     r(
-        "block",
+        "block.addDialog",
         r##"{"name":"B1","base":[20,0],"handles":["$L1","$L2"]}"##,
         "active,part",
         &[
@@ -2928,14 +2952,14 @@ const ROWS: &[Row] = &[
     ),
     // block: keep=retain — only the definition is made
     r(
-        "block",
+        "block.addDialog",
         r##"{"name":"B1","base":[20,0],"handles":["$L1"],"keep":"retain"}"##,
         "",
         &[("$L1", "*", "-"), ("drawing", "~recordNames.block:b1", "-")],
     ),
     // block: selection fallback, convert
     r(
-        "block",
+        "block.addDialog",
         r##"{"name":"B1","base":[50,5]}"##,
         "active,part,selection",
         &[
@@ -2950,14 +2974,14 @@ const ROWS: &[Row] = &[
     ),
     // block: existing name (case-insensitive) — silently redefines Door
     r(
-        "block",
+        "block.addDialog",
         r##"{"name":"door","base":[20,0],"handles":["$L1"],"keep":"retain"}"##,
         "",
         &[("$L1", "*", "-"), ("$Door", "name", "-"), ("drawing", "~recordNames.block:door", "-")],
     ),
     // insert: block by name, current properties, current space (attdefs of the block decide the attributes)
     r(
-        "insert",
+        "block.insert",
         r##"{"name":"Door","at":[200,0]}"##,
         "active,part",
         &[
@@ -2968,7 +2992,7 @@ const ROWS: &[Row] = &[
     ),
     // insert: basePoint — the block's base point decides where the reference lands
     r(
-        "insert",
+        "block.insert",
         r##"{"name":"Door","at":[200,0],"basePoint":[5,80],"scale":2,"rotation":90}"##,
         "active,part",
         &[
@@ -2979,7 +3003,7 @@ const ROWS: &[Row] = &[
     ),
     // insert: *name — inserted then exploded: the block's members are copied (layer-0/ByBlock members take the insert's current props)
     r(
-        "insert",
+        "block.insert",
         r##"{"name":"*Door","at":[200,0]}"##,
         "active,part",
         &[
@@ -2991,7 +3015,7 @@ const ROWS: &[Row] = &[
     // UNSURE: host-gated (files_by_path); file contents unknown — every layer/linetype/style/block name of the file would also be a ~recordNames hold
     // insert: file — defines/redefines block Part from the file, then inserts it
     r(
-        "insert",
+        "block.insert",
         r##"{"name":"Part","file":"/tmp/part.dxf","at":[0,0]}"##,
         "active,part",
         &[
@@ -3035,15 +3059,15 @@ const ROWS: &[Row] = &[
     ),
     // base: writes INSBASE, reads nothing
     // same-field decision: hold the values this write replaces.
-    r("base", r##"{"at":[5,5]}"##, "", &[("drawing", "header.INSBASE", "-")]),
+    r("block.setBase", r##"{"at":[5,5]}"##, "", &[("drawing", "header.INSBASE", "-")]),
     // purge: default all — cascading named purges
-    r("purge", r##"{}"##, "", &[("drawing", "~purge_all", "-")]),
+    r("file.purge", r##"{}"##, "", &[("drawing", "~purge_all", "-")]),
     // purge: blocks by name pattern
-    r("purge", r##"{"type":"blocks","names":"*"}"##, "", &[("drawing", "~purge_blocks", "-")]),
+    r("file.purge", r##"{"type":"blocks","names":"*"}"##, "", &[("drawing", "~purge_blocks", "-")]),
     // purge: zero-length geometry (scan of model + layouts, no lock check)
-    r("purge", r##"{"type":"zerolength"}"##, "", &[("drawing", "~purge_zeroLength", "-")]),
+    r("file.purge", r##"{"type":"zerolength"}"##, "", &[("drawing", "~purge_zeroLength", "-")]),
     // purge: layers
-    r("purge", r##"{"type":"layers"}"##, "", &[("drawing", "~purge_layers", "-")]),
+    r("file.purge", r##"{"type":"layers"}"##, "", &[("drawing", "~purge_layers", "-")]),
     // UNSURE: host-gated (path); the drawing is not written, only the file — holds are what the file's content depends on
     // wblock: a block by name, with the drawing's tables
     r(
@@ -3085,19 +3109,19 @@ const ROWS: &[Row] = &[
     // pasteorig: clipboard at its original coordinates
     r("edit.pasteToOriginalCoordinates", r##"{}"##, "part", &[]),
     // u: last step of the caller's undo scope — the drawing swaps back to the snapshot
-    r("u", r##"{}"##, "", &[("drawing", "~history", "-")]),
+    r("edit.undoStep", r##"{}"##, "", &[("drawing", "~history", "-")]),
     // undo: count steps
-    r("undo", r##"{"count":2}"##, "", &[("drawing", "~history", "-")]),
+    r("edit.undoMany", r##"{"count":2}"##, "", &[("drawing", "~history", "-")]),
     // undo: other scope
-    r("undo", r##"{"scope":"agent"}"##, "", &[("drawing", "~history", "-")]),
+    r("edit.undoMany", r##"{"scope":"agent"}"##, "", &[("drawing", "~history", "-")]),
     // redo: redo stack of the scope (empty right after the fixture ⇒ "Nothing to redo")
-    r("redo", r##"{}"##, "", &[("drawing", "~history", "-")]),
+    r("edit.redoStep", r##"{}"##, "", &[("drawing", "~history", "-")]),
     // group: named, handles — members must exist (missing ones silently dropped); a name clash errors
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/groups.rs:70-90,145-155 checks the typed destination name; add name-gap replay]
-    r("group", r##"{"name":"G2","handles":["$Circ","$Arc"]}"##, "", &[("$Circ", "-", "-"), ("$Arc", "-", "-"), ("~place", "name", "-")]),
+    r("arrange.group", r##"{"name":"G2","handles":["$Circ","$Arc"]}"##, "", &[("$Circ", "-", "-"), ("$Arc", "-", "-"), ("~place", "name", "-")]),
     // group: unnamed, selection fallback
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/groups.rs:60-62 chooses the first unused *A name; add ~nextGroupName]
-    r("group", r##"{}"##, "selection", &[("$Circ", "-", "-"), ("drawing", "~nextGroupName", "-")]),
+    r("arrange.group", r##"{}"##, "selection", &[("$Circ", "-", "-"), ("drawing", "~nextGroupName", "-")]),
     // groupedit: add — members read for de-duplication, added objects must exist
     r("group.edit", r##"{"name":"G1","add":["$Circ"]}"##, "", &[("$G1", "name,data.members", "-"), ("$Circ", "-", "-")]),
     // groupedit: remove — group deleted when it ends empty
@@ -3106,16 +3130,16 @@ const ROWS: &[Row] = &[
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/groups.rs:70-90,145-155 checks the typed destination name; add name-gap replay]
     r("group.edit", r##"{"name":"G1","rename":"Walls group"}"##, "", &[("$G1", "name", "-"), ("~place", "name", "-")]),
     // ungroup: by name — the group record is removed
-    r("ungroup", r##"{"name":"G1"}"##, "", &[("$G1", "name,data", "-")]),
+    r("arrange.ungroup", r##"{"name":"G1"}"##, "", &[("$G1", "name,data", "-")]),
     // ungroup: by handle — every group holding the object
-    r("ungroup", r##"{"handles":["$L1"]}"##, "", &[("$L1", "~groups", "-")]),
+    r("arrange.ungroup", r##"{"handles":["$L1"]}"##, "", &[("$L1", "~groups", "-")]),
     // ungroup: selection fallback ($Circ is in no group ⇒ error "not in a group")
     // Review: removed `ungroup {}` on the selection [$Circ], which is in no group (the call fails
     // on this fixture); the selection form is the `handles` row's.
     // align: transform targets in place (locked skipped)
-    r("align", r##"{"handles":["$L1"],"s1":[20,0],"d1":[0,100],"s2":[30,0],"d2":[0,110]}"##, "", &[("$L1", "kind,~locked", "-")]),
+    r("object.align", r##"{"handles":["$L1"],"s1":[20,0],"d1":[0,100],"s2":[30,0],"d2":[0,110]}"##, "", &[("$L1", "kind,~locked", "-")]),
     // align: selection fallback
-    r("align", r##"{"s1":[50,5],"d1":[60,5]}"##, "selection", &[("$Circ", "kind,~locked", "-")]),
+    r("object.align", r##"{"s1":[50,5],"d1":[60,5]}"##, "selection", &[("$Circ", "kind,~locked", "-")]),
     // arraypath: copies of the objects along the path (copies in each object's own space)
     // C8-cad-read-4 source correction: modify.rs:108-124 clones stored common/kind into the source space; derived eligibility and groups are not copied.
     r(
@@ -3129,7 +3153,7 @@ const ROWS: &[Row] = &[
     r("object.arrayPath", r##"{"path":"$L1","spacing":2}"##, "selection", &[("$Circ", "common,kind,~space", "-"), ("$L1", "kind.a,kind.b", "-")]),
     // blend: spline between the picked ends, current props, current space
     r(
-        "blend",
+        "object.blend",
         r##"{"h1":"$L1","p1":[30,0],"h2":"$Arc","p2":[75,5]}"##,
         "active,part",
         &[
@@ -3141,7 +3165,7 @@ const ROWS: &[Row] = &[
     ),
     // blend: smooth continuity
     r(
-        "blend",
+        "object.blend",
         r##"{"h1":"$L1","p1":[30,0],"h2":"$Spline","p2":[20,40],"continuity":"smooth"}"##,
         "active,part",
         &[
@@ -3182,9 +3206,9 @@ const ROWS: &[Row] = &[
         ],
     ),
     // flatten: z zeroed, thickness 0 (locked skipped)
-    r("flatten", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.type,kind.a.z,kind.b.z,common.thickness,~locked", "-")]),
+    r("object.flatten", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.type,kind.a.z,kind.b.z,common.thickness,~locked", "-")]),
     // flatten: selection fallback
-    r("flatten", r##"{}"##, "selection", &[("$Circ", "kind.type,kind.center.z,common.thickness,~locked", "-")]),
+    r("object.flatten", r##"{}"##, "selection", &[("$Circ", "kind.type,kind.center.z,common.thickness,~locked", "-")]),
     // lengthen: measure only (answer), no write
     r("object.lengthen", r##"{"handle":"$L1"}"##, "", &[]),
     // lengthen: delta on a line at the end nearest pick (locked ⇒ error)
@@ -3224,11 +3248,11 @@ const ROWS: &[Row] = &[
     // pedit: selection fallback ($Circ ⇒ "not a polyline" error)
     r("polyline.edit", r##"{"option":"width","width":1}"##, "selection", &[("$Circ", "kind.type,~locked", "-")]),
     // reverse: line endpoints swapped (locked skipped)
-    r("reverse", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
+    r("object.reverse", r##"{"handles":["$L1"]}"##, "", &[("$L1", "kind.a,kind.b,~locked", "-")]),
     // reverse: spline
-    r("reverse", r##"{"handles":["$Spline"]}"##, "", &[("$Spline", "kind,~locked", "-")]),
+    r("object.reverse", r##"{"handles":["$Spline"]}"##, "", &[("$Spline", "kind,~locked", "-")]),
     // reverse: selection fallback (circle not reversible ⇒ nothing written)
-    r("reverse", r##"{}"##, "selection", &[("$Circ", "kind.type,~locked", "-")]),
+    r("object.reverse", r##"{}"##, "selection", &[("$Circ", "kind.type,~locked", "-")]),
     // splinedit: reverse
     r("spline.edit", r##"{"handle":"$Spline","option":"reverse"}"##, "", &[("$Spline", "kind,~locked", "-")]),
     // splinedit: move a fit point by index (refit)
@@ -3250,16 +3274,16 @@ const ROWS: &[Row] = &[
     // C8-cad-read-4 source correction: utility.rs:296-300 writes only the matching handle selection;
     // changed words that keep matching affect only reply text/count. The wider guard is waiting on SDK selection-consumer planning.
     // [corrected C8-cad-pin: utility.rs:247-280 reads words from stored kind in the active space; public SDK coverage replays kind/~space instead of a bounded aggregate ~texts receipt.]
-    r("find", r##"{"find":"Hello"}"##, "part", &[("~place", "kind,~space", "-")]),
+    r("edit.find", r##"{"find":"Hello"}"##, "part", &[("~place", "kind,~space", "-")]),
     // find: replace in every match in the current space (no lock check)
     // C8-cad-read-3 source correction: utility.rs:246-301: matching membership and matched words are required; nonmatching text is preserved, and the matching predicate is replayed.
     // C8-cad-read-4 audit: utility.rs:291-297 assigns matched kinds; locks.rs:9-48 rejects a locked target.
     // [corrected C8-cad-pin: utility.rs:247-297 uses the same stored-kind/space membership predicate for replacement.]
-    r("find", r##"{"find":"Hello","replace":"Bye"}"##, "part", &[("$Text", "~words,~locked", "-"), ("~place", "kind,~space", "-")]),
+    r("edit.find", r##"{"find":"Hello","replace":"Bye"}"##, "part", &[("$Text", "~words,~locked", "-"), ("~place", "kind,~space", "-")]),
     // ---- Reading F ----
     // ---------------- group F: layers ----------------
     // layer: read-only listing, writes nothing
-    r("layer", r##"{}"##, "", &[]),
+    r("layer.open", r##"{}"##, "", &[]),
     // layer.add: plain new layer (name clash is an error, not a silent change)
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layer.rs:185-193 checks the destination layer name; add name-gap replay]
     r("layer.add", r##"{"name":"Red","color":1}"##, "", &[("~place", "name", "-")]),
@@ -3509,7 +3533,7 @@ const ROWS: &[Row] = &[
     // layout option new: as layout.add with a name (default viewport)
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layout.rs:149-164 validates the destination layout name against its typed table; add name-gap replay]
     r(
-        "layout",
+        "layout.manage",
         r##"{"option":"new","name":"Sheet"}"##,
         "active",
         &[
@@ -3524,7 +3548,7 @@ const ROWS: &[Row] = &[
     ),
     // layout option copy: name → from; copies Layout1 whole
     r(
-        "layout",
+        "layout.manage",
         r##"{"option":"copy","name":"Layout1","to":"Sheet"}"##,
         "",
         &[
@@ -3536,14 +3560,14 @@ const ROWS: &[Row] = &[
     ),
     // layout option delete
     // UNSURE: the "keep at least one layout" refusal makes the other layout's existence matter
-    r("layout", r##"{"option":"delete","name":"Layout2"}"##, "", &[("$Layout2", "*", "-"), ("drawing", "~layoutCanDelete", "-")]),
+    r("layout.manage", r##"{"option":"delete","name":"Layout2"}"##, "", &[("$Layout2", "*", "-"), ("drawing", "~layoutCanDelete", "-")]),
     // layout option rename: name → from
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layout.rs:149-164 validates the destination layout name against its typed table; add name-gap replay]
-    r("layout", r##"{"option":"rename","name":"Layout1","to":"Sheet"}"##, "", &[("$Layout1", "name", "-"), ("~place", "name", "-")]),
+    r("layout.manage", r##"{"option":"rename","name":"Layout1","to":"Sheet"}"##, "", &[("$Layout1", "name", "-"), ("~place", "name", "-")]),
     // C8-cad-read-4: view.rs:247 resolves the named sheet. lib.rs:621-627
     // brackets the agent dispatcher, preserving page/view state but not erasing
     // the observed address. Only existence and case-insensitive name replay matter.
-    r("layout", r##"{"option":"set","name":"Layout1"}"##, "", &[("$Layout1", "", "-"), ("~place", "name", "-")]),
+    r("layout.manage", r##"{"option":"set","name":"Layout1"}"##, "", &[("$Layout1", "", "-"), ("~place", "name", "-")]),
     // layout.add: named, default viewport over the printable area zoomed to model extents
     r(
         "layout.add",
@@ -3767,16 +3791,16 @@ const ROWS: &[Row] = &[
     // UNSURE: on the fixture the redo stack may be empty (then the call returns null and writes nothing)
     r("edit.redo", r##"{}"##, "", &[("drawing", "~history", "-")]),
     // close: removes the active drawing's whole document state (drawing + history), unsaved edits discarded
-    r("close", r##"{}"##, "", &[("drawing", "*", "-")]),
+    r("file.close", r##"{}"##, "", &[("drawing", "*", "-")]),
     // closeall: removes every open drawing
     r("file.closeAll", r##"{}"##, "", &[("drawing", "*", "-")]),
     // file.switch: replaces only the session's active-document index; the drawing is untouched
     r("file.switch", r##"{"index":0}"##, "", &[]),
     // new: adds a new drawing and makes it active; the current drawing is untouched (replaces the active index)
-    r("new", r##"{}"##, "", &[]),
+    r("file.new", r##"{}"##, "", &[]),
     // open: reads a file into a new drawing and makes it active; the current drawing is untouched
     // UNSURE: needs the io hooks installed and valid DXF bytes
-    r("open", r##"{"data":"MApTRUNUSU9OCjIKRU5USVRJRVMKMApFTkRTRUMKMApFT0YK","name":"a.dxf"}"##, "", &[]),
+    r("file.open", r##"{"data":"MApTRUNUSU9OCjIKRU5USVRJRVMKMApFTkRTRUMKMApFT0YK","name":"a.dxf"}"##, "", &[]),
     // qsave: serialises the whole drawing to the file and marks it saved (drawing content not changed)
     // UNSURE: on the web host files may be host-owned (files_by_path refuses a path)
     r("file.save", r##"{"path":"/tmp/g-qsave.dxf"}"##, "", &[("drawing", "*", "*")]),
@@ -3803,7 +3827,7 @@ const ROWS: &[Row] = &[
     r("plot.styleManager", r##"{"action":"new","name":"mine2.ctb"}"##, "", &[("~place", "name", "-")]),
     // color: sets header CECOLOR (and CECOLOR_RGB); reads nothing
     // same-field decision: hold the values this write replaces.
-    r("color", r##"{"color":1}"##, "", &[("drawing", "header.CECOLOR,header.CECOLOR_RGB", "-")]),
+    r("property.color", r##"{"color":1}"##, "", &[("drawing", "header.CECOLOR,header.CECOLOR_RGB", "-")]),
     // ddptype: sets header PDMODE / PDSIZE
     // same-field decision: hold the values this write replaces.
     r("point.style", r##"{"pdmode":3,"pdsize":1}"##, "", &[("drawing", "header.PDMODE,header.PDSIZE", "-")]),
@@ -3898,13 +3922,13 @@ const ROWS: &[Row] = &[
     r("dimensionStyle.rename", r##"{"from":"D2","to":"D3"}"##, "", &[("dimstyle:D2", "name", "-"), ("~place", "name", "-")]),
     // limits: sets header LIMMIN / LIMMAX
     // same-field decision: hold the values this write replaces.
-    r("limits", r##"{"min":[0,0],"max":[420,297]}"##, "", &[("drawing", "header.LIMMIN,header.LIMMAX", "-")]),
+    r("file.setLimits", r##"{"min":[0,0],"max":[420,297]}"##, "", &[("drawing", "header.LIMMIN,header.LIMMAX", "-")]),
     // linetype: current -> must name a loaded linetype; sets CELTYPE
     // same-field decision: hold the values this write replaces.
-    r("linetype", r##"{"current":"DASHED"}"##, "", &[("$Dashed", "name", "-"), ("drawing", "header.CELTYPE", "-")]),
+    r("property.linetype", r##"{"current":"DASHED"}"##, "", &[("$Dashed", "name", "-"), ("drawing", "header.CELTYPE", "-")]),
     // linetype: load -> pushes the library linetype unless one of that name is loaded (name clash skips it)
     // [corrected C8-cad-pin: crates/engine/doc/src/library.rs:52-63 scales newly loaded linetypes by MEASUREMENT; add header.MEASUREMENT]
-    r("linetype", r##"{"load":"HIDDEN"}"##, "", &[("drawing", "~recordNames.linetype:hidden", "-"), ("drawing", "header.MEASUREMENT", "-")]),
+    r("property.linetype", r##"{"load":"HIDDEN"}"##, "", &[("drawing", "~recordNames.linetype:hidden", "-"), ("drawing", "header.MEASUREMENT", "-")]),
     // ltscale: sets header LTSCALE
     // same-field decision: hold the values this write replaces.
     r("property.linetypeScale", r##"{"scale":2}"##, "", &[("drawing", "header.LTSCALE", "-")]),
@@ -3959,7 +3983,7 @@ const ROWS: &[Row] = &[
     // rename: layer -> layer.set {name,newName}: copies the whole layer record back, repoints members, CLAYER
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layer.rs:185-233; crates/engine/engine/src/cmd/props.rs:565-578,744-757,927-980; crates/engine/engine/src/cmd/props/rename.rs:41-55,83-102 check typed destination occupancy; add name-gap replay]
     r(
-        "rename",
+        "namedObject.rename",
         r##"{"table":"layer","from":"Walls","to":"W2"}"##,
         "",
         // Review R4: the members and CLAYER follow the rename on the drawing as it is then.
@@ -3968,7 +3992,7 @@ const ROWS: &[Row] = &[
     // rename: block -> inserts/mleaders referencing it, INSNAME and dim style arrow blocks follow
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layer.rs:185-233; crates/engine/engine/src/cmd/props.rs:565-578,744-757,927-980; crates/engine/engine/src/cmd/props/rename.rs:41-55,83-102 check typed destination occupancy; add name-gap replay]
     r(
-        "rename",
+        "namedObject.rename",
         r##"{"table":"block","from":"Door","to":"D2"}"##,
         "",
         // Review R4: the references follow the rename on the drawing as it is then.
@@ -3978,14 +4002,14 @@ const ROWS: &[Row] = &[
     // UNSURE: no derived fact names "entities using linetype X"; the layer list stands in for the layer scan
     // Review R4: the references follow the rename on the drawing as it is then.
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layer.rs:185-233; crates/engine/engine/src/cmd/props.rs:565-578,744-757,927-980; crates/engine/engine/src/cmd/props/rename.rs:41-55,83-102 check typed destination occupancy; add name-gap replay]
-    r("rename", r##"{"table":"linetype","from":"DASHED","to":"DASH2"}"##, "", &[("$Dashed", "name", "-"), ("~place", "name", "-")]),
+    r("namedObject.rename", r##"{"table":"linetype","from":"DASHED","to":"DASH2"}"##, "", &[("$Dashed", "name", "-"), ("~place", "name", "-")]),
     // rename: view (simple table)
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/props/rename.rs:83-102 rejects occupied destination view names; add typed destination-gap replay]
-    r("rename", r##"{"table":"view","from":"V1","to":"V2"}"##, "", &[("$V1", "name", "-"), ("~place", "name", "-")]),
+    r("namedObject.rename", r##"{"table":"view","from":"V1","to":"V2"}"##, "", &[("$V1", "name", "-"), ("~place", "name", "-")]),
     // rename: text style -> textStyle.rename
     // [corrected C8-cad-pin: crates/engine/engine/src/cmd/layer.rs:185-233; crates/engine/engine/src/cmd/props.rs:565-578,744-757,927-980; crates/engine/engine/src/cmd/props/rename.rs:41-55,83-102 check typed destination occupancy; add name-gap replay]
     r(
-        "rename",
+        "namedObject.rename",
         r##"{"table":"style","from":"S","to":"S2"}"##,
         "",
         // Review R4: the references follow the rename on the drawing as it is then.
@@ -3993,10 +4017,10 @@ const ROWS: &[Row] = &[
     ),
     // style: edit an existing text style by name; makes it current (TEXTSTYLE)
     // same-field decision: hold the values this write replaces.
-    r("style", r##"{"name":"S","height":3}"##, "", &[("$S", "name", "-"), ("drawing", "header.TEXTSTYLE", "-"), ("$S", "data.height", "-")]),
+    r("textStyle.open", r##"{"name":"S","height":3}"##, "", &[("$S", "name", "-"), ("drawing", "header.TEXTSTYLE", "-"), ("$S", "data.height", "-")]),
     // style: a new style (name clash would silently turn the create into an edit)
     // same-field decision: hold the values this write replaces.
-    r("style", r##"{"name":"T2","height":3}"##, "", &[("drawing", "~recordNames.textstyle:t2", "-"), ("drawing", "header.TEXTSTYLE", "-")]),
+    r("textStyle.open", r##"{"name":"T2","height":3}"##, "", &[("drawing", "~recordNames.textstyle:t2", "-"), ("drawing", "header.TEXTSTYLE", "-")]),
     // textStyle.setCurrent: by name -> TEXTSTYLE
     // same-field decision: hold the values this write replaces.
     r("textStyle.setCurrent", r##"{"name":"S"}"##, "", &[("$S", "name", "-"), ("drawing", "header.TEXTSTYLE", "-")]),
@@ -4027,7 +4051,7 @@ const ROWS: &[Row] = &[
     ),
     // units: sets header LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS
     // same-field decision: hold the values this write replaces.
-    r("units", r##"{"lunits":2,"luprec":2}"##, "", &[("drawing", "header.LUNITS,header.LUPREC", "-")]),
+    r("file.setUnits", r##"{"lunits":2,"luprec":2}"##, "", &[("drawing", "header.LUNITS,header.LUPREC", "-")]),
     // setvar: a session setting (no drawing write)
     r("variable.set", r##"{"name":"ORTHOMODE","value":1}"##, "", &[]),
     // setvar: a header variable; the existing value's type decides the coercion, value replaced whole
@@ -4512,11 +4536,11 @@ const CONSTRAINED: &[Row] = &[
         ],
     ),
     // parameters: no keys -> lists the parameters (no write)
-    r_c("parameters", r##"{}"##, "", &[]),
+    r_c("constraint.parameters", r##"{}"##, "", &[]),
     // parameters: set a new user parameter -> name looked up among dimensional constraints and parameters,
     // every expression must evaluate, then cs::solve re-solves EVERY constraint (lib.rs:604)
     r_c(
-        "parameters",
+        "constraint.parameters",
         r##"{"name":"w","value":10}"##,
         "",
         &[
@@ -4528,7 +4552,7 @@ const CONSTRAINED: &[Row] = &[
     ),
     // parameters: set with expr and description
     r_c(
-        "parameters",
+        "constraint.parameters",
         r##"{"name":"w","expr":"5*2","description":"width"}"##,
         "",
         &[
@@ -4547,7 +4571,7 @@ const CONSTRAINED: &[Row] = &[
     // line: new entity with the current properties in the current space; no constrained kind changes -> no solve
     // [corrected C8-cad-pin: crates/engine/engine/src/lib.rs:718-746 copies the current layer into the new line reference; add $0 name identity]
     r_c(
-        "line",
+        "line.add",
         r##"{"points":[[0,50],[5,50]]}"##,
         "active,part",
         &[
@@ -4562,7 +4586,7 @@ const CONSTRAINED: &[Row] = &[
     // (keeping $L1, moving $L2). Translation keeps the perpendicular, so on this fixture nothing else moves.
     // UNSURE: $Dim (associative to $L1's endpoints) is re-measured by assoc::after_command; outside group H's reading
     r_c(
-        "move",
+        "object.move",
         r##"{"handles":["$L1"],"delta":[1,0]}"##,
         "",
         &[("$L1", "kind.a,kind.b,~locked,~solve", "-"), ("constraint:1", "*", "-"), ("$L2", "kind.a,kind.b", "-"), ("$Dim", "kind", "-")],
@@ -4570,12 +4594,12 @@ const CONSTRAINED: &[Row] = &[
     // move: $Circ is in no constraint -> not touched, no solve; ~solve held because a constraint on $Circ
     // would make this move re-solve its component
     // [corrected C8-cad-pin: crates/engine/doc/src/entity.rs:889-906 transforms and assigns circle radius even for unit scale; add kind.radius]
-    r_c("move", r##"{"handles":["$Circ"],"delta":[1,0]}"##, "", &[("$Circ", "kind.center,~locked,~solve,kind.radius", "-")]),
+    r_c("object.move", r##"{"handles":["$Circ"],"delta":[1,0]}"##, "", &[("$Circ", "kind.center,~locked,~solve,kind.radius", "-")]),
     // object.setProperties: colour only, kind unchanged -> no solve; no lock check in object.setProperties
     // same-field decision: hold the values this write replaces.
     r_c("object.setProperties", r##"{"handles":["$Circ"],"color":"red"}"##, "", &[("$Circ", "-", "-"), ("$Circ", "common.color", "-")]),
     // erase: $L2 removed (lock honoured: skipped silently if Walls locked); the hook purges constraint:1
     // (its ref is gone) and writes the constraint list without it; no solve (no constraint left in the component)
     // UNSURE: groups::after_command also drops $L2 from G1 (outside group H's reading)
-    r_c("erase", r##"{"handles":["$L2"]}"##, "", &[("$L2", "*", "-"), ("constraint:1", "*", "-"), ("$G1", "data", "-")]),
+    r_c("object.delete", r##"{"handles":["$L2"]}"##, "", &[("$L2", "*", "-"), ("constraint:1", "*", "-"), ("$G1", "data", "-")]),
 ];

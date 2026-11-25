@@ -45,9 +45,9 @@ try {
   await until(async () => (await details()).entities === start + 1)
   step('draws a line from the command line', (await details()).entities === start + 1)
 
-  await kit.getByTestId('cad-tool-circle').click()
-  await until(async () => (await kit.getByTestId('cad-tool-circle').getAttribute('aria-pressed')) === 'true')
-  step('chooses the circle tool', (await kit.getByTestId('cad-tool-circle').getAttribute('aria-pressed')) === 'true')
+  await kit.getByTestId('cad-tool-circle.add').click()
+  await until(async () => (await kit.getByTestId('cad-tool-circle.add').getAttribute('aria-pressed')) === 'true')
+  step('chooses the circle tool', (await kit.getByTestId('cad-tool-circle.add').getAttribute('aria-pressed')) === 'true')
   const region = await kit.getByTestId('cad-canvas-region').boundingBox()
   await page.mouse.click(region.x + region.width * 0.75, region.y + region.height * 0.3)
   await page.waitForTimeout(200)

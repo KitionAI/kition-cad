@@ -15,15 +15,15 @@ fn locked_entity_writes_are_atomic_across_command_families() {
     let mut wrong = Vec::new();
     for case in [
         "object.breakAtPoint",
-        "join",
+        "object.join",
         "polyline.edit",
         "pedit-secondary",
-        "region",
+        "region.add",
         "revisionCloud.add",
-        "wipeout",
-        "block",
+        "wipeout.add",
+        "block.addDialog",
         "block.add",
-        "find",
+        "edit.find",
         "purge-zero",
         "purge-text",
         "object.setProperties",
@@ -50,18 +50,18 @@ fn locked_entity_writes_are_atomic_across_command_families() {
         let mut s = Session::new();
         run(&mut s, "layer.add", json!({"name":"Locked"}));
         run(&mut s, "layer.setCurrent", json!({"name":"Locked"}));
-        let a = run(&mut s, "line", json!({"points":[[0,0],[10,0]],"layer":"Locked"}))["handles"][0].clone();
-        let b = run(&mut s, "line", json!({"points":[[10,0],[10,10]],"layer":"Locked"}))["handles"][0].clone();
-        let circle = run(&mut s, "circle", json!({"center":[30,0],"radius":5,"layer":"Locked"}))["handle"].clone();
+        let a = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]],"layer":"Locked"}))["handles"][0].clone();
+        let b = run(&mut s, "line.add", json!({"points":[[10,0],[10,10]],"layer":"Locked"}))["handles"][0].clone();
+        let circle = run(&mut s, "circle.add", json!({"center":[30,0],"radius":5,"layer":"Locked"}))["handle"].clone();
         let rect = run(&mut s, "rectangle.add", json!({"p1":[40,0],"p2":[50,10],"layer":"Locked"}))["handle"].clone();
-        let text = run(&mut s, "text", json!({"at":[0,30],"text":"Before","height":2,"layer":"Locked"}))["handle"].clone();
+        let text = run(&mut s, "text.add", json!({"at":[0,30],"text":"Before","height":2,"layer":"Locked"}))["handle"].clone();
         let dim = run(&mut s, "dimension.addLinear", json!({"object":a,"at":[5,-10],"layer":"Locked"}))["handle"].clone();
-        let table = run(&mut s, "table", json!({"at":[0,50],"rows":3,"cols":3,"layer":"Locked"}))["handle"].clone();
+        let table = run(&mut s, "table.add", json!({"at":[0,50],"rows":3,"cols":3,"layer":"Locked"}))["handle"].clone();
         let att = run(&mut s, "attribute.define", json!({"at":[80,0],"tag":"CODE","default":"Before","height":2}))["handle"].clone();
-        run(&mut s, "block", json!({"name":"Attribute","base":[80,0],"handles":[att],"keep":"delete"}));
-        let insert = run(&mut s, "insert", json!({"name":"Attribute","at":[80,0],"layer":"Locked"}))["handle"].clone();
+        run(&mut s, "block.addDialog", json!({"name":"Attribute","base":[80,0],"handles":[att],"keep":"delete"}));
+        let insert = run(&mut s, "block.insert", json!({"name":"Attribute","at":[80,0],"layer":"Locked"}))["handle"].clone();
         run(&mut s, "layer.setCurrent", json!({"name":"0"}));
-        let source = run(&mut s, "line", json!({"points":[[90,0],[100,0]]}))["handles"][0].clone();
+        let source = run(&mut s, "line.add", json!({"points":[[90,0],[100,0]]}))["handles"][0].clone();
         if case == "pedit-secondary" {
             s.doc_mut().unwrap().modify_entity(h(&a), |e| e.common.layer = "0".into()).unwrap();
         }
@@ -108,15 +108,15 @@ fn locked_entity_writes_are_atomic_across_command_families() {
         run(&mut s, "layer.set", json!({"name":"Locked","locked":true}));
         let (command, p) = match case {
             "object.breakAtPoint" => (case, json!({"handle":a,"at":[5,0]})),
-            "join" => (case, json!({"handles":[a,b]})),
+            "object.join" => (case, json!({"handles":[a,b]})),
             "polyline.edit" | "pedit-secondary" => ("polyline.edit", json!({"handle":a,"option":"join","handles2":[b]})),
-            "region" => (case, json!({"handles":[circle]})),
+            "region.add" => (case, json!({"handles":[circle]})),
             "revisionCloud.add" => (case, json!({"handle":rect,"erase":true})),
-            "wipeout" => (case, json!({"handle":rect,"erase":true})),
-            "block" | "block.add" => (case, json!({"name":"NewBlock","base":[0,0],"handles":[a],"keep":"delete"})),
-            "find" => (case, json!({"find":"Before","replace":"After"})),
-            "purge-zero" => ("purge", json!({"type":"zerolength"})),
-            "purge-text" => ("purge", json!({"type":"emptytext"})),
+            "wipeout.add" => (case, json!({"handle":rect,"erase":true})),
+            "block.addDialog" | "block.add" => (case, json!({"name":"NewBlock","base":[0,0],"handles":[a],"keep":"delete"})),
+            "edit.find" => (case, json!({"find":"Before","replace":"After"})),
+            "purge-zero" => ("file.purge", json!({"type":"zerolength"})),
+            "purge-text" => ("file.purge", json!({"type":"emptytext"})),
             "object.setProperties" => (case, json!({"handles":[a],"color":"red"})),
             "object.matchProperties" => (case, json!({"source":source,"targets":[a]})),
             "dimension.override" => (case, json!({"handles":[dim],"DIMASZ":7})),
@@ -150,14 +150,14 @@ fn locked_entity_writes_are_atomic_across_command_families() {
 fn a_solver_cannot_move_a_locked_neighbour_of_an_unlocked_target() {
     let mut s = Session::new();
     run(&mut s, "layer.add", json!({"name":"Locked"}));
-    let a = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let a = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     run(&mut s, "layer.setCurrent", json!({"name":"Locked"}));
-    let b = run(&mut s, "line", json!({"points":[[10,0],[20,0]]}))["handles"][0].clone();
+    let b = run(&mut s, "line.add", json!({"points":[[10,0],[20,0]]}))["handles"][0].clone();
     run(&mut s, "constraint.coincident", json!({"h1":a,"p1":"end","h2":b,"p2":"start"}));
     run(&mut s, "layer.setCurrent", json!({"name":"0"}));
     run(&mut s, "layer.set", json!({"name":"Locked","locked":true}));
     let before = s.doc().unwrap().clone();
-    assert!(s.execute("move", &json!({"handles":[a],"delta":[2,3]})).is_err());
+    assert!(s.execute("object.move", &json!({"handles":[a],"delta":[2,3]})).is_err());
     assert_eq!(s.doc().unwrap(), &before);
 }
 
@@ -166,7 +166,7 @@ fn an_idempotent_field_assignment_still_refuses_a_locked_target() {
     let mut s = Session::new();
     run(&mut s, "layer.add", json!({"name":"Locked"}));
     run(&mut s, "layer.setCurrent", json!({"name":"Locked"}));
-    let a = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let a = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     run(&mut s, "layer.setCurrent", json!({"name":"0"}));
     run(&mut s, "layer.set", json!({"name":"Locked","locked":true}));
     let before = s.doc().unwrap().clone();

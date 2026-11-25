@@ -24,7 +24,7 @@ fn v(x: f64, y: f64) -> Vec2 {
 #[test]
 fn line_and_circle_grips() {
     let mut s = Session::new();
-    let l = h(&s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
+    let l = h(&s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
     s.grip_edit(l, 0, v(1.0, 1.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, l), EntityKind::Line(x) if near(x.a.xy(), 1.0, 1.0) && near(x.b.xy(), 10.0, 0.0)));
     // Midpoint grip moves the whole line.
@@ -37,7 +37,7 @@ fn line_and_circle_grips() {
     s.undo().unwrap();
     assert!(matches!(kind(&s, l), EntityKind::Line(x) if near(x.b.xy(), 10.0, 5.0)));
 
-    let c = h(&s.execute("circle", &json!({"center": [0, 0], "radius": 2})).unwrap());
+    let c = h(&s.execute("circle.add", &json!({"center": [0, 0], "radius": 2})).unwrap());
     s.grip_edit(c, 2, v(0.0, 5.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, c), EntityKind::Circle(x) if (x.radius - 5.0).abs() < 1e-9));
     s.grip_edit(c, 0, v(3.0, 3.0), GripMode::Stretch).unwrap();
@@ -49,7 +49,7 @@ fn line_and_circle_grips() {
 #[test]
 fn arc_and_ellipse_grips() {
     let mut s = Session::new();
-    let a = h(&s.execute("arc", &json!({"center": [0, 0], "radius": 1, "start": 0, "end": 180})).unwrap());
+    let a = h(&s.execute("arc.add", &json!({"center": [0, 0], "radius": 1, "start": 0, "end": 180})).unwrap());
     // Midpoint grip: three-point reshape through the new point.
     s.grip_edit(a, 1, v(0.0, 2.0), GripMode::Stretch).unwrap();
     let EntityKind::Arc(x) = kind(&s, a) else { panic!() };
@@ -65,7 +65,7 @@ fn arc_and_ellipse_grips() {
     let EntityKind::Arc(y) = kind(&s, a) else { panic!() };
     assert!((y.center.x - x.center.x - 10.0).abs() < 1e-9 && (y.radius - x.radius).abs() < 1e-9);
 
-    let e = h(&s.execute("ellipse", &json!({"center": [0, 0], "major": [4, 0], "ratio": 0.5})).unwrap());
+    let e = h(&s.execute("ellipse.add", &json!({"center": [0, 0], "major": [4, 0], "ratio": 0.5})).unwrap());
     s.grip_edit(e, 2, v(0.0, 1.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, e), EntityKind::Ellipse(x) if (x.ratio - 0.25).abs() < 1e-9));
     s.grip_edit(e, 1, v(0.0, 6.0), GripMode::Stretch).unwrap();
@@ -115,20 +115,20 @@ fn polyline_grips() {
 #[test]
 fn spline_text_insert_and_dimension_grips() {
     let mut s = Session::new();
-    let sp = h(&s.execute("spline", &json!({"fit": [[0, 0], [2, 2], [4, 0]]})).unwrap());
+    let sp = h(&s.execute("spline.add", &json!({"fit": [[0, 0], [2, 2], [4, 0]]})).unwrap());
     s.grip_edit(sp, 1, v(2.0, 4.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, sp), EntityKind::Spline(x) if near(x.fit[1], 2.0, 4.0) && near(x.eval(x.domain().0), 0.0, 0.0)));
-    let cv = h(&s.execute("spline", &json!({"control": [[0, 10], [2, 12], [4, 10]]})).unwrap());
+    let cv = h(&s.execute("spline.add", &json!({"control": [[0, 10], [2, 12], [4, 10]]})).unwrap());
     s.grip_edit(cv, 2, v(5.0, 9.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, cv), EntityKind::Spline(x) if near(x.control[2], 5.0, 9.0)));
 
-    let t = h(&s.execute("text", &json!({"at": [1, 1], "text": "Hi", "justify": "C"})).unwrap());
+    let t = h(&s.execute("text.add", &json!({"at": [1, 1], "text": "Hi", "justify": "C"})).unwrap());
     s.grip_edit(t, 0, v(3.0, 4.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, t), EntityKind::Text(x) if near(x.insert.xy(), 3.0, 4.0) && near(x.align_pt.unwrap().xy(), 3.0, 4.0)));
 
-    let dot = h(&s.execute("circle", &json!({"center": [0, 0], "radius": 0.1})).unwrap());
-    s.execute("block", &json!({"name": "B", "base": [0, 0], "handles": [dot.hex()], "keep": "delete"})).unwrap();
-    let ins = h(&s.execute("insert", &json!({"name": "B", "at": [5, 5]})).unwrap());
+    let dot = h(&s.execute("circle.add", &json!({"center": [0, 0], "radius": 0.1})).unwrap());
+    s.execute("block.addDialog", &json!({"name": "B", "base": [0, 0], "handles": [dot.hex()], "keep": "delete"})).unwrap();
+    let ins = h(&s.execute("block.insert", &json!({"name": "B", "at": [5, 5]})).unwrap());
     s.grip_edit(ins, 0, v(6.0, 7.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, ins), EntityKind::Insert(x) if near(x.insert.xy(), 6.0, 7.0)));
 
@@ -150,10 +150,10 @@ fn other_entity_grips() {
     let p3 = h(&s.execute("polyline.add3d", &json!({"points": [[0, 0, 4], [1, 0, 5]]})).unwrap());
     s.grip_edit(p3, 1, v(2.0, 2.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, p3), EntityKind::Polyline3d(p) if near(p.points[1].xy(), 2.0, 2.0) && p.points[1].z == 5.0));
-    let w = h(&s.execute("wipeout", &json!({"points": [[0, 0], [2, 0], [2, 2]]})).unwrap());
+    let w = h(&s.execute("wipeout.add", &json!({"points": [[0, 0], [2, 0], [2, 2]]})).unwrap());
     s.grip_edit(w, 2, v(3.0, 3.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, w), EntityKind::Wipeout(p) if near(p.boundary[2], 3.0, 3.0)));
-    let pt = h(&s.execute("point", &json!({"at": [1, 1]})).unwrap());
+    let pt = h(&s.execute("point.add", &json!({"at": [1, 1]})).unwrap());
     s.grip_edit(pt, 0, v(2.0, 2.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, pt), EntityKind::Point(p) if near(p.p.xy(), 2.0, 2.0)));
 }
@@ -161,7 +161,7 @@ fn other_entity_grips() {
 #[test]
 fn grip_modes() {
     let mut s = Session::new();
-    let l = h(&s.execute("line", &json!({"points": [[0, 0], [2, 0]]})).unwrap());
+    let l = h(&s.execute("line.add", &json!({"points": [[0, 0], [2, 0]]})).unwrap());
     // Move about grip 0.
     s.grip_edit(l, 0, v(1.0, 1.0), GripMode::Move).unwrap();
     assert!(matches!(kind(&s, l), EntityKind::Line(x) if near(x.a.xy(), 1.0, 1.0) && near(x.b.xy(), 3.0, 1.0)));
@@ -194,7 +194,7 @@ fn grip_modes() {
 #[test]
 fn grips_on_locked_layers_and_hostile_values() {
     let mut s = Session::new();
-    let l = h(&s.execute("line", &json!({"points": [[0, 0], [2, 0]]})).unwrap());
+    let l = h(&s.execute("line.add", &json!({"points": [[0, 0], [2, 0]]})).unwrap());
     for (i, p) in [(0usize, v(f64::NAN, 0.0)), (1, v(f64::INFINITY, 1.0)), (usize::MAX, v(1.0, 1.0))] {
         assert!(s.grip_edit(l, i, p, GripMode::Stretch).is_err());
     }

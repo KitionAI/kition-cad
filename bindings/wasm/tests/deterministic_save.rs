@@ -19,9 +19,9 @@ const OUT: &str = "KITION_CAD_DETERMINISM_OUT";
 
 fn build() -> Vec<u8> {
     let mut doc = CadDocument::create("plan.dxf", 0, 0).unwrap();
-    doc.execute("line", json!({ "points": [[0, 0], [100, 0]] })).unwrap();
-    doc.execute("circle", json!({ "center": [50, 50], "radius": 20 })).unwrap();
-    doc.execute("text", json!({ "at": [10, 80], "height": 5, "text": "Plan" })).unwrap();
+    doc.execute("line.add", json!({ "points": [[0, 0], [100, 0]] })).unwrap();
+    doc.execute("circle.add", json!({ "center": [50, 50], "radius": 20 })).unwrap();
+    doc.execute("text.add", json!({ "at": [10, 80], "height": 5, "text": "Plan" })).unwrap();
     doc.execute("dimension.addLinear", json!({ "p1": [0, 0], "p2": [100, 0], "at": [50, -15] })).unwrap();
     doc.save(Some("plan.dxf")).unwrap()
 }

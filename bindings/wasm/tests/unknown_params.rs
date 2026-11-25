@@ -70,7 +70,7 @@ fn properties_set_declares_every_field_it_reads() {
     let commands = doc().commands();
     let schema = commands.iter().find(|command| command.id == "object.setProperties").and_then(|command| command.schema.clone()).unwrap();
     let missing: Vec<_> = read.iter().filter(|key| schema.get(**key).is_none()).collect();
-    assert!(missing.is_empty(), "object.setProperties reads keys its schema does not name: {missing:?}");
+    assert!(missing.is_empty(), "properties.set reads keys its schema does not name: {missing:?}");
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn keys_written_one_or_another_are_parameters() {
     let mut drawing = doc();
     let rectangle = drawing.execute("rectangle.add", json!({ "p1": [10, 10], "p2": [40, 30] })).unwrap();
     let handle = rectangle["handle"].clone();
-    drawing.execute("move", json!({ "handles": [handle], "delta": [5, 5] })).unwrap();
-    let error = drawing.execute("move", json!({ "handles": [rectangle["handle"].clone()], "deltta": [5, 5] })).unwrap_err();
+    drawing.execute("object.move", json!({ "handles": [handle], "delta": [5, 5] })).unwrap();
+    let error = drawing.execute("object.move", json!({ "handles": [rectangle["handle"].clone()], "deltta": [5, 5] })).unwrap_err();
     assert!(error.contains("did you mean `delta`"), "{error}");
 }

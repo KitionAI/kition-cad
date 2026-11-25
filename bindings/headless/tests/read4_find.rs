@@ -10,7 +10,7 @@ async fn following_write(geometry: bool) {
         let f = Fixture::new();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
         let change = if geometry {
-            ("move", json!({"handles":[f.text],"delta":[1,0]}))
+            ("object.move", json!({"handles":[f.text],"delta":[1,0]}))
         } else {
             ("text.edit", json!({"handle":f.text,"text":"Before colleague"}))
         };
@@ -61,8 +61,8 @@ async fn search_find_followed_by_move_holds_geometry() {
 #[tokio::test(flavor = "multi_thread")]
 async fn search_find_then_move_merges_an_unrelated_entity_edit() {
     check_program(
-        |_| vec![("find", json!({"find":"Before"})), ("move", json!({"delta":[0,5]}))],
-        |f| vec![("move", json!({"handles":[f.text],"delta":[1,0]}))],
+        |_| vec![("edit.find", json!({"find":"Before"})), ("object.move", json!({"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.text],"delta":[1,0]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;

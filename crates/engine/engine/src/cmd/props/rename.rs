@@ -41,17 +41,17 @@ fn repoint(d: &mut Drawing, uses: &dyn Fn(&EntityKind) -> bool, fix: &dyn Fn(&mu
 pub(super) fn block(s: &mut Session, from: &str, to: &str) -> Result<()> {
     let to = to.trim().to_string();
     if !valid_name(&to) {
-        return Err(bad("rename", "invalid block name"));
+        return Err(bad("namedObject.rename", "invalid block name"));
     }
     let d = s.doc_mut()?;
-    let key = d.blocks.keys().find(|k| k.eq_ignore_ascii_case(from)).cloned().ok_or_else(|| bad("rename", "no such block"))?;
+    let key = d.blocks.keys().find(|k| k.eq_ignore_ascii_case(from)).cloned().ok_or_else(|| bad("namedObject.rename", "no such block"))?;
     if key.starts_with('*') || d.blocks.get(&key).is_some_and(|b| b.anonymous) {
-        return Err(bad("rename", "an anonymous block cannot be renamed"));
+        return Err(bad("namedObject.rename", "an anonymous block cannot be renamed"));
     }
     if !to.eq_ignore_ascii_case(&key) && d.block(&to).is_some() {
-        return Err(bad("rename", format!("a block `{to}` already exists")));
+        return Err(bad("namedObject.rename", format!("a block `{to}` already exists")));
     }
-    let mut b = d.blocks.remove(&key).ok_or_else(|| bad("rename", "no such block"))?;
+    let mut b = d.blocks.remove(&key).ok_or_else(|| bad("namedObject.rename", "no such block"))?;
     Arc::make_mut(&mut b).name = to.clone();
     d.blocks.insert(to.clone(), b);
     d.rename_record_id("block", &key, &to);
@@ -83,36 +83,36 @@ pub(super) fn block(s: &mut Session, from: &str, to: &str) -> Result<()> {
 pub(super) fn simple(s: &mut Session, table: &str, from: &str, to: &str) -> Result<()> {
     let to = to.trim().to_string();
     if !valid_name(&to) {
-        return Err(bad("rename", "invalid name"));
+        return Err(bad("namedObject.rename", "invalid name"));
     }
-    if matches!(table, "multileaderStyle.open" | "tableStyle.open") && from.eq_ignore_ascii_case("Standard") {
-        return Err(bad("rename", "the Standard style cannot be renamed"));
+    if matches!(table, "mleaderstyle" | "tablestyle") && from.eq_ignore_ascii_case("Standard") {
+        return Err(bad("namedObject.rename", "the Standard style cannot be renamed"));
     }
     let d = s.doc_mut()?;
     let mut names: Vec<&mut String> = match table {
-        "multileaderStyle.open" => d.mleader_styles.iter_mut().map(|t| &mut t.name).collect(),
-        "tableStyle.open" => d.table_styles.iter_mut().map(|t| &mut t.name).collect(),
+        "mleaderstyle" => d.mleader_styles.iter_mut().map(|t| &mut t.name).collect(),
+        "tablestyle" => d.table_styles.iter_mut().map(|t| &mut t.name).collect(),
         "view" => d.views.iter_mut().map(|t| &mut t.name).collect(),
         "ucs" => d.ucss.iter_mut().map(|t| &mut t.name).collect(),
-        _ => return Err(bad("rename", "unsupported table")),
+        _ => return Err(bad("namedObject.rename", "unsupported table")),
     };
     if !to.eq_ignore_ascii_case(from) && names.iter().any(|n| n.eq_ignore_ascii_case(&to)) {
-        return Err(bad("rename", format!("`{to}` already exists")));
+        return Err(bad("namedObject.rename", format!("`{to}` already exists")));
     }
-    let n = names.iter_mut().find(|n| n.eq_ignore_ascii_case(from)).ok_or_else(|| bad("rename", format!("no {table} `{from}`")))?;
+    let n = names.iter_mut().find(|n| n.eq_ignore_ascii_case(from)).ok_or_else(|| bad("namedObject.rename", format!("no {table} `{from}`")))?;
     let old = std::mem::replace(&mut **n, to.clone());
     d.rename_record_id(table, &old, &to);
     let current = match table {
-        "multileaderStyle.open" => "CMLEADERSTYLE",
-        "tableStyle.open" => "CTABLESTYLE",
+        "mleaderstyle" => "CMLEADERSTYLE",
+        "tablestyle" => "CTABLESTYLE",
         _ => return Ok(()),
     };
     if d.header.str(current, "Standard").eq_ignore_ascii_case(&old) {
         d.header.set_str(current, &to);
     }
     let uses = |k: &EntityKind| match k {
-        EntityKind::MLeader(m) => table == "multileaderStyle.open" && m.style.eq_ignore_ascii_case(&old),
-        EntityKind::Table(t) => table == "tableStyle.open" && t.style.eq_ignore_ascii_case(&old),
+        EntityKind::MLeader(m) => table == "mleaderstyle" && m.style.eq_ignore_ascii_case(&old),
+        EntityKind::Table(t) => table == "tablestyle" && t.style.eq_ignore_ascii_case(&old),
         _ => false,
     };
     let fix = |k: &mut EntityKind| match k {
@@ -128,14 +128,14 @@ pub(super) fn simple(s: &mut Session, table: &str, from: &str, to: &str) -> Resu
 /// Prompt keyword, `rename` table (None: not available yet), noun.
 const TYPES: &[(&str, Option<&str>, &str)] = &[
     ("Block", Some("block"), "block"),
-    ("Dimstyle", Some("dimensionStyle.open"), "dimension style"),
+    ("Dimstyle", Some("dimstyle"), "dimension style"),
     ("LAyer", Some("layer"), "layer"),
     ("LType", Some("linetype"), "linetype"),
     ("Material", None, "material"),
-    ("multileadeRstyle", Some("multileaderStyle.open"), "multileader style"),
+    ("multileadeRstyle", Some("mleaderstyle"), "multileader style"),
     ("Plotstyle", None, "plot style"),
     ("textStyle", Some("style"), "text style"),
-    ("Tablestyle", Some("tableStyle.open"), "table style"),
+    ("Tablestyle", Some("tablestyle"), "table style"),
     ("Ucs", Some("ucs"), "UCS"),
     ("VIew", Some("view"), "view"),
     ("VPort", None, "viewport configuration"),
@@ -156,9 +156,9 @@ fn exists(d: &Drawing, table: &str, name: &str) -> bool {
         "layer" => d.layer(name).is_some(),
         "linetype" => d.linetype(name).is_some(),
         "style" => d.text_style(name).is_some(),
-        "dimensionStyle.open" => d.dim_style(name).is_some(),
-        "multileaderStyle.open" => any_named(d.mleader_styles.iter().map(|t| &t.name), name),
-        "tableStyle.open" => any_named(d.table_styles.iter().map(|t| &t.name), name),
+        "dimstyle" => d.dim_style(name).is_some(),
+        "mleaderstyle" => any_named(d.mleader_styles.iter().map(|t| &t.name), name),
+        "tablestyle" => any_named(d.table_styles.iter().map(|t| &t.name), name),
         "view" => any_named(d.views.iter().map(|t| &t.name), name),
         "ucs" => any_named(d.ucss.iter().map(|t| &t.name), name),
         _ => true,

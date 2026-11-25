@@ -7,14 +7,14 @@ use serde_json::json;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn named_creations_hold_the_case_folded_record_type() {
-    for command in ["block", "style", "dimensionStyle.open"] {
+    for command in ["block.addDialog", "textStyle.open", "dimensionStyle.open"] {
         check(
             |f| {
                 (
                     command,
                     match command {
-                        "block" => json!({"name":"free","base":[0,0],"handles":[f.line],"keep":"retain"}),
-                        "style" => json!({"name":"free","height":2,"current":false}),
+                        "block.addDialog" => json!({"name":"free","base":[0,0],"handles":[f.line],"keep":"retain"}),
+                        "textStyle.open" => json!({"name":"free","height":2,"current":false}),
                         _ => json!({"name":"free","textHeight":2,"current":false}),
                     },
                 )
@@ -23,22 +23,22 @@ async fn named_creations_hold_the_case_folded_record_type() {
                 vec![(
                     command,
                     match command {
-                        "block" => json!({"name":"FREE","base":[100,100],"handles":[f.circle],"keep":"retain"}),
-                        "style" => json!({"name":"FREE","height":3,"current":false}),
+                        "block.addDialog" => json!({"name":"FREE","base":[100,100],"handles":[f.circle],"keep":"retain"}),
+                        "textStyle.open" => json!({"name":"FREE","height":3,"current":false}),
                         _ => json!({"name":"FREE","textHeight":3,"current":false}),
                     },
                 )]
             },
             |f| {
-                let mut edits = vec![if command == "style" {
+                let mut edits = vec![if command == "textStyle.open" {
                     ("layer.add", json!({"name":"free","color":3}))
                 } else {
-                    ("style", json!({"name":"free","current":false}))
+                    ("textStyle.open", json!({"name":"free","current":false}))
                 }];
                 edits.push((
                     command,
                     match command {
-                        "block" => json!({"name":"Other","base":[100,100],"handles":[f.circle],"keep":"retain"}),
+                        "block.addDialog" => json!({"name":"Other","base":[100,100],"handles":[f.circle],"keep":"retain"}),
                         _ => json!({"name":"Other","current":false}),
                     },
                 ));
@@ -52,9 +52,9 @@ async fn named_creations_hold_the_case_folded_record_type() {
 #[tokio::test(flavor = "multi_thread")]
 async fn block_name_replay_preserves_significant_whitespace() {
     check(
-        |f| ("block", json!({"name":" free ","base":[0,0],"handles":[f.line],"keep":"retain"})),
-        |f| vec![("block", json!({"name":" free ","base":[100,100],"handles":[f.circle],"keep":"retain"}))],
-        |f| vec![("block", json!({"name":"free","base":[100,100],"handles":[f.circle],"keep":"retain"}))],
+        |f| ("block.addDialog", json!({"name":" free ","base":[0,0],"handles":[f.line],"keep":"retain"})),
+        |f| vec![("block.addDialog", json!({"name":" free ","base":[100,100],"handles":[f.circle],"keep":"retain"}))],
+        |f| vec![("block.addDialog", json!({"name":"free","base":[100,100],"handles":[f.circle],"keep":"retain"}))],
     )
     .await;
 }

@@ -65,7 +65,7 @@ pub fn properties(d: &Drawing, e: &Entity) -> Vec<(String, Value)> {
         }
     };
     if let Some(o) = v.as_object() {
-        for k in ["type", "layer", "color", "linetype", "lineweight", "property.linetypeScale", "handle", "visible"] {
+        for k in ["type", "layer", "color", "linetype", "lineweight", "ltscale", "handle", "visible"] {
             if let Some(x) = o.get(k) {
                 push(k, x);
             }
@@ -327,10 +327,10 @@ mod tests {
     fn session() -> Session {
         let mut s = Session::new();
         s.execute("layer.add", &json!({ "name": "Walls" })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-        s.execute("line", &json!({ "points": [[0, 0], [3, 4]] })).unwrap();
-        s.execute("circle", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
-        s.execute("circle", &json!({ "center": [5, 5], "radius": 7 })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, 0], [3, 4]] })).unwrap();
+        s.execute("circle.add", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
+        s.execute("circle.add", &json!({ "center": [5, 5], "radius": 7 })).unwrap();
         let h = s.doc().unwrap().model.iter().last().unwrap().handle.hex();
         s.execute("object.setProperties", &json!({ "handles": [h], "layer": "Walls", "color": 1 })).unwrap();
         s.set_selection(Vec::new());

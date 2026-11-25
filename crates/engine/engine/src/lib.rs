@@ -854,7 +854,7 @@ impl Session {
         }
         (spec.enabled)(self).map_err(|m| EngineError::Disabled(spec.id.into(), m))?;
         self.last_command = Some(spec.id.to_string());
-        self.echo(format!("Command: {}", spec.id.to_ascii_uppercase()));
+        self.echo(format!("Command: {}", spec.typed.to_ascii_uppercase()));
         match spec.interactive {
             Some(factory) => {
                 let machine = guard::Guarded::create(spec.id, factory, self)?;
@@ -1014,7 +1014,7 @@ impl Session {
             }
             Err(e) => {
                 // Invalid input: report and keep prompting (AutoCAD re-prompts).
-                self.echo(e.to_string());
+                self.echo(cmd::typed_error(&e));
                 self.running = Some(run);
                 Ok(())
             }
@@ -1089,7 +1089,7 @@ impl Session {
     /// The text shown on the command line: the active prompt, or "Command:".
     pub fn prompt_text(&self) -> String {
         match &self.running {
-            Some(r) => format!("{} {}", r.id.to_ascii_uppercase(), r.machine.prompt(self).display()),
+            Some(r) => format!("{} {}", cmd::typed_name(&r.id).to_ascii_uppercase(), r.machine.prompt(self).display()),
             None => "Command:".into(),
         }
     }
@@ -1120,7 +1120,7 @@ impl Session {
                 {
                     let params: Value =
                         serde_json::from_str(json.trim()).map_err(|e| EngineError::BadParams { cmd: name.into(), msg: e.to_string() })?;
-                    let id = cmd::resolve_alias(&name.to_ascii_lowercase());
+                    let id = cmd::resolve_alias(name);
                     self.may_run_typed(&id, Some(&params))?;
                     let r = self.execute(&id, &params)?;
                     if !r.is_null() {
@@ -1428,7 +1428,7 @@ impl Session {
             .map(|(i, d)| {
                 serde_json::json!({
                     "index": i, "title": d.title, "path": d.path, "dirty": d.is_dirty(),
-                    "object.query": d.doc.entity_count(), "active": i == self.active, "revision": d.revision,
+                    "entities": d.doc.entity_count(), "active": i == self.active, "revision": d.revision,
                 })
             })
             .collect();

@@ -134,33 +134,33 @@ fn object_option_converts_polylines() {
 
     // JSON form: a closed polyline becomes a closed spline; arcs are refused.
     let sq = s.execute("polyline.add", &json!({"vertices": [[0, 20], [10, 20], [10, 30], [0, 30]], "closed": true})).unwrap()["handle"].clone();
-    let r = s.execute("spline", &json!({"object": sq})).unwrap();
+    let r = s.execute("spline.add", &json!({"object": sq})).unwrap();
     assert_eq!(r["handles"][0], sq);
     let EntityKind::Spline(sp) = last(&s) else { panic!("not converted") };
     assert!(sp.closed && sp.is_periodic() && sp.fit.len() == 4);
     let arc = s.execute("polyline.add", &json!({"vertices": [{"p": [0, 50], "bulge": 1.0}, [10, 50]]})).unwrap()["handle"].clone();
-    let e = s.execute("spline", &json!({"object": arc})).unwrap_err().to_string();
+    let e = s.execute("spline.add", &json!({"object": arc})).unwrap_err().to_string();
     assert!(e.contains("arc segments"), "{e}");
-    let line = s.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap()["handles"][0].clone();
-    assert!(s.execute("spline", &json!({"object": line})).is_err());
+    let line = s.execute("line.add", &json!({"points": [[0, 60], [5, 60]]})).unwrap()["handles"][0].clone();
+    assert!(s.execute("spline.add", &json!({"object": line})).is_err());
 }
 
 #[test]
 fn json_form_takes_the_fit_options() {
     let mut s = Session::new();
     let fit = json!([[0, 0], [1, 0.2], [5, 3], [6, 3.1], [9, 0]]);
-    s.execute("spline", &json!({"fit": fit, "knots": "sqrt", "startTangent": [0, 2], "endTangent": [1, 0]})).unwrap();
+    s.execute("spline.add", &json!({"fit": fit, "knots": "sqrt", "startTangent": [0, 2], "endTangent": [1, 0]})).unwrap();
     let sp = last_spline(&s);
     assert_eq!(sp.fit_opts.knots, KnotParam::SqrtChord);
     assert_eq!(sp.fit_opts.start_tangent, Some(Vec2::Y));
     assert_eq!(sp.control.len(), 7, "five fit points and two tangents");
-    s.execute("spline", &json!({"fit": fit, "closed": true, "knots": "uniform"})).unwrap();
+    s.execute("spline.add", &json!({"fit": fit, "closed": true, "knots": "uniform"})).unwrap();
     assert!(last_spline(&s).is_periodic());
     for bad in [json!({"fit": fit, "knots": "zigzag"}), json!({"fit": fit, "tolerance": -1}), json!({"fit": fit, "startTangent": [0, 0]})] {
-        assert!(s.execute("spline", &bad).is_err(), "{bad}");
+        assert!(s.execute("spline.add", &bad).is_err(), "{bad}");
     }
     // Editing a fit point keeps the options (grips and SPLINEDIT refit the same way).
-    let h = s.execute("spline", &json!({"fit": fit, "knots": "uniform", "startTangent": [0, 1]})).unwrap()["handle"].clone();
+    let h = s.execute("spline.add", &json!({"fit": fit, "knots": "uniform", "startTangent": [0, 1]})).unwrap()["handle"].clone();
     s.execute("spline.edit", &json!({"handle": h, "option": "move", "index": 2, "to": [5, 4]})).unwrap();
     let sp = last_spline(&s);
     assert_eq!(sp.fit_opts.knots, KnotParam::Uniform);

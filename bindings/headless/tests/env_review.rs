@@ -40,7 +40,7 @@ async fn json_sampling_and_required_json_creation_replay() {
     let dir = tempfile::tempdir().unwrap();
     let mut d = CadDocument::create("Words.dxf", 420, 297).unwrap();
     for (y, text) in [(0, "Door"), (20, "Window")] {
-        d.execute("text", json!({"at":[0,y],"text":text})).unwrap();
+        d.execute("text.add", json!({"at":[0,y],"text":text})).unwrap();
     }
     std::fs::write(dir.path().join("Words.dxf"), d.save(Some("Words.dxf")).unwrap()).unwrap();
     for kind in ["set-field", "replace-text", "create"] {

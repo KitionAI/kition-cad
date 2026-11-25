@@ -46,7 +46,7 @@ fn drawing(count: usize) -> (CadDocument, Vec<Value>) {
     let mut d = CadDocument::create(FILE, 420, 297).unwrap();
     let mut ids = Vec::new();
     for n in 0..count {
-        ids.push(d.execute("line", json!({"points":[[n,0],[n,10]]})).unwrap()["handles"][0].clone());
+        ids.push(d.execute("line.add", json!({"points":[[n,0],[n,10]]})).unwrap()["handles"][0].clone());
     }
     (d, ids)
 }
@@ -55,22 +55,22 @@ fn drawing(count: usize) -> (CadDocument, Vec<Value>) {
 async fn receipt_bytes_and_parent_carries() {
     let (d, ids) = drawing(1);
     for (label, command, p) in
-        [("property", "object.setProperties", json!({"handles":ids,"color":"red"})), ("move", "move", json!({"handles":ids,"delta":[0,5]}))]
+        [("property", "object.setProperties", json!({"handles":ids,"color":"red"})), ("move", "object.move", json!({"handles":ids,"delta":[0,5]}))]
     {
         let changes = receipt(&d, command, p).await;
         println!("BYTES {label}: {}", changes.to_string().len());
     }
     for count in [5, 200] {
         let (mut d, ids) = drawing(count);
-        d.execute("block", json!({"name":"Parent","base":[0,0],"handles":ids,"keep":"delete"})).unwrap();
-        let parent = d.execute("insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
-        let changes = receipt(&d, "move", json!({"handles":[parent],"delta":[0,5]})).await;
+        d.execute("block.addDialog", json!({"name":"Parent","base":[0,0],"handles":ids,"keep":"delete"})).unwrap();
+        let parent = d.execute("block.insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
+        let changes = receipt(&d, "object.move", json!({"handles":[parent],"delta":[0,5]})).await;
         let changed = changes["changed"].as_array().unwrap().iter().find(|e| e["id"] == parent).unwrap();
         assert_eq!(changed["carries"]["count"], count, "{changes}");
         println!("BYTES parent-{count}: {}", changes.to_string().len());
     }
     let (d, ids) = drawing(200);
-    let changes = receipt(&d, "move", json!({"handles":ids,"delta":[0,5]})).await;
+    let changes = receipt(&d, "object.move", json!({"handles":ids,"delta":[0,5]})).await;
     println!("BYTES offset-200: {}", changes.to_string().len());
     assert!(changes.get("truncated").is_none(), "{changes}");
 }

@@ -18,14 +18,14 @@ async fn held_layer_deletion_discards_every_member_value() {
     check(
         |_| ("layer.deleteWithObjects", json!({"names":["Secondary"]})),
         |f| vec![("object.setProperties", json!({"handles":[f.joined],"color":"blue"}))],
-        |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn held_linetype_library_scale_uses_measurement() {
     check(
-        |_| ("linetype", json!({"load":"HIDDEN"})),
+        |_| ("property.linetype", json!({"load":"HIDDEN"})),
         |_| vec![("variable.set", json!({"name":"MEASUREMENT","value":0}))],
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
@@ -36,14 +36,14 @@ async fn held_setvar_refuses_the_assigned_setting_even_at_same_destination() {
     check(
         |_| ("variable.set", json!({"name":"LTSCALE","value":2})),
         |_| vec![("variable.set", json!({"name":"LTSCALE","value":2}))],
-        |_| vec![("units", json!({"insunits":1}))],
+        |_| vec![("file.setUnits", json!({"insunits":1}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn held_region_cannot_discard_a_new_constraint() {
     check(
-        |f| ("region", json!({"handles":[f.circle]})),
+        |f| ("region.add", json!({"handles":[f.circle]})),
         |f| vec![("constraint.fix", json!({"h1":f.circle}))],
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )

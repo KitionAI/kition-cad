@@ -24,7 +24,7 @@ const NO_LEVELS: &str = "Levels (3D arrays) are not available yet.";
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("array", "Array", run_array)
+        CommandSpec::new("object.array", "Array", run_array)
             .alias(&["ar"])
             .params("{type?: \"rectangular\" (default) | \"polar\" | \"path\", handles?: [str], rows?, cols?, rowSpacing?, colSpacing?, center?: [x,y], count?, angle?, rotate?: bool, path?: str (a handle), spacing?, align?: bool}")
             .interactive(|_| Ok(Box::new(ArrayM::default()))),
@@ -170,7 +170,7 @@ pub fn array_operation(p: &Value) -> Result<&'static str> {
         "rectangular" | "rect" | "r" => "object.arrayRectangular",
         "polar" | "po" => "object.arrayPolar",
         "path" | "pa" => "object.arrayPath",
-        _ => return Err(bad("array", "`type` must be \"rectangular\", \"polar\" or \"path\"")),
+        _ => return Err(bad("object.array", "`type` must be \"rectangular\", \"polar\" or \"path\"")),
     })
 }
 

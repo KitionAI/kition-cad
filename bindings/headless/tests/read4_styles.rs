@@ -8,9 +8,9 @@ use serde_json::json;
 async fn style_reference_uses_only_font_geometry_fields() {
     check_with_setup(
         |_| ("dimension.addLinear", json!({"p1":[700,0],"p2":[710,0],"at":[705,-10]})),
-        |_| vec![("style", json!({"name":"S","height":8,"current":false}))],
-        |_| vec![("style", json!({"name":"S","annotative":true,"current":false}))],
-        |_| vec![("style", json!({"name":"S","current":false})), ("variable.set", json!({"name":"DIMTXSTY","value":"S"}))],
+        |_| vec![("textStyle.open", json!({"name":"S","height":8,"current":false}))],
+        |_| vec![("textStyle.open", json!({"name":"S","annotative":true,"current":false}))],
+        |_| vec![("textStyle.open", json!({"name":"S","current":false})), ("variable.set", json!({"name":"DIMTXSTY","value":"S"}))],
     )
     .await;
 }
@@ -19,14 +19,14 @@ async fn style_copy_preserves_font_data() {
     check(
         |_| ("dimensionStyle.open", json!({"name":"Fresh","current":false})),
         |_| vec![("dimensionStyle.open", json!({"name":"ISO-25","arrowSize":8,"current":false}))],
-        |_| vec![("style", json!({"name":"Standard","height":8,"current":false}))],
+        |_| vec![("textStyle.open", json!({"name":"Standard","height":8,"current":false}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn style_record_rename_preserves_data() {
     check(
-        |_| ("rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
+        |_| ("namedObject.rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
         |_| vec![("layer.set", json!({"name":"Editable","newName":"Theirs"}))],
         |_| vec![("layer.set", json!({"name":"Editable","color":"blue"}))],
     )
@@ -36,7 +36,7 @@ async fn style_record_rename_preserves_data() {
 #[tokio::test(flavor = "multi_thread")]
 async fn style_rename_with_constraints_preserves_display_settings() {
     check_with_setup(
-        |_| ("rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
+        |_| ("namedObject.rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
         |_| vec![("layer.set", json!({"name":"Editable","newName":"Theirs"}))],
         |_| vec![("constraint.settings", json!({"barTransparency":40}))],
         |f| vec![("constraint.perpendicular", json!({"h1":f.line,"h2":f.joined}))],
@@ -46,9 +46,9 @@ async fn style_rename_with_constraints_preserves_display_settings() {
 #[tokio::test(flavor = "multi_thread")]
 async fn style_explosion_uses_font_geometry_fields() {
     check(
-        |f| ("explode", json!({"handles":[f.attached_dim]})),
-        |_| vec![("style", json!({"name":"Standard","height":8,"current":false}))],
-        |_| vec![("style", json!({"name":"Standard","annotative":true,"current":false}))],
+        |f| ("object.explode", json!({"handles":[f.attached_dim]})),
+        |_| vec![("textStyle.open", json!({"name":"Standard","height":8,"current":false}))],
+        |_| vec![("textStyle.open", json!({"name":"Standard","annotative":true,"current":false}))],
     )
     .await;
 }

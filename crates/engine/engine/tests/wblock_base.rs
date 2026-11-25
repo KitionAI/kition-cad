@@ -32,14 +32,14 @@ fn written(s: &mut Session, p: serde_json::Value) -> String {
 fn wblock_honours_the_base_point() {
     set_io(IoHooks { read: |_, _| Err("no reader in this test".into()), write, plot: None });
     let mut s = Session::new();
-    let h = s.execute("line", &json!({ "points": [[10, 20], [15, 20]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let h = s.execute("line.add", &json!({ "points": [[10, 20], [15, 20]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
 
     // Objects: the base point moves to the origin.
     assert_eq!(written(&mut s, json!({ "handles": [h], "base": [10, 5] })), "0,0;0,15");
     assert_eq!(written(&mut s, json!({ "handles": [h] })), "0,0;10,20");
 
     // A block: its base point by default, `base` (block coordinates) when given.
-    s.execute("block", &json!({ "name": "Part", "base": [4, 4], "handles": [h], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "Part", "base": [4, 4], "handles": [h], "keep": "delete" })).unwrap();
     assert_eq!(written(&mut s, json!({ "name": "Part" })), "0,0;6,16");
     assert_eq!(written(&mut s, json!({ "name": "Part", "base": [10, 20] })), "0,0;0,0");
 }

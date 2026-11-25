@@ -16,7 +16,7 @@ async fn record_name_style_copy_preserves_an_unrelated_layer_rename() {
 #[tokio::test(flavor = "multi_thread")]
 async fn record_name_rename_preserves_an_unrelated_layout_rename() {
     check(
-        |_| ("rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
+        |_| ("namedObject.rename", json!({"table":"layer","from":"Editable","to":"Mine"})),
         |_| vec![("layer.set", json!({"name":"Editable","newName":"Theirs"}))],
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Other"}))],
     )

@@ -144,8 +144,8 @@ A real session on a copy of the circuit diagram above, trimmed:
 ```text
 > cad_inspect {"path":"circuits.dxf"}
 Opened `circuits.dxf`: 1307 × 924
-{"details":{"blocks":[{"object.query":3,"name":"BREAKER",…},{"object.query":4,"name":"LAMP",…},{"object.query":4,"name":"SOCKET",…},…],
-  "currentLayer":"Text","object.query":68,"layers":[…,{"object.query":27,"name":"Wires",…},{"object.query":23,"name":"Symbols",…},…],…},
+{"details":{"blocks":[{"entities":3,"name":"BREAKER",…},{"entities":4,"name":"LAMP",…},{"entities":4,"name":"SOCKET",…},…],
+  "currentLayer":"Text","entities":68,"layers":[…,{"entities":27,"name":"Wires",…},{"entities":23,"name":"Symbols",…},…],…},
   "revision":"mdk0",…}
 
 > cad_run {"path":"circuits.dxf","basis":"mdk0","steps":[

@@ -330,17 +330,17 @@ mod tests {
 
     fn fixture() -> Vec<u8> {
         let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-        doc.execute("line", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
+        doc.execute("line.add", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
         doc.save(Some("Plan.dxf")).unwrap()
     }
 
     fn extra_edit(doc: &mut CadDocument) {
-        doc.execute("circle", json!({ "center": [200, 100], "radius": 20 })).unwrap();
-        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        doc.execute("circle.add", json!({ "center": [200, 100], "radius": 20 })).unwrap();
+        doc.execute("line.add", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
     }
 
     fn entities(doc: &CadDocument) -> u64 {
-        doc.inspect().unwrap()["object.query"].as_u64().unwrap()
+        doc.inspect().unwrap()["entities"].as_u64().unwrap()
     }
 
     #[test]
@@ -377,7 +377,7 @@ mod tests {
     fn execute_as_records_the_given_origin() {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let origin = Origin::person("user:agent-1");
-        doc.execute_as("circle", json!({ "center": [5, 5], "radius": 2 }), &origin).unwrap();
+        doc.execute_as("circle.add", json!({ "center": [5, 5], "radius": 2 }), &origin).unwrap();
         assert!(doc.can_undo());
         assert_eq!(doc.session.origin(), kition_cad_engine::kdm_bridge::local_person(), "the origin is put back");
     }
@@ -488,7 +488,7 @@ mod tests {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let base = doc.version().unwrap();
         let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
-        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        draft.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         // Meanwhile, here, an edit of another field (a merge refuses a field both sides changed).
         doc.execute("variable.set", json!({ "name": "DIMSCALE", "value": 3 })).unwrap();
@@ -526,10 +526,10 @@ mod tests {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let base = doc.version().unwrap();
         let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
-        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        draft.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         let start = model_types(&doc);
-        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        doc.execute("line.add", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
         let with_line = model_types(&doc);
         assert_eq!(with_line.len(), start.len() + 1);
         let origin = Origin::person("person:local");
@@ -563,9 +563,9 @@ mod tests {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let base = doc.version().unwrap();
         let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
-        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        draft.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
-        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        doc.execute("line.add", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
         let (prior_hash, prior_view) = (doc.session.state_hash().unwrap(), view(&doc));
         assert_eq!(model_types(&doc), ["Line", "Line"]);
         let agent = Origin::agent("agent:drafter");
@@ -599,7 +599,7 @@ mod tests {
     fn a_reply_reads_the_tool_ids_of_the_objects_it_names_alone() {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         for i in 0..300 {
-            doc.execute("line", json!({ "points": [[i, 0], [i, 10]] })).unwrap();
+            doc.execute("line.add", json!({ "points": [[i, 0], [i, 10]] })).unwrap();
         }
         doc.version().unwrap();
         let kdm = doc.session.kdm().unwrap();
@@ -624,7 +624,7 @@ mod tests {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let base = doc.version().unwrap();
         let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
-        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        draft.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         let before = entities(&doc);
         let preview = doc.compare_changes(&changes).unwrap();
@@ -711,7 +711,7 @@ mod tests {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let described = doc.model_describe().unwrap();
         assert_eq!(described["capability"], "KitObjectModel 1.0");
-        assert!(described["commands"].as_array().unwrap().iter().any(|command| command["id"] == "circle"));
+        assert!(described["commands"].as_array().unwrap().iter().any(|command| command["id"] == "circle.add"));
     }
 
     /// `modelBatch` runs a command in the engine and reads fields back; a request that is not JSON
@@ -720,7 +720,7 @@ mod tests {
     fn model_batch_runs_in_the_engine() {
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let before = entities(&doc);
-        let command = json!({ "ops": [{ "op": "command", "id": "circle", "params": { "center": [5, 5], "radius": 2 } }], "load": [{ "target": "root", "fields": ["model"] }] });
+        let command = json!({ "ops": [{ "op": "command", "id": "circle.add", "params": { "center": [5, 5], "radius": 2 } }], "load": [{ "target": "root", "fields": ["model"] }] });
         let answer = doc.model_batch(&command.to_string()).unwrap();
         assert_eq!(entities(&doc), before + 1, "the command ran in the engine: {answer}");
         assert_eq!(answer["loaded"][0]["fields"]["model"].as_array().unwrap().len(), 2, "{answer}");
@@ -753,7 +753,7 @@ mod tests {
         let mut b = CadDocument::open_with_replica("Plan.dxf", &bytes, &snapshot, &[]).unwrap();
         assert_eq!(b.version().unwrap(), a.version().unwrap(), "b starts from a's own replica");
 
-        a.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        a.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let since = b.version().unwrap();
         let changes = a.export_changes(&since).unwrap();
         b.import_changes(&changes).unwrap();
@@ -772,9 +772,9 @@ mod tests {
         let mut exchange = Exchange::new();
         let described = exchange.describe(&mut doc).unwrap();
         assert_eq!(described["capability"], "KitObjectModel 1.0");
-        assert!(described["commands"].as_array().unwrap().iter().any(|command| command["id"] == "circle"));
+        assert!(described["commands"].as_array().unwrap().iter().any(|command| command["id"] == "circle.add"));
 
-        let command = json!({ "ops": [{ "op": "command", "id": "circle", "params": { "center": [5, 5], "radius": 2 } }] });
+        let command = json!({ "ops": [{ "op": "command", "id": "circle.add", "params": { "center": [5, 5], "radius": 2 } }] });
         assert_eq!(exchange.batch(&mut doc, &command, true).unwrap_err().code, ModelErrorCode::ReadOnly);
         let before = doc.version().unwrap();
         exchange.batch(&mut doc, &command, false).unwrap();

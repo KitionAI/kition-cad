@@ -22,19 +22,19 @@ fn nearest_prefers_the_closer_object_in_any_drawing_order() {
         let line = || json!({ "points": [[-5, 0], [5, 0]] });
         let circle = || json!({ "center": [0, 3.8], "radius": 3 });
         if circle_first {
-            s.execute("circle", &circle()).unwrap();
-            s.execute("line", &line()).unwrap();
+            s.execute("circle.add", &circle()).unwrap();
+            s.execute("line.add", &line()).unwrap();
         } else {
-            s.execute("line", &line()).unwrap();
-            s.execute("circle", &circle()).unwrap();
+            s.execute("line.add", &line()).unwrap();
+            s.execute("circle.add", &circle()).unwrap();
         }
         let p = nearest(&s, Vec2::new(0.0, 0.1));
         assert!(p.near(Vec2::new(0.0, 0.0), 1e-6), "circle drawn first: {circle_first}: snapped to {p:?}");
     }
     // And the circle wins where it is the closer one.
     let mut s = Session::new();
-    s.execute("circle", &json!({ "center": [0, 3.8], "radius": 3 })).unwrap();
-    s.execute("line", &json!({ "points": [[-5, 0], [5, 0]] })).unwrap();
+    s.execute("circle.add", &json!({ "center": [0, 3.8], "radius": 3 })).unwrap();
+    s.execute("line.add", &json!({ "points": [[-5, 0], [5, 0]] })).unwrap();
     let p = nearest(&s, Vec2::new(0.0, 0.7));
     assert!(p.near(Vec2::new(0.0, 0.8), 1e-6), "snapped to {p:?}");
 }

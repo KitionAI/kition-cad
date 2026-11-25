@@ -70,7 +70,7 @@ fn drawing() -> CadDocument {
     CadDocument::create(FILE, 420, 297).unwrap()
 }
 fn line(d: &mut CadDocument, layer: &str, y: f64) -> Value {
-    d.execute("line", json!({"points":[[0,y],[10,y]],"layer":layer})).unwrap()["handles"][0].clone()
+    d.execute("line.add", json!({"points":[[0,y],[10,y]],"layer":layer})).unwrap()["handles"][0].clone()
 }
 
 fn handleless_layers(swapped: bool) -> Vec<u8> {
@@ -121,7 +121,7 @@ async fn propagation_dimension_target_holds_its_sources() {
         let dim = d.execute("dimension.addLinear", json!({"object":source,"at":[0,5]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
+        f.colleague(&[("object.move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
         f.steps(basis, json!([{"command":"object.setProperties","params":{"handles":[dim],"color":"red"}}]), relevant).await;
         f.kits.shutdown().await;
     }
@@ -136,7 +136,7 @@ async fn propagation_find_dimension_target_holds_its_sources() {
         d.execute("dimension.addLinear", json!({"object":source,"at":[0,5],"text":"Old"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
+        f.colleague(&[("object.move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
         f.steps(basis, json!([{"command":"edit.find","params":{"find":"Old","replace":"New"}}]), relevant).await;
         f.kits.shutdown().await;
     }
@@ -146,7 +146,7 @@ async fn propagation_find_dimension_target_holds_its_sources() {
 // dimension's stored values equal: only its held sources can refuse.
 #[tokio::test(flavor = "multi_thread")]
 async fn propagation_unpropagated_source_edit_refuses_every_dimension_write_form() {
-    for form in ["handles", "select.quick", "select", "find"] {
+    for form in ["handles", "select.quick", "select.set", "edit.find"] {
         for relevant in [true, false] {
             let mut d = drawing();
             let source = line(&mut d, "0", 0.0);
@@ -169,7 +169,7 @@ async fn propagation_unpropagated_source_edit_refuses_every_dimension_write_form
                     {"command":"select.quick","params":{"type":"Dimension"}},
                     {"command":"object.setProperties","params":{"color":"red"}}
                 ]),
-                "select" => json!([
+                "select.set" => json!([
                     {"command":"select.set","params":{"handles":[dim]}},
                     {"command":"object.setProperties","params":{"color":"red"}}
                 ]),
@@ -186,7 +186,7 @@ async fn propagation_source_receipt_names_dimension_and_constraint_consequences(
     for constrained in [false, true] {
         let mut d = drawing();
         let a = line(&mut d, "0", 0.0);
-        let b = d.execute("line", json!({"points":[[10,0],[20,0]]})).unwrap()["handles"][0].clone();
+        let b = d.execute("line.add", json!({"points":[[10,0],[20,0]]})).unwrap()["handles"][0].clone();
         let dim = d.execute("dimension.addLinear", json!({"object":a,"at":[0,5]})).unwrap()["handle"].clone();
         if constrained {
             d.execute("constraint.coincident", json!({"h1":a,"p1":"end","h2":b,"p2":"start"})).unwrap();
@@ -194,7 +194,7 @@ async fn propagation_source_receipt_names_dimension_and_constraint_consequences(
         let far = line(&mut d, "0", 40.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("move", json!({"handles":[far],"delta":[1,0]}))]);
+        f.colleague(&[("object.move", json!({"handles":[far],"delta":[1,0]}))]);
         let result = f.steps(basis, json!([{"command":"object.move","params":{"handles":[a],"delta":[2,0]}}]), false).await.unwrap();
         let changed = result["changes"]["changed"].as_array().unwrap();
         assert!(changed.iter().any(|c| c["id"] == dim), "propagated dimension must be named: {result}");
@@ -212,7 +212,11 @@ async fn curves_continuation_holds_the_engine_last_curve() {
         line(&mut d, "0", 0.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("line", json!({"points":[[0,20],[10,20]]})) } else { ("circle", json!({"center":[40,40],"radius":2})) }]);
+        f.colleague(&[if relevant {
+            ("line.add", json!({"points":[[0,20],[10,20]]}))
+        } else {
+            ("circle.add", json!({"center":[40,40],"radius":2}))
+        }]);
         f.steps(basis, json!([{"command":"arc.addContinue","params":{"end":[20,10]}}]), relevant).await;
         f.kits.shutdown().await;
     }
@@ -225,7 +229,7 @@ async fn curves_continuation_holds_source_identity_in_only_its_space() {
         line(&mut d, "0", 0.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("line", json!({"points":[[0,0],[10,0]],"layout":if same_space {"Model"} else {"Layout1"}}))]);
+        f.colleague(&[("line.add", json!({"points":[[0,0],[10,0]],"layout":if same_space {"Model"} else {"Layout1"}}))]);
         f.steps(basis, json!([{"command":"arc.addContinue","params":{"end":[20,10]}}]), same_space).await;
         f.kits.shutdown().await;
     }
@@ -233,20 +237,20 @@ async fn curves_continuation_holds_source_identity_in_only_its_space() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn curves_nested_copy_holds_recursive_members_and_tangent_tools_hold_sources() {
-    for family in ["object.copyNested", "divide", "circle.addTanTanRadius"] {
+    for family in ["object.copyNested", "point.divide", "circle.addTanTanRadius"] {
         for relevant in [true, false] {
             let mut d = drawing();
             let a = line(&mut d, "0", 0.0);
-            let b = d.execute("line", json!({"points":[[0,0],[0,10]]})).unwrap()["handles"][0].clone();
+            let b = d.execute("line.add", json!({"points":[[0,0],[0,10]]})).unwrap()["handles"][0].clone();
             let replacement = line(&mut d, "0", 20.0);
             let far = line(&mut d, "0", 40.0);
             let (command, params) = if family == "object.copyNested" {
-                d.execute("block", json!({"name":"Inner","base":[0,0],"handles":[a],"keep":"delete"})).unwrap();
-                let inner = d.execute("insert", json!({"name":"Inner","at":[0,0]})).unwrap()["handle"].clone();
-                d.execute("block", json!({"name":"Outer","base":[0,0],"handles":[inner],"keep":"delete"})).unwrap();
-                let outer = d.execute("insert", json!({"name":"Outer","at":[0,0]})).unwrap()["handle"].clone();
+                d.execute("block.addDialog", json!({"name":"Inner","base":[0,0],"handles":[a],"keep":"delete"})).unwrap();
+                let inner = d.execute("block.insert", json!({"name":"Inner","at":[0,0]})).unwrap()["handle"].clone();
+                d.execute("block.addDialog", json!({"name":"Outer","base":[0,0],"handles":[inner],"keep":"delete"})).unwrap();
+                let outer = d.execute("block.insert", json!({"name":"Outer","at":[0,0]})).unwrap()["handle"].clone();
                 (family, json!({"handle":outer,"pick":[5,0],"delta":[20,0]}))
-            } else if family == "divide" {
+            } else if family == "point.divide" {
                 (family, json!({"handle":a,"segments":4}))
             } else {
                 (family, json!({"h1":a,"p1":[5,0],"h2":b,"p2":[0,5],"radius":2}))
@@ -254,11 +258,11 @@ async fn curves_nested_copy_holds_recursive_members_and_tangent_tools_hold_sourc
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             f.colleague(&[if !relevant {
-                ("move", json!({"handles":[far],"delta":[1,0]}))
+                ("object.move", json!({"handles":[far],"delta":[1,0]}))
             } else if family == "object.copyNested" {
-                ("block", json!({"name":"Inner","base":[0,0],"handles":[replacement],"keep":"delete"}))
+                ("block.addDialog", json!({"name":"Inner","base":[0,0],"handles":[replacement],"keep":"delete"}))
             } else {
-                ("move", json!({"handles":[a],"delta":[1,0]}))
+                ("object.move", json!({"handles":[a],"delta":[1,0]}))
             }]);
             f.steps(basis, json!([{"command":command,"params":params}]), relevant).await;
             f.kits.shutdown().await;
@@ -268,19 +272,19 @@ async fn curves_nested_copy_holds_recursive_members_and_tangent_tools_hold_sourc
 
 #[tokio::test(flavor = "multi_thread")]
 async fn curves_trim_extend_fence_and_crossing_hold_membership() {
-    for command in ["trim", "extend"] {
+    for command in ["object.trim", "object.extend"] {
         for form in ["fence", "crossing"] {
             for relevant in [true, false] {
                 let mut d = drawing();
-                d.execute("line", json!({"points":[[0,0],[if command=="trim" {10}else{3},0]]})).unwrap();
-                let edge = d.execute("line", json!({"points":[[5,-10],[5,10]]})).unwrap()["handles"][0].clone();
+                d.execute("line.add", json!({"points":[[0,0],[if command=="object.trim" {10}else{3},0]]})).unwrap();
+                let edge = d.execute("line.add", json!({"points":[[5,-10],[5,10]]})).unwrap()["handles"][0].clone();
                 let far = line(&mut d, "0", 40.0);
                 let f = Fixture::new(&mut d);
                 let basis = f.basis().await;
                 f.colleague(&[if relevant {
-                    ("line", json!({"points":[[0,0.5],[if command=="trim" {10}else{3},0.5]]}))
+                    ("line.add", json!({"points":[[0,0.5],[if command=="object.trim" {10}else{3},0.5]]}))
                 } else {
-                    ("move", json!({"handles":[far],"delta":[1,0]}))
+                    ("object.move", json!({"handles":[far],"delta":[1,0]}))
                 }]);
                 let mut p = json!({"edges":[edge]});
                 p[form] = if form == "fence" { json!([[2.8, -1], [2.8, 1]]) } else { json!([[2.7, -1], [2.9, 1]]) };
@@ -295,12 +299,12 @@ async fn curves_trim_extend_fence_and_crossing_hold_membership() {
 async fn query_find_holds_only_matching_words_and_membership() {
     for mutation in ["add", "enter", "change", "unrelated"] {
         let mut d = drawing();
-        let a = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
-        let b = d.execute("text", json!({"at":[0,20],"text":"Roof"})).unwrap()["handle"].clone();
+        let a = d.execute("text.add", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
+        let b = d.execute("text.add", json!({"at":[0,20],"text":"Roof"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[match mutation {
-            "add" => ("text", json!({"at":[0,40],"text":"Door"})),
+            "add" => ("text.add", json!({"at":[0,40],"text":"Door"})),
             "enter" => ("text.edit", json!({"handle":b,"text":"Door"})),
             "change" => ("text.edit", json!({"handle":a,"text":"Door colleague"})),
             _ => ("text.edit", json!({"handle":b,"text":"Ceiling"})),
@@ -316,13 +320,13 @@ async fn clipboard_capture_holds_nested_definitions() {
         for relevant in [true, false] {
             let mut d = drawing();
             let a = line(&mut d, "0", 0.0);
-            d.execute("block", json!({"name":"Door","base":[0,0],"handles":[a],"keep":"delete"})).unwrap();
-            let insert = d.execute("insert", json!({"name":"Door","at":[0,0]})).unwrap()["handle"].clone();
+            d.execute("block.addDialog", json!({"name":"Door","base":[0,0],"handles":[a],"keep":"delete"})).unwrap();
+            let insert = d.execute("block.insert", json!({"name":"Door","at":[0,0]})).unwrap()["handle"].clone();
             let replacement = line(&mut d, "0", 20.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             if relevant {
-                f.colleague(&[("block", json!({"name":"Door","base":[5,0],"handles":[replacement],"keep":"delete"}))]);
+                f.colleague(&[("block.addDialog", json!({"name":"Door","base":[5,0],"handles":[replacement],"keep":"delete"}))]);
             } else {
                 f.colleague(&[("layer.add", json!({"name":"Other"}))]);
             }
@@ -343,14 +347,14 @@ async fn clipboard_capture_holds_nested_definitions() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn clipboard_capture_holds_layer_and_text_style_values() {
-    for family in ["layer.set", "style"] {
+    for family in ["layer.set", "textStyle.open"] {
         for relevant in [true, false] {
             let mut d = drawing();
-            let a = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
+            let a = d.execute("text.add", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             f.colleague(&[if relevant {
-                (family, if family == "style" { json!({"name":"Standard","height":8}) } else { json!({"name":"0","color":"red"}) })
+                (family, if family == "textStyle.open" { json!({"name":"Standard","height":8}) } else { json!({"name":"0","color":"red"}) })
             } else {
                 ("layer.add", json!({"name":"Other"}))
             }]);
@@ -362,18 +366,18 @@ async fn clipboard_capture_holds_layer_and_text_style_values() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn history_reload_never_reverts_the_independent_writer() {
-    for command in ["edit.undo", "edit.redo", "u", "undo", "redo"] {
+    for command in ["edit.undo", "edit.redo", "edit.undoStep", "edit.undoMany", "edit.redoStep"] {
         let mut d = drawing();
         let a = line(&mut d, "0", 0.0);
         let b = line(&mut d, "0", 20.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         let own = f.steps(basis, json!([{"command":"object.move","params":{"handles":[a],"delta":[1,0]}}]), false).await.unwrap();
-        if command.ends_with("redo") {
+        if command.contains("redo") {
             f.call("run", json!({"steps":[{"command":"edit.undo","params":{}}]})).await.unwrap();
         }
-        let basis = if command.ends_with("redo") { f.basis().await } else { own["revision"].clone() };
-        f.colleague(&[("move", json!({"handles":[b],"delta":[3,0]}))]);
+        let basis = if command.contains("redo") { f.basis().await } else { own["revision"].clone() };
+        f.colleague(&[("object.move", json!({"handles":[b],"delta":[3,0]}))]);
         let before = f.disk();
         let answer = f.call("run", json!({"basis":basis,"steps":[{"command":command,"params":{}}]})).await;
         assert_eq!(f.disk(), before, "reload discarded history; undo must never replace the colleague's drawing");
@@ -384,29 +388,29 @@ async fn history_reload_never_reverts_the_independent_writer() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn scan_layer_merge_delete_and_purge_hold_membership() {
-    for command in ["layer.merge", "layer.deleteWithObjects", "purge", "object.deleteDuplicates"] {
+    for command in ["layer.merge", "layer.deleteWithObjects", "file.purge", "object.deleteDuplicates"] {
         for relevant in [true, false] {
             let mut d = drawing();
             d.execute("layer.add", json!({"name":"Walls"})).unwrap();
-            if command != "purge" {
+            if command != "file.purge" {
                 line(&mut d, "Walls", 0.0);
             }
             let far = line(&mut d, "0", 20.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             if relevant {
-                f.colleague(&[if command == "purge" {
+                f.colleague(&[if command == "file.purge" {
                     ("layer.add", json!({"name":"NewUnused"}))
                 } else {
-                    ("line", json!({"points":[[0,0],[10,0]],"layer":"Walls"}))
+                    ("line.add", json!({"points":[[0,0],[10,0]],"layer":"Walls"}))
                 }]);
             } else {
-                f.colleague(&[("move", json!({"handles":[far],"delta":[1,0]}))]);
+                f.colleague(&[("object.move", json!({"handles":[far],"delta":[1,0]}))]);
             }
             let params = match command {
                 "layer.merge" => json!({"from":["Walls"],"to":"0"}),
                 "layer.deleteWithObjects" => json!({"names":["Walls"]}),
-                "purge" => json!({"type":"layers"}),
+                "file.purge" => json!({"type":"layers"}),
                 _ => json!({}),
             };
             f.steps(basis, json!([{"command":command,"params":params}]), relevant).await;
@@ -421,7 +425,7 @@ async fn scan_purge_holds_victim_content_and_degenerate_membership() {
         for relevant in [true, false] {
             let mut d = drawing();
             d.execute("layer.add", json!({"name":"Unused"})).unwrap();
-            let a = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
+            let a = d.execute("text.add", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
             let b = line(&mut d, "0", 20.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
@@ -436,12 +440,12 @@ async fn scan_purge_holds_victim_content_and_degenerate_membership() {
                 });
             } else {
                 f.colleague(&[if !relevant {
-                    ("move", json!({"handles":[b],"delta":[1,0]}))
+                    ("object.move", json!({"handles":[b],"delta":[1,0]}))
                 } else {
                     match kind {
                         "layers" => ("layer.set", json!({"name":"Unused","color":"red"})),
                         "emptytext" => ("text.edit", json!({"handle":a,"text":""})),
-                        _ => ("line", json!({"points":[[0,40],[0,40]]})),
+                        _ => ("line.add", json!({"points":[[0,40],[0,40]]})),
                     }
                 }]);
             }
@@ -456,7 +460,7 @@ async fn scan_purge_type_does_not_hold_other_types() {
     for ty in ["layers", "emptytext"] {
         let mut d = drawing();
         d.execute("layer.add", json!({"name":"Unused"})).unwrap();
-        let text = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
+        let text = d.execute("text.add", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[if ty == "layers" { ("text.edit", json!({"handle":text,"text":""})) } else { ("layer.add", json!({"name":"AnotherUnused"})) }]);
@@ -475,7 +479,7 @@ async fn scan_ungroup_holds_named_and_discovered_groups() {
             let c = line(&mut d, "0", 40.0);
             let extra = line(&mut d, "0", 60.0);
             for (name, h) in [("G1", a.clone()), ("G2", b), ("Other", c.clone())] {
-                d.execute("group", json!({"name":name,"handles":[h]})).unwrap();
+                d.execute("arrange.group", json!({"name":name,"handles":[h]})).unwrap();
             }
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
@@ -499,17 +503,17 @@ async fn scan_ungroup_holds_newly_discovered_groups_and_replaced_names() {
             let a = line(&mut d, "0", 0.0);
             let b = line(&mut d, "0", 20.0);
             let c = line(&mut d, "0", 40.0);
-            d.execute("group", json!({"name":"G1","handles":[a]})).unwrap();
-            d.execute("group", json!({"name":"G2","handles":[b]})).unwrap();
-            d.execute("group", json!({"name":"Other","handles":[c]})).unwrap();
+            d.execute("arrange.group", json!({"name":"G1","handles":[a]})).unwrap();
+            d.execute("arrange.group", json!({"name":"G2","handles":[b]})).unwrap();
+            d.execute("arrange.group", json!({"name":"Other","handles":[c]})).unwrap();
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             let params = if by_handle {
-                f.colleague(&[("group", json!({"name":"New","handles":[if relevant {a.clone()} else {c.clone()}]}))]);
+                f.colleague(&[("arrange.group", json!({"name":"New","handles":[if relevant {a.clone()} else {c.clone()}]}))]);
                 json!({"handles":[a]})
             } else {
                 let name = if relevant { "G1" } else { "Other" };
-                f.colleague(&[("ungroup", json!({"name":name})), ("group", json!({"name":name,"handles":[b]}))]);
+                f.colleague(&[("arrange.ungroup", json!({"name":name})), ("arrange.group", json!({"name":name,"handles":[b]}))]);
                 json!({"name":"G1,G2"})
             };
             f.steps(basis, json!([{"command":"arrange.ungroup","params":params}]), relevant).await;
@@ -536,7 +540,7 @@ async fn scan_audit_holds_new_invalid_geometry_but_allows_healthy_edits() {
                 .unwrap();
             });
         } else {
-            f.colleague(&[("move", json!({"handles":[b],"delta":[1,0]}))]);
+            f.colleague(&[("object.move", json!({"handles":[b],"delta":[1,0]}))]);
         }
         f.steps(basis, json!([{"command":"file.audit","params":{"fix":true}}]), relevant).await;
         f.kits.shutdown().await;
@@ -553,10 +557,10 @@ async fn query_matching_set_is_held_across_independent_rewrites() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[match mutation {
-            "add" => ("line", json!({"points":[[0,40],[10,40]],"layer":"Walls"})),
-            "remove" => ("erase", json!({"handles":[a]})),
+            "add" => ("line.add", json!({"points":[[0,40],[10,40]],"layer":"Walls"})),
+            "remove" => ("object.delete", json!({"handles":[a]})),
             "enter" => ("object.setProperties", json!({"handles":[b],"layer":"Walls"})),
-            _ => ("move", json!({"handles":[b],"delta":[1,0]})),
+            _ => ("object.move", json!({"handles":[b],"delta":[1,0]})),
         }]);
         let result = f
             .steps(
@@ -570,7 +574,7 @@ async fn query_matching_set_is_held_across_independent_rewrites() {
             .await;
         if result.is_some() {
             let mut saved = CadDocument::open(FILE, &f.disk()).unwrap();
-            assert_eq!(saved.execute("properties", json!({"handles":[a]})).unwrap()["objects"][0]["color"], "Red");
+            assert_eq!(saved.execute("object.properties", json!({"handles":[a]})).unwrap()["objects"][0]["color"], "Red");
         }
         f.kits.shutdown().await;
     }
@@ -613,13 +617,13 @@ async fn query_type_color_numeric_wildcard_and_exclusion_use_engine_membership()
         for relevant in [false, true] {
             let mut d = drawing();
             d.execute("layer.add", json!({"name":"Walls"})).unwrap();
-            let b = d.execute("circle", json!({"center":[20,20],"radius":2})).unwrap()["handle"].clone();
+            let b = d.execute("circle.add", json!({"center":[20,20],"radius":2})).unwrap()["handle"].clone();
             let far = line(&mut d, "0", 40.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             if relevant {
                 if query.get("property").is_none() && query.get("type").is_some() {
-                    f.colleague(&[("circle", json!({"center":[40,20],"radius":4}))]);
+                    f.colleague(&[("circle.add", json!({"center":[40,20],"radius":4}))]);
                 } else {
                     let mut p = change.clone();
                     p["handles"] = json!([b]);
@@ -651,7 +655,7 @@ async fn query_selectall_replays_layer_flags_in_only_its_space() {
                 d.execute("layer.add", json!({"name":name})).unwrap();
             }
             line(&mut d, "Used", 0.0);
-            d.execute("line", json!({"points":[[0,0],[10,0]],"layer":"Other","layout":"Layout1"})).unwrap();
+            d.execute("line.add", json!({"points":[[0,0],[10,0]],"layer":"Other","layout":"Layout1"})).unwrap();
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             f.colleague(&[("layer.set", json!({"name":if relevant {used} else {other},"locked":true}))]);
@@ -677,7 +681,7 @@ async fn query_unfiltered_selection_holds_added_members() {
             line(&mut d, "0", 0.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
-            f.colleague(&[if relevant { ("line", json!({"points":[[0,20],[10,20]]})) } else { ("layer.add", json!({"name":"Other"})) }]);
+            f.colleague(&[if relevant { ("line.add", json!({"points":[[0,20],[10,20]]})) } else { ("layer.add", json!({"name":"Other"})) }]);
             f.steps(basis, json!([{"command":command,"params":{}},{"command":"object.scale","params":{"base":[0,0],"factor":2}}]), relevant).await;
             f.kits.shutdown().await;
         }

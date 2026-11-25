@@ -8,5 +8,5 @@ await runModeSmoke({
   config: new URL('../vite.config.ts', import.meta.url).pathname,
   browser: process.argv[2] === 'webkit' ? webkit : chromium,
   createServer,
-  line: { tab: 'home', primary: ['cad-tool-line', 'cad-tool-circle', 'cad-tool-move', 'cad-tool-trim', 'cad-tool-dimlinear', 'cad-layer', 'cad-layer-properties', 'cad-zoom-extents'] },
+  line: { tab: 'home', primary: ['cad-tool-line.add', 'cad-tool-circle.add', 'cad-tool-object.move', 'cad-tool-object.trim', 'cad-tool-dimension.addLinear', 'cad-layer', 'cad-layer-properties', 'cad-zoom-extents'] },
 })

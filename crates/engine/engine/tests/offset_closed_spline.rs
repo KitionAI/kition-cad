@@ -20,7 +20,7 @@ fn offset_of_closed_spline_is_closed() {
     let (h, src) = last_spline(&s);
     assert!(src.closed && src.is_periodic());
     for (side, outward) in [([5.0, 5.0], false), ([30.0, 5.0], true)] {
-        s.execute("offset", &json!({ "handle": h, "distance": 1, "side": side })).unwrap();
+        s.execute("object.offset", &json!({ "handle": h, "distance": 1, "side": side })).unwrap();
         let (_, off) = last_spline(&s);
         assert!(off.closed && off.is_periodic(), "offset copy is open: {off:?}");
         let (lo, hi) = off.domain();

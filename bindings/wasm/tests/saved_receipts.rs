@@ -40,9 +40,7 @@ fn snapshot(doc: &mut CadDocument) -> BTreeMap<String, Value> {
                     pending.extend(fields[key].as_object().into_iter().flat_map(|m| m.values()).filter_map(Value::as_str).map(str::to_owned));
                 }
             }
-            "Block" | "Layout" => {
-                pending.extend(fields["object.query"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned))
-            }
+            "Block" | "Layout" => pending.extend(fields["entities"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned)),
             _ => {}
         }
         let id = object["id"].as_str().unwrap().to_owned();
@@ -74,14 +72,14 @@ fn representative_writes_equal_the_saved_fixture_model() {
     ];
     for (fixture, bytes) in files {
         let mut doc = CadDocument::open("Plan.dxf", bytes).unwrap();
-        let line = doc.execute("line", json!({"points":[[0.123456789123,0],[10.987654321987,20.1]]})).unwrap()["handles"][0].clone();
-        let circle = doc.execute("circle", json!({"center":[13.123456789123,44.5],"radius":std::f64::consts::PI})).unwrap()["handle"].clone();
-        let text = doc.execute("text", json!({"at":[10,30],"text":"original","height":2.123456789123})).unwrap()["handle"].clone();
-        let table = doc.execute("table", json!({"at":[200,0],"rows":3,"cols":2})).unwrap()["handle"].clone();
+        let line = doc.execute("line.add", json!({"points":[[0.123456789123,0],[10.987654321987,20.1]]})).unwrap()["handles"][0].clone();
+        let circle = doc.execute("circle.add", json!({"center":[13.123456789123,44.5],"radius":std::f64::consts::PI})).unwrap()["handle"].clone();
+        let text = doc.execute("text.add", json!({"at":[10,30],"text":"original","height":2.123456789123})).unwrap()["handle"].clone();
+        let table = doc.execute("table.add", json!({"at":[200,0],"rows":3,"cols":2})).unwrap()["handle"].clone();
         for (command, params) in [
             ("object.setProperties", json!({"handles":[line],"lineweight":0.123456789,"transparency":23,"color":"red"})),
-            ("move", json!({"handles":[line],"delta":[0.123456789123,0.234567891234]})),
-            ("rotate", json!({"handles":[line],"base":[0,0],"angle":13.123456789123})),
+            ("object.move", json!({"handles":[line],"delta":[0.123456789123,0.234567891234]})),
+            ("object.rotate", json!({"handles":[line],"base":[0,0],"angle":13.123456789123})),
             ("object.setProperties", json!({"handles":[circle],"radius":std::f64::consts::E})),
             ("text.edit", json!({"handle":text,"text":"saved text"})),
             ("table.set", json!({"handle":table,"row":1,"col":0,"text":"cell"})),

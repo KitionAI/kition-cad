@@ -10,11 +10,11 @@ use crate::{Accept, Input, Interactive, Prompt, Result, Session, Step};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("audit", "Audit", run_audit)
+        CommandSpec::new("file.audit", "Audit", run_audit)
             .menu(&["File", "Drawing Utilities", "Audit"])
             .params("{fix?: bool} → {errors, fixed, issues: [{kind, location, handle?, message, fix}], message}")
             .interactive(|_| Ok(Box::new(Audit))),
-        CommandSpec::new("recover", "Recover...", run_recover)
+        CommandSpec::new("file.recover", "Recover...", run_recover)
             .menu(&["File", "Drawing Utilities", "Recover..."])
             .params("{path} | {data: base64, name} → {index, errors, fixed, issues, message}")
             .enabled(always)
@@ -40,17 +40,17 @@ fn run_audit(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_recover(s: &mut Session, p: &Value) -> Result<Value> {
     let (bytes, name, path) = match (str_param(p, "path"), str_param(p, "data")) {
         (Some(path), _) => {
-            s.files_by_path("recover")?;
-            (read_path("recover", path)?, path.to_string(), Some(path.to_string()))
+            s.files_by_path("file.recover")?;
+            (read_path("file.recover", path)?, path.to_string(), Some(path.to_string()))
         }
         (None, Some(data)) => {
-            let bytes = file::base64_decode(data).ok_or_else(|| bad("recover", "invalid base64"))?;
+            let bytes = file::base64_decode(data).ok_or_else(|| bad("file.recover", "invalid base64"))?;
             (bytes, str_param(p, "name").unwrap_or("Drawing.dxf").to_string(), None)
         }
-        (None, None) => return Err(bad("recover", "`path` or `data` (base64) is required")),
+        (None, None) => return Err(bad("file.recover", "`path` or `data` (base64) is required")),
     };
-    let hooks = file::io().ok_or_else(|| bad("recover", "file formats are not available in this build"))?;
-    let d = (hooks.read)(&bytes, &name).map_err(|e| bad("recover", format!("{name} can't be read: {e}")))?;
+    let hooks = file::io().ok_or_else(|| bad("file.recover", "file formats are not available in this build"))?;
+    let d = (hooks.read)(&bytes, &name).map_err(|e| bad("file.recover", format!("{name} can't be read: {e}")))?;
     let title = std::path::Path::new(&name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| name.clone());
     let i = s.open_drawing(d, &title, path);
     let st = s.state_mut()?;
@@ -103,7 +103,7 @@ impl Interactive for Audit {
             Input::Keyword(k) | Input::Text(k) => match self.prompt(s).match_keyword(&k).as_deref() {
                 Some("Yes") => true,
                 Some(_) => false,
-                None => return Err(bad("audit", "answer Yes or No")),
+                None => return Err(bad("file.audit", "answer Yes or No")),
             },
             _ => return Ok(Step::Continue),
         };

@@ -47,7 +47,7 @@ try {
 
   // In Focus, the letter picks its tool: the line command runs and the Focus bar names it.
   await page.keyboard.press('l')
-  await until('in Focus a letter picks its tool', async () => (await details()).running === 'line')
+  await until('in Focus a letter picks its tool', async () => (await details()).running === 'line.add')
   await until('the Focus bar names the tool', async () => (await kit.locator('.kui-focus-tool').textContent())?.trim() === 'Line')
 
   // Escape cancels the running command and stays in Focus.
@@ -61,7 +61,7 @@ try {
   await until('Escape with nothing to cancel leaves Focus', async () => (await mode()) === 'classic')
 
   // A selection is something to cancel too: the first Escape clears it, the second leaves Focus.
-  await kit.getByTestId('cad-command-line').fill('edit.selectAll')
+  await kit.getByTestId('cad-command-line').fill('selectall')
   await kit.getByTestId('cad-command-line').press('Enter')
   await until('everything selected', async () => (await details()).selection === 7)
   await app.focus()

@@ -7,7 +7,7 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn copy_preserves_unrelated_source_group_membership() {
     check(
-        |f| ("copy", json!({"handles":[f.line],"delta":[0,20]})),
+        |f| ("object.copy", json!({"handles":[f.line],"delta":[0,20]})),
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
         |f| vec![("group.edit", json!({"name":"Group","add":[f.circle]}))],
     )

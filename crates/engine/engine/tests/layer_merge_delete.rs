@@ -7,7 +7,7 @@ use serde_json::json;
 
 fn line_on(s: &mut Session, layer: &str, y: f64) -> String {
     s.execute("layer.setCurrent", &json!({ "name": layer })).unwrap();
-    s.execute("line", &json!({ "points": [[0, y], [10, y]] })).unwrap()["handles"][0].as_str().unwrap().to_string()
+    s.execute("line.add", &json!({ "points": [[0, y], [10, y]] })).unwrap()["handles"][0].as_str().unwrap().to_string()
 }
 
 /// Layers A and B with a line each in model space, a block "Part" holding an A line, a paper-space
@@ -18,11 +18,11 @@ fn drawing() -> Session {
         s.execute("layer.add", &json!({ "name": n })).unwrap();
     }
     let a = line_on(&mut s, "A", 0.0);
-    s.execute("block", &json!({ "name": "Part", "base": [0, 0], "handles": [a], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "Part", "base": [0, 0], "handles": [a], "keep": "delete" })).unwrap();
     line_on(&mut s, "A", 1.0);
     line_on(&mut s, "B", 2.0);
     s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
-    s.execute("insert", &json!({ "name": "Part", "at": [5, 5] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "Part", "at": [5, 5] })).unwrap();
     s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
     line_on(&mut s, "A", 3.0);
     s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
@@ -79,7 +79,7 @@ fn laymrg_typed_moves_everything_and_deletes_the_source() {
 
     // Answering No (or Enter) changes nothing; picking an object on the layer works too.
     let h = s.doc().unwrap().model.iter().find(|e| e.common.layer == "C" || e.common.layer == "A").map(|e| e.handle).unwrap();
-    s.start("layer.merge").unwrap();
+    s.start("laymrg").unwrap();
     assert!(s.prompt_text().contains("Select object on layer to merge or [Name]:"), "{}", s.prompt_text());
     s.input(kition_cad_engine::Input::Pick(vec![h])).unwrap();
     assert!(s.prompt_text().contains("[Name/Undo]"), "{}", s.prompt_text());

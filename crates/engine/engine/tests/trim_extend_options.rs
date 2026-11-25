@@ -169,35 +169,35 @@ fn extend_fence_and_crossing() {
 #[test]
 fn json_forms_take_fence_crossing_edge_mode_and_mode() {
     let mut s = ladder();
-    let r = s.execute("trim", &json!({ "fence": [[5, -1], [5, 3]] })).unwrap();
+    let r = s.execute("object.trim", &json!({ "fence": [[5, -1], [5, 3]] })).unwrap();
     assert_eq!(r["trimmed"], 2);
     assert_eq!(lines(&s).len(), 6);
 
     let mut s = ladder();
-    let r = s.execute("trim", &json!({ "crossing": [[4, -1], [6, 1]] })).unwrap();
+    let r = s.execute("object.trim", &json!({ "crossing": [[4, -1], [6, 1]] })).unwrap();
     assert_eq!(r["trimmed"], 1);
 
     let mut s = session(&["5,3 5,4", "-5,0 15,0"]);
     let h = s.doc().unwrap().model.last().unwrap().handle.hex();
-    assert!(s.execute("trim", &json!({ "handle": h, "pick": [8, 0] })).is_err());
-    s.execute("trim", &json!({ "handle": h, "pick": [8, 0], "edgeMode": "extend" })).unwrap();
+    assert!(s.execute("object.trim", &json!({ "handle": h, "pick": [8, 0] })).is_err());
+    s.execute("object.trim", &json!({ "handle": h, "pick": [8, 0], "edgeMode": "extend" })).unwrap();
     assert_eq!(lines(&s), vec![((-5.0, 0.0), (5.0, 0.0)), ((5.0, 3.0), (5.0, 4.0))]);
 
     let mut s = session(&["20,20 25,20"]);
     let h = s.doc().unwrap().model.last().unwrap().handle.hex();
-    let r = s.execute("trim", &json!({ "handle": h, "pick": [22, 20], "mode": "quick" })).unwrap();
+    let r = s.execute("object.trim", &json!({ "handle": h, "pick": [22, 20], "mode": "quick" })).unwrap();
     assert_eq!(r["handles"], json!([]));
     assert!(lines(&s).is_empty());
 
     let mut s = ladder();
-    assert!(s.execute("trim", &json!({ "fence": [[5, -1]] })).is_err());
-    assert!(s.execute("trim", &json!({ "crossing": [[5, -1], [1, 1], [2, 2]] })).is_err());
-    assert!(s.execute("trim", &json!({ "fence": [[5, -1], [5, 3]], "edgeMode": "sideways" })).is_err());
-    assert!(s.execute("trim", &json!({ "fence": [[5, -1], [5, 3]], "mode": 3 })).is_err());
+    assert!(s.execute("object.trim", &json!({ "fence": [[5, -1]] })).is_err());
+    assert!(s.execute("object.trim", &json!({ "crossing": [[5, -1], [1, 1], [2, 2]] })).is_err());
+    assert!(s.execute("object.trim", &json!({ "fence": [[5, -1], [5, 3]], "edgeMode": "sideways" })).is_err());
+    assert!(s.execute("object.trim", &json!({ "fence": [[5, -1], [5, 3]], "mode": 3 })).is_err());
     assert_eq!(lines(&s).len(), 4);
 
     let mut s = session(&["10,-5 10,5", "0,0 4,0"]);
-    let r = s.execute("extend", &json!({ "fence": [[3, -1], [3, 1]] })).unwrap();
+    let r = s.execute("object.extend", &json!({ "fence": [[3, -1], [3, 1]] })).unwrap();
     assert_eq!(r["extended"], 1);
     assert_eq!(lines(&s), vec![((0.0, 0.0), (10.0, 0.0)), ((10.0, -5.0), (10.0, 5.0))]);
 }

@@ -277,7 +277,7 @@ impl Sandbox {
         let outside = root.join("outside");
         // The sentinels: a drawing, a plot style table, a picture, a font name, a listed-only file.
         let mut maker = CadDocument::create("secret.dxf", 0, 0).unwrap();
-        maker.execute("text", json!({ "at": [10, 10], "height": 5, "text": SECRET })).unwrap();
+        maker.execute("text.add", json!({ "at": [10, 10], "height": 5, "text": SECRET })).unwrap();
         std::fs::write(outside.join("secret.dxf"), maker.save(Some("secret.dxf")).unwrap()).unwrap();
         maker.execute("plot.styleManager", json!({ "action": "new", "name": "secret.ctb", "description": SECRET })).unwrap();
         let table = maker.execute("plot.styleManager", json!({ "action": "save", "name": "secret.ctb" })).unwrap();
@@ -419,13 +419,13 @@ fn act_commands(root: &Path) {
         vec![
             ("plot.styleManager", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })),
             ("plot.styleManager", json!({ "action": "save", "name": "agent.ctb", "path": made.replace(".dxf", ".ctb") })),
-            ("open", json!({ "path": file })),
-            ("recover", json!({ "path": file })),
-            ("insert", json!({ "name": "S", "file": file, "at": [0, 0] })),
+            ("file.open", json!({ "path": file })),
+            ("file.recover", json!({ "path": file })),
+            ("block.insert", json!({ "name": "S", "file": file, "at": [0, 0] })),
             ("file.save", json!({ "path": made })),
             ("file.saveAs", json!({ "path": made })),
             ("block.write", json!({ "path": made, "handles": [] })),
-            ("plot", json!({ "path": made.replace(".dxf", ".pdf") })),
+            ("file.print", json!({ "path": made.replace(".dxf", ".pdf") })),
             ("file.exportPdf", json!({ "path": made.replace(".dxf", ".pdf") })),
             ("command.runLine", json!({ "text": format!("stylesmanager {}", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })) })),
             ("command.runLine", json!({ "text": format!("recover {}", json!({ "path": file })) })),
@@ -476,7 +476,7 @@ fn act_commands(root: &Path) {
     let offered: Vec<String> = agent.kit.commands(Some(&id)).unwrap().into_iter().map(|command| command.id).collect();
     for command in offered {
         // These end or replace the drawing the rest of the sweep runs in.
-        if matches!(command.as_str(), "close" | "file.closeAll" | "new" | "file.switch") {
+        if matches!(command.as_str(), "file.close" | "file.closeAll" | "file.new" | "file.switch") {
             continue;
         }
         agent.run(&id, &command, json!({}));

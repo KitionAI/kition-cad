@@ -15,8 +15,8 @@ use serde_json::json;
 fn drawing() -> CadDocument {
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
     doc.execute("rectangle.add", json!({ "p1": [1000, 500], "p2": [1400, 800] })).unwrap();
-    doc.execute("circle", json!({ "center": [1200, 650], "radius": 100 })).unwrap();
-    doc.execute("text", json!({ "at": [1020, 520], "height": 20, "text": "Two words" })).unwrap();
+    doc.execute("circle.add", json!({ "center": [1200, 650], "radius": 100 })).unwrap();
+    doc.execute("text.add", json!({ "at": [1020, 520], "height": 20, "text": "Two words" })).unwrap();
     let bytes = doc.save(Some("Plan.dxf")).unwrap();
     CadDocument::open("Plan.dxf", &bytes).unwrap()
 }

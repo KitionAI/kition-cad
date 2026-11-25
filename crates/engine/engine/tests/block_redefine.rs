@@ -5,7 +5,7 @@ use kition_cad_engine::doc::EntityKind;
 use serde_json::{Value, json};
 
 fn line(s: &mut Session, a: [f64; 2], b: [f64; 2]) -> String {
-    s.execute("line", &json!({ "points": [a, b] })).unwrap()["handles"][0].as_str().unwrap().to_string()
+    s.execute("line.add", &json!({ "points": [a, b] })).unwrap()["handles"][0].as_str().unwrap().to_string()
 }
 
 /// Kinds of the entities in block `name`, as "line"/"insert:<block>".
@@ -34,10 +34,10 @@ fn a_block_cannot_be_redefined_to_reference_itself() {
     // Through a nested block: A holds B's reference, B holds A's.
     let mut s = Session::new();
     let l = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
-    let a = s.execute("block", &json!({ "name": "A", "base": [0, 0], "handles": [l] })).unwrap()["insert"].clone();
+    let a = s.execute("block.addDialog", &json!({ "name": "A", "base": [0, 0], "handles": [l] })).unwrap()["insert"].clone();
     let l = line(&mut s, [0.0, 0.0], [0.0, 10.0]);
-    let b = s.execute("block", &json!({ "name": "B", "base": [0, 0], "handles": [a, l] })).unwrap()["insert"].clone();
-    let r = s.execute("block", &json!({ "name": "a", "base": [0, 0], "handles": [b] }));
+    let b = s.execute("block.addDialog", &json!({ "name": "B", "base": [0, 0], "handles": [a, l] })).unwrap()["insert"].clone();
+    let r = s.execute("block.addDialog", &json!({ "name": "a", "base": [0, 0], "handles": [b] }));
     assert!(r.is_err_and(|e| e.to_string().contains("references itself")));
     assert_eq!(contents(&s, "A"), ["line"]);
 }
@@ -46,9 +46,9 @@ fn a_block_cannot_be_redefined_to_reference_itself() {
 fn redefining_with_a_different_case_replaces_the_block() {
     let mut s = Session::new();
     let l = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
-    s.execute("block", &json!({ "name": "Door", "base": [0, 0], "handles": [l] })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "Door", "base": [0, 0], "handles": [l] })).unwrap();
     let l = line(&mut s, [0.0, 0.0], [0.0, 10.0]);
-    s.execute("block", &json!({ "name": "DOOR", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "DOOR", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
     let list = s.execute("block.list", &json!({})).unwrap();
     let names: Vec<&str> = list["blocks"].as_array().unwrap().iter().filter_map(|b| b["name"].as_str()).collect();
     assert_eq!(names, ["Door"]);

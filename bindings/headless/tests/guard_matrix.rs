@@ -29,7 +29,7 @@ const CHANGES: &[&str] = &[
     "source",
     "ucs",
     "units",
-    "dimensionStyle.open",
+    "dimstyle",
     "order",
     "unrelated",
 ];
@@ -107,7 +107,7 @@ fn shape(d: &mut CadDocument, y: i32, layer: &str) -> Value {
     run(d, "rectangle.add", json!({"p1":[0,y],"p2":[10,y+10],"layer":layer}))["handle"].clone()
 }
 fn line(d: &mut CadDocument, a: [i32; 2], b: [i32; 2], layer: &str) -> Value {
-    run(d, "line", json!({"points":[a,b],"layer":layer}))["handles"][0].clone()
+    run(d, "line.add", json!({"points":[a,b],"layer":layer}))["handles"][0].clone()
 }
 struct DrawingIds {
     a: Value,
@@ -125,12 +125,12 @@ fn drawing(change: &str) -> (CadDocument, DrawingIds) {
     let a = shape(&mut d, 0, "Walls");
     let b = shape(&mut d, if matches!(change, "leave" | "order") { 0 } else { 40 }, "Far");
     let original = line(&mut d, [0, 80], [10, 80], "0");
-    run(&mut d, "block", json!({"name":"B","base":[0,80],"handles":[original],"keep":"delete"}));
+    run(&mut d, "block.addDialog", json!({"name":"B","base":[0,80],"handles":[original],"keep":"delete"}));
     let saved = kition_cad_io::read(&d.save(Some(FILE)).unwrap(), FILE).unwrap();
     let member = json!(saved.block("B").unwrap().entities.iter().next().unwrap().handle.hex());
-    let insert = run(&mut d, "insert", json!({"name":"B","at":[100,0]}))["handle"].clone();
-    run(&mut d, "style", json!({"name":"S","height":2,"current":false}));
-    let table = run(&mut d, "table", json!({"at":[150,0],"rows":2,"cols":2}))["handle"].clone();
+    let insert = run(&mut d, "block.insert", json!({"name":"B","at":[100,0]}))["handle"].clone();
+    run(&mut d, "textStyle.open", json!({"name":"S","height":2,"current":false}));
+    let table = run(&mut d, "table.add", json!({"at":[150,0],"rows":2,"cols":2}))["handle"].clone();
     let source = line(&mut d, [30, 0], [40, 0], "0");
     let dim = run(&mut d, "dimension.addLinear", json!({"object":source,"at":[30,5]}))["handle"].clone();
     raw(&mut d, |d| {
@@ -177,7 +177,7 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
     match change {
         "same" | "other" | "delete" if matches!(row, "view-name" | "ucs-name") => {
             if change == "same" {
-                run(d, "rename", json!({"table":if row == "view-name" {"view"} else {"ucs"},"from":"N","to":"Theirs"}));
+                run(d, "namedObject.rename", json!({"table":if row == "view-name" {"view"} else {"ucs"},"from":"N","to":"Theirs"}));
             } else {
                 raw(d, |d| {
                     if row == "view-name" {
@@ -197,7 +197,7 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
         "same" | "other" | "delete" if row == "style-name" => {
             run(
                 d,
-                if change == "delete" { "textStyle.delete" } else { "style" },
+                if change == "delete" { "textStyle.delete" } else { "textStyle.open" },
                 match change {
                     "delete" => json!({"name":"S"}),
                     "same" => json!({"name":"S","height":3,"current":false}),
@@ -242,19 +242,19 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
             run(d, "object.setProperties", json!({"handles":[target],"lineweight":30}));
         }
         "delete" => {
-            run(d, "erase", json!({"handles":[target]}));
+            run(d, "object.delete", json!({"handles":[target]}));
         }
         "move" => {
-            run(d, "move", json!({"handles":[ids.a],"delta":[0,20]}));
+            run(d, "object.move", json!({"handles":[ids.a],"delta":[0,20]}));
         }
         "rotate" => {
-            run(d, "rotate", json!({"handles":[ids.a],"base":[0,0],"angle":45}));
+            run(d, "object.rotate", json!({"handles":[ids.a],"base":[0,0],"angle":45}));
         }
         "scale" => {
-            run(d, "scale", json!({"handles":[ids.a],"base":[0,0],"factor":2}));
+            run(d, "object.scale", json!({"handles":[ids.a],"base":[0,0],"factor":2}));
         }
         "enter" | "leave" => {
-            run(d, "move", json!({"handles":[ids.b],"delta":[0,if change == "enter" {-40} else {40}]}));
+            run(d, "object.move", json!({"handles":[ids.b],"delta":[0,if change == "enter" {-40} else {40}]}));
         }
         "freeze" | "lock" | "off" => {
             let mut p = json!({"name":"Walls"});
@@ -276,7 +276,7 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
             });
         }),
         "explode" => {
-            run(d, "explode", json!({"handles":[if row == "table-index" {&ids.insert} else {&ids.a}]}));
+            run(d, "object.explode", json!({"handles":[if row == "table-index" {&ids.insert} else {&ids.a}]}));
         }
         "source" => raw(d, |d| {
             d.modify_entity(h(&ids.source), |e| {
@@ -290,9 +290,9 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
             d.ucss.get_mut(0).unwrap().origin.x += 2.0;
         }),
         "units" => {
-            run(d, "units", json!({"insunits":1}));
+            run(d, "file.setUnits", json!({"insunits":1}));
         }
-        "dimensionStyle.open" => {
+        "dimstyle" => {
             run(d, "dimensionStyle.open", json!({"name":"ISO-25","textHeight":4}));
         }
         "order" => {
@@ -378,7 +378,7 @@ fn content(d: &Drawing) -> Value {
     entities.sort();
     let header: std::collections::BTreeMap<_, _> =
         d.header.vars.iter().filter(|(k, _)| !matches!(k.as_str(), "EXTMIN" | "EXTMAX" | "HANDSEED")).collect();
-    json!({"object.query":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"header":header,"views":d.views,"ucss":d.ucss})
+    json!({"entities":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"header":header,"views":d.views,"ucss":d.ucss})
 }
 
 async fn address_cells(selection_consumers: bool) {
@@ -427,18 +427,18 @@ async fn address_matrix_selection_consumers() {
 // review: JOIN/PEDIT joined-away source / locked follows the owner
 // policy; the engine transaction enforces it.
 const DERIVED: &[(&str, &str)] = &[
-    ("trim", "CDCCAA"),
-    ("extend", "CDCCAA"),
-    ("fillet", "CDCACA"),
-    ("chamfer", "CDCACA"),
-    ("offset", "CDCAAA"),
+    ("object.trim", "CDCCAA"),
+    ("object.extend", "CDCCAA"),
+    ("object.fillet", "CDCACA"),
+    ("object.chamfer", "CDCACA"),
+    ("object.offset", "CDCAAA"),
     ("hatch-handles", "CDCAAA"),
     ("hatch-point", "CDCRAA"),
     ("dimension-object", "CDCAAA"),
     ("dimension-snap", "RDCAAA"),
     ("object.arrayPath", "CDCAAA"),
     ("array-dispatch", "CDCAAA"),
-    ("join", "CDCACA"),
+    ("object.join", "CDCACA"),
     ("pedit-join", "CDCACA"),
 ];
 fn derived(row: &str) -> (CadDocument, Value, Value, Value) {
@@ -447,25 +447,25 @@ fn derived(row: &str) -> (CadDocument, Value, Value, Value) {
     let far = line(&mut d, [0, 100], [10, 100], "0");
     let a = line(&mut d, [0, 0], [10, 0], "0");
     let source = match row {
-        "trim" => line(&mut d, [5, -10], [5, 10], "Source"),
-        "extend" => line(&mut d, [15, -10], [15, 10], "Source"),
-        "fillet" | "chamfer" => line(&mut d, [10, 0], [10, 10], "Source"),
-        "join" | "pedit-join" => line(&mut d, [10, 0], [20, 0], "Source"),
+        "object.trim" => line(&mut d, [5, -10], [5, 10], "Source"),
+        "object.extend" => line(&mut d, [15, -10], [15, 10], "Source"),
+        "object.fillet" | "object.chamfer" => line(&mut d, [10, 0], [10, 10], "Source"),
+        "object.join" | "pedit-join" => line(&mut d, [10, 0], [20, 0], "Source"),
         "hatch-handles" | "hatch-point" => shape(&mut d, 20, "Source"),
         _ => line(&mut d, [30, 0], [40, 0], "Source"),
     };
     let (command, params) = match row {
-        "trim" | "extend" => (row, json!({"handle":a,"pick":[9,0],"edges":[source]})),
-        "fillet" => (row, json!({"h1":a,"h2":source,"radius":1,"p1":[5,0],"p2":[10,5]})),
-        "chamfer" => (row, json!({"h1":a,"h2":source,"d1":1,"d2":1,"p1":[5,0],"p2":[10,5]})),
-        "offset" => (row, json!({"handle":source,"distance":2,"side":[35,5]})),
-        "hatch-handles" => ("hatch", json!({"handles":[source],"pattern":"SOLID"})),
-        "hatch-point" => ("hatch", json!({"points":[[5,25]],"pattern":"SOLID"})),
+        "object.trim" | "object.extend" => (row, json!({"handle":a,"pick":[9,0],"edges":[source]})),
+        "object.fillet" => (row, json!({"h1":a,"h2":source,"radius":1,"p1":[5,0],"p2":[10,5]})),
+        "object.chamfer" => (row, json!({"h1":a,"h2":source,"d1":1,"d2":1,"p1":[5,0],"p2":[10,5]})),
+        "object.offset" => (row, json!({"handle":source,"distance":2,"side":[35,5]})),
+        "hatch-handles" => ("hatch.add", json!({"handles":[source],"pattern":"SOLID"})),
+        "hatch-point" => ("hatch.add", json!({"points":[[5,25]],"pattern":"SOLID"})),
         "dimension-object" => ("dimension.addLinear", json!({"object":source,"at":[35,5]})),
         "dimension-snap" => ("dimension.addLinear", json!({"p1":[30,0],"p2":[40,0],"at":[35,5]})),
         "object.arrayPath" => (row, json!({"handles":[a],"path":source,"count":3})),
-        "array-dispatch" => ("array", json!({"type":"path","handles":[a],"path":source,"count":3})),
-        "join" => (row, json!({"handles":[a,source]})),
+        "array-dispatch" => ("object.array", json!({"type":"path","handles":[a],"path":source,"count":3})),
+        "object.join" => (row, json!({"handles":[a,source]})),
         "pedit-join" => ("polyline.edit", json!({"handle":a,"option":"join","handles2":[source]})),
         _ => panic!("unknown derived row"),
     };
@@ -481,10 +481,10 @@ async fn derived_geometry_matrix() {
             let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
             f.colleague(|d| match change {
                 "move" | "unrelated" => {
-                    run(d, "move", json!({"handles":[if change == "move" {&source} else {&far}],"delta":[1,0]}));
+                    run(d, "object.move", json!({"handles":[if change == "move" {&source} else {&far}],"delta":[1,0]}));
                 }
                 "delete" => {
-                    run(d, "erase", json!({"handles":[source]}));
+                    run(d, "object.delete", json!({"handles":[source]}));
                 }
                 "geometry" => raw(d, |d| {
                     d.modify_entity(h(&source), |e| match &mut e.kind {
@@ -515,27 +515,27 @@ async fn stored_settings_family_matrix() {
     // (the saved file carries mine); the others are the drawing's, shared, and replacing one
     // holds the value I observed.
     let rows = [
-        ("color", json!({"color":"red"}), json!({"color":"blue"}), true),
+        ("property.color", json!({"color":"red"}), json!({"color":"blue"}), true),
         ("property.lineweight", json!({"lineweight":"ByLayer"}), json!({"lineweight":"ByBlock"}), true),
         ("property.linetypeScale", json!({"scale":2}), json!({"scale":3}), false),
-        ("units", json!({"luprec":2}), json!({"luprec":3}), false),
-        ("limits", json!({"min":[0,0],"max":[100,100]}), json!({"min":[0,0],"max":[200,200]}), false),
+        ("file.setUnits", json!({"luprec":2}), json!({"luprec":3}), false),
+        ("file.setLimits", json!({"min":[0,0],"max":[100,100]}), json!({"min":[0,0],"max":[200,200]}), false),
         ("point.style", json!({"pdmode":2}), json!({"pdmode":3}), false),
         ("textStyle.setCurrent", json!({"name":"S"}), json!({"name":"T"}), true),
-        ("linetype", json!({"current":"ByBlock"}), json!({"current":"Continuous"}), true),
+        ("property.linetype", json!({"current":"ByBlock"}), json!({"current":"Continuous"}), true),
     ];
     let mut counts = Counts::default();
     for (command, mine, theirs, own) in rows {
         for relevant in [true, false] {
             let (mut d, ids) = drawing("unrelated");
-            run(&mut d, "style", json!({"name":"T","current":false}));
+            run(&mut d, "textStyle.open", json!({"name":"T","current":false}));
             let f = Fixture::new(&mut d);
             let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
             f.colleague(|d| {
                 if relevant {
                     run(d, command, theirs.clone());
                 } else {
-                    run(d, "move", json!({"handles":[ids.b],"delta":[1,0]}));
+                    run(d, "object.move", json!({"handles":[ids.b],"delta":[1,0]}));
                 }
             });
             counts
@@ -561,7 +561,7 @@ async fn current_style_family_matrix() {
     // own, kdm_model::is_current_var): my STYLE or DIMSTYLE, which makes the style my current one
     // and sets my DIM* variables to it, applies, and the saved file carries mine.
     let rows = [
-        ("style", json!({"name":"S"}), "textStyle.setCurrent", json!({"name":"T"}), true),
+        ("textStyle.open", json!({"name":"S"}), "textStyle.setCurrent", json!({"name":"T"}), true),
         ("dimensionStyle.open", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
         ("dimensionStyle.openManager", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
         ("dimensionStyle.setCurrent", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
@@ -571,14 +571,14 @@ async fn current_style_family_matrix() {
     for (command, mine, other_command, theirs, own) in rows {
         for relevant in [true, false] {
             let (mut d, ids) = drawing("unrelated");
-            run(&mut d, "style", json!({"name":"T","current":false}));
+            run(&mut d, "textStyle.open", json!({"name":"T","current":false}));
             let f = Fixture::new(&mut d);
             let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
             f.colleague(|d| {
                 if relevant {
                     run(d, other_command, theirs.clone());
                 } else {
-                    run(d, "move", json!({"handles":[ids.b],"delta":[1,0]}));
+                    run(d, "object.move", json!({"handles":[ids.b],"delta":[1,0]}));
                 }
             });
             counts
@@ -612,30 +612,30 @@ async fn library_and_base_family_matrix() {
                             d.linetypes.iter_mut().find(|t| t.name == "Continuous").unwrap().description = "Colleague".into();
                         });
                     } else {
-                        run(d, "move", json!({"handles":[ids.b],"delta":[1,0]}));
+                        run(d, "object.move", json!({"handles":[ids.b],"delta":[1,0]}));
                     }
                 } else {
                     match row {
                         "base" => {
-                            run(d, "base", json!({"at":[2,2]}));
+                            run(d, "block.setBase", json!({"at":[2,2]}));
                         }
                         "linetype-units" => {
                             run(d, "variable.set", json!({"name":"MEASUREMENT","value":0}));
                         }
                         "linetype-loaded" => {
-                            run(d, "linetype", json!({"load":"DASHED"}));
+                            run(d, "property.linetype", json!({"load":"DASHED"}));
                         }
                         "linetype-current" => {
-                            run(d, "linetype", json!({"current":"ByBlock"}));
+                            run(d, "property.linetype", json!({"current":"ByBlock"}));
                         }
                         _ => panic!("library row"),
                     }
                 }
             });
             let (command, params) = match row {
-                "base" => ("base", json!({"at":[1,1]})),
-                "linetype-current" => ("linetype", json!({"current":"Continuous"})),
-                _ => ("linetype", json!({"load":"DASHED"})),
+                "base" => ("block.setBase", json!({"at":[1,1]})),
+                "linetype-current" => ("property.linetype", json!({"current":"Continuous"})),
+                _ => ("property.linetype", json!({"load":"DASHED"})),
             };
             counts
                 .cell(

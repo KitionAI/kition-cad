@@ -27,8 +27,8 @@ impl Fixture {
         core.colleague(&[("rectangle.add", json!({"p1":[500,0],"p2":[510,10]}))]);
         core.colleague(&[
             ("viewport.add", json!({"layout":"Layout1","p1":[0,0],"p2":[20,20]})),
-            ("hatch", json!({"handles":[core.circle],"pattern":"SOLID"})),
-            ("group", json!({"name":"Group","handles":[core.line]})),
+            ("hatch.add", json!({"handles":[core.circle],"pattern":"SOLID"})),
+            ("arrange.group", json!({"name":"Group","handles":[core.line]})),
             ("dimension.addLinear", json!({"object":core.line,"at":[50,-10]})),
         ]);
         core.rewrite(|d| {

@@ -61,7 +61,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("dimension.addQuick", "Quick Dimension", run_qdim)
             .menu(&["Dimension", "Quick Dimension"])
             .params("{handles?, at: [x,y], vertical?: bool}"),
-        CommandSpec::new("dim", "Dimension", run_linear)
+        CommandSpec::new("dimension.add", "Dimension", run_linear)
             .menu(&["Dimension", "Dimension"])
             .params("{p1, p2, at, rotation? (degrees; default: horizontal/vertical from `at`), text?} | {object: str (a handle), at} (associative)")
             .interactive(|_| Ok(Box::new(LinearM::new(false)))),
@@ -70,7 +70,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["mld"])
             .params("{points: [[arrow], ..., [landing]] ([location] with leaderType none), text?, leaderType?: straight|spline|none, block?: name, blockAttach?: center|insertion}")
             .interactive(|s| Ok(Box::new(MLeaderM::new(s)))),
-        CommandSpec::new("leader", "Leader", run_leader).alias(&["lead"]).params("{points: [[x,y]...], text?}"),
+        CommandSpec::new("leader.add", "Leader", run_leader).alias(&["lead"]).params("{points: [[x,y]...], text?}"),
         CommandSpec::new("dimension.updateStyle", "Update", run_update)
             .menu(&["Dimension", "Update"])
             .params("{handles?}")
@@ -543,9 +543,9 @@ fn run_mleader(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_leader(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts = points_param(p, "points").ok_or_else(|| bad("leader", "`points` is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("leader.add", "`points` is required"))?;
     if pts.len() < 2 {
-        return Err(bad("leader", "need 2+ points"));
+        return Err(bad("leader.add", "need 2+ points"));
     }
     let st = style(s);
     let h = s.add_entity(EntityKind::Leader(kition_cad_doc::Leader {

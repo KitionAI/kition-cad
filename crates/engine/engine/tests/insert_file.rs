@@ -83,8 +83,8 @@ fn inserts(s: &Session) -> Vec<(String, f64, f64)> {
 #[test]
 fn star_name_inserts_the_blocks_objects_with_one_scale_factor() {
     let mut s = Session::new();
-    s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-    s.execute("block", &json!({ "name": "B1", "base": [0, 0], "keep": "delete", "handles": ["100"] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "B1", "base": [0, 0], "keep": "delete", "handles": ["100"] })).unwrap();
 
     // Insertion point, then one scale factor and the rotation; no block reference is left.
     s.script("-INSERT *B1 5,5 2 90\n").unwrap();
@@ -97,7 +97,7 @@ fn star_name_inserts_the_blocks_objects_with_one_scale_factor() {
     assert_eq!(inserts(&s).len(), 1);
 
     // JSON: "*NAME" explodes too.
-    s.execute("insert", &json!({ "name": "*B1", "at": [0, 50] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "*B1", "at": [0, 50] })).unwrap();
     assert_eq!(inserts(&s).len(), 1);
     assert_eq!(lines(&s).last(), Some(&(0.0, 50.0, 10.0, 50.0)));
 }
@@ -138,13 +138,13 @@ fn a_drawing_file_becomes_a_block_with_its_insbase_and_tables() {
     assert!(inserts(&s).iter().any(|i| i.0 == "NUT" && i.1 == 50.0 && i.2 == 0.0));
 
     // JSON: `file` with an optional block name, never a dialog.
-    let r = s.execute("insert", &json!({ "file": file("washer.dxf", "0,0"), "at": [5, 5] })).unwrap();
+    let r = s.execute("block.insert", &json!({ "file": file("washer.dxf", "0,0"), "at": [5, 5] })).unwrap();
     assert!(r["handle"].is_string(), "{r}");
     assert!(inserts(&s).iter().any(|i| i.0 == "washer"));
 
     // A file that can't be read is reported; nothing is inserted.
     let n = inserts(&s).len();
-    assert!(s.execute("insert", &json!({ "file": "/no/such/part.dxf", "at": [0, 0] })).is_err());
+    assert!(s.execute("block.insert", &json!({ "file": "/no/such/part.dxf", "at": [0, 0] })).is_err());
     s.cmdline("-INSERT /no/such/part.dxf").unwrap();
     assert!(s.log.iter().any(|m| m.contains("/no/such/part.dxf")), "{:?}", s.log.last());
     assert!(s.prompt_text().contains("block name"), "{}", s.prompt_text());

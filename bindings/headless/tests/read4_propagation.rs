@@ -7,7 +7,7 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn propagation_move_holds_rendered_dimension_text() {
     check(
-        |f| ("move", json!({"handles":[f.line],"delta":[0,5]})),
+        |f| ("object.move", json!({"handles":[f.line],"delta":[0,5]})),
         |f| vec![("text.edit", json!({"handle":f.attached_dim,"text":"Colleague"}))],
         |f| vec![("object.setProperties", json!({"handles":[f.attached_dim],"color":"blue"}))],
     )
@@ -25,16 +25,16 @@ async fn propagation_override_preserves_source_line_color() {
 #[tokio::test(flavor = "multi_thread")]
 async fn propagation_remeasures_with_font_metrics() {
     check(
-        |f| ("move", json!({"handles":[f.line],"delta":[0,5]})),
-        |_| vec![("style", json!({"name":"Standard","height":8}))],
-        |_| vec![("style", json!({"name":"Standard","annotative":true}))],
+        |f| ("object.move", json!({"handles":[f.line],"delta":[0,5]})),
+        |_| vec![("textStyle.open", json!({"name":"Standard","height":8}))],
+        |_| vec![("textStyle.open", json!({"name":"Standard","annotative":true}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn propagation_holds_a_remeasured_targets_lock() {
     check_with_setup(
-        |f| ("move", json!({"handles":[f.line],"delta":[0,5]})),
+        |f| ("object.move", json!({"handles":[f.line],"delta":[0,5]})),
         |_| vec![("layer.set", json!({"name":"Secondary","locked":true}))],
         |_| vec![("layer.set", json!({"name":"Secondary","color":"blue"}))],
         |f| vec![("object.setProperties", json!({"handles":[f.attached_dim],"layer":"Secondary"}))],
@@ -44,7 +44,7 @@ async fn propagation_holds_a_remeasured_targets_lock() {
 #[tokio::test(flavor = "multi_thread")]
 async fn rendered_dimension_uses_positive_style_scale_before_header_scale() {
     check(
-        |f| ("explode", json!({"handles":[f.dim]})),
+        |f| ("object.explode", json!({"handles":[f.dim]})),
         |_| vec![("dimensionStyle.open", json!({"name":"ISO-25","scale":2,"current":false}))],
         |_| vec![("variable.set", json!({"name":"DIMSCALE","value":2}))],
     )

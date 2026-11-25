@@ -115,7 +115,7 @@ impl KitDocument for Probe {
 }
 
 fn mapped(command: &str, params: Value) -> (&str, Value) {
-    if command == "review.position" { ("move", json!({"handles":[params["handle"]],"delta":params["delta"]})) } else { (command, params) }
+    if command == "review.position" { ("object.move", json!({"handles":[params["handle"]],"delta":params["delta"]})) } else { (command, params) }
 }
 
 impl ReplicaPort for Probe {
@@ -153,7 +153,7 @@ fn nested_union_schema_roles_are_not_available() {
 
 async fn position_parent_premises_hold_changed_leaves() {
     let mut drawing = CadDocument::create(FILE, 420, 297).unwrap();
-    let handle = drawing.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
+    let handle = drawing.execute("line.add", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join(FILE);
     std::fs::write(&path, drawing.save(Some(FILE)).unwrap()).unwrap();
@@ -162,7 +162,7 @@ async fn position_parent_premises_hold_changed_leaves() {
     let before = tools::call(&kits, "cad_inspect", &json!({"path":FILE})).await.unwrap().unwrap().output;
     let bytes = std::fs::read(&path).unwrap();
     let mut colleague = CadDocument::open(FILE, &bytes).unwrap();
-    colleague.execute("move", json!({"handles":[handle],"delta":[1,0]})).unwrap();
+    colleague.execute("object.move", json!({"handles":[handle],"delta":[1,0]})).unwrap();
     let after = colleague.save(Some(FILE)).unwrap();
     assert_ne!(bytes, after);
     std::fs::write(&path, &after).unwrap();

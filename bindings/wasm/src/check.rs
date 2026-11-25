@@ -220,8 +220,8 @@ fn audit(d: &Drawing, found: &mut Found) {
         let mut diagnostic =
             Diagnostic::new(code, severity, format!("{}: {} (AUDIT fixes it: {}).", issue.location, issue.message, issue.fix)).on(target);
         diagnostic = match (issue.kind, handle) {
-            ("invalidGeometry", Some(h)) => diagnostic.fix("erase", Some(erase(h))),
-            _ => diagnostic.fix("audit", Some(json!({ "fix": true }))),
+            ("invalidGeometry", Some(h)) => diagnostic.fix("object.delete", Some(erase(h))),
+            _ => diagnostic.fix("file.audit", Some(json!({ "fix": true }))),
         };
         found.push(diagnostic);
     }
@@ -258,7 +258,7 @@ fn entity(e: &Entity, found: &mut Found) {
                 format!("Polyline {} has no length: all its vertices are one point.", h.hex()),
             )
             .on(of_entity(h))
-            .fix("erase", Some(erase(h))),
+            .fix("object.delete", Some(erase(h))),
         ),
         EntityKind::Polyline3d(p) if one_point(p.points.iter().map(|v| v.xy())) => found.push(
             Diagnostic::new(
@@ -267,7 +267,7 @@ fn entity(e: &Entity, found: &mut Found) {
                 format!("3D polyline {} has no length: all its vertices are one point.", h.hex()),
             )
             .on(of_entity(h))
-            .fix("erase", Some(erase(h))),
+            .fix("object.delete", Some(erase(h))),
         ),
         EntityKind::Hatch(hatch) => {
             // A loop with arcs (bulges) always encloses something; a straight one needs an area.
@@ -281,19 +281,19 @@ fn entity(e: &Entity, found: &mut Found) {
                         format!("Hatch {} has no boundary that encloses an area, so it fills nothing.", h.hex()),
                     )
                     .on(of_entity(h))
-                    .fix("erase", Some(erase(h))),
+                    .fix("object.delete", Some(erase(h))),
                 );
             }
         }
         EntityKind::Text(t) if blank(&t.value) => found.push(
             Diagnostic::new("cad.empty-text", Severity::Info, format!("Text {} is empty and draws nothing.", h.hex()))
                 .on(of_entity(h))
-                .fix("erase", Some(erase(h))),
+                .fix("object.delete", Some(erase(h))),
         ),
         EntityKind::MText(t) if blank(&kition_cad_fonts::plain_mtext(&t.contents)) => found.push(
             Diagnostic::new("cad.empty-text", Severity::Info, format!("Multiline text {} is empty and draws nothing.", h.hex()))
                 .on(of_entity(h))
-                .fix("erase", Some(erase(h))),
+                .fix("object.delete", Some(erase(h))),
         ),
         EntityKind::Dimension(dim) if overridden(&dim.text) => found.push(
             Diagnostic::new(
@@ -433,7 +433,7 @@ fn far_outside(d: &Drawing, found: &mut Found) {
                     format!("Object {} lies far away from the rest of the drawing, so ZOOM Extents shrinks the drawing to a dot.", h.hex()),
                 )
                 .on(of_entity(*h))
-                .fix("erase", Some(erase(*h))),
+                .fix("object.delete", Some(erase(*h))),
             );
         }
     }
@@ -481,10 +481,10 @@ mod tests {
         kition_kit::diagnostics::check_diagnostics(&found).unwrap();
         let missing = found.iter().find(|x| x.code == "cad.missing-layer").expect("missing layer");
         assert_eq!(missing.severity, Severity::Error);
-        assert_eq!(missing.fix.as_ref().unwrap().command, "audit");
+        assert_eq!(missing.fix.as_ref().unwrap().command, "file.audit");
         let invalid = found.iter().find(|x| x.code == "cad.invalid-geometry").expect("zero-length line");
         assert_eq!(invalid.target.path.as_deref(), Some(format!("entity:{}", zero.hex()).as_str()));
-        assert_eq!(invalid.fix.as_ref().unwrap().command, "erase");
+        assert_eq!(invalid.fix.as_ref().unwrap().command, "object.delete");
     }
 
     #[test]

@@ -18,8 +18,8 @@ fn stored(s: &Session) -> kition_cad_doc::Drawing {
 #[test]
 fn a_malformed_table_handle_never_edits_the_selected_table() {
     let mut s = Session::new();
-    let h = run(&mut s, "table", json!({"at":[0,0],"rows":2,"cols":2}))["handle"].clone();
-    run(&mut s, "select", json!({"handles":[h]}));
+    let h = run(&mut s, "table.add", json!({"at":[0,0],"rows":2,"cols":2}))["handle"].clone();
+    run(&mut s, "select.set", json!({"handles":[h]}));
     for bad in [json!("zz"), json!(true), json!(-1)] {
         let before = stored(&s);
         assert!(s.execute("table.set", &json!({"handle":bad,"row":0,"col":0,"text":"wrong"})).is_err());
@@ -31,7 +31,7 @@ fn a_malformed_table_handle_never_edits_the_selected_table() {
 #[test]
 fn a_malformed_grip_handle_never_falls_back_to_another_target() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     for p in [json!({"handle":"zz","handles":[h],"index":0,"to":[1,2]}), json!({"handle":true,"handles":[h],"index":0,"to":[1,2]})] {
         let before = stored(&s);
         assert!(s.execute("grip.stretch", &p).is_err(), "{p}");
@@ -42,7 +42,7 @@ fn a_malformed_grip_handle_never_falls_back_to_another_target() {
 #[test]
 fn a_malformed_base_handle_never_rotates_about_the_first_target() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     let before = stored(&s);
     assert!(s.execute("grip.rotate", &json!({"handles":[h],"baseHandle":"zz","index":0,"angle":90})).is_err());
     assert_eq!(stored(&s), before);
@@ -51,26 +51,26 @@ fn a_malformed_base_handle_never_rotates_about_the_first_target() {
 #[test]
 fn malformed_trim_edges_never_erase_the_target_in_quick_mode() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     for edges in [json!(["zz"]), json!([true]), json!("zz")] {
         let before = stored(&s);
-        assert!(s.execute("trim", &json!({"handle":h,"pick":[5,0],"edges":edges,"mode":"quick"})).is_err(), "{edges}");
+        assert!(s.execute("object.trim", &json!({"handle":h,"pick":[5,0],"edges":edges,"mode":"quick"})).is_err(), "{edges}");
         assert_eq!(stored(&s), before);
     }
 }
 
 fn attributed_insert(s: &mut Session) -> Value {
     let a = run(s, "attribute.define", json!({"tag":"A","default":"kept","at":[0,0],"height":1}))["handle"].clone();
-    run(s, "block", json!({"name":"B","base":[0,0],"handles":[a],"keep":"delete"}));
-    run(s, "insert", json!({"name":"B","at":[0,0]}))["handle"].clone()
+    run(s, "block.addDialog", json!({"name":"B","base":[0,0],"handles":[a],"keep":"delete"}));
+    run(s, "block.insert", json!({"name":"B","at":[0,0]}))["handle"].clone()
 }
 
 #[test]
 fn attsync_refuses_a_definition_without_attributes_without_losing_instance_values() {
     let mut s = Session::new();
     let h = attributed_insert(&mut s);
-    let line = run(&mut s, "line", json!({"points":[[0,0],[1,0]]}))["handles"][0].clone();
-    run(&mut s, "block", json!({"name":"B","handles":[line],"base":[0,0],"keep":"delete"}));
+    let line = run(&mut s, "line.add", json!({"points":[[0,0],[1,0]]}))["handles"][0].clone();
+    run(&mut s, "block.addDialog", json!({"name":"B","handles":[line],"base":[0,0],"keep":"delete"}));
     let before = stored(&s);
     let e = s.execute("attribute.sync", &json!({"handle":h})).expect_err("a block without attribute definitions must be refused");
     assert!(e.to_string().contains("attribute definitions"), "{e}");
@@ -96,9 +96,9 @@ fn attedit_preserves_constant_attributes() {
 #[test]
 fn renamed_text_styles_follow_text_inside_block_definitions() {
     let mut s = Session::new();
-    run(&mut s, "style", json!({"name":"S"}));
-    let h = run(&mut s, "text", json!({"at":[0,0],"text":"inside","height":1}))["handle"].clone();
-    run(&mut s, "block", json!({"name":"B","handles":[h],"base":[0,0],"keep":"delete"}));
+    run(&mut s, "textStyle.open", json!({"name":"S"}));
+    let h = run(&mut s, "text.add", json!({"at":[0,0],"text":"inside","height":1}))["handle"].clone();
+    run(&mut s, "block.addDialog", json!({"name":"B","handles":[h],"base":[0,0],"keep":"delete"}));
     run(&mut s, "textStyle.rename", json!({"from":"S","to":"S2"}));
     let b = s.doc().unwrap().block("B").unwrap();
     let EntityKind::Text(t) = &b.entities.iter().next().unwrap().kind else { panic!("not text") };
@@ -108,7 +108,7 @@ fn renamed_text_styles_follow_text_inside_block_definitions() {
 fn block_dimension(s: &mut Session) {
     run(s, "dimensionStyle.open", json!({"name":"D"}));
     let h = run(s, "dimension.addLinear", json!({"p1":[0,0],"p2":[10,0],"at":[5,2]}))["handle"].clone();
-    run(s, "block", json!({"name":"B","handles":[h],"base":[0,0],"keep":"delete"}));
+    run(s, "block.addDialog", json!({"name":"B","handles":[h],"base":[0,0],"keep":"delete"}));
     run(s, "dimensionStyle.setCurrent", json!({"name":"Standard"}));
 }
 
@@ -134,7 +134,7 @@ fn dimension_styles_used_inside_blocks_cannot_be_deleted() {
 #[test]
 fn renamed_text_styles_follow_multileader_text() {
     let mut s = Session::new();
-    run(&mut s, "style", json!({"name":"S"}));
+    run(&mut s, "textStyle.open", json!({"name":"S"}));
     run(&mut s, "multileaderStyle.open", json!({"name":"M","textStyle":"S"}));
     let h = run(&mut s, "multileader.add", json!({"points":[[0,0],[10,5]],"text":"callout"}))["handle"].clone();
     run(&mut s, "textStyle.rename", json!({"from":"S","to":"S2"}));
@@ -145,9 +145,9 @@ fn renamed_text_styles_follow_multileader_text() {
 #[test]
 fn tangent_three_circle_updates_the_radius_default_like_other_circle_commands() {
     let mut s = Session::new();
-    let h1 = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
-    let h2 = run(&mut s, "line", json!({"points":[[0,0],[0,10]]}))["handles"][0].clone();
-    let h3 = run(&mut s, "line", json!({"points":[[10,0],[0,10]]}))["handles"][0].clone();
+    let h1 = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h2 = run(&mut s, "line.add", json!({"points":[[0,0],[0,10]]}))["handles"][0].clone();
+    let h3 = run(&mut s, "line.add", json!({"points":[[10,0],[0,10]]}))["handles"][0].clone();
     let h = run(&mut s, "circle.addTanTanTan", json!({"h1":h1,"p1":[3,0],"h2":h2,"p2":[0,3],"h3":h3,"p3":[5,5]}))["handle"].clone();
     let EntityKind::Circle(c) = &s.doc().unwrap().entity(handle(&h)).unwrap().kind else { panic!("not a circle") };
     assert_eq!(s.doc().unwrap().header.f64("CIRCLERAD", 0.0), c.radius);
@@ -156,7 +156,7 @@ fn tangent_three_circle_updates_the_radius_default_like_other_circle_commands() 
 #[test]
 fn lengthen_preserves_an_elevated_lines_plane() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     s.doc_mut()
         .unwrap()
         .modify_entity(handle(&h), |e| {
@@ -174,13 +174,13 @@ fn lengthen_preserves_an_elevated_lines_plane() {
 #[test]
 fn an_unrelated_preexisting_expression_error_does_not_block_deleting_an_unused_parameter() {
     let mut s = Session::new();
-    run(&mut s, "parameters", json!({"name":"unused","value":10}));
+    run(&mut s, "constraint.parameters", json!({"name":"unused","value":10}));
     s.doc_mut().unwrap().parametric.parameters.push(kition_cad_doc::Parameter {
         name: "broken".into(),
         expr: "missing + 1".into(),
         description: String::new(),
     });
-    run(&mut s, "parameters", json!({"delete":"unused"}));
+    run(&mut s, "constraint.parameters", json!({"delete":"unused"}));
     let p = &s.doc().unwrap().parametric.parameters;
     assert_eq!(p.len(), 1);
     assert_eq!((p[0].name.as_str(), p[0].expr.as_str()), ("broken", "missing + 1"));
@@ -189,7 +189,7 @@ fn an_unrelated_preexisting_expression_error_does_not_block_deleting_an_unused_p
 #[test]
 fn text_dimoverride_counts_only_dimensions_it_changes() {
     let mut s = Session::new();
-    let line = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let line = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     let dim = run(&mut s, "dimension.addLinear", json!({"p1":[0,0],"p2":[10,0],"at":[5,2]}))["handle"].clone();
     assert_eq!(run(&mut s, "dimension.override", json!({"handles":[line,dim],"text":"overridden"}))["changed"], 1);
 }
@@ -206,7 +206,7 @@ fn text_dimoverride_propagates_missing_target_errors_without_partial_changes() {
 #[test]
 fn arc_continue_never_discards_a_partial_explicit_start_or_direction() {
     let mut s = Session::new();
-    run(&mut s, "line", json!({"points":[[0,0],[10,0]]}));
+    run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}));
     for p in [json!({"start":[100,100],"end":[15,5]}), json!({"direction":90,"end":[15,5]})] {
         let before = stored(&s);
         assert!(s.execute("arc.addContinue", &p).is_err(), "{p}");
@@ -217,9 +217,9 @@ fn arc_continue_never_discards_a_partial_explicit_start_or_direction() {
 #[test]
 fn group_never_silently_drops_a_nonexistent_named_member() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     let before = stored(&s);
-    assert!(s.execute("group", &json!({"name":"G","handles":[h,"FFFFFF"]})).is_err());
+    assert!(s.execute("arrange.group", &json!({"name":"G","handles":[h,"FFFFFF"]})).is_err());
     assert_eq!(stored(&s), before);
 }
 
@@ -234,7 +234,7 @@ fn layer_delete_reports_a_missing_named_layer() {
 #[test]
 fn properties_reject_an_unloaded_linetype_without_changing_the_target() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone();
     let before = stored(&s);
     assert!(s.execute("object.setProperties", &json!({"handles":[h],"linetype":"NOPE"})).is_err());
     assert_eq!(stored(&s), before);
@@ -252,8 +252,8 @@ fn multileader_styles_reject_a_missing_text_style_without_creating_the_record() 
 #[test]
 fn a_third_constraint_slot_never_silently_reuses_the_first_object() {
     let mut s = Session::new();
-    let h1 = run(&mut s, "line", json!({"points":[[0,-10],[0,10]]}))["handles"][0].clone();
-    let h2 = run(&mut s, "line", json!({"points":[[2,0],[0,-10]]}))["handles"][0].clone();
+    let h1 = run(&mut s, "line.add", json!({"points":[[0,-10],[0,10]]}))["handles"][0].clone();
+    let h2 = run(&mut s, "line.add", json!({"points":[[2,0],[0,-10]]}))["handles"][0].clone();
     for bad_h3 in [None, Some(json!("zz"))] {
         let mut p = json!({"h1":h1,"p1":"start","h2":h2,"p2":"end","p3":"object"});
         if let Some(v) = bad_h3 {
@@ -268,7 +268,7 @@ fn a_third_constraint_slot_never_silently_reuses_the_first_object() {
 #[test]
 fn a_malformed_constraint_handle_never_reuses_the_first_object() {
     let mut s = Session::new();
-    let h = run(&mut s, "line", json!({"points":[[0,0],[0,10]]}))["handles"][0].clone();
+    let h = run(&mut s, "line.add", json!({"points":[[0,0],[0,10]]}))["handles"][0].clone();
     let before = stored(&s);
     assert!(s.execute("constraint.horizontal", &json!({"h1":h,"h2":"zz","p2":"end"})).is_err());
     assert_eq!(stored(&s), before);

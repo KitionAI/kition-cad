@@ -24,7 +24,7 @@ fn covers(g: &DimGeometry, x: f64) -> bool {
 #[test]
 fn radial_text_goes_inside_when_the_location_is_inside() {
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 10})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 10})).unwrap();
 
     // Typed: pick the circle, then a location inside.
     s.script("dimradius 10,0 4,0\n").unwrap();

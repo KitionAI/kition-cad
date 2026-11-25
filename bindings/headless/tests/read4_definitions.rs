@@ -64,11 +64,11 @@ async fn definition(write: impl Fn(&Fixture) -> (&'static str, Value)) {
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn definition_insert_preserves_description() {
-    definition(|_| ("insert", json!({"name":"Marker","at":[700,0]}))).await;
+    definition(|_| ("block.insert", json!({"name":"Marker","at":[700,0]}))).await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn definition_sampling_preserves_description() {
-    definition(|f| ("divide", json!({"handle":f.line,"segments":3,"block":"Marker"}))).await;
+    definition(|f| ("point.divide", json!({"handle":f.line,"segments":3,"block":"Marker"}))).await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn definition_ncopy_preserves_description() {
@@ -78,7 +78,7 @@ async fn definition_ncopy_preserves_description() {
 async fn definition_ncopy_preserves_insert_attributes() {
     check(
         |f| ("object.copyNested", json!({"handle":f.insert,"delta":[0,20]})),
-        |f| vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.insert],"delta":[1,0]}))],
         |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
     )
     .await;

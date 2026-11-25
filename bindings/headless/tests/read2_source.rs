@@ -8,8 +8,8 @@ use serde_json::json;
 async fn named_dimension_sources_merge_neighbour_edits_and_hold_the_named_geometry() {
     check(
         |f| ("dimension.addLinear", json!({"object":f.line,"at":[50,-10]})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
-        |f| vec![("move", json!({"handles":[f.joined],"delta":[0,10]})), ("move", json!({"handles":[f.circle],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.joined],"delta":[0,10]})), ("object.move", json!({"handles":[f.circle],"delta":[1,0]}))],
     )
     .await;
 }

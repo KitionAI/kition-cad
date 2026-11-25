@@ -29,7 +29,7 @@ async fn written_field(command: &'static str) {
         },
         |f| match command {
             "text.edit" => vec![("object.setProperties", json!({"handles":[f.text],"height":6}))],
-            "attribute.edit" => vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+            "attribute.edit" => vec![("object.move", json!({"handles":[f.insert],"delta":[1,0]}))],
             "table.set" => vec![(command, json!({"handle":f.table,"row":2,"col":2,"text":"Kept"}))],
             _ => vec![("object.setProperties", json!({"handles":[f.circle],"radius":7}))],
         },
@@ -168,5 +168,5 @@ async fn injected_circle_radius_is_my_own_setting() {
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn injected_wipeout_frame_same_setting() {
-    injected_header("wipeout", "WIPEOUTFRAME", "70", "1", json!({"frames":"off"}), false).await;
+    injected_header("wipeout.add", "WIPEOUTFRAME", "70", "1", json!({"frames":"off"}), false).await;
 }

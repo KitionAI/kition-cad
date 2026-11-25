@@ -11,9 +11,9 @@ use serde_json::json;
 #[test]
 fn issue_partial_change_a_failing_command_leaves_the_drawing_as_it_was() {
     let mut s = Session::new();
-    let line = s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    let line = s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
     let handle = line["handle"].as_str().or_else(|| line["handles"][0].as_str()).unwrap().to_owned();
-    s.execute("select", &json!({ "handles": [handle] })).unwrap();
+    s.execute("select.set", &json!({ "handles": [handle] })).unwrap();
     let (revision, layers, undo) = (s.state().unwrap().revision, s.doc().unwrap().layers.len(), s.state().unwrap().undo.len());
     let doc = s.doc().unwrap().clone();
     let error = s.execute("object.setProperties", &json!({ "handles": [handle], "layer": "Fresh", "dimStyle": "Nope" })).unwrap_err();

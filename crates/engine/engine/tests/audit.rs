@@ -117,7 +117,7 @@ fn audit_reports_without_changing_and_fixes_when_asked() {
     let before = s.state().unwrap().doc.clone();
     let undo = s.state().unwrap().undo.len();
 
-    let r = s.execute("audit", &json!({})).unwrap();
+    let r = s.execute("file.audit", &json!({})).unwrap();
     let k = kinds(&r);
     for want in [
         "missingLayer",
@@ -138,7 +138,7 @@ fn audit_reports_without_changing_and_fixes_when_asked() {
     assert!(Arc::ptr_eq(&before, &s.state().unwrap().doc), "a report without fix changes nothing");
     assert_eq!(s.state().unwrap().undo.len(), undo);
 
-    let r = s.execute("audit", &json!({"fix": true})).unwrap();
+    let r = s.execute("file.audit", &json!({"fix": true})).unwrap();
     assert_eq!(r["fixed"], r["errors"]);
     let d = s.doc().unwrap();
     assert!(d.layer("Ghost").is_some(), "missing layer recreated");
@@ -169,7 +169,7 @@ fn audit_reports_without_changing_and_fixes_when_asked() {
     assert!(all.iter().all(|h| h.0 < d.handseed));
 
     // Clean now; one undo step brings the errors back.
-    assert_eq!(s.execute("audit", &json!({})).unwrap()["errors"], 0);
+    assert_eq!(s.execute("file.audit", &json!({})).unwrap()["errors"], 0);
     assert!(s.state().unwrap().is_dirty());
     s.undo().unwrap();
     assert!(Arc::ptr_eq(&before, &s.state().unwrap().doc));
@@ -178,11 +178,11 @@ fn audit_reports_without_changing_and_fixes_when_asked() {
 #[test]
 fn a_clean_drawing_is_left_alone() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [5, 5]]})).unwrap();
-    s.execute("circle", &json!({"center": [1, 1], "radius": 2})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [5, 5]]})).unwrap();
+    s.execute("circle.add", &json!({"center": [1, 1], "radius": 2})).unwrap();
     let before = s.state().unwrap().doc.clone();
     let undo = s.state().unwrap().undo.len();
-    let r = s.execute("audit", &json!({"fix": true})).unwrap();
+    let r = s.execute("file.audit", &json!({"fix": true})).unwrap();
     assert_eq!((r["errors"].as_u64(), r["fixed"].as_u64()), (Some(0), Some(0)));
     assert!(Arc::ptr_eq(&before, &s.state().unwrap().doc));
     assert_eq!(s.state().unwrap().undo.len(), undo, "no undo step for nothing");
@@ -199,9 +199,9 @@ fn a_clean_drawing_is_left_alone() {
     )
     .ok();
     s.script("mtext 0,0 5,-5\nNote\n\nhatch p solid 0,0 \n").ok();
-    s.execute("block", &json!({"name": "Bolt", "base": [0, 0], "handles": s.doc().unwrap().model.handles()[..2]})).unwrap();
-    s.execute("insert", &json!({"name": "Bolt", "at": [20, 20]})).unwrap();
-    let r = s.execute("audit", &json!({})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "Bolt", "base": [0, 0], "handles": s.doc().unwrap().model.handles()[..2]})).unwrap();
+    s.execute("block.insert", &json!({"name": "Bolt", "at": [20, 20]})).unwrap();
+    let r = s.execute("file.audit", &json!({})).unwrap();
     assert_eq!(r["errors"], 0, "{r:#}");
 }
 
@@ -221,7 +221,7 @@ fn audit_at_the_command_line_asks_before_fixing() {
     assert!(!Arc::ptr_eq(&before, &s.state().unwrap().doc));
     let summary = s.log.iter().rev().find(|l| l.starts_with("Audit:")).unwrap();
     assert!(summary.contains("fixed") && !summary.contains(" 0 fixed"), "{summary}");
-    assert_eq!(s.execute("audit", &json!({})).unwrap()["errors"], 0);
+    assert_eq!(s.execute("file.audit", &json!({})).unwrap()["errors"], 0);
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn missing_standard_entries_and_layer_zero_are_recreated() {
     d.dim_styles.clear();
     d.linetypes.retain(|l| !l.name.eq_ignore_ascii_case("Continuous"));
     d.layers.push(kition_cad_engine::doc::Layer { linetype: "Dashed9".into(), ..kition_cad_engine::doc::Layer::new("L1") });
-    let r = s.execute("audit", &json!({"fix": true})).unwrap();
+    let r = s.execute("file.audit", &json!({"fix": true})).unwrap();
     assert!(r["errors"].as_u64().unwrap() >= 5, "{r:#}");
     let d = s.doc().unwrap();
     assert!(d.layer("0").is_some() && d.text_style("Standard").is_some() && d.dim_style("Standard").is_some());
@@ -252,9 +252,9 @@ fn a_long_block_cycle_is_broken_without_deep_recursion() {
         b.entities.push(Entity { handle: h, common: on("0"), kind: insert(&format!("B{}", (i + 1) % n)) });
         d.blocks.insert(b.name.clone(), Arc::new(b));
     }
-    let r = s.execute("audit", &json!({"fix": true})).unwrap();
+    let r = s.execute("file.audit", &json!({"fix": true})).unwrap();
     assert_eq!(kinds(&r).iter().filter(|k| *k == "blockCycle").count(), 1, "one reference closes the loop");
-    assert_eq!(s.execute("audit", &json!({})).unwrap()["errors"], 0);
+    assert_eq!(s.execute("file.audit", &json!({})).unwrap()["errors"], 0);
 }
 
 fn read_corrupt(_: &[u8], name: &str) -> Result<Drawing, String> {
@@ -271,7 +271,7 @@ fn read_corrupt(_: &[u8], name: &str) -> Result<Drawing, String> {
 fn recover_opens_the_file_with_the_fixes_applied() {
     set_io(IoHooks { read: read_corrupt, write: |_, _| Ok(Vec::new()), plot: None });
     let mut s = Session::new();
-    let r = s.execute("recover", &json!({"data": base64_encode(b"0\nEOF\n"), "name": "plan.dxf"})).unwrap();
+    let r = s.execute("file.recover", &json!({"data": base64_encode(b"0\nEOF\n"), "name": "plan.dxf"})).unwrap();
     assert_eq!(r["errors"], 2, "{r:#}");
     assert_eq!(r["fixed"], 2);
     assert_eq!(r["index"], 1);
@@ -296,8 +296,8 @@ fn recover_opens_the_file_with_the_fixes_applied() {
 
     // A file the reader rejects is an error; nothing opens.
     let docs = s.docs.len();
-    assert!(s.execute("recover", &json!({"data": "", "name": "x.bad"})).is_err());
-    assert!(s.execute("recover", &json!({})).is_err());
+    assert!(s.execute("file.recover", &json!({"data": "", "name": "x.bad"})).is_err());
+    assert!(s.execute("file.recover", &json!({})).is_err());
     assert_eq!(s.docs.len(), docs);
     let _ = std::fs::remove_dir_all(&dir);
 }

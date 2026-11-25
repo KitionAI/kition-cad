@@ -17,12 +17,12 @@ fn history_scope(s: &Session, p: &Value, cmd: &str) -> Result<kdm_model::kition_
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         // U undoes the last operation at once (Edit > Undo, Cmd+Z); UNDO asks how many.
-        CommandSpec::new("u", "Undo", run_u).menu(&["Edit", "Undo"]).key("Cmd+Z").params(r#"{scope?: "person"|"agent"}"#).noundo(),
-        CommandSpec::new("undo", "Undo", run_undo)
+        CommandSpec::new("edit.undoStep", "Undo", run_u).menu(&["Edit", "Undo"]).key("Cmd+Z").params(r#"{scope?: "person"|"agent"}"#).noundo(),
+        CommandSpec::new("edit.undoMany", "Undo", run_undo)
             .params(r#"{count?: n, scope?: "person"|"agent"}"#)
             .noundo()
             .interactive(|_| Ok(Box::new(UndoM::default()))),
-        CommandSpec::new("redo", "Redo", run_redo)
+        CommandSpec::new("edit.redoStep", "Redo", run_redo)
             .menu(&["Edit", "Redo"])
             .key("Cmd+Shift+Z")
             .alias(&["mredo"])
@@ -65,7 +65,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("edit.delete", "Clear", run_clear).menu(&["Edit", "Clear"]).key("Delete").enabled(has_selection).params("{}"),
         CommandSpec::new("edit.selectAll", "Select All", run_selectall).menu(&["Edit", "Select All"]).key("Cmd+A").alias(&["ai_selall"]).noundo(),
         CommandSpec::new("edit.deselectAll", "Deselect All", run_deselect).params("{}").noundo(),
-        CommandSpec::new("select", "Select", run_select)
+        CommandSpec::new("select.set", "Select", run_select)
             .params("{handles: [str] (handles)} | {window: [[x,y],[x,y]], crossing?: bool} | {at: [x,y], aperture?: number (drawing units: how far from the point an object may be; default the pick box at the view, or for an agent 0.5% of the larger side of the space's extents)} | {fence: [[x,y],...]} | {clear: true} | {add?: bool}")
             .noundo()
             .interactive(|_| Ok(Box::new(SelectM::default()))),
@@ -82,7 +82,7 @@ fn end_running_command(s: &mut Session) {
 }
 
 fn run_undo(s: &mut Session, p: &Value) -> Result<Value> {
-    let scope = history_scope(s, p, "undo")?;
+    let scope = history_scope(s, p, "edit.undoMany")?;
     end_running_command(s);
     let n = p.get("count").and_then(Value::as_u64).unwrap_or(1).clamp(1, 1000);
     let mut labels = Vec::new();
@@ -156,7 +156,7 @@ impl Interactive for UndoM {
 }
 
 fn run_redo(s: &mut Session, p: &Value) -> Result<Value> {
-    let scope = history_scope(s, p, "redo")?;
+    let scope = history_scope(s, p, "edit.redoStep")?;
     end_running_command(s);
     let n = p.get("count").and_then(Value::as_u64).unwrap_or(1).clamp(1, 1000);
     let mut labels = Vec::new();
@@ -276,7 +276,7 @@ fn run_select(s: &mut Session, p: &Value) -> Result<Value> {
     let space = s.space();
     let add = bool_or(p, "add", false);
     let picked: Vec<Handle> = if let Some(w) = points_param(p, "window") {
-        let (Some(a), Some(b)) = (w.first(), w.get(1)) else { return Err(bad("select", "window needs 2 corners")) };
+        let (Some(a), Some(b)) = (w.first(), w.get(1)) else { return Err(bad("select.set", "window needs 2 corners")) };
         crate::select::select_window(s.doc()?, &space, Bounds2::new(*a, *b), bool_or(p, "crossing", false))
     } else if let Some(at) = point_param(p, "at") {
         let ap = f64_or(p, "aperture", s.pick_aperture());

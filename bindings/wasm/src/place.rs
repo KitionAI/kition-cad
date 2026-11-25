@@ -36,9 +36,9 @@ fn spatial(command: &str, p: &Value) -> bool {
     continuation(command, p)
         || implicit(command, p)
         || generic_pick(command) && p.get("pick").is_some()
-        || command == "stretch" && p.get("window").is_some()
-        || command == "select" && ["at", "window", "fence"].iter().any(|k| p.get(k).is_some())
-        || matches!(command, "trim" | "extend") && ["fence", "crossing"].iter().any(|k| p.get(k).is_some())
+        || command == "object.stretch" && p.get("window").is_some()
+        || command == "select.set" && ["at", "window", "fence"].iter().any(|k| p.get(k).is_some())
+        || matches!(command, "object.trim" | "object.extend") && ["fence", "crossing"].iter().any(|k| p.get(k).is_some())
 }
 
 fn continuation(command: &str, p: &Value) -> bool {
@@ -46,10 +46,10 @@ fn continuation(command: &str, p: &Value) -> bool {
 }
 
 fn implicit(command: &str, p: &Value) -> bool {
-    matches!(command, "hatch" | "gradient" | "boundary") && p.get("points").is_some()
+    matches!(command, "hatch.add" | "hatch.addGradient" | "boundary.add") && p.get("points").is_some()
         || matches!(
             command,
-            "dim"
+            "dimension.add"
                 | "dimension.addLinear"
                 | "dimension.addAligned"
                 | "dimension.addRadius"
@@ -65,7 +65,7 @@ fn implicit(command: &str, p: &Value) -> bool {
 }
 
 fn dependencies(s: &Session, d: &Drawing, command: &str, p: &Value) -> Vec<Handle> {
-    if matches!(command, "hatch" | "gradient" | "boundary") {
+    if matches!(command, "hatch.add" | "hatch.addGradient" | "boundary.add") {
         return p
             .get("points")
             .and_then(Value::as_array)
@@ -112,13 +112,13 @@ fn dependencies(s: &Session, d: &Drawing, command: &str, p: &Value) -> Vec<Handl
 fn destroys(command: &str, p: &Value, h: Handle, hs: &[Handle]) -> bool {
     let primary = p.get("handle").and_then(handle).or_else(|| hs.first().copied());
     match command {
-        "join" => true,
+        "object.join" => true,
         "polyline.edit" => {
             primary != Some(h) && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j"))
         }
-        "offset" => p.get("erase") == Some(&Value::Bool(true)),
+        "object.offset" => p.get("erase") == Some(&Value::Bool(true)),
         // TRIM's targets (not its edges): picked, fenced or named, each is replaced by its pieces.
-        "trim" => !crate::params::values(p, "edges").iter().filter_map(|v| v.as_array()).flatten().filter_map(handle).any(|e| e == h),
+        "object.trim" => !crate::params::values(p, "edges").iter().filter_map(|v| v.as_array()).flatten().filter_map(handle).any(|e| e == h),
         // ARRAYPATH copies its sources whole; the path is read for its geometry.
         "object.arrayPath" => p.get("path").and_then(handle) != Some(h),
         _ => false,
@@ -126,19 +126,19 @@ fn destroys(command: &str, p: &Value, h: Handle, hs: &[Handle]) -> bool {
 }
 
 fn generic_pick(command: &str) -> bool {
-    !matches!(command, "trim" | "extend" | "object.lengthen" | "object.copyNested")
+    !matches!(command, "object.trim" | "object.extend" | "object.lengthen" | "object.copyNested")
 }
 
 fn picked(d: &Drawing, space: &Space, command: &str, p: &Value) -> Vec<Handle> {
     if continuation(command, p) {
         return kition_cad_engine::cmd::curves::last_curve_end(d, space).map(|(h, _, _)| h).into_iter().collect();
     }
-    let at = p.get("pick").or_else(|| (command == "select").then(|| p.get("at")).flatten()).and_then(point);
+    let at = p.get("pick").or_else(|| (command == "select.set").then(|| p.get("at")).flatten()).and_then(point);
     if let Some(at) = at.filter(|_| generic_pick(command)) {
         let ap = p.get("aperture").and_then(Value::as_f64).filter(|n| n.is_finite() && *n > 0.0).unwrap_or_else(|| tolerance(d, space));
         return select::pick(d, space, at, ap).into_iter().collect();
     }
-    if matches!(command, "select" | "stretch" | "trim" | "extend") {
+    if matches!(command, "select.set" | "object.stretch" | "object.trim" | "object.extend") {
         if let Some(w) = p.get("window").or_else(|| p.get("crossing")).and_then(Value::as_array)
             && let Some((a, b)) = w.first().and_then(point).zip(w.get(1).and_then(point))
         {
@@ -146,7 +146,7 @@ fn picked(d: &Drawing, space: &Space, command: &str, p: &Value) -> Vec<Handle> {
                 d,
                 space,
                 Bounds2::new(a, b),
-                matches!(command, "stretch" | "trim" | "extend") || p.get("crossing").and_then(Value::as_bool).unwrap_or(false),
+                matches!(command, "object.stretch" | "object.trim" | "object.extend") || p.get("crossing").and_then(Value::as_bool).unwrap_or(false),
             );
         }
         if let Some(f) = p.get("fence").and_then(Value::as_array) {
@@ -157,12 +157,13 @@ fn picked(d: &Drawing, space: &Space, command: &str, p: &Value) -> Vec<Handle> {
 }
 
 pub fn declare(c: &mut KitCommand) {
-    if c.id == "spline"
+    if c.id == "spline.add"
         && let Some(schema) = c.schema.as_mut().and_then(Value::as_object_mut)
     {
         schema.insert("object".into(), json!({"oneOf":[{"type":"string"},{"type":"boolean","enum":[true]}]}));
     }
-    if c.id.starts_with("arc.")
+    if c.id.starts_with("arc.add")
+        && c.id != "arc.add"
         && let Some(schema) = c.schema.as_mut().and_then(Value::as_object_mut)
     {
         for key in ["start", "end", "center"] {
@@ -176,16 +177,16 @@ pub fn declare(c: &mut KitCommand) {
     }
     // A creation/update by a record name is a typed place, including an absent
     // name. Replay the map rather than relying on case-sensitive SDK spelling.
-    if matches!(c.id.as_str(), "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "insert" | "layerState.save") {
+    if matches!(c.id.as_str(), "textStyle.open" | "dimensionStyle.open" | "dimensionStyle.openManager" | "block.insert" | "layerState.save") {
         c.places = &["name"];
     }
-    if matches!(c.id.as_str(), "layout.add" | "layout.duplicate" | "layout") {
+    if matches!(c.id.as_str(), "layout.add" | "layout.duplicate" | "layout.manage") {
         c.places = &["name", "to"];
     }
     if c.id == "select.quick" {
         c.places = &["type", "layer", "color", "property", "operator", "value", "mode", "applyTo"];
     }
-    if c.id == "find" {
+    if c.id == "edit.find" {
         c.places = &["find"];
     }
     if c.id == "arc.addContinue" {
@@ -193,10 +194,10 @@ pub fn declare(c: &mut KitCommand) {
     }
     if matches!(
         c.id.as_str(),
-        "hatch"
-            | "gradient"
-            | "boundary"
-            | "dim"
+        "hatch.add"
+            | "hatch.addGradient"
+            | "boundary.add"
+            | "dimension.add"
             | "dimension.addLinear"
             | "dimension.addAligned"
             | "dimension.addRadius"
@@ -217,7 +218,7 @@ pub fn declare(c: &mut KitCommand) {
             schema
                 .insert("aperture".into(), json!({"type":"number","description":"Pick reach in drawing units; default 0.5% of the space extents."}));
         }
-        c.places = if matches!(c.id.as_str(), "hatch" | "gradient") {
+        c.places = if matches!(c.id.as_str(), "hatch.add" | "hatch.addGradient") {
             &["pick", "points"]
         } else if implicit(&c.id, &Value::Null) {
             &["pick", "points", "p1", "p2", "center", "point", "vertex", "feature"]
@@ -225,22 +226,22 @@ pub fn declare(c: &mut KitCommand) {
             &["pick"]
         };
     }
-    if c.id == "select" {
+    if c.id == "select.set" {
         c.places = &["pick", "at", "window", "fence"];
     }
-    if c.id == "ungroup" {
+    if c.id == "arrange.ungroup" {
         c.places = &["pick", "name"];
     }
-    if c.id == "rename" {
+    if c.id == "namedObject.rename" {
         c.places = &["table", "from"];
     }
-    if c.id == "stretch" {
+    if c.id == "object.stretch" {
         c.places = &["window"];
     }
-    if matches!(c.id.as_str(), "trim" | "extend") {
+    if matches!(c.id.as_str(), "object.trim" | "object.extend") {
         c.places = &["fence", "crossing"];
     }
-    if matches!(c.id.as_str(), "block" | "block.add") {
+    if matches!(c.id.as_str(), "block.addDialog" | "block.add") {
         c.places = &["name", "pick"];
     }
 }
@@ -270,20 +271,20 @@ pub fn resolve(s: &Session, command: &str, mut p: Value) -> Result<Value, String
 fn record_address<'a>(command: &str, p: &'a Value) -> Option<(&'static str, &'a str)> {
     let ty = match command {
         "layout.add" | "layout.duplicate" | "layout.set" => "layout",
-        "block" | "block.add" | "insert" => "block",
-        "style" => "textstyle",
+        "block.addDialog" | "block.add" | "block.insert" => "block",
+        "textStyle.open" => "textstyle",
         "layerState.save" => "layerstate",
-        "dimensionStyle.open" | "dimensionStyle.openManager" => "dimensionStyle.open",
+        "dimensionStyle.open" | "dimensionStyle.openManager" => "dimstyle",
         _ => return None,
     };
     let name = p.get(if command == "layout.duplicate" { "to" } else { "name" }).and_then(Value::as_str)?;
     // Text/dimension style handlers trim names. BLOCK and INSERT preserve spaces.
-    let name = if matches!(command, "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "layout.add" | "layout.duplicate") {
+    let name = if matches!(command, "textStyle.open" | "dimensionStyle.open" | "dimensionStyle.openManager" | "layout.add" | "layout.duplicate") {
         name.trim()
     } else {
         name
     };
-    let name = if command == "insert" { name.strip_prefix('*').unwrap_or(name) } else { name };
+    let name = if command == "block.insert" { name.strip_prefix('*').unwrap_or(name) } else { name };
     Some((ty, name))
 }
 
@@ -326,12 +327,12 @@ fn rename_type(p: &Value) -> &'static str {
         "layer" => "Layer",
         "linetype" | "ltype" => "Linetype",
         "style" | "textstyle" => "TextStyle",
-        "dimensionStyle.open" => "DimStyle",
+        "dimstyle" => "DimStyle",
         "block" => "Block",
         "view" => "View",
         "ucs" => "Ucs",
-        "multileaderStyle.open" | "multileaderstyle" => "MLeaderStyle",
-        "tableStyle.open" => "TableStyle",
+        "mleaderstyle" | "multileaderstyle" => "MLeaderStyle",
+        "tablestyle" => "TableStyle",
         _ => "",
     }
 }
@@ -445,7 +446,7 @@ fn property_fields(e: &Entity, p: &Value) -> Vec<String> {
         ("layer", "layer"),
         ("linetype", "linetype"),
         ("lineweight", "lineweight"),
-        ("property.linetypeScale", "property.linetypeScale"),
+        ("ltscale", "ltscale"),
         ("transparency", "transparency"),
         ("visible", "visible"),
     ] {
@@ -556,13 +557,13 @@ fn destination_names(command: &str, p: &Value, d: &Drawing) -> Vec<(String, Stri
     let target = match command {
         "layer.add" => Some(("Layer", "name")),
         "layer.set" => Some(("Layer", "newName")),
-        "group" => Some(("Group", "name")),
+        "arrange.group" => Some(("Group", "name")),
         "group.edit" => Some(("Group", "rename")),
         "layout.rename" => Some(("Layout", "to")),
         "textStyle.rename" => Some(("TextStyle", "to")),
         "dimensionStyle.rename" => Some(("DimStyle", "to")),
         "layerState.rename" => Some(("LayerState", "to")),
-        "rename" => Some((rename_type(p), "to")),
+        "namedObject.rename" => Some((rename_type(p), "to")),
         _ => None,
     };
     if let Some((ty, key)) = target
@@ -654,13 +655,13 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         return Ok(Some(Under { premises: vec![need("drawing", vec!["~history".into()])], ..Default::default() }));
     }
     if command == "edit.delete" {
-        return under(s, "erase", p, commands);
+        return under(s, "object.delete", p, commands);
     }
-    if command == "array" {
+    if command == "object.array" {
         let id = kition_cad_engine::cmd::array_operation(p).map_err(|e| e.to_string())?;
         return under(s, id, p, commands);
     }
-    if command == "layout" {
+    if command == "layout.manage" {
         let (command, p) = kition_cad_engine::cmd::layout_operation(p).map_err(|e| e.to_string())?;
         if command == "layout.set" {
             if p.get("name").and_then(Value::as_str).is_none_or(|name| name.eq_ignore_ascii_case("Model")) {
@@ -692,7 +693,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             return Ok(Some(Under { premises: vec![need("drawing", vec![format!("header.{key}")])], ..Default::default() }));
         }
     }
-    if command == "parameters" && p.get("name").is_none() && p.get("delete").is_none() {
+    if command == "constraint.parameters" && p.get("name").is_none() && p.get("delete").is_none() {
         return Ok(Some(Under::default()));
     }
     if command == "layout.set" && p.get("name").and_then(Value::as_str).is_some_and(|name| name.eq_ignore_ascii_case("Model")) {
@@ -700,7 +701,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     }
     let resolved = crate::params::resolve(d, command, p.clone())?;
     let p = &resolved;
-    if command == "rename"
+    if command == "namedObject.rename"
         && let Some(from) = p.get("from").and_then(Value::as_str)
     {
         let ty = rename_type(p);
@@ -720,11 +721,11 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     if crate::query::selects(command) {
         return crate::query::under(s, command, p).map(Some);
     }
-    if command == "ungroup" {
+    if command == "arrange.ungroup" {
         return crate::scan::ungroup_under(s, p).map(Some);
     }
     let Some(c) = commands.iter().find(|c| c.id == command) else { return Ok(None) };
-    if command == "find" {
+    if command == "edit.find" {
         let matching = matching_texts(&drawing_texts(d), &s.space(), p);
         let ids: Vec<_> = matching.as_array().into_iter().flatten().filter_map(|e| e.get(0).cloned()).collect();
         // A following consumer is checked on the SDK's isolated prefix state.
@@ -743,9 +744,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         let orders = if ids.len() > 1 {
             let (parent, field) = match s.space() {
                 Space::Model => (json!("drawing"), "model"),
-                Space::Paper(name) => {
-                    (json!(format!("layout:{}", d.record_id("layout", &name, 0).ok_or("unknown layout identity")?)), "object.query")
-                }
+                Space::Paper(name) => (json!(format!("layout:{}", d.record_id("layout", &name, 0).ok_or("unknown layout identity")?)), "entities"),
             };
             vec![RelativeOrder { parent, field: field.into(), objects: ids.clone() }]
         } else {
@@ -784,14 +783,15 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
         let explicit = ["handle", "handles"].iter().any(|key| p.get(*key).is_some_and(|v| !v.is_null()));
         let uses_selection = c.targets.is_some()
-            || command.starts_with("table.")
+            || crate::acts::edits_a_table(command)
             || command == "constraint.delete"
-            || command.starts_with("constraint.bars")
-            || command.starts_with("constraint.dynamicDimensions");
-        let names_source = (command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions"))
-            && (command.ends_with("all") || p.get("mode").and_then(Value::as_str).is_some_and(|mode| matches!(mode, "showall" | "hideall")))
+            || crate::acts::constraint_bars(command)
+            || crate::acts::dynamic_dimensions(command);
+        let names_source = (crate::acts::constraint_bars(command) || crate::acts::dynamic_dimensions(command))
+            && (crate::acts::shows_or_hides_all(command)
+                || p.get("mode").and_then(Value::as_str).is_some_and(|mode| matches!(mode, "showall" | "hideall")))
             || matches!(command, "block.write" | "attribute.sync") && p.get("name").is_some()
-            || command == "spline" && p.get("object") != Some(&Value::Bool(true))
+            || command == "spline.add" && p.get("object") != Some(&Value::Bool(true))
             || command == "constraint.delete" && p.get("ids").is_some()
             || command == "attribute.editGlobal" && p.get("handle").is_none() && p.get("handles").is_none();
         if targets.is_empty() && !explicit && uses_selection && !names_source && c.reads.contains(&kition_kit::EditorState::Selection) {
@@ -887,27 +887,28 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         named_need(d, ty, name, &[fact], &mut premises);
     }
     if command == "layout.delete"
-        || command == "layout" && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "delete" | "d"))
+        || command == "layout.manage"
+            && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "delete" | "d"))
     {
         premises.push(need("drawing", vec!["~layoutCanDelete".into()]));
     }
     // same-field decision: hold every replaced setting.
     let setting_fields: &[(&str, &str)] = match command {
-        "color" => &[("color", "CECOLOR"), ("color", "CECOLOR_RGB")],
+        "property.color" => &[("color", "CECOLOR"), ("color", "CECOLOR_RGB")],
         "attribute.display" => &[("mode", "ATTMODE")],
-        "wipeout" => &[("frames", "WIPEOUTFRAME")],
+        "wipeout.add" => &[("frames", "WIPEOUTFRAME")],
         "property.lineweight" => &[("lineweight", "CELWEIGHT")],
         "property.linetypeScale" => &[("scale", "LTSCALE")],
-        "linetype" => &[("current", "CELTYPE")],
-        "units" => &[("lunits", "LUNITS"), ("luprec", "LUPREC"), ("aunits", "AUNITS"), ("auprec", "AUPREC"), ("insunits", "INSUNITS")],
-        "limits" => &[("min", "LIMMIN"), ("max", "LIMMAX")],
+        "property.linetype" => &[("current", "CELTYPE")],
+        "file.setUnits" => &[("lunits", "LUNITS"), ("luprec", "LUPREC"), ("aunits", "AUNITS"), ("auprec", "AUPREC"), ("insunits", "INSUNITS")],
+        "file.setLimits" => &[("min", "LIMMIN"), ("max", "LIMMAX")],
         "point.style" => &[("pdmode", "PDMODE"), ("pdsize", "PDSIZE")],
-        "base" => &[("at", "INSBASE")],
+        "block.setBase" => &[("at", "INSBASE")],
         "plot.style" if hs.is_empty() => &[("name", "CPLOTSTYLE")],
         _ => &[],
     };
     let mut settings: Vec<_> = setting_fields.iter().filter(|(param, _)| p.get(*param).is_some()).map(|(_, var)| format!("header.{var}")).collect();
-    if command == "textStyle.setCurrent" || command == "style" && p.get("current") != Some(&Value::Bool(false)) {
+    if command == "textStyle.setCurrent" || command == "textStyle.open" && p.get("current") != Some(&Value::Bool(false)) {
         settings.push("header.TEXTSTYLE".into());
     }
     // same-field decision: these handlers also replace stored defaults
@@ -957,7 +958,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     if !settings.is_empty() {
         premises.push(need("drawing", settings));
     }
-    if command == "linetype"
+    if command == "property.linetype"
         && let Some(load) = p.get("load").and_then(Value::as_str)
     {
         let library = kition_cad_doc::library::standard_linetypes();
@@ -978,9 +979,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 "layer" => "Layer",
                 "linetype" => "Linetype",
                 "textstyle" => "TextStyle",
-                "dimensionStyle.open" => "DimStyle",
-                "multileaderStyle.open" => "MLeaderStyle",
-                "tableStyle.open" => "TableStyle",
+                "dimstyle" => "DimStyle",
+                "mleaderstyle" => "MLeaderStyle",
+                "tablestyle" => "TableStyle",
                 "block" => "Block",
                 _ => continue,
             };
@@ -990,7 +991,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             }
         }
     }
-    if matches!(command, "edit.undo" | "edit.redo" | "u" | "undo" | "redo") {
+    if matches!(command, "edit.undo" | "edit.redo" | "edit.undoStep" | "edit.undoMany" | "edit.redoStep") {
         premises.push(need("drawing", vec!["~history".into()]));
     }
     if matches!(command, "layer.merge" | "layer.deleteWithObjects" | "layer.delete") {
@@ -1007,7 +1008,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 let key = crate::scan::key(name.trim());
                 premises.push(need("drawing", vec![format!("~layerMembers.{key}")]));
                 if let Some(m) = members.get(&key) {
-                    for id in m.get("object.query").and_then(Value::as_array).into_iter().flatten() {
+                    for id in m.get("entities").and_then(Value::as_array).into_iter().flatten() {
                         premises.push(if command == "layer.deleteWithObjects" {
                             Premise::on(id.clone())
                         } else {
@@ -1021,11 +1022,11 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             }
         }
     }
-    if command == "purge" {
+    if command == "file.purge" {
         let key = kition_cad_engine::cmd::purge_premise_key(p).map_err(|e| e.to_string())?;
         premises.push(need("drawing", vec![format!("~{key}")]));
     }
-    if command == "audit" && p.get("fix") == Some(&Value::Bool(true)) {
+    if command == "file.audit" && p.get("fix") == Some(&Value::Bool(true)) {
         premises.push(need("drawing", vec!["~audit".into()]));
     }
     if command == "object.deleteDuplicates" && p.get("handles").is_none() {
@@ -1072,8 +1073,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             named_need(d, "Layout", &name, &["name", "data.page"], &mut premises);
         }
     }
-    if matches!(command, "close" | "file.closeAll" | "file.save" | "file.saveAs") {
-        premises.push(if matches!(command, "close" | "file.closeAll") {
+    if matches!(command, "file.close" | "file.closeAll" | "file.save" | "file.saveAs") {
+        premises.push(if matches!(command, "file.close" | "file.closeAll") {
             Premise::on("drawing").positions(Vec::<String>::new())
         } else {
             Premise::on("drawing")
@@ -1161,18 +1162,18 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     {
         premises.push(need("drawing", vec!["header.SPLINESEGS".into()]));
     }
-    if matches!(command, "trim" | "extend") && p.get("edges").and_then(Value::as_array).is_none() {
+    if matches!(command, "object.trim" | "object.extend") && p.get("edges").and_then(Value::as_array).is_none() {
         premises.push(need("drawing", vec!["~cutters".into()]));
         for h in kition_cad_engine::cmd::cutting_edge_handles(d, &s.space()) {
             premises.push(need(h.hex(), vec!["kind".into(), "~pick".into()]));
         }
     }
-    if matches!(command, "trim" | "extend") {
+    if matches!(command, "object.trim" | "object.extend") {
         for h in p.get("edges").and_then(Value::as_array).into_iter().flatten().filter_map(handle) {
             premises.push(need(h.hex(), vec!["~visible".into(), "~space".into()]));
         }
     }
-    if command == "fillet"
+    if command == "object.fillet"
         && let Some(h) = p.get("h1").and_then(handle)
     {
         premises.push(need(h.hex(), vec!["~pick.space".into()]));
@@ -1210,10 +1211,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     // These branches preserve source properties or create no entity (engine handlers
     // blocks::make_block, spline_opts::run_object, layout::run_new, draw2::run_wipeout).
     let current_properties = crate::acts::takes_place(command)
-        && !(command == "spline" && p.get("object").is_some()
-            || matches!(command, "block" | "block.add") && p.get("keep").and_then(Value::as_str).unwrap_or("convert") != "convert"
+        && !(command == "spline.add" && p.get("object").is_some()
+            || matches!(command, "block.addDialog" | "block.add") && p.get("keep").and_then(Value::as_str).unwrap_or("convert") != "convert"
             || command == "layout.add" && p.get("viewport") == Some(&Value::Bool(false))
-            || command == "wipeout" && p.get("frames").is_some()
+            || command == "wipeout.add" && p.get("frames").is_some()
             || command == "revisionCloud.add" && p.get("handle").is_some());
     if current_properties {
         // Session::current_common/add_entity copy these stored defaults, not editor state.
@@ -1235,10 +1236,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         if matches!(command, "layout.add" | "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two" | "viewport.three" | "viewport.four") {
             fields.retain(|f| f != "header.CECOLOR_RGB");
         }
-        if command == "spline" && p.get("knots").is_none() && (p.get("fit").is_some() || p.get("object").is_some()) {
+        if command == "spline.add" && p.get("knots").is_none() && (p.get("fit").is_some() || p.get("object").is_some()) {
             fields.push("header.SPLKNOTS".into());
         }
-        if matches!(command, "text" | "multilineText.add" | "attribute.define") {
+        if matches!(command, "text.add" | "multilineText.add" | "attribute.define") {
             if command != "multilineText.add" || p.get("style").is_none() {
                 fields.push("header.TEXTSTYLE".into());
             }
@@ -1255,7 +1256,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
         if matches!(
             command,
-            "dim"
+            "dimension.add"
                 | "dimension.addLinear"
                 | "dimension.addAligned"
                 | "dimension.addRadius"
@@ -1271,10 +1272,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             fields.extend(kition_cad_doc::DIMVARS.iter().map(|(var, _)| format!("header.{var}")));
             dim_style(d, &d.header.str("DIMSTYLE", "Standard"), &mut premises);
             if let Some(style) = d.dim_style(&d.header.str("DIMSTYLE", "Standard")) {
-                dim_dependencies(d, &style.with_overrides(&d.dim_overrides()), command != "leader", &mut premises);
+                dim_dependencies(d, &style.with_overrides(&d.dim_overrides()), command != "leader.add", &mut premises);
             }
         }
-        if command == "leader" {
+        if command == "leader.add" {
             fields.push("header.DIMSTYLE".into());
             let fields = if p.get("text").and_then(Value::as_str).is_some() { vec!["name", "data.textHeight"] } else { vec!["name"] };
             named_need(d, "DimStyle", &d.header.str("DIMSTYLE", "Standard"), &fields, &mut premises);
@@ -1302,15 +1303,15 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 named_need(d, "MLeaderStyle", &st.name, &fields, &mut premises);
             }
         }
-        if matches!(command, "hatch" | "gradient") {
+        if matches!(command, "hatch.add" | "hatch.addGradient") {
             for (param, var) in [("pattern", "HPNAME"), ("scale", "HPSCALE"), ("angle", "HPANG")] {
                 // HatchSettings::kind always stores SOLID for a gradient.
-                if p.get(param).is_none() && !(command == "gradient" && param == "pattern") {
+                if p.get(param).is_none() && !(command == "hatch.addGradient" && param == "pattern") {
                     fields.push(format!("header.{var}"));
                 }
             }
         }
-        if command == "table" {
+        if command == "table.add" {
             fields.push("header.CTABLESTYLE".into());
             if p.get("colWidth").is_none() {
                 fields.push("header.MEASUREMENT".into());
@@ -1328,7 +1329,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
         premises.push(need("drawing", fields));
     }
-    if command == "spline" && p.get("object").is_some() && p.get("knots").is_none() {
+    if command == "spline.add" && p.get("object").is_some() && p.get("knots").is_none() {
         premises.push(need("drawing", vec!["header.SPLKNOTS".into()]));
     }
     if matches!(command, "dimensionStyle.open" | "dimensionStyle.openManager")
@@ -1337,13 +1338,23 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         premises.push(need("drawing", vec!["header.DIMSTYLE".into()]));
         dim_style(d, &d.header.str("DIMSTYLE", "Standard"), &mut premises);
     }
-    if command == "offset" && p.get("layer").and_then(Value::as_str).is_some_and(|l| l.eq_ignore_ascii_case("current")) {
+    if command == "object.offset" && p.get("layer").and_then(Value::as_str).is_some_and(|l| l.eq_ignore_ascii_case("current")) {
         premises.push(need("drawing", vec!["header.CLAYER".into()]));
         named_need(d, "Layer", &d.header.str("CLAYER", "0"), &["name"], &mut premises);
     }
-    let transform =
-        matches!(command, "move" | "rotate" | "scale" | "mirror" | "grip.move" | "grip.stretch" | "grip.rotate" | "grip.scale" | "grip.mirror");
-    let copies = if command == "mirror" {
+    let transform = matches!(
+        command,
+        "object.move"
+            | "object.rotate"
+            | "object.scale"
+            | "object.mirror"
+            | "grip.move"
+            | "grip.stretch"
+            | "grip.rotate"
+            | "grip.scale"
+            | "grip.mirror"
+    );
+    let copies = if command == "object.mirror" {
         p.get("erase").and_then(Value::as_bool) != Some(true)
     } else {
         p.get("copy").and_then(Value::as_bool) == Some(true)
@@ -1352,25 +1363,25 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     // still attached decides whether it follows (C8-cad-read).
     let reshapes = matches!(
         command,
-        "move"
-            | "rotate"
-            | "scale"
-            | "mirror"
-            | "stretch"
-            | "align"
-            | "erase"
-            | "trim"
-            | "extend"
-            | "fillet"
-            | "chamfer"
+        "object.move"
+            | "object.rotate"
+            | "object.scale"
+            | "object.mirror"
+            | "object.stretch"
+            | "object.align"
+            | "object.delete"
+            | "object.trim"
+            | "object.extend"
+            | "object.fillet"
+            | "object.chamfer"
             | "object.lengthen"
             | "polyline.edit"
-            | "break"
+            | "object.break"
             | "object.breakAtPoint"
-            | "join"
+            | "object.join"
             | "spline.edit"
-            | "reverse"
-            | "flatten"
+            | "object.reverse"
+            | "object.flatten"
             | "object.changeSpace"
     ) || command.starts_with("grip.")
         || command == "object.setProperties"
@@ -1403,7 +1414,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         premises.push(need("drawing", vec!["header.CLAYER".into()]));
     }
     // INSERT "*NAME" inserts the definition exploded.
-    if command == "insert"
+    if command == "block.insert"
         && let Some(name) = p.get("name").and_then(Value::as_str).and_then(|n| n.strip_prefix('*'))
         && d.block(name).is_some()
     {
@@ -1432,8 +1443,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
     }
     let defaults: &[(&str, &str)] = match command {
-        "fillet" => &[("radius", "FILLETRAD")],
-        "chamfer" if p.get("length").is_none() => &[("d1", "CHAMFERA")],
+        "object.fillet" => &[("radius", "FILLETRAD")],
+        "object.chamfer" if p.get("length").is_none() => &[("d1", "CHAMFERA")],
         "multiline.add" => &[("scale", "CMLSCALE"), ("justification", "CMLJUST")],
         "revisionCloud.add" | "revisionCloud.addPolygonal" | "revisionCloud.addFreehand" => &[("arcLength", "REVCLOUDARCLEN")],
         "centerMark.add" | "centerLine.add" => &[("extension", "CENTEREXE")],
@@ -1451,7 +1462,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         premises.push(need("drawing", fields));
     }
     let new_layout = command == "layout.add"
-        || command == "layout" && matches!(p.get("option").and_then(Value::as_str).unwrap_or("list").to_ascii_lowercase().as_str(), "new" | "n");
+        || command == "layout.manage"
+            && matches!(p.get("option").and_then(Value::as_str).unwrap_or("list").to_ascii_lowercase().as_str(), "new" | "n");
     let new_viewport = new_layout && p.get("viewport").and_then(Value::as_bool) != Some(false)
         || matches!(command, "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two" | "viewport.three" | "viewport.four");
     if new_viewport {
@@ -1478,7 +1490,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             premises.push(need("drawing", vec!["header.MEASUREMENT".into()]));
         }
     }
-    if command == "group" && p.get("name").and_then(Value::as_str).is_none_or(|n| n.trim().is_empty()) {
+    if command == "arrange.group" && p.get("name").and_then(Value::as_str).is_none_or(|n| n.trim().is_empty()) {
         premises.push(need("drawing", vec!["~nextGroupName".into()]));
     }
     if new_layout {
@@ -1490,11 +1502,11 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     for h in &hs {
         // DELCONSTRAINT compares these opaque handles only with constraint references.
         // Removed constraints and any remaining solver inputs are held separately below.
-        if command == "constraint.delete" || command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions") {
+        if command == "constraint.delete" || crate::acts::constraint_bars(command) || crate::acts::dynamic_dimensions(command) {
             continue;
         }
         let Some(e) = entity(d, *h) else { continue };
-        if matches!(command, "hatch" | "gradient" | "boundary") && p.get("points").is_some() {
+        if matches!(command, "hatch.add" | "hatch.addGradient" | "boundary.add") && p.get("points").is_some() {
             premises.push(need(h.hex(), vec!["~boundaryOutline".into()]));
         }
         if crate::read_fields::writes_existing(command, p, *h)
@@ -1503,10 +1515,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         {
             premises.push(need(h.hex(), vec!["~locked".into()]));
         }
-        if c.mutates && command != "dimension.disassociate" && command != "select" {
+        if c.mutates && command != "dimension.disassociate" && command != "select.set" {
             dimension_sources(e, *h, &mut premises);
         }
-        let fields = if command == "select" {
+        let fields = if command == "select.set" {
             // A spatial selector consumes the selected geometry even when a changed
             // outline still crosses the region. Common properties remain independent.
             Some(if by_place { vec!["kind".into()] } else { Vec::new() })
@@ -1528,7 +1540,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         } else if let Some(fields) = crate::read_fields::target_fields(command, p, e) {
             Some(fields)
         } else if implicit(command, p) {
-            Some(if matches!(command, "hatch" | "gradient" | "boundary") {
+            Some(if matches!(command, "hatch.add" | "hatch.addGradient" | "boundary.add") {
                 vec!["kind".into(), "~pick".into()]
             } else {
                 crate::read_fields::curve_fields(e)
@@ -1548,24 +1560,33 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         } else if destroys(command, p, *h, &hs) {
             // JOIN and PEDIT's joined-away objects ignore their layers' visibility/lock.
             // Hold every stored value they discard and their groups, without ~pick/~locked.
-            if matches!(command, "join" | "polyline.edit") { Some(vec!["common".into(), "kind".into(), "~groups".into()]) } else { None }
+            if matches!(command, "object.join" | "polyline.edit") { Some(vec!["common".into(), "kind".into(), "~groups".into()]) } else { None }
         } else if matches!(
             command,
-            "trim" | "extend" | "fillet" | "chamfer" | "offset" | "hatch" | "gradient" | "object.arrayPath" | "join" | "polyline.edit"
+            "object.trim"
+                | "object.extend"
+                | "object.fillet"
+                | "object.chamfer"
+                | "object.offset"
+                | "hatch.add"
+                | "hatch.addGradient"
+                | "object.arrayPath"
+                | "object.join"
+                | "polyline.edit"
         ) {
             let mut fields = vec!["kind".into(), "common".into()];
             let primary = p.get("handle").and_then(handle).or_else(|| hs.first().copied());
-            if matches!(command, "trim" | "extend") && primary != Some(*h) {
+            if matches!(command, "object.trim" | "object.extend") && primary != Some(*h) {
                 fields = vec!["kind".into(), "~visible".into(), "~space".into()];
             }
-            if matches!(command, "fillet" | "chamfer")
-                || matches!(command, "trim" | "extend" | "polyline.edit") && primary == Some(*h)
-                || command == "offset" && p.get("erase") == Some(&Value::Bool(true))
+            if matches!(command, "object.fillet" | "object.chamfer")
+                || matches!(command, "object.trim" | "object.extend" | "polyline.edit") && primary == Some(*h)
+                || command == "object.offset" && p.get("erase") == Some(&Value::Bool(true))
             {
                 fields.push("~locked".into());
             }
             Some(fields)
-        } else if command.starts_with("table.") {
+        } else if crate::acts::edits_a_table(command) {
             if let EntityKind::Table(table) = &e.kind {
                 let (fields, texts) = crate::read_fields::table_fields(command, p, table);
                 for cell in texts {
@@ -1579,7 +1600,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             None
         };
         if let Some(mut fields) = fields {
-            if by_place && matches!(command, "trim" | "extend") && targets.contains(h) {
+            if by_place && matches!(command, "object.trim" | "object.extend") && targets.contains(h) {
                 fields.push("~pick".into());
             }
             let mut premise = need(h.hex(), fields);
@@ -1605,7 +1626,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 premises.push(need("drawing", vec!["header.DIMSCALE".into()]));
             }
         }
-        if (matches!(command, "dimension.addContinue" | "dimension.addBaseline" | "explode")
+        if (matches!(command, "dimension.addContinue" | "dimension.addBaseline" | "object.explode")
             || command == "dimension.space" && p.get("base").and_then(handle) != Some(*h))
             && let EntityKind::Dimension(dim) = &e.kind
         {
@@ -1635,14 +1656,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 }
             }
         }
-        if matches!(command, "object.copyNested" | "explode")
+        if matches!(command, "object.copyNested" | "object.explode")
             && let EntityKind::Insert(i) = &e.kind
         {
             definition(d, &i.block, &mut premises);
         }
         // explode_kind reads the definition's base and copies every member's geometry and
         // properties. A changed definition must not silently alter the expansion.
-        if command == "explode"
+        if command == "object.explode"
             && let EntityKind::Insert(i) = &e.kind
             && let Some(block) = d.block(&i.block)
         {
@@ -1661,16 +1682,16 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     let identity_only_block = command == "multileader.add"
                         && p.get("blockAttach").and_then(Value::as_str).is_some_and(|attach| attach.eq_ignore_ascii_case("insertion"));
                     let centered_block = command == "multileader.add" && !identity_only_block;
-                    let attribute_block = matches!(command, "divide" | "measure" | "attribute.sync");
+                    let attribute_block = matches!(command, "point.divide" | "point.measure" | "attribute.sync");
                     let fields = if ty == "Block" && attribute_block {
                         vec!["name".into(), "~insertAttributes".into()]
                     } else if ty == "Block" && centered_block {
                         vec!["name".into(), "~blockCenter".into()]
                     } else if ty == "Block" && identity_only_block {
                         vec!["name".into()]
-                    } else if ty == "Block" && !matches!(command, "block" | "block.add" | "block.write") {
+                    } else if ty == "Block" && !matches!(command, "block.addDialog" | "block.add" | "block.write") {
                         let mut fields = vec!["name".into(), "data.base".into(), "~memberOrder".into()];
-                        if command == "insert" {
+                        if command == "block.insert" {
                             fields.push("data.xrefPath".into());
                         }
                         fields
@@ -1726,7 +1747,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                             fields.push("data.members".into());
                         }
                         fields
-                    } else if command == "style" && *key == "name" {
+                    } else if command == "textStyle.open" && *key == "name" {
                         let mut fields = vec!["name".into()];
                         fields.extend(
                             ["font", "bigFont", "height", "widthFactor", "oblique", "backwards", "upsideDown", "vertical", "annotative"]
@@ -1738,7 +1759,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     } else if matches!(
                         command,
                         "textStyle.rename" | "dimensionStyle.rename" | "layout.rename" | "layerState.rename" | "textStyle.setCurrent"
-                    ) || command == "linetype" && *key == "current"
+                    ) || command == "property.linetype" && *key == "current"
                         || matches!(command, "object.setProperties" | "layer.match" | "multilineText.add")
                         || command == "multileaderStyle.open" && *key == "textStyle"
                         || matches!(command, "viewport.set" | "viewport.freezeLayer") && matches!(*key, "freeze[]" | "thaw[]")
@@ -1758,7 +1779,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     {
                         definition(d, &block.name, &mut premises);
                         if let Some((id, _)) = named(d, "Block", &block.name) {
-                            let data = if matches!(command, "block" | "block.add" | "block.write") { "data" } else { "data.base" };
+                            let data = if matches!(command, "block.addDialog" | "block.add" | "block.write") { "data" } else { "data.base" };
                             premises.push(need(id, vec!["name".into(), data.into(), "~memberOrder".into()]));
                         }
                         for e in block.entities.iter() {
@@ -1809,9 +1830,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     .map(|(key, _)| format!("parametric.settings.{key}")),
             );
         }
-        if command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions") {
+        if crate::acts::constraint_bars(command) || crate::acts::dynamic_dimensions(command) {
             let (visible, exceptions) =
-                if command.starts_with("constraint.dynamicDimensions") { ("dimsVisible", "dimExceptions") } else { ("barsVisible", "barExceptions") };
+                if crate::acts::dynamic_dimensions(command) { ("dimsVisible", "dimExceptions") } else { ("barsVisible", "barExceptions") };
             fields.extend([format!("parametric.settings.{visible}"), format!("parametric.settings.{exceptions}")]);
         }
         if command == "constraint.auto" {
@@ -1821,7 +1842,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 }
             }
         }
-        if command == "parameters" && (p.get("name").is_some() || p.get("delete").is_some())
+        if command == "constraint.parameters" && (p.get("name").is_some() || p.get("delete").is_some())
             || p.get("expr").and_then(Value::as_str).is_some_and(|expr| expr.chars().any(char::is_alphabetic))
         {
             fields.push("parametric.parameters".into());
@@ -1831,9 +1852,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
     }
     let scoped = reshapes && !(transform && copies)
-        || matches!(command, "edit.cut" | "explode" | "object.changeSpace" | "region")
-        || matches!(command, "block" | "block.add") && p.get("keep").and_then(Value::as_str) != Some("retain")
-        || command == "offset" && p.get("erase") == Some(&Value::Bool(true));
+        || matches!(command, "edit.cut" | "object.explode" | "object.changeSpace" | "region.add")
+        || matches!(command, "block.addDialog" | "block.add") && p.get("keep").and_then(Value::as_str) != Some("retain")
+        || command == "object.offset" && p.get("erase") == Some(&Value::Bool(true));
     // No-op display/settings paths do not invoke the global solver. Their assigned
     // values remain held above, so a changed setting cannot turn a stale no-op into a write.
     let constraint_effects = if constraint_edit { crate::scan::effects(d, s.space(), s.selection(), command, p)? } else { Value::Null };
@@ -1887,8 +1908,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     let mut merged = merge_premises(premises);
     // An entity named by handle is held wherever it is in its space's list: no write by handle
     // reads its draw order (C8-cad-read). A place keeps positions; `covers` replays them.
-    if !by_place && command != "constraint.delete" && !command.starts_with("constraint.bars") && !command.starts_with("constraint.dynamicDimensions")
-    {
+    if !by_place && command != "constraint.delete" && !crate::acts::constraint_bars(command) && !crate::acts::dynamic_dimensions(command) {
         for h in &hs {
             merged.entry(json!(h.hex()).to_string()).or_insert_with(|| Premise::on(h.hex()));
         }
@@ -1937,11 +1957,11 @@ fn named(d: &Drawing, ty: &str, name: &str) -> Option<(String, String)> {
         "Layer" => d.layers.iter().map(|x| ("layer", x.name.as_str())).collect(),
         "Linetype" => d.linetypes.iter().map(|x| ("linetype", x.name.as_str())).collect(),
         "TextStyle" => d.text_styles.iter().map(|x| ("textstyle", x.name.as_str())).collect(),
-        "DimStyle" => d.dim_styles.iter().map(|x| ("dimensionStyle.open", x.name.as_str())).collect(),
+        "DimStyle" => d.dim_styles.iter().map(|x| ("dimstyle", x.name.as_str())).collect(),
         "Block" => d.blocks.keys().map(|x| ("block", x.as_str())).collect(),
         "Layout" => d.layouts.iter().map(|x| ("layout", x.name.as_str())).collect(),
-        "TableStyle" => d.table_styles.iter().map(|x| ("tableStyle.open", x.name.as_str())).collect(),
-        "MLeaderStyle" => d.mleader_styles.iter().map(|x| ("multileaderStyle.open", x.name.as_str())).collect(),
+        "TableStyle" => d.table_styles.iter().map(|x| ("tablestyle", x.name.as_str())).collect(),
+        "MLeaderStyle" => d.mleader_styles.iter().map(|x| ("mleaderstyle", x.name.as_str())).collect(),
         "View" => d.views.iter().map(|x| ("view", x.name.as_str())).collect(),
         "Ucs" => d.ucss.iter().map(|x| ("ucs", x.name.as_str())).collect(),
         "LayerState" => d.layer_states.iter().map(|x| ("layerstate", x.name.as_str())).collect(),
@@ -2045,19 +2065,19 @@ pub fn derived(d: &Drawing, ids: &[Value], names: &[String]) -> Result<Vec<Deriv
             if wanted(&key) {
                 values.insert(
                     key,
-                    if ty == "other" { json!([]) } else { crate::scan::effects(d, Space::Model, vec![], "purge", &json!({"type":ty}))? },
+                    if ty == "other" { json!([]) } else { crate::scan::effects(d, Space::Model, vec![], "file.purge", &json!({"type":ty}))? },
                 );
             }
         }
         if wanted("audit") {
-            values.insert("audit".into(), crate::scan::effects(d, Space::Model, vec![], "audit", &json!({"fix":true}))?);
+            values.insert("audit".into(), crate::scan::effects(d, Space::Model, vec![], "file.audit", &json!({"fix":true}))?);
         }
         if wanted("object.deleteDuplicates") {
             let facts = std::iter::once(Space::Model)
                 .chain(d.layouts.iter().map(|l| Space::Paper(l.name.clone())))
                 .map(|space| crate::scan::effects(d, space, vec![], "object.deleteDuplicates", &json!({})))
                 .collect::<Result<Vec<_>, _>>()?;
-            values.insert("object.deleteDuplicates".into(), json!(facts));
+            values.insert("overkill".into(), json!(facts));
         }
         if wanted("texts") {
             values.insert("texts".into(), drawing_texts(d));
@@ -2411,7 +2431,7 @@ fn covered_native(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -
             return covered(s, spec.id, &json!({}), asked);
         }
     }
-    if command == "layout" {
+    if command == "layout.manage" {
         let (command, p) = kition_cad_engine::cmd::layout_operation(p).map_err(|e| e.to_string())?;
         return covered(s, command, &p, asked);
     }
@@ -2420,7 +2440,7 @@ fn covered_native(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -
     {
         return name_history(s.doc().map_err(|e| e.to_string())?, ty, name, asked, false).map(Some);
     }
-    if command == "rename" {
+    if command == "namedObject.rename" {
         return name_history(s.doc().map_err(|e| e.to_string())?, rename_type(p), p.get("from").and_then(Value::as_str).unwrap_or(""), asked, false)
             .map(Some);
     }
@@ -2450,10 +2470,10 @@ fn covered_native(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -
     if crate::query::selects(command) {
         return crate::query::covered(s, command, p, asked);
     }
-    if command == "ungroup" {
+    if command == "arrange.ungroup" {
         return crate::scan::ungroup_covered(s, p, asked);
     }
-    if command == "find" {
+    if command == "edit.find" {
         // Replay stored predicate inputs; a drawing-wide eager text fact can exceed
         // the SDK receipt-value bound even for a small drawing.
         let mut old = s.doc().map_err(|e| e.to_string())?.clone();

@@ -26,7 +26,7 @@ async fn dimension_sync_sets_my_dimension_variables_not_a_colleagues() {
             f.colleague(&[("variable.set", json!({"name":"DIMASZ","value":2.0}))]);
         }
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
-        f.colleague(&[("variable.set", json!({"name":"DIMASZ","value":3})), ("move", json!({"handles":[f.circle],"delta":[1,0]}))]);
+        f.colleague(&[("variable.set", json!({"name":"DIMASZ","value":3})), ("object.move", json!({"handles":[f.circle],"delta":[1,0]}))]);
         f.call("run", json!({"basis":basis,"steps":[{"command":"dimensionStyle.setCurrent","params":{"name":"ISO-25"}}]}))
             .await
             .unwrap_or_else(|e| panic!("a colleague's DIMASZ is theirs: {e}"));

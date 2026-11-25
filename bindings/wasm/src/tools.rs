@@ -132,7 +132,7 @@ impl CadDocument {
             "Delete" | "Backspace" if self.session.running.is_none() && !self.session.selection().is_empty() => {
                 self.hot_grip = None;
                 self.snapped = None;
-                self.session.execute("erase", &json!({})).map_err(engine_error)?;
+                self.session.execute("object.delete", &json!({})).map_err(engine_error)?;
             }
             "Escape" => {
                 let cancelled_grip = self.hot_grip.take().is_some();

@@ -22,7 +22,7 @@ fn session(osmode: u32) -> Session {
 }
 
 fn line(s: &mut Session, a: (f64, f64), b: (f64, f64)) {
-    s.execute("line", &json!({ "points": [[a.0, a.1], [b.0, b.1]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[a.0, a.1], [b.0, b.1]] })).unwrap();
 }
 
 fn setvar(s: &mut Session, name: &str, value: serde_json::Value) {
@@ -103,9 +103,9 @@ fn polar_angles_increment_additional_and_tracking() {
     let t = at(&mut s, c17, base).track.expect("additional angle");
     assert!((t.point.angle().to_degrees() - 17.0).abs() < 1e-9);
     // Ortho on: no polar paths.
-    s.execute("ortho", &json!({ "on": true })).unwrap();
+    s.execute("drafting.ortho", &json!({ "on": true })).unwrap();
     assert!(at(&mut s, c, base).track.is_none());
-    s.execute("ortho", &json!({ "on": false })).unwrap();
+    s.execute("drafting.ortho", &json!({ "on": false })).unwrap();
     // Object snap tracking along polar angles needs POLARMODE bit 2; orthogonal otherwise.
     line(&mut s, (40.0, 0.0), (50.0, 0.0));
     rest(&mut s, v(50.02, 0.02), None);
@@ -147,7 +147,7 @@ fn extension_runs_on_from_a_line_end_and_round_an_arc() {
 
     // An arc's extension follows its circle, outside the arc.
     let mut s = session(mode::EXT);
-    s.execute("arc", &json!({ "center": [0, 0], "radius": 5, "start": 0, "end": 90 })).unwrap();
+    s.execute("arc.add", &json!({ "center": [0, 0], "radius": 5, "start": 0, "end": 90 })).unwrap();
     rest(&mut s, v(5.02, 0.02), None);
     let c = Vec2::from_angle(300f64.to_radians()) * 5.05;
     let t = at(&mut s, c, None).track.expect("on the arc's extension");
@@ -270,7 +270,7 @@ fn sysvars_polarmode_polaraddang_autosnap() {
 fn hostile_inputs_never_panic() {
     let mut s = session(mode::END | mode::INT | mode::EXT | mode::PAR | mode::APP);
     line(&mut s, (0.0, 0.0), (10.0, 0.0));
-    s.execute("circle", &json!({ "center": [5, 5], "radius": 3 })).unwrap();
+    s.execute("circle.add", &json!({ "center": [5, 5], "radius": 3 })).unwrap();
     setvar(&mut s, "POLARANG", json!(0.0001));
     setvar(&mut s, "POLARMODE", json!(15));
     setvar(&mut s, "POLARADDANG", json!("1e300;-5;0"));

@@ -93,7 +93,7 @@ async fn centered_multileader_holds_member_layer_visibility() {
         |_| ("multileader.add", json!({"points":[[0,0],[10,10]],"block":"Marker"})),
         |_| vec![("layer.set", json!({"name":"Secondary","on":false}))],
         |_| vec![("layer.set", json!({"name":"Secondary","locked":true}))],
-        |f| vec![("block", json!({"name":"Marker","handles":[f.joined],"base":[0,0],"keep":"retain"}))],
+        |f| vec![("block.addDialog", json!({"name":"Marker","handles":[f.joined],"base":[0,0],"keep":"retain"}))],
     )
     .await;
 }
@@ -111,8 +111,8 @@ async fn attribute_sync_holds_reference_layer_lock() {
 #[tokio::test(flavor = "multi_thread")]
 async fn gradient_ignores_pattern_default_used_only_by_hatch() {
     check(
-        |f| ("gradient", json!({"handles":[f.rect],"angle":0})),
-        |f| vec![("move", json!({"handles":[f.rect],"delta":[1,0]}))],
+        |f| ("hatch.addGradient", json!({"handles":[f.rect],"angle":0})),
+        |f| vec![("object.move", json!({"handles":[f.rect],"delta":[1,0]}))],
         |f| vec![("variable.set", json!({"name":"HPNAME","value":"SOLID"})), ("object.setProperties", json!({"handles":[f.text],"color":"blue"}))],
     )
     .await;

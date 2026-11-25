@@ -9,8 +9,8 @@ use serde_json::json;
 async fn defaults_layout_without_viewport_does_not_read_current_color() {
     check(
         |_| ("layout.add", json!({"name":"Mine","viewport":false})),
-        |_| vec![("units", json!({"insunits":1})), ("layout.add", json!({"name":"Other","viewport":false}))],
-        |_| vec![("color", json!({"color":"red"}))],
+        |_| vec![("file.setUnits", json!({"insunits":1})), ("layout.add", json!({"name":"Other","viewport":false}))],
+        |_| vec![("property.color", json!({"color":"red"}))],
     )
     .await;
 }
@@ -19,8 +19,8 @@ async fn defaults_layout_without_viewport_does_not_read_current_color() {
 async fn defaults_viewport_limits_only_when_model_is_empty() {
     check(
         |_| ("viewport.add", json!({"layout":"Layout1","p1":[0,0],"p2":[20,20]})),
-        |f| vec![("move", json!({"handles":[f.circle],"delta":[1000,0]}))],
-        |_| vec![("limits", json!({"min":[0,0],"max":[999,999]}))],
+        |f| vec![("object.move", json!({"handles":[f.circle],"delta":[1000,0]}))],
+        |_| vec![("file.setLimits", json!({"min":[0,0],"max":[999,999]}))],
     )
     .await;
 }
@@ -28,7 +28,7 @@ async fn defaults_viewport_limits_only_when_model_is_empty() {
 #[tokio::test(flavor = "multi_thread")]
 async fn defaults_explicit_table_height_does_not_read_style_height() {
     check(
-        |_| ("table", json!({"at":[0,300],"rows":2,"cols":2,"textHeight":3})),
+        |_| ("table.add", json!({"at":[0,300],"rows":2,"cols":2,"textHeight":3})),
         |_| vec![("tableStyle.open", json!({"name":"Standard","margin":9}))],
         |_| vec![("tableStyle.open", json!({"name":"Standard","textHeight":9}))],
     )
@@ -38,9 +38,9 @@ async fn defaults_explicit_table_height_does_not_read_style_height() {
 #[tokio::test(flavor = "multi_thread")]
 async fn defaults_retained_block_uses_source_properties() {
     check(
-        |f| ("block", json!({"name":"Mine","handles":[f.line],"base":[0,0],"keep":"retain"})),
+        |f| ("block.addDialog", json!({"name":"Mine","handles":[f.line],"base":[0,0],"keep":"retain"})),
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
-        |_| vec![("color", json!({"color":"red"}))],
+        |_| vec![("property.color", json!({"color":"red"}))],
     )
     .await;
 }
@@ -48,9 +48,9 @@ async fn defaults_retained_block_uses_source_properties() {
 #[tokio::test(flavor = "multi_thread")]
 async fn defaults_spline_conversion_uses_source_properties() {
     check(
-        |f| ("spline", json!({"object":f.rect})),
-        |f| vec![("move", json!({"handles":[f.rect],"delta":[1,0]}))],
-        |_| vec![("color", json!({"color":"red"}))],
+        |f| ("spline.add", json!({"object":f.rect})),
+        |f| vec![("object.move", json!({"handles":[f.rect],"delta":[1,0]}))],
+        |_| vec![("property.color", json!({"color":"red"}))],
     )
     .await;
 }

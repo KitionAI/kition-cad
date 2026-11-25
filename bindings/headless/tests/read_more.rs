@@ -24,14 +24,14 @@ impl Fixture {
     fn new() -> Self {
         let mut d = CadDocument::create(FILE, 420, 297).unwrap();
         d.execute("layer.add", json!({"name":"Editable"})).unwrap();
-        let line = d.execute("line", json!({"points":[[0,0],[100,0]],"layer":"Editable"})).unwrap()["handles"][0].clone();
-        let circle = d.execute("circle", json!({"center":[100,100],"radius":5,"layer":"Editable"})).unwrap()["handle"].clone();
-        let text = d.execute("text", json!({"at":[0,50],"text":"Before","height":3,"layer":"Editable"})).unwrap()["handle"].clone();
+        let line = d.execute("line.add", json!({"points":[[0,0],[100,0]],"layer":"Editable"})).unwrap()["handles"][0].clone();
+        let circle = d.execute("circle.add", json!({"center":[100,100],"radius":5,"layer":"Editable"})).unwrap()["handle"].clone();
+        let text = d.execute("text.add", json!({"at":[0,50],"text":"Before","height":3,"layer":"Editable"})).unwrap()["handle"].clone();
         let dim =
             d.execute("dimension.addLinear", json!({"p1":[200,100],"p2":[250,100],"at":[225,90],"layer":"Editable"})).unwrap()["handle"].clone();
         let att = d.execute("attribute.define", json!({"at":[200,200],"tag":"CODE","default":"A","height":3})).unwrap()["handle"].clone();
-        d.execute("block", json!({"name":"Marker","base":[200,200],"handles":[att],"keep":"delete"})).unwrap();
-        let insert = d.execute("insert", json!({"name":"Marker","at":[300,200],"layer":"Editable"})).unwrap()["handle"].clone();
+        d.execute("block.addDialog", json!({"name":"Marker","base":[200,200],"handles":[att],"keep":"delete"})).unwrap();
+        let insert = d.execute("block.insert", json!({"name":"Marker","at":[300,200],"layer":"Editable"})).unwrap()["handle"].clone();
         let workspace = tempfile::tempdir().unwrap();
         std::fs::write(workspace.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();
         let definition = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
@@ -89,7 +89,7 @@ fn content(d: &kition_cad_doc::Drawing) -> Value {
     entities.sort();
     let header: std::collections::BTreeMap<_, _> =
         d.header.vars.iter().filter(|(k, _)| !matches!(k.as_str(), "EXTMIN" | "EXTMAX" | "HANDSEED")).collect();
-    json!({"object.query":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"groups":d.groups,"header":header})
+    json!({"entities":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"groups":d.groups,"header":header})
 }
 
 async fn check(
@@ -129,7 +129,7 @@ async fn assigning_text_does_not_hold_its_placement() {
     check(
         |f| ("text.edit", json!({"handle":f.text,"text":"After"})),
         |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
-        |f| vec![("move", json!({"handles":[f.text],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.text],"delta":[1,0]}))],
     )
     .await;
 }
@@ -138,16 +138,16 @@ async fn assigning_plot_style_does_not_hold_geometry() {
     check(
         |f| ("plot.style", json!({"handles":[f.line],"name":"ByLayer"})),
         |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn grouping_does_not_hold_member_geometry() {
     check(
-        |f| ("group", json!({"name":"G","handles":[f.line]})),
-        |f| vec![("erase", json!({"handles":[f.line]}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| ("arrange.group", json!({"name":"G","handles":[f.line]})),
+        |f| vec![("object.delete", json!({"handles":[f.line]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
     )
     .await;
 }
@@ -155,7 +155,7 @@ async fn grouping_does_not_hold_member_geometry() {
 async fn a_dimension_text_angle_does_not_hold_its_color() {
     check(
         |f| ("dimension.textAngle", json!({"handles":[f.dim],"angle":30})),
-        |f| vec![("erase", json!({"handles":[f.dim]}))],
+        |f| vec![("object.delete", json!({"handles":[f.dim]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.dim],"color":"blue"}))],
     )
     .await;
@@ -164,16 +164,16 @@ async fn a_dimension_text_angle_does_not_hold_its_color() {
 async fn a_dimension_text_override_does_not_hold_geometry() {
     check(
         |f| ("dimension.override", json!({"handles":[f.dim],"text":"After"})),
-        |f| vec![("erase", json!({"handles":[f.dim]}))],
-        |f| vec![("move", json!({"handles":[f.dim],"delta":[1,0]}))],
+        |f| vec![("object.delete", json!({"handles":[f.dim]}))],
+        |f| vec![("object.move", json!({"handles":[f.dim],"delta":[1,0]}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn reversing_a_line_does_not_hold_its_color() {
     check(
-        |f| ("reverse", json!({"handles":[f.line]})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| ("object.reverse", json!({"handles":[f.line]})),
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
     )
     .await;
@@ -182,7 +182,7 @@ async fn reversing_a_line_does_not_hold_its_color() {
 async fn lengthening_a_line_does_not_hold_its_color() {
     check(
         |f| ("object.lengthen", json!({"handle":f.line,"delta":5,"pick":[100,0]})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
     )
     .await;
@@ -190,9 +190,9 @@ async fn lengthening_a_line_does_not_hold_its_color() {
 #[tokio::test(flavor = "multi_thread")]
 async fn flattening_a_line_does_not_hold_its_xy_placement() {
     check(
-        |f| ("flatten", json!({"handles":[f.line]})),
+        |f| ("object.flatten", json!({"handles":[f.line]})),
         |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
     )
     .await;
 }
@@ -200,8 +200,8 @@ async fn flattening_a_line_does_not_hold_its_xy_placement() {
 async fn attribute_values_do_not_hold_insert_placement() {
     check(
         |f| ("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"B"}})),
-        |f| vec![("erase", json!({"handles":[f.insert]}))],
-        |f| vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+        |f| vec![("object.delete", json!({"handles":[f.insert]}))],
+        |f| vec![("object.move", json!({"handles":[f.insert],"delta":[1,0]}))],
     )
     .await;
 }
@@ -210,7 +210,7 @@ async fn attribute_values_do_not_hold_insert_placement() {
 async fn a_dimension_override_does_not_hold_other_override_keys() {
     check(
         |f| ("dimension.override", json!({"handles":[f.dim],"DIMASZ":4})),
-        |f| vec![("erase", json!({"handles":[f.dim]}))],
+        |f| vec![("object.delete", json!({"handles":[f.dim]}))],
         |f| vec![("dimension.override", json!({"handles":[f.dim],"DIMTXT":8}))],
     )
     .await;
@@ -233,7 +233,7 @@ async fn absolute_attribute_assignment_holds_written_text() {
     check(
         |f| ("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"B"}})),
         |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
-        |f| vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.insert],"delta":[1,0]}))],
     )
     .await;
 }
@@ -253,7 +253,7 @@ async fn selecting_a_layer_through_an_object_does_not_hold_geometry() {
     check(
         |f| ("layer.off", json!({"handles":[f.line]})),
         |f| vec![("object.setProperties", json!({"handles":[f.line],"layer":"0"}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
     )
     .await;
 }
@@ -262,7 +262,7 @@ async fn copying_properties_does_not_hold_source_geometry() {
     check(
         |f| ("object.matchProperties", json!({"source":f.line,"targets":[f.text]})),
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[1,0]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[1,0]}))],
     )
     .await;
 }

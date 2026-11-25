@@ -6,7 +6,7 @@ use serde_json::json;
 #[test]
 fn every_computed_guard_fact_has_a_model_declaration() {
     let mut d = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    d.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap();
+    d.execute("line.add", json!({"points":[[0,0],[10,0]]})).unwrap();
     let schema = Exchange::new().describe(&mut d).unwrap();
     let mut missing = Vec::new();
     for fact in d.derived(&[], &[]).unwrap() {
@@ -17,7 +17,7 @@ fn every_computed_guard_fact_has_a_model_declaration() {
             "block" => "Block",
             "layer" => "Layer",
             "textstyle" => "TextStyle",
-            "dimensionStyle.open" => "DimStyle",
+            "dimstyle" => "DimStyle",
             _ => "Entity",
         };
         for name in fact.values.keys() {

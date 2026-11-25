@@ -82,12 +82,12 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Draw", "Ellipse", "Arc"])
             .params("{center, major: [dx,dy], ratio, start, end (degrees)} | {p1, p2, distance, start, end}")
             .interactive(|_| Ok(super::draw::ellipse_machine(false, true))),
-        CommandSpec::new("divide", "Divide", run_divide)
+        CommandSpec::new("point.divide", "Divide", run_divide)
             .menu(&["Draw", "Point", "Divide"])
             .alias(&["div"])
             .params("{handle, segments, block?, align?: bool}")
             .interactive(|_| Ok(Box::new(DivideM::new(false)))),
-        CommandSpec::new("measure", "Measure", run_measure)
+        CommandSpec::new("point.measure", "Measure", run_measure)
             .menu(&["Draw", "Point", "Measure"])
             .alias(&["me"])
             .params("{handle, length, block?, align?: bool, from?: [x,y] (end to start at)}")
@@ -104,7 +104,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Draw", "Revision Cloud", "Freehand"])
             .params("{freehand?: [[x,y],...], points?: [[x,y],...], handle? (an object to turn into a cloud), arcLength?: number, style?: normal|calligraphy, reverse?: bool} (one of freehand, points or handle)")
             .interactive(|s| Ok(Box::new(RevcloudM::new(s, CloudKind::Free)))),
-        CommandSpec::new("wipeout", "Wipeout", run_wipeout)
+        CommandSpec::new("wipeout.add", "Wipeout", run_wipeout)
             .menu(&["Draw", "Wipeout"])
             .params("{points: [[x,y],...]} | {handle (closed polyline), erase?: bool} | {frames: on|off|display}")
             .interactive(|_| Ok(Box::new(WipeoutM::default()))),
@@ -118,7 +118,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["ml"])
             .params("{points, scale?, justification?: top|zero|bottom, closed?} (two offset polylines)")
             .interactive(|s| Ok(Box::new(MlineM::new(s)))),
-        CommandSpec::new("helix", "Helix", run_helix)
+        CommandSpec::new("helix.add", "Helix", run_helix)
             .menu(&["Draw", "Helix"])
             .params("{center, baseRadius, topRadius?, height?, turns?, ccw?} (3D polyline approximation)")
             .interactive(|_| Ok(Box::new(HelixM::default()))),
@@ -435,17 +435,17 @@ fn arc_from_params(p: &Value) -> Result<EntityKind> {
         (Some(st), Some(c), None) => match (ang, len) {
             (Some(a), _) => curves::arc_sca(st, c, a),
             (None, Some(l)) => curves::arc_scl(st, c, l),
-            _ => return Err(bad("arc", "start+center needs `end`, `angle` or `length`")),
+            _ => return Err(bad("arc.add", "start+center needs `end`, `angle` or `length`")),
         },
         (Some(st), None, Some(e)) => match (ang, dir, rad) {
             (Some(a), _, _) => curves::arc_sea(st, e, a),
             (None, Some(d), _) => curves::arc_sed(st, e, Vec2::from_angle(d)),
             (None, None, Some(r)) => curves::arc_ser(st, e, r),
-            _ => return Err(bad("arc", "start+end needs `angle`, `direction` or `radius`")),
+            _ => return Err(bad("arc.add", "start+end needs `angle`, `direction` or `radius`")),
         },
-        _ => return Err(bad("arc", "give start with center and/or end (see params)")),
+        _ => return Err(bad("arc.add", "give start with center and/or end (see params)")),
     };
-    let a = a.filter(|a| a.radius > 1e-12 && a.radius.is_finite()).ok_or_else(|| bad("arc", "these values do not define an arc"))?;
+    let a = a.filter(|a| a.radius > 1e-12 && a.radius.is_finite()).ok_or_else(|| bad("arc.add", "these values do not define an arc"))?;
     Ok(arc(&a))
 }
 
@@ -511,14 +511,14 @@ fn run_circle_variant(s: &mut Session, p: &Value) -> Result<Value> {
         Circle::new(c, d / 2.0)
     } else if let (Some(a), Some(b)) = (point_param(p, "p1"), point_param(p, "p2")) {
         match point_param(p, "p3") {
-            Some(c3) => Circle::from_3_points(a, b, c3).ok_or_else(|| bad("circle", "points are collinear"))?,
+            Some(c3) => Circle::from_3_points(a, b, c3).ok_or_else(|| bad("circle.add", "points are collinear"))?,
             None => Circle::from_2_points(a, b),
         }
     } else {
-        return Err(bad("circle", "give {center, diameter}, {p1, p2} or {p1, p2, p3}"));
+        return Err(bad("circle.add", "give {center, diameter}, {p1, p2} or {p1, p2, p3}"));
     };
     if !(c.radius > 1e-12 && c.radius.is_finite()) {
-        return Err(bad("circle", "radius must be positive"));
+        return Err(bad("circle.add", "radius must be positive"));
     }
     let h = s.add_entity(circle(c.center, c.radius))?;
     s.doc_mut()?.header.set_f64("CIRCLERAD", c.radius);
@@ -752,10 +752,10 @@ pub(crate) fn measure_points(c: &Chain, step: f64) -> Vec<(Vec2, Vec2)> {
 }
 
 fn run_divide(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("divide", "`handle` is required"))?;
-    let n = p.get("segments").and_then(Value::as_u64).ok_or_else(|| bad("divide", "`segments` (2..32767) is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("point.divide", "`handle` is required"))?;
+    let n = p.get("segments").and_then(Value::as_u64).ok_or_else(|| bad("point.divide", "`segments` (2..32767) is required"))?;
     if !(2..=32767).contains(&n) {
-        return Err(bad("divide", "segments must be 2..32767"));
+        return Err(bad("point.divide", "segments must be 2..32767"));
     }
     let block = str_param(p, "block").map(str::to_string);
     check_block(s, block.as_deref())?;
@@ -766,11 +766,11 @@ fn run_divide(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_measure(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("measure", "`handle` is required"))?;
-    let step = f64_req("measure", p, "length")?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("point.measure", "`handle` is required"))?;
+    let step = f64_req("point.measure", p, "length")?;
     let mut c = chain_of(s, h)?;
     if step.is_nan() || step <= 0.0 || c.len() / step > MAX_GEN as f64 {
-        return Err(bad("measure", "length must be positive (and not tiny)"));
+        return Err(bad("point.measure", "length must be positive (and not tiny)"));
     }
     let block = str_param(p, "block").map(str::to_string);
     check_block(s, block.as_deref())?;
@@ -1192,9 +1192,9 @@ fn run_wipeout(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(h) = curves::handle_param(p, "handle") {
         return added(wipeout_from_polyline(s, h, bool_or(p, "erase", false))?);
     }
-    let pts = points_param(p, "points").ok_or_else(|| bad("wipeout", "`points` (3 or more) or `handle` is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("wipeout.add", "`points` (3 or more) or `handle` is required"))?;
     if pts.len() < 3 || pts.len() > MAX_GEN || shoelace(&pts).abs() < 1e-12 {
-        return Err(bad("wipeout", "need 3+ points enclosing an area"));
+        return Err(bad("wipeout.add", "need 3+ points enclosing an area"));
     }
     added(s.add_entity(EntityKind::Wipeout(Wipeout { boundary: pts }))?)
 }
@@ -2097,12 +2097,12 @@ pub(crate) fn helix_points(c: Vec2, rb: f64, rt: f64, height: f64, turns: f64, c
 }
 
 fn run_helix(s: &mut Session, p: &Value) -> Result<Value> {
-    let c = point_req("helix", p, "center")?;
-    let rb = f64_req("helix", p, "baseRadius")?;
+    let c = point_req("helix.add", p, "center")?;
+    let rb = f64_req("helix.add", p, "baseRadius")?;
     let rt = f64_or(p, "topRadius", rb);
     let turns = f64_or(p, "turns", 3.0);
     if !(rb > 0.0 && rt >= 0.0 && turns > 0.0 && turns <= 500.0) {
-        return Err(bad("helix", "radii must be positive and turns in (0, 500]"));
+        return Err(bad("helix.add", "radii must be positive and turns in (0, 500]"));
     }
     let pts = helix_points(c, rb, rt, f64_or(p, "height", 1.0), turns, bool_or(p, "ccw", true), f64_or(p, "startAngle", 0.0).to_radians());
     added(s.add_entity(EntityKind::Polyline3d(Polyline3d { points: pts, closed: false }))?)

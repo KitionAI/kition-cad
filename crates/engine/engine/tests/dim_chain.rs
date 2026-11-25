@@ -23,9 +23,9 @@ fn chains_attach_like_dimreassociate_and_long_chains_are_capped() {
     let mut s = Session::new();
     for i in 0..40 {
         let x = f64::from(i);
-        s.execute("line", &json!({"points": [[x, 0], [x + 1.0, 0]]})).unwrap();
-        s.execute("point", &json!({"at": [x, 0]})).unwrap();
-        s.execute("circle", &json!({"center": [x + 0.5, 0], "radius": 0.1})).unwrap();
+        s.execute("line.add", &json!({"points": [[x, 0], [x + 1.0, 0]]})).unwrap();
+        s.execute("point.add", &json!({"at": [x, 0]})).unwrap();
+        s.execute("circle.add", &json!({"center": [x + 0.5, 0], "radius": 0.1})).unwrap();
     }
     for (cmd, at) in [("dimension.addContinue", 2), ("dimension.addBaseline", 5)] {
         s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [1, 0], "at": [0, at]})).unwrap();

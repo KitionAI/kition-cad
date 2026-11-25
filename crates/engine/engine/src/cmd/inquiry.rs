@@ -10,38 +10,38 @@ use crate::{Accept, Input, Interactive, Prompt, Result, Session, Step};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("dist", "Distance", run_dist)
+        CommandSpec::new("measure.distance", "Distance", run_dist)
             .menu(&["Tools", "Inquiry", "Distance"])
             .alias(&["di"])
             .params("{p1, p2}")
             .noundo()
             .transparent()
             .interactive(|_| Ok(Box::new(DistM::default()))),
-        CommandSpec::new("id", "ID Point", run_id)
+        CommandSpec::new("measure.point", "ID Point", run_id)
             .menu(&["Tools", "Inquiry", "ID Point"])
             .params("{at}")
             .noundo()
             .transparent()
             .interactive(|_| Ok(Box::new(IdM))),
-        CommandSpec::new("list", "List", run_list)
+        CommandSpec::new("object.list", "List", run_list)
             .menu(&["Tools", "Inquiry", "List"])
             .alias(&["li", "ls"])
             .params("{handles?}")
             .noundo()
             .interactive(|_| Ok(Box::new(ListM::default()))),
-        CommandSpec::new("area", "Area", run_area)
+        CommandSpec::new("measure.area", "Area", run_area)
             .menu(&["Tools", "Inquiry", "Area"])
             .alias(&["aa"])
             .params("{points: [[x,y],...]} | {handle}")
             .noundo()
             .interactive(|_| Ok(Box::new(AreaM::default()))),
-        CommandSpec::new("time", "Time", run_time).menu(&["Tools", "Inquiry", "Time"]).noundo(),
-        CommandSpec::new("status", "Status", run_status).menu(&["Tools", "Inquiry", "Status"]).noundo(),
+        CommandSpec::new("file.time", "Time", run_time).menu(&["Tools", "Inquiry", "Time"]).noundo(),
+        CommandSpec::new("file.status", "Status", run_status).menu(&["Tools", "Inquiry", "Status"]).noundo(),
         CommandSpec::new("file.inspect", "Inspect Drawing", run_inspect).params("{entities?: bool, limit?: n}").noundo(),
         CommandSpec::new("object.query", "Query Entities", run_entities)
             .params("{layout?: string (\"Model\" or a layout's name; default the space shown), type?, layer?: string (a layer name), window?: [[x,y],[x,y]], crossing?: bool (default true; false = entirely inside), limit?, offset?} → {count (all matches), returned, offset, entities}")
             .noundo(),
-        CommandSpec::new("count", "Count", run_count)
+        CommandSpec::new("object.count", "Count", run_count)
             .menu(&["Tools", "Count"])
             .params("{block?} → {blocks: {name: n}} | {block, count}, plus a `message` line")
             .noundo(),
@@ -70,13 +70,13 @@ fn dist_text(s: &Session, a: Vec2, b: Vec2) -> String {
 }
 
 fn run_dist(s: &mut Session, p: &Value) -> Result<Value> {
-    let a = point_req("dist", p, "p1")?;
-    let b = point_req("dist", p, "p2")?;
+    let a = point_req("measure.distance", p, "p1")?;
+    let b = point_req("measure.distance", p, "p2")?;
     Ok(json!({ "distance": a.dist(b), "angle": (b - a).angle().to_degrees(), "dx": b.x - a.x, "dy": b.y - a.y, "message": dist_text(s, a, b) }))
 }
 
 fn run_id(s: &mut Session, p: &Value) -> Result<Value> {
-    let a = point_req("id", p, "at")?;
+    let a = point_req("measure.point", p, "at")?;
     s.last_point = a;
     Ok(json!({ "x": a.x, "y": a.y, "message": format!("X = {}     Y = {}     Z = {}", fmt_d(s, a.x), fmt_d(s, a.y), fmt_d(s, 0.0)) }))
 }
@@ -180,7 +180,7 @@ fn run_area(s: &mut Session, p: &Value) -> Result<Value> {
     let (a, per) = if let Some(pts) = points_param(p, "points") {
         area_of(&pts)
     } else {
-        let h = targets(s, p)?.first().copied().ok_or_else(|| bad("area", "`points` or `handle` is required"))?;
+        let h = targets(s, p)?.first().copied().ok_or_else(|| bad("measure.area", "`points` or `handle` is required"))?;
         object_area(s, h)?
     };
     Ok(json!({ "area": a, "perimeter": per, "message": area_text(s, a, per) }))
@@ -193,7 +193,7 @@ fn area_text(s: &Session, a: f64, per: f64) -> String {
 /// Area and perimeter of a closed object (AREA's Object option).
 fn object_area(s: &Session, h: Handle) -> Result<(f64, f64)> {
     let d = s.doc()?;
-    let e = d.entity(h).ok_or_else(|| bad("area", "no such object"))?;
+    let e = d.entity(h).ok_or_else(|| bad("measure.area", "no such object"))?;
     Ok(match &e.kind {
         EntityKind::Circle(c) => (c.radius * c.radius * kition_cad_geom::PI, c.radius * kition_cad_geom::TAU),
         EntityKind::LwPolyline(pl) => {
@@ -219,7 +219,7 @@ fn object_area(s: &Session, h: Handle) -> Result<(f64, f64)> {
             }
             total
         }
-        _ => return Err(bad("area", "object has no area")),
+        _ => return Err(bad("measure.area", "object has no area")),
     })
 }
 
@@ -283,10 +283,10 @@ fn run_inspect(s: &mut Session, p: &Value) -> Result<Value> {
         "undo": st.undo.iter().rev().take(20).map(|u| u.label.clone()).collect::<Vec<_>>(),
         "view": { "center": [st.view().center.x, st.view().center.y], "height": st.view().height },
     });
-    if bool_or(p, "object.query", true)
+    if bool_or(p, "entities", true)
         && let (Some(o), Some(store)) = (out.as_object_mut(), d.space(&space))
     {
-        o.insert("object.query".into(), Value::Array(store.iter().take(limit).map(|e| entity_summary(e)).collect()));
+        o.insert("entities".into(), Value::Array(store.iter().take(limit).map(|e| entity_summary(e)).collect()));
     }
     Ok(out)
 }
@@ -332,7 +332,7 @@ fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
             )
         })?),
     };
-    let Some(store) = d.space(&space) else { return Ok(json!({ "count": 0, "returned": 0, "object.query": [] })) };
+    let Some(store) = d.space(&space) else { return Ok(json!({ "count": 0, "returned": 0, "entities": [] })) };
     let tol = window.as_ref().map(crate::select::window_tol).unwrap_or(0.0);
     let matches: Vec<&std::sync::Arc<kition_cad_doc::Entity>> = store
         .iter()
@@ -342,7 +342,7 @@ fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
         .collect();
     let page: Vec<Value> = matches.iter().skip(offset).take(limit).map(|e| entity_summary(e)).collect();
     // `count` is every match; `returned` is this page of them (`offset`, `limit`).
-    Ok(json!({ "count": matches.len(), "returned": page.len(), "offset": offset, "object.query": page }))
+    Ok(json!({ "count": matches.len(), "returned": page.len(), "offset": offset, "entities": page }))
 }
 
 fn run_count(s: &mut Session, p: &Value) -> Result<Value> {

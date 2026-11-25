@@ -5,7 +5,7 @@ use serde_json::json;
 use crate::{Input, Session, command_specs};
 
 fn line(s: &mut Session, a: [f64; 2], b: [f64; 2]) -> String {
-    s.execute("line", &json!({ "points": [a, b] })).unwrap();
+    s.execute("line.add", &json!({ "points": [a, b] })).unwrap();
     s.doc().unwrap().model.iter().last().unwrap().handle.hex()
 }
 fn ends(s: &Session, h: &str) -> (Vec2, Vec2) {
@@ -32,7 +32,7 @@ fn json_geometric_and_dimensional_constraints() {
     assert!(a1.near(b0, 1e-6));
     assert!((a0.dist(a1) - 8.0).abs() < 1e-6 && (b0.dist(b1) - 4.0).abs() < 1e-6);
     // PARAMETERS: change d1, geometry follows; undo restores.
-    let r = s.execute("parameters", &json!({ "name": "d1", "expr": "12" })).unwrap();
+    let r = s.execute("constraint.parameters", &json!({ "name": "d1", "expr": "12" })).unwrap();
     assert!(r["message"].as_str().unwrap().contains("d1 = 12"));
     let (b0, b1) = ends(&s, &b);
     assert!((b0.dist(b1) - 6.0).abs() < 1e-6);
@@ -40,11 +40,11 @@ fn json_geometric_and_dimensional_constraints() {
     let (b0, b1) = ends(&s, &b);
     assert!((b0.dist(b1) - 4.0).abs() < 1e-6);
     // User parameter.
-    s.execute("parameters", &json!({ "name": "len", "expr": "20" })).unwrap();
-    s.execute("parameters", &json!({ "name": "d1", "expr": "len/2" })).unwrap();
+    s.execute("constraint.parameters", &json!({ "name": "len", "expr": "20" })).unwrap();
+    s.execute("constraint.parameters", &json!({ "name": "d1", "expr": "len/2" })).unwrap();
     assert!((ends(&s, &a).0.dist(ends(&s, &a).1) - 10.0).abs() < 1e-6);
-    assert!(s.execute("parameters", &json!({ "delete": "len" })).is_err(), "still used");
-    assert!(s.execute("parameters", &json!({ "delete": "d1" })).is_err(), "dimensional");
+    assert!(s.execute("constraint.parameters", &json!({ "delete": "len" })).is_err(), "still used");
+    assert!(s.execute("constraint.parameters", &json!({ "delete": "d1" })).is_err(), "dimensional");
     // Conflict is reported and changes nothing.
     let before = s.doc().unwrap().clone();
     let e = s.execute("constraint.vertical", &json!({ "h1": a })).unwrap_err().to_string();
@@ -64,12 +64,12 @@ fn edits_are_resolved_and_erase_purges() {
     s.execute("constraint.coincident", &json!({ "h1": a, "p1": "end", "h2": b, "p2": "start" })).unwrap();
     s.execute("constraint.fix", &json!({ "h1": a })).unwrap();
     // Move line b: the coincidence pulls its start back onto a's (fixed) end.
-    s.execute("move", &json!({ "handles": [b], "from": [0, 0], "to": [3, 2] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [b], "from": [0, 0], "to": [3, 2] })).unwrap();
     let ((_, a1), (b0, _)) = (ends(&s, &a), ends(&s, &b));
     assert!(a1.near(Vec2::new(10.0, 0.0), 1e-9), "{a1:?}");
     assert!(b0.near(a1, 1e-6), "{b0:?}");
     // Erasing a constrained object removes its constraints.
-    s.execute("erase", &json!({ "handles": [b] })).unwrap();
+    s.execute("object.delete", &json!({ "handles": [b] })).unwrap();
     let kinds: Vec<ConstraintKind> = s.doc().unwrap().constraints.iter().map(|c| c.kind).collect();
     assert_eq!(kinds, vec![ConstraintKind::Fix]);
     s.execute("constraint.delete", &json!({ "handles": [a] })).unwrap();
@@ -168,7 +168,7 @@ fn hostile_constraint_params_never_panic() {
     let mut s = Session::new();
     let a = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
     let c = {
-        s.execute("circle", &json!({ "center": [0, 5], "radius": 2 })).unwrap();
+        s.execute("circle.add", &json!({ "center": [0, 5], "radius": 2 })).unwrap();
         s.doc().unwrap().model.iter().last().unwrap().handle.hex()
     };
     let hostile = [
@@ -190,11 +190,7 @@ fn hostile_constraint_params_never_panic() {
         json!({ "mode": "show" }),
         json!({ "tolerance": -1, "angleTolerance": 1e308, "handles": [a, c] }),
     ];
-    let ids: Vec<&str> = command_specs()
-        .iter()
-        .map(|c| c.id)
-        .filter(|id| id.starts_with("gc") || id.starts_with("dc") || id.contains("constrain") || *id == "parameters" || id.starts_with("constraint"))
-        .collect();
+    let ids: Vec<&str> = command_specs().iter().map(|c| c.id).filter(|id| id.starts_with("constraint.")).collect();
     assert!(ids.len() >= 25, "{ids:?}");
     for id in ids {
         for p in &hostile {

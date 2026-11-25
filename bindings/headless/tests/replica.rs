@@ -42,13 +42,13 @@ fn decode(text: &str) -> Vec<u8> {
 }
 
 fn entities(doc: &CadDocument) -> u64 {
-    doc.inspect().unwrap()["object.query"].as_u64().unwrap()
+    doc.inspect().unwrap()["entities"].as_u64().unwrap()
 }
 
 /// The room's drawing, as a collaborator holds it: one line.
 fn peer() -> CadDocument {
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    doc.execute("line", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
+    doc.execute("line.add", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
     doc.version().unwrap();
     doc
 }
@@ -72,12 +72,12 @@ fn opens_a_room_without_a_file_and_imports_exports_and_saves_it() {
 
     // A collaborator's change comes in.
     let since = peer.version().unwrap();
-    peer.execute("circle", json!({ "center": [200, 100], "radius": 20 })).unwrap();
+    peer.execute("circle.add", json!({ "center": [200, 100], "radius": 20 })).unwrap();
     let change = peer.export_changes(&since).unwrap();
     kit.model("model.import", json!({ "documentId": id, "changes": encode(&change) })).unwrap();
 
     // The kit edits on top of it, and the collaborator takes what it exports.
-    let batch = json!({ "documentId": id, "ops": [{ "op": "command", "id": "line", "params": { "points": [[0, 0], [50, 0]] } }] });
+    let batch = json!({ "documentId": id, "ops": [{ "op": "command", "id": "line.add", "params": { "points": [[0, 0], [50, 0]] } }] });
     kit.model("model.batch", batch).unwrap();
     let exported = kit.model("model.export", json!({ "documentId": id, "since": encode(&peer.version().unwrap()) })).unwrap();
     peer.import_changes(&decode(exported["changes"].as_str().unwrap())).unwrap();

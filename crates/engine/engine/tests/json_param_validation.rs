@@ -20,28 +20,28 @@ fn session() -> Session {
 #[test]
 fn invalid_sizes_and_points_are_refused() {
     let cases: &[(&str, Value, &str)] = &[
-        ("circle", json!({"center": [0, 0], "radius": -5}), "`radius` must be positive"),
-        ("circle", json!({"center": [0, 0], "radius": 1e-300}), "radius must be positive"),
-        ("circle", json!({"center": [0, 0], "diameter": -2}), "`diameter` must be positive"),
-        ("arc", json!({"center": [0, 0], "radius": -5, "start": 0, "end": 90}), "`radius` must be positive"),
-        ("polygon", json!({"sides": -3, "center": [0, 0], "radius": 5}), "sides must be 3..1024"),
-        ("polygon", json!({"sides": 6, "center": [0, 0], "radius": -5}), "`radius` must be positive"),
-        ("polygon", json!({"sides": 6, "center": [0, 0], "radius": 0}), "`radius` must be positive"),
-        ("polygon", json!({"sides": 6, "edge": [[1, 1], [1, 1]]}), "edge endpoints must differ"),
-        ("donut", json!({"center": [0, 0], "inside": -1, "outside": 2}), "`inside` must be zero or positive"),
-        ("donut", json!({"center": [0, 0], "inside": 0, "outside": 0}), "`outside` must be positive"),
-        ("donut", json!({"center": [0, 0], "inside": 5, "outside": 2}), "must not be larger"),
+        ("circle.add", json!({"center": [0, 0], "radius": -5}), "`radius` must be positive"),
+        ("circle.add", json!({"center": [0, 0], "radius": 1e-300}), "radius must be positive"),
+        ("circle.add", json!({"center": [0, 0], "diameter": -2}), "`diameter` must be positive"),
+        ("arc.add", json!({"center": [0, 0], "radius": -5, "start": 0, "end": 90}), "`radius` must be positive"),
+        ("polygon.add", json!({"sides": -3, "center": [0, 0], "radius": 5}), "sides must be 3..1024"),
+        ("polygon.add", json!({"sides": 6, "center": [0, 0], "radius": -5}), "`radius` must be positive"),
+        ("polygon.add", json!({"sides": 6, "center": [0, 0], "radius": 0}), "`radius` must be positive"),
+        ("polygon.add", json!({"sides": 6, "edge": [[1, 1], [1, 1]]}), "edge endpoints must differ"),
+        ("donut.add", json!({"center": [0, 0], "inside": -1, "outside": 2}), "`inside` must be zero or positive"),
+        ("donut.add", json!({"center": [0, 0], "inside": 0, "outside": 0}), "`outside` must be positive"),
+        ("donut.add", json!({"center": [0, 0], "inside": 5, "outside": 2}), "must not be larger"),
         ("rectangle.add", json!({"p1": [0, 0], "p2": [10, 5], "fillet": -1}), "`fillet` must be zero or positive"),
         ("rectangle.add", json!({"p1": [0, 0], "p2": [10, 5], "chamfer": [-1, 1]}), "`chamfer` distances"),
         ("rectangle.add", json!({"p1": [0, 0], "p2": [10, 5], "width": -1}), "`width` must be zero or positive"),
         ("polyline.add", json!({"vertices": [[0, 0], [1, 0]], "width": -1}), "`width` must be zero or positive"),
         ("polyline.add", json!({"vertices": [{"p": [0, 0], "startWidth": -1}, [1, 0]]}), "`startWidth` must be zero or positive"),
-        ("line", json!({"points": [[2, 2], [2, 2]]}), "2 different points"),
-        ("spline", json!({"fit": [[0, 0], [0, 0], [0, 0]]}), "different fit points"),
-        ("hatch", json!({"points": [[1, 1]], "scale": 0}), "`scale` must be positive"),
-        ("hatch", json!({"points": [[1, 1]], "scale": -1}), "`scale` must be positive"),
-        ("table", json!({"at": [0, 0], "rows": 2, "cols": 2, "rowHeight": -1}), "`rowHeight` must be positive"),
-        ("table", json!({"at": [0, 0], "rows": 2, "cols": 2, "colWidth": 0}), "`colWidth` must be positive"),
+        ("line.add", json!({"points": [[2, 2], [2, 2]]}), "2 different points"),
+        ("spline.add", json!({"fit": [[0, 0], [0, 0], [0, 0]]}), "different fit points"),
+        ("hatch.add", json!({"points": [[1, 1]], "scale": 0}), "`scale` must be positive"),
+        ("hatch.add", json!({"points": [[1, 1]], "scale": -1}), "`scale` must be positive"),
+        ("table.add", json!({"at": [0, 0], "rows": 2, "cols": 2, "rowHeight": -1}), "`rowHeight` must be positive"),
+        ("table.add", json!({"at": [0, 0], "rows": 2, "cols": 2, "colWidth": 0}), "`colWidth` must be positive"),
         ("dimension.addRadius", json!({"center": [3, 3], "point": [3, 3]}), "must differ from `center`"),
         ("dimension.addDiameter", json!({"center": [3, 3], "point": [3, 3]}), "must differ from `center`"),
         ("dimension.addAngular", json!({"vertex": [0, 0], "p1": [0, 0], "p2": [5, 0], "at": [1, 1]}), "must differ from `vertex`"),
@@ -60,17 +60,17 @@ fn invalid_sizes_and_points_are_refused() {
 #[test]
 fn valid_values_still_work() {
     let cases: &[(&str, Value)] = &[
-        ("circle", json!({"center": [0, 0], "radius": 5})),
-        ("circle", json!({"center": [0, 0], "diameter": 4})),
-        ("arc", json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})),
-        ("polygon", json!({"center": [0, 0], "radius": 5})),
-        ("polygon", json!({"sides": 6, "edge": [[0, 0], [1, 0]]})),
-        ("donut", json!({"center": [0, 0], "inside": 0, "outside": 2})),
-        ("donut", json!({"center": [0, 0], "inside": 2, "outside": 2})),
+        ("circle.add", json!({"center": [0, 0], "radius": 5})),
+        ("circle.add", json!({"center": [0, 0], "diameter": 4})),
+        ("arc.add", json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})),
+        ("polygon.add", json!({"center": [0, 0], "radius": 5})),
+        ("polygon.add", json!({"sides": 6, "edge": [[0, 0], [1, 0]]})),
+        ("donut.add", json!({"center": [0, 0], "inside": 0, "outside": 2})),
+        ("donut.add", json!({"center": [0, 0], "inside": 2, "outside": 2})),
         ("rectangle.add", json!({"p1": [0, 0], "p2": [10, 5], "fillet": 0, "width": 0, "chamfer": [0, 0]})),
         ("polyline.add", json!({"vertices": [{"p": [0, 0], "startWidth": 0, "endWidth": 1}, [1, 0]], "width": 0.5})),
-        ("hatch", json!({"points": [[1, 1]], "scale": 2})),
-        ("table", json!({"at": [20, 0], "rows": 2, "cols": 2, "rowHeight": 1, "colWidth": 3})),
+        ("hatch.add", json!({"points": [[1, 1]], "scale": 2})),
+        ("table.add", json!({"at": [20, 0], "rows": 2, "cols": 2, "rowHeight": 1, "colWidth": 3})),
         ("dimension.addRadius", json!({"center": [3, 3], "point": [5, 3]})),
     ];
     for (cmd, p) in cases {
@@ -88,7 +88,7 @@ fn valid_values_still_work() {
 #[test]
 fn repeated_line_points_make_no_zero_length_line() {
     let mut s = Session::new();
-    let r = s.execute("line", &json!({"points": [[0, 0], [0, 0], [5, 0], [5, 0], [5, 5]], "closed": true})).unwrap();
+    let r = s.execute("line.add", &json!({"points": [[0, 0], [0, 0], [5, 0], [5, 0], [5, 5]], "closed": true})).unwrap();
     assert_eq!(r["handles"].as_array().map(Vec::len), Some(3), "{r}");
     let d = s.doc().unwrap();
     assert!(d.model.iter().all(|e| matches!(&e.kind, EntityKind::Line(l) if l.a != l.b)));

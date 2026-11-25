@@ -29,7 +29,7 @@
         "purge_other": { "premiseOnly": true, "description": "No victims for purge types the engine does not implement." },
         "audit": { "premiseOnly": true, "description": "Original and repaired objects from the engine's audit scan." },
         "history": { "premiseOnly": true, "description": "Drawing content held by history operations; outside rereads preserve scoped undo histories." },
-        "object.deleteDuplicates": { "premiseOnly": true, "description": "Duplicate-removal victims and values in each space." },
+        "overkill": { "premiseOnly": true, "description": "Duplicate-removal victims and values in each space." },
         "cutters": { "premiseOnly": true, "description": "Visible supported cutting-edge membership in each drawing space." },
         "insertRefs": { "premiseOnly": true, "description": "Direct insert-reference membership for attribute synchronization, excluding geometry and attribute values." },
         "texts": { "premiseOnly": true, "description": "Text in model and paper spaces, excluding placement. FIND filters historical matches in the call's space." },
@@ -87,7 +87,7 @@
       "label": "name",
       "fields": {
         "data": { "kind": "json" },
-        "object.query": { "kind": "list", "of": "Entity" },
+        "entities": { "kind": "list", "of": "Entity" },
         "id": { "kind": "string", "optional": true, "readOnly": true, "sample": false }, "name": { "kind": "string", "optional": true, "readOnly": true }
       },
       "toolId": { "field": "id", "prefix": "block:" }
@@ -98,7 +98,7 @@
       "fields": {
         "order": { "kind": "number", "sample": false },
         "data": { "kind": "json" },
-        "object.query": { "kind": "list", "of": "Entity" },
+        "entities": { "kind": "list", "of": "Entity" },
         "id": { "kind": "string", "optional": true, "readOnly": true, "sample": false }, "name": { "kind": "string", "optional": true, "readOnly": true }
       },
       "toolId": { "field": "id", "prefix": "layout:" }
@@ -170,7 +170,7 @@
       "fields": {
         "description": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
         "handle": { "kind": "string", "optional": true, "readOnly": true },
-        "common": { "kind": "json", "members": { "property.linetypeScale": { "minimum": 0 } } },
+        "common": { "kind": "json", "members": { "ltscale": { "minimum": 0 } } },
         "constraintState": { "kind": "json", "optional": true, "readOnly": true, "sample": false },
         "kind": { "kind": "json" }
       },

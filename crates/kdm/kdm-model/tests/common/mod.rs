@@ -241,7 +241,7 @@ pub fn assert_replica_clean(replica: &Replica) {
         for (key, value) in replica.map_entries(&root, field).unwrap_or_default() {
             let object = ObjectId::from_string(value.as_str().unwrap_or_default());
             assert!(replica.exists(&object), "{field}[{key}] names a deleted object");
-            owners.push((object, "object.query"));
+            owners.push((object, "entities"));
         }
     }
     for table in kdm_model::Table::ALL {

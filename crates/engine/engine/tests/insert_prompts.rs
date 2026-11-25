@@ -21,8 +21,8 @@ fn inserts(s: &Session) -> Vec<(f64, f64, f64, f64, f64)> {
 #[test]
 fn script_insert_reads_x_and_y_scale_then_rotation_and_honours_its_options() {
     let mut s = Session::new();
-    s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-    s.execute("block", &json!({ "name": "B1", "base": [0, 0], "keep": "delete", "handles": ["100"] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "B1", "base": [0, 0], "keep": "delete", "handles": ["100"] })).unwrap();
     s.script(
         "-INSERT B1 20,20 1 1 0\n\
          -INSERT B1 40,20 2 3 45\n\
@@ -50,6 +50,6 @@ fn script_insert_reads_x_and_y_scale_then_rotation_and_honours_its_options() {
     assert_eq!(inserts(&s).last(), Some(&(0.0, 50.0, 4.0, 4.0, 0.0)));
 
     // The JSON form takes [x, y] scale factors and a base point too.
-    s.execute("insert", &json!({ "name": "B1", "at": [0, 80], "scale": [2, 3], "basePoint": [10, 0] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "B1", "at": [0, 80], "scale": [2, 3], "basePoint": [10, 0] })).unwrap();
     assert_eq!(inserts(&s).last(), Some(&(-20.0, 80.0, 2.0, 3.0, 0.0)));
 }

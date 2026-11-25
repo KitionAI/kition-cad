@@ -45,13 +45,13 @@ fn drawing() -> Drawing {
     let bytes = CadDocument::create(FILE, 420, 297).unwrap().save(Some(FILE)).unwrap();
     let mut doc = CadDocument::open(FILE, &bytes).unwrap();
     let r = handle(&doc.execute("rectangle.add", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap());
-    let a = handle(&doc.execute("line", json!({ "points": [[0, 80], [100, 80]] })).unwrap());
-    let b = handle(&doc.execute("line", json!({ "points": [[0, 90], [100, 90]] })).unwrap());
-    let door_line = handle(&doc.execute("line", json!({ "points": [[300, 0], [300, 20]] })).unwrap());
-    doc.execute("block", json!({ "name": "Door", "base": [300, 0], "handles": [door_line] })).unwrap();
-    let insert = handle(&doc.execute("insert", json!({ "name": "Door", "at": [150, 0] })).unwrap());
+    let a = handle(&doc.execute("line.add", json!({ "points": [[0, 80], [100, 80]] })).unwrap());
+    let b = handle(&doc.execute("line.add", json!({ "points": [[0, 90], [100, 90]] })).unwrap());
+    let door_line = handle(&doc.execute("line.add", json!({ "points": [[300, 0], [300, 20]] })).unwrap());
+    doc.execute("block.addDialog", json!({ "name": "Door", "base": [300, 0], "handles": [door_line] })).unwrap();
+    let insert = handle(&doc.execute("block.insert", json!({ "name": "Door", "at": [150, 0] })).unwrap());
     doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
-    let p = handle(&doc.execute("line", json!({ "points": [[10, 10], [60, 10]], "layout": "Layout1" })).unwrap());
+    let p = handle(&doc.execute("line.add", json!({ "points": [[10, 10], [60, 10]], "layout": "Layout1" })).unwrap());
     let bytes = doc.save(Some(FILE)).unwrap();
     // The block's line: its handle inside the definition, as the file has it.
     let reopened = kition_cad_io::read(&bytes, FILE).unwrap();
@@ -109,7 +109,7 @@ impl Fixture {
     /// The handles of a space's entities, as `entities {layout}` lists them.
     async fn space(&self, layout: &str) -> Vec<String> {
         let ran = self.ok("run", json!({ "save": false, "steps": [{ "command": "object.query", "params": { "layout": layout } }] })).await;
-        ran["completed"][0]["result"]["object.query"].as_array().unwrap().iter().map(|e| e["handle"].as_str().unwrap().to_owned()).collect()
+        ran["completed"][0]["result"]["entities"].as_array().unwrap().iter().map(|e| e["handle"].as_str().unwrap().to_owned()).collect()
     }
 
     async fn revision(&self) -> String {
@@ -263,7 +263,7 @@ async fn inspect_lists_every_space_and_previews_a_layout_by_name() {
     let seen = f.ok("inspect", json!({})).await;
     let layouts = seen["details"]["layouts"].clone();
     assert_eq!(layouts[0]["part"], json!({ "layout": "Model" }), "{seen}");
-    assert_eq!((layouts[1]["id"].clone(), layouts[1]["object.query"].clone()), (json!("layout:Layout1"), json!(1)), "{seen}");
+    assert_eq!((layouts[1]["id"].clone(), layouts[1]["entities"].clone()), (json!("layout:Layout1"), json!(1)), "{seen}");
     assert!(seen["details"].get("space").is_none() && seen["details"].get("selection").is_none(), "editor state is not what an agent reads");
     // A layout's preview by name, through the render command, without going there.
     let seen = f.ok("inspect", json!({ "target": { "layout": "Layout1" }, "preview": true })).await;

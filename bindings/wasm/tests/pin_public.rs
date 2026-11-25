@@ -27,15 +27,15 @@ fn guard_implementation_facts_are_premise_only() {
 fn exchange_follows_a_new_drawing_and_subsequent_model_edits() {
     use serde_json::json;
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    let h = doc.execute("circle", json!({"center":[10,10],"radius":5})).unwrap()["handle"].clone();
+    let h = doc.execute("circle.add", json!({"center":[10,10],"radius":5})).unwrap()["handle"].clone();
     let mut exchange = Exchange::new();
     let before = exchange.describe(&mut doc).unwrap();
     let result = exchange
         .batch(
             &mut doc,
             &json!({"ops":[
-        {"op":"command","id":"new","params":{}},
-        {"op":"command","id":"line","params":{"points":[[0,0],[10,0]]}}
+        {"op":"command","id":"file.new","params":{}},
+        {"op":"command","id":"line.add","params":{"points":[[0,0],[10,0]]}}
     ],"load":[{"target":"root","fields":["model"]}]}),
             false,
         )
@@ -43,7 +43,7 @@ fn exchange_follows_a_new_drawing_and_subsequent_model_edits() {
     assert_eq!(result["loaded"][0]["fields"]["model"].as_array().unwrap().len(), 1);
     let model = exchange.describe(&mut doc).unwrap();
     assert_eq!(model["rootId"], before["rootId"], "CAD uses a fixed public root across replacements");
-    assert_eq!(doc.inspect().unwrap()["object.query"], 1);
+    assert_eq!(doc.inspect().unwrap()["entities"], 1);
     let old = exchange.batch(&mut doc, &json!({"ops":[],"load":[{"target":h}]}), false).unwrap();
     assert_ne!(old["loaded"][0]["fields"]["kind"]["type"], "circle");
 }

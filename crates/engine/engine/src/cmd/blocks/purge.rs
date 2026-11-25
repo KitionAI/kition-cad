@@ -34,18 +34,18 @@ enum Kind {
 const KINDS: &[(&str, &[&str], Kind)] = &[
     ("Blocks", &["blocks", "block"], Kind::Blocks),
     ("DEtailviewstyles", &["detailviewstyles"], Kind::Absent),
-    ("Dimstyles", &["dimstyles", "dimensionStyle.open"], Kind::Dimstyles),
+    ("Dimstyles", &["dimstyles", "dimstyle"], Kind::Dimstyles),
     ("Groups", &["groups", "group"], Kind::Groups),
     ("LAyers", &["layers", "layer"], Kind::Layers),
     ("LTypes", &["ltypes", "linetypes", "linetype"], Kind::Linetypes),
     ("MAterials", &["materials"], Kind::Absent),
-    ("MUltileaderstyles", &["multileaderstyles", "mleaderstyles", "multileaderStyle.open"], Kind::MleaderStyles),
+    ("MUltileaderstyles", &["multileaderstyles", "mleaderstyles", "mleaderstyle"], Kind::MleaderStyles),
     ("Plotstyles", &["plotstyles"], Kind::Absent),
     ("SHapes", &["shapes"], Kind::Absent),
     ("textSTyles", &["textstyles", "textstyle", "styles", "style"], Kind::TextStyles),
     ("Mlinestyles", &["mlinestyles"], Kind::Absent),
     ("SEctionviewstyles", &["sectionviewstyles"], Kind::Absent),
-    ("Tablestyles", &["tablestyles", "tableStyle.open"], Kind::TableStyles),
+    ("Tablestyles", &["tablestyles", "tablestyle"], Kind::TableStyles),
     ("Visualstyles", &["visualstyles"], Kind::Absent),
     ("Regapps", &["regapps"], Kind::Absent),
     ("Zero-length geometry", &["zerolengthgeometry", "zerolength"], Kind::ZeroLength),
@@ -103,7 +103,7 @@ fn json_key(kind: Kind) -> &'static str {
 
 pub fn purge_premise_key(p: &Value) -> Result<String> {
     let ty = str_param(p, "type").unwrap_or("all");
-    let (_, kind) = kind_of(ty).ok_or_else(|| bad("purge", format!("unknown type `{ty}`")))?;
+    let (_, kind) = kind_of(ty).ok_or_else(|| bad("file.purge", format!("unknown type `{ty}`")))?;
     Ok(format!("purge_{}", if kind == Kind::All { "all" } else { json_key(kind) }))
 }
 
@@ -347,7 +347,7 @@ fn purge_kind(s: &mut Session, kind: Kind, names: &str, r: &mut Report) -> Resul
 
 pub(in crate::cmd) fn run(s: &mut Session, p: &Value) -> Result<Value> {
     let ty = str_param(p, "type").unwrap_or("all");
-    let (_, kind) = kind_of(ty).ok_or_else(|| bad("purge", format!("unknown type `{ty}`")))?;
+    let (_, kind) = kind_of(ty).ok_or_else(|| bad("file.purge", format!("unknown type `{ty}`")))?;
     let names = str_param(p, "names").unwrap_or("*");
     let mut r = Report::default();
     purge_kind(s, kind, names, &mut r)?;

@@ -74,9 +74,9 @@ fn objects(d: &Drawing) -> BTreeMap<String, Value> {
         ("layers", "layer"),
         ("linetypes", "linetype"),
         ("textStyles", "textstyle"),
-        ("dimStyles", "dimensionStyle.open"),
-        ("mleaderStyles", "multileaderStyle.open"),
-        ("tableStyles", "tableStyle.open"),
+        ("dimStyles", "dimstyle"),
+        ("mleaderStyles", "mleaderstyle"),
+        ("tableStyles", "tablestyle"),
         ("views", "view"),
         ("ucss", "ucs"),
         ("layerStates", "layerstate"),
@@ -148,7 +148,7 @@ pub fn layer_members(d: &Drawing) -> Value {
                     })
                     .map(|e| e.handle.hex())
                     .collect();
-                (key(&l.name), json!({"object.query":hs,"viewports":vps}))
+                (key(&l.name), json!({"entities":hs,"viewports":vps}))
             })
             .collect::<BTreeMap<_, _>>()
     )

@@ -15,16 +15,16 @@ const DIMSTYLE_PARAMS: &str = "{name: str, current?: bool (make it the current s
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("properties", "Properties", run_get).menu(&["Modify", "Properties"]).alias(&["pr", "props", "ch"]).params("{handles?} → properties of the selection").noundo(),
+        CommandSpec::new("object.properties", "Properties", run_get).menu(&["Modify", "Properties"]).alias(&["pr", "props", "ch"]).params("{handles?} → properties of the selection").noundo(),
         CommandSpec::new("object.setProperties", "Set Properties", run_set).params("{handles?, layer?: string (a layer name), color?, linetype?, lineweight?, ltscale?: number, transparency?: \"ByLayer\" | \"ByBlock\" | 0..90, visible?: bool, dimStyle?: string (a dimension style name), start?: [x,y], end?: [x,y], length?: number (a line's), angle?: number (degrees; a line's, or a hatch pattern's), center?: [x,y], radius?: number, diameter?: number, circumference?: number, area?: number, startAngle?: number (degrees), endAngle?: number (degrees), text?: string, textOverride?: string (a dimension's), height?: number, rotation?: number (degrees), widthFactor?: number, width?: number (a polyline's or text frame's), position?: [x,y] (text), closed?: bool, scale?: number (a block's or hatch pattern's), pattern?: string (a hatch pattern name)}"),
         CommandSpec::new("object.matchProperties", "Match Properties", run_matchprop).menu(&["Modify", "Match Properties"]).alias(&["ma", "painter"]).params("{source, targets: [str] (handles)}"),
-        CommandSpec::new("color", "Color...", run_color).menu(&["Format", "Color..."]).alias(&["col", "colour"]).params("{color: \"ByLayer\" | \"red\" | 1..255 | \"r,g,b\"}"),
-        CommandSpec::new("linetype", "Linetype...", run_linetype).menu(&["Format", "Linetype..."]).alias(&["lt", "ltype"]).params("{current?: name, load?: name | \"*\"}"),
+        CommandSpec::new("property.color", "Color...", run_color).menu(&["Format", "Color..."]).alias(&["col", "colour"]).params("{color: \"ByLayer\" | \"red\" | 1..255 | \"r,g,b\"}"),
+        CommandSpec::new("property.linetype", "Linetype...", run_linetype).menu(&["Format", "Linetype..."]).alias(&["lt", "ltype"]).params("{current?: name, load?: name | \"*\"}"),
         CommandSpec::new("property.lineweight", "Lineweight...", run_lweight).menu(&["Format", "Lineweight..."]).alias(&["lw", "lineweight"]).params("{lineweight: mm | ByLayer}"),
         CommandSpec::new("property.linetypeScale", "Linetype Scale", run_ltscale).alias(&["lts"]).params("{scale}"),
-        CommandSpec::new("units", "Units...", run_units).menu(&["Format", "Units..."]).alias(&["un"]).params("{lunits?: 1..5, luprec?: 0..8, aunits?: 0..4, auprec?: 0..8, insunits?}"),
-        CommandSpec::new("limits", "Drawing Limits", run_limits).menu(&["Format", "Drawing Limits"]).params("{min: [x,y], max: [x,y]}"),
-        CommandSpec::new("style", "Text Style...", run_style)
+        CommandSpec::new("file.setUnits", "Units...", run_units).menu(&["Format", "Units..."]).alias(&["un"]).params("{lunits?: 1..5, luprec?: 0..8, aunits?: 0..4, auprec?: 0..8, insunits?}"),
+        CommandSpec::new("file.setLimits", "Drawing Limits", run_limits).menu(&["Format", "Drawing Limits"]).params("{min: [x,y], max: [x,y]}"),
+        CommandSpec::new("textStyle.open", "Text Style...", run_style)
             .menu(&["Format", "Text Style..."])
             .alias(&["st"])
             .params("{name, font?, bigFont?, height?, widthFactor?, oblique? (degrees), backwards?, upsideDown?, vertical?, annotative?, current?} → styles"),
@@ -52,7 +52,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["mls"])
             .params("{name, arrowSize?, textHeight?, landingGap?, dogleg?, textStyle?, current?} → styles"),
         CommandSpec::new("point.style", "Point Style...", run_ptype).menu(&["Format", "Point Style..."]).params("{pdmode, pdsize}"),
-        CommandSpec::new("rename", "Rename...", run_rename)
+        CommandSpec::new("namedObject.rename", "Rename...", run_rename)
             .menu(&["Format", "Rename..."])
             .alias(&["ren", "-rename"])
             .params("{table: layer|linetype|style|dimstyle|block|mleaderstyle|tablestyle|view|ucs, from, to}")
@@ -68,7 +68,7 @@ pub(super) fn entity_props(d: &kition_cad_doc::Drawing, e: &kition_cad_doc::Enti
         "color": e.common.color.name(),
         "linetype": e.common.linetype,
         "lineweight": e.common.lineweight.name(),
-        "property.linetypeScale": e.common.ltscale,
+        "ltscale": e.common.ltscale,
         "transparency": transparency_value(e.common.transparency),
         "visible": e.common.visible,
     });
@@ -206,7 +206,7 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
             if let Some(w) = lw {
                 e.common.lineweight = w;
             }
-            if let Some(x) = p.get("property.linetypeScale").and_then(Value::as_f64).filter(|x| *x > 0.0) {
+            if let Some(x) = p.get("ltscale").and_then(Value::as_f64).filter(|x| *x > 0.0) {
                 e.common.ltscale = x;
             }
             if let Some(t) = transparency {
@@ -379,7 +379,7 @@ fn run_matchprop(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_color(s: &mut Session, p: &Value) -> Result<Value> {
-    let c = p.get("color").and_then(parse_color).ok_or_else(|| bad("color", "`color` is required"))?;
+    let c = p.get("color").and_then(parse_color).ok_or_else(|| bad("property.color", "`color` is required"))?;
     let d = s.doc_mut()?;
     match c {
         Color::True(rgb) => {
@@ -406,12 +406,12 @@ fn run_linetype(s: &mut Session, p: &Value) -> Result<Value> {
             }
         }
         if n == 0 && load != "*" && d.linetype(load).is_none() {
-            return Err(bad("linetype", format!("linetype `{load}` not found in the library")));
+            return Err(bad("property.linetype", format!("linetype `{load}` not found in the library")));
         }
     }
     if let Some(cur) = str_param(p, "current") {
         if !["bylayer", "byblock"].contains(&cur.to_ascii_lowercase().as_str()) && d.linetype(cur).is_none() {
-            return Err(bad("linetype", format!("linetype `{cur}` is not loaded")));
+            return Err(bad("property.linetype", format!("linetype `{cur}` is not loaded")));
         }
         d.header.set_str("CELTYPE", cur);
     }
@@ -455,8 +455,8 @@ fn run_units(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_limits(s: &mut Session, p: &Value) -> Result<Value> {
-    let a = point_req("limits", p, "min")?;
-    let b = point_req("limits", p, "max")?;
+    let a = point_req("file.setLimits", p, "min")?;
+    let b = point_req("file.setLimits", p, "max")?;
     let d = s.doc_mut()?;
     d.header.set("LIMMIN", kition_cad_doc::HVal::Point(a.to3(0.0)));
     d.header.set("LIMMAX", kition_cad_doc::HVal::Point(b.to3(0.0)));
@@ -486,9 +486,9 @@ fn styles_json(d: &kition_cad_doc::Drawing) -> Value {
 }
 
 fn run_style(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("style", "`name` is required"))?.trim().to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("textStyle.open", "`name` is required"))?.trim().to_string();
     if name.is_empty() || name.len() > 255 {
-        return Err(bad("style", "bad style name"));
+        return Err(bad("textStyle.open", "bad style name"));
     }
     let d = s.doc_mut()?;
     let idx = match d.text_styles.iter().position(|t| t.name.eq_ignore_ascii_case(&name)) {
@@ -760,7 +760,7 @@ fn run_dimstyle_rename(s: &mut Session, p: &Value) -> Result<Value> {
         .ok_or_else(|| bad("dimensionStyle.rename", "no such dimension style"))?;
     let old = st.name.clone();
     st.name = to.clone();
-    d.rename_record_id("dimensionStyle.open", &old, &to);
+    d.rename_record_id("dimstyle", &old, &to);
     if d.header.str("DIMSTYLE", "Standard").eq_ignore_ascii_case(&from) {
         d.header.set_str("DIMSTYLE", &to);
     }
@@ -934,32 +934,33 @@ fn run_ptype(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_rename(s: &mut Session, p: &Value) -> Result<Value> {
     let table = str_param(p, "table").unwrap_or("layer").to_ascii_lowercase();
-    let from = str_param(p, "from").ok_or_else(|| bad("rename", "`from` is required"))?.to_string();
-    let to = str_param(p, "to").ok_or_else(|| bad("rename", "`to` is required"))?.to_string();
+    let from = str_param(p, "from").ok_or_else(|| bad("namedObject.rename", "`from` is required"))?.to_string();
+    let to = str_param(p, "to").ok_or_else(|| bad("namedObject.rename", "`to` is required"))?.to_string();
     match table.as_str() {
         "layer" => {
             // The command body, not `execute`: RENAME records the one undo step.
-            let set = find_command("layer.set").ok_or_else(|| bad("rename", "no layer.set command"))?;
+            let set = find_command("layer.set").ok_or_else(|| bad("namedObject.rename", "no layer.set command"))?;
             (set.run)(s, &json!({ "name": from, "newName": to }))?;
         }
         "block" => rename::block(s, &from, &to)?,
-        "multileaderStyle.open" | "multileaderstyle" => rename::simple(s, "multileaderStyle.open", &from, &to)?,
-        "tableStyle.open" | "view" | "ucs" => rename::simple(s, &table, &from, &to)?,
+        "mleaderstyle" | "multileaderstyle" => rename::simple(s, "mleaderstyle", &from, &to)?,
+        "tablestyle" | "view" | "ucs" => rename::simple(s, &table, &from, &to)?,
         "style" | "textstyle" => {
             run_style_rename(s, &json!({ "from": from, "to": to }))?;
         }
-        "dimensionStyle.open" => {
+        "dimstyle" => {
             run_dimstyle_rename(s, &json!({ "from": from, "to": to }))?;
         }
         "linetype" | "ltype" => {
             let d = s.doc_mut()?;
             if ["ByBlock", "ByLayer", "Continuous"].iter().any(|n| from.eq_ignore_ascii_case(n)) {
-                return Err(bad("rename", format!("the {from} linetype cannot be renamed")));
+                return Err(bad("namedObject.rename", format!("the {from} linetype cannot be renamed")));
             }
             if d.linetype(&to).is_some() && !to.eq_ignore_ascii_case(&from) {
-                return Err(bad("rename", format!("a linetype `{to}` already exists")));
+                return Err(bad("namedObject.rename", format!("a linetype `{to}` already exists")));
             }
-            let st = d.linetypes.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&from)).ok_or_else(|| bad("rename", "no such linetype"))?;
+            let st =
+                d.linetypes.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&from)).ok_or_else(|| bad("namedObject.rename", "no such linetype"))?;
             let old = st.name.clone();
             st.name = to.clone();
             d.rename_record_id("linetype", &old, &to);
@@ -991,7 +992,7 @@ fn run_rename(s: &mut Session, p: &Value) -> Result<Value> {
                 }
             }
         }
-        _ => return Err(bad("rename", "unsupported table")),
+        _ => return Err(bad("namedObject.rename", "unsupported table")),
     }
     ok()
 }

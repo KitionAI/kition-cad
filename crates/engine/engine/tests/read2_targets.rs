@@ -9,7 +9,7 @@ fn h(v: &Value) -> Handle {
     Handle::parse_hex(v.as_str().unwrap()).unwrap()
 }
 fn line(s: &mut Session) -> Value {
-    run(s, "line", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone()
+    run(s, "line.add", json!({"points":[[0,0],[10,0]]}))["handles"][0].clone()
 }
 
 #[test]

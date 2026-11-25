@@ -9,14 +9,14 @@ fn with_block() -> Session {
     let mut s = Session::new();
     s.execute("attribute.define", &json!({"tag": "T", "default": "one", "at": [0, 1]})).unwrap();
     s.execute("attribute.define", &json!({"tag": "U", "default": "u", "at": [0, 2]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
-    s.execute("block", &json!({"name": "B", "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "B", "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
     s
 }
 
 fn insert(s: &mut Session, x: f64, attribs: Value) -> Value {
-    s.execute("insert", &json!({"name": "B", "at": [x, 0], "attribs": attribs})).unwrap()
+    s.execute("block.insert", &json!({"name": "B", "at": [x, 0], "attribs": attribs})).unwrap()
 }
 
 fn handle(r: &Value) -> Handle {
@@ -52,7 +52,7 @@ fn attedit_asks_for_a_block_then_each_value() {
     assert_eq!(value(&s, h, "T"), "one");
 
     // EATTEDIT is the same command; a pick on nothing editable re-prompts.
-    s.execute("line", &json!({"points": [[0, 50], [10, 50]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 50], [10, 50]]})).unwrap();
     type_lines(&mut s, &["eattedit", "5,50"]);
     assert!(s.log.iter().any(|l| l.contains("Select a block reference.")), "{:?}", s.log);
     type_lines(&mut s, &["105,0", "x", "y"]);
@@ -82,7 +82,7 @@ fn dash_attedit_global_replaces_a_string_in_matching_attributes() {
 fn dash_attedit_one_at_a_time_edits_the_selected_attributes() {
     let mut s = with_block();
     let h = handle(&insert(&mut s, 100.0, json!({"T": "abc"})));
-    type_lines(&mut s, &["attribute.editGlobal", "y", "", "T", "", "105,0", ""]);
+    type_lines(&mut s, &["-attedit", "y", "", "T", "", "105,0", ""]);
     assert!(s.prompt_text().contains("[Value/Layer/Color/Next] <N>"), "{}", s.prompt_text());
     // Unsupported options say so and keep the prompt.
     s.cmdline("p").unwrap();

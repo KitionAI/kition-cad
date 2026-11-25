@@ -22,7 +22,7 @@ fn pagesetup_sets_table_and_display_flag() {
 #[test]
 fn plotstyle_sets_objects_and_the_current_style() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let handle = s.doc().unwrap().model.last().unwrap().handle;
     let h = handle.hex();
     // No name: a report.
@@ -34,9 +34,9 @@ fn plotstyle_sets_objects_and_the_current_style() {
     assert_eq!(r["changed"], 1);
     assert_eq!(s.doc().unwrap().entity(handle).unwrap().common.plot_style, "Black");
     // Nothing selected: the current style for new objects.
-    s.execute("select", &json!({"handles": []})).ok();
+    s.execute("select.set", &json!({"handles": []})).ok();
     s.execute("plot.style", &json!({"name": "byblock"})).unwrap();
-    s.execute("line", &json!({"points": [[0, 1], [10, 1]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 1], [10, 1]]})).unwrap();
     let h2 = s.doc().unwrap().model.last().unwrap().handle;
     assert_eq!(s.doc().unwrap().entity(h2).unwrap().common.plot_style, "ByBlock");
     assert!(s.execute("plot.style", &json!({"name": "  "})).is_err());
@@ -102,5 +102,5 @@ fn stylesmanager_creates_edits_saves_and_loads_tables() {
         let _ = std::fs::remove_file(&path);
     }
     // Undo takes a table edit back.
-    s.execute("undo", &json!({})).unwrap();
+    s.execute("edit.undoMany", &json!({})).unwrap();
 }

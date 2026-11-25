@@ -14,10 +14,10 @@ use std::path::PathBuf;
 #[tokio::test(flavor = "multi_thread")]
 async fn finite_line_boundary_still_holds_endpoints() {
     check_with_setup(
-        |_| ("boundary", json!({"points":[[50,25]]})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[0,5]}))],
+        |_| ("boundary.add", json!({"points":[[50,25]]})),
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[0,5]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
-        |_| vec![("line", json!({"points":[[100,50],[0,50],[0,0]]}))],
+        |_| vec![("line.add", json!({"points":[[100,50],[0,50],[0,0]]}))],
     )
     .await;
 }
@@ -26,7 +26,7 @@ async fn equal_finite_line_offsets_keep_their_receipt_footprint() {
     let mut d = CadDocument::create(FILE, 420, 297).unwrap();
     let mut ids = Vec::new();
     for x in 0..4 {
-        ids.push(d.execute("line", json!({"points":[[x,0],[x,10]]})).unwrap()["handles"][0].clone());
+        ids.push(d.execute("line.add", json!({"points":[[x,0],[x,10]]})).unwrap()["handles"][0].clone());
     }
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();

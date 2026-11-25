@@ -25,17 +25,17 @@ impl Fixture {
     pub fn new() -> Self {
         let mut d = CadDocument::create(FILE, 420, 297).unwrap();
         d.execute("layer.add", json!({"name":"Editable"})).unwrap();
-        let line = d.execute("line", json!({"points":[[0,0],[100,0]],"layer":"Editable"})).unwrap()["handles"][0].clone();
-        let circle = d.execute("circle", json!({"center":[100,100],"radius":5,"layer":"Editable"})).unwrap()["handle"].clone();
-        let text = d.execute("text", json!({"at":[0,50],"text":"Before","height":3,"layer":"Editable"})).unwrap()["handle"].clone();
+        let line = d.execute("line.add", json!({"points":[[0,0],[100,0]],"layer":"Editable"})).unwrap()["handles"][0].clone();
+        let circle = d.execute("circle.add", json!({"center":[100,100],"radius":5,"layer":"Editable"})).unwrap()["handle"].clone();
+        let text = d.execute("text.add", json!({"at":[0,50],"text":"Before","height":3,"layer":"Editable"})).unwrap()["handle"].clone();
         let dim =
             d.execute("dimension.addLinear", json!({"p1":[200,100],"p2":[250,100],"at":[225,90],"layer":"Editable"})).unwrap()["handle"].clone();
         let att = d.execute("attribute.define", json!({"at":[200,200],"tag":"CODE","default":"A","height":3})).unwrap()["handle"].clone();
-        d.execute("block", json!({"name":"Marker","base":[200,200],"handles":[att],"keep":"delete"})).unwrap();
-        let insert = d.execute("insert", json!({"name":"Marker","at":[300,200],"layer":"Editable"})).unwrap()["handle"].clone();
-        let table = d.execute("table", json!({"at":[400,0],"rows":3,"cols":3})).unwrap()["handle"].clone();
+        d.execute("block.addDialog", json!({"name":"Marker","base":[200,200],"handles":[att],"keep":"delete"})).unwrap();
+        let insert = d.execute("block.insert", json!({"name":"Marker","at":[300,200],"layer":"Editable"})).unwrap()["handle"].clone();
+        let table = d.execute("table.add", json!({"at":[400,0],"rows":3,"cols":3})).unwrap()["handle"].clone();
         d.execute("layer.add", json!({"name":"Secondary"})).unwrap();
-        let joined = d.execute("line", json!({"points":[[100,0],[100,50]],"layer":"Secondary"})).unwrap()["handles"][0].clone();
+        let joined = d.execute("line.add", json!({"points":[[100,0],[100,50]],"layer":"Secondary"})).unwrap()["handles"][0].clone();
         let workspace = tempfile::tempdir().unwrap();
         std::fs::write(workspace.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();
         let definition = KitDefinition::from_manifest_text(include_str!("../../../../kit.json")).unwrap();
@@ -112,7 +112,7 @@ pub fn content(d: &kition_cad_doc::Drawing) -> Value {
         .iter()
         .map(|layout| json!({"name":layout.name,"page":layout.page,"order":layout.tab_order,"view":layout.view,"members":members(&layout.entities)}))
         .collect();
-    json!({"object.query":entities,"layouts":layouts,"blocks":blocks,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"groups":d.groups,"header":header,"constraints":d.constraints,"parametric":d.parametric})
+    json!({"entities":entities,"layouts":layouts,"blocks":blocks,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"groups":d.groups,"header":header,"constraints":d.constraints,"parametric":d.parametric})
 }
 
 pub async fn check(

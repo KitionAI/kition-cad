@@ -5,33 +5,33 @@ use kition_cad_engine::Session;
 use serde_json::{Value, json};
 
 fn circle(s: &mut Session) -> String {
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap()["handle"].as_str().unwrap().to_string()
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap()["handle"].as_str().unwrap().to_string()
 }
 
 fn snapshot(s: &mut Session) -> (Value, usize) {
     let i = s.execute("file.inspect", &json!({})).unwrap();
     let undo = i["undo"].as_array().map_or(0, Vec::len);
-    (i["object.query"].clone(), undo)
+    (i["entities"].clone(), undo)
 }
 
 #[test]
 fn json_transforms_that_overflow_are_refused() {
     let huge = [1e308, 1e308];
     let cases: Vec<(&str, Value)> = vec![
-        ("move", json!({"delta": huge})),
-        ("copy", json!({"delta": huge})),
-        ("scale", json!({"base": [0, 0], "factor": 1e308})),
-        ("rotate", json!({"base": [-1e308, -1e308], "angle": 180})),
-        ("mirror", json!({"p1": [-1e308, -1e308], "p2": [-1e308, 0]})),
+        ("object.move", json!({"delta": huge})),
+        ("object.copy", json!({"delta": huge})),
+        ("object.scale", json!({"base": [0, 0], "factor": 1e308})),
+        ("object.rotate", json!({"base": [-1e308, -1e308], "angle": 180})),
+        ("object.mirror", json!({"p1": [-1e308, -1e308], "p2": [-1e308, 0]})),
         ("object.arrayRectangular", json!({"rows": 3, "cols": 1, "rowSpacing": 1e308, "colSpacing": 1})),
-        ("stretch", json!({"window": [[-2, -2], [1.7e308, 1.7e308]], "delta": huge})),
-        ("offset", json!({"distance": 1e308, "side": [1.7e308, 1.7e308]})),
+        ("object.stretch", json!({"window": [[-2, -2], [1.7e308, 1.7e308]], "delta": huge})),
+        ("object.offset", json!({"distance": 1e308, "side": [1.7e308, 1.7e308]})),
     ];
     for (cmd, p) in cases {
         let mut s = Session::new();
         let h = circle(&mut s);
         // Put it where the edit overflows: far out, then once more.
-        s.execute("move", &json!({"handles": [h], "delta": huge})).unwrap();
+        s.execute("object.move", &json!({"handles": [h], "delta": huge})).unwrap();
         let before = snapshot(&mut s);
         let mut p = p;
         p["handles"] = json!([h]);

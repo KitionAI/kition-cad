@@ -21,7 +21,7 @@ async fn boundary_tolerance(command: &'static str) {
         let observed = f.disk();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
         f.colleague(&[if relevant {
-            ("line", json!({"points":[[10000,10000],[20000,20000]]}))
+            ("line.add", json!({"points":[[10000,10000],[20000,20000]]}))
         } else {
             ("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))
         }]);
@@ -53,9 +53,9 @@ macro_rules! probe {
         }
     };
 }
-probe!(boundary_tolerance_dependency, "boundary");
-probe!(hatch_tolerance_dependency, "hatch");
-probe!(gradient_tolerance_dependency, "gradient");
+probe!(boundary_tolerance_dependency, "boundary.add");
+probe!(hatch_tolerance_dependency, "hatch.add");
+probe!(gradient_tolerance_dependency, "hatch.addGradient");
 
 #[tokio::test(flavor = "multi_thread")]
 async fn layer_state_save_holds_its_destination_name() {
@@ -71,7 +71,7 @@ async fn layer_state_save_holds_its_destination_name() {
 async fn point_dimension_scans_follow_new_sources_and_allow_unrelated_properties() {
     check(
         |_| ("dimension.addLinear", json!({"p1":[700,700],"p2":[710,700],"at":[705,690]})),
-        |_| vec![("line", json!({"points":[[700,700],[710,700]]}))],
+        |_| vec![("line.add", json!({"points":[[700,700],[710,700]]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
@@ -80,7 +80,7 @@ async fn point_dimension_scans_follow_new_sources_and_allow_unrelated_properties
 #[tokio::test(flavor = "multi_thread")]
 async fn find_holds_matching_words_and_allows_nonmatching_words() {
     check(
-        |_| ("find", json!({"find":"Before","replace":"Mine"})),
+        |_| ("edit.find", json!({"find":"Before","replace":"Mine"})),
         |f| vec![("text.edit", json!({"handle":f.text,"text":"Before colleague"}))],
         |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"Kept"}}))],
     )

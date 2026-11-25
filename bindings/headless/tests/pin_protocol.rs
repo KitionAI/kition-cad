@@ -28,7 +28,7 @@ fn replacement_plans_advance_without_changing_the_live_drawing() {
     let root = tempfile::tempdir().unwrap();
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
     for x in [0, 20] {
-        doc.execute("circle", json!({"center":[x,10],"radius":5})).unwrap();
+        doc.execute("circle.add", json!({"center":[x,10],"radius":5})).unwrap();
     }
     std::fs::write(root.path().join("Plan.dxf"), doc.save(Some("Plan.dxf")).unwrap()).unwrap();
     let folder = HostFolder::new(root.path()).unwrap();

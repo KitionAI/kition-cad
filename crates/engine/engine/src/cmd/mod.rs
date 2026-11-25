@@ -1,5 +1,7 @@
-//! The command registry. Ids are AutoCAD command names in lower case; menu paths follow
-//! AutoCAD's menu bar so the catalog doubles as the parity metric.
+//! The command registry. Ids follow the Kition command naming standard (`line.add`,
+//! `object.fillet`); the classic CAD name a person types at the command line (`line`, `fillet`) is
+//! each command's `typed` name ([`names`]). Menu paths follow AutoCAD's menu bar so the catalog
+//! doubles as the parity metric.
 
 mod annotate;
 mod array;
@@ -29,6 +31,7 @@ pub use modify::cutting_edge_handles;
 mod modify2;
 pub use modify2::chspace_context;
 mod mtext_opts;
+pub mod names;
 mod pline_opts;
 mod props;
 pub use props::record_eligibility;
@@ -58,6 +61,9 @@ pub type Factory = fn(&Session) -> Result<Box<dyn Interactive>>;
 
 pub struct CommandSpec {
     pub id: &'static str,
+    /// The name typed at the command line (`line` for `line.add`); the id where [`names`] lists
+    /// none. The command line prints it in capitals. Programmatic calls take the id alone.
+    pub typed: &'static str,
     pub label: &'static str,
     /// Menu placement, e.g. `["Draw", "Circle", "Center, Radius"]`. Empty = not in menus.
     pub menu: &'static [&'static str],
@@ -76,6 +82,7 @@ impl CommandSpec {
     pub const fn new(id: &'static str, label: &'static str, run: Run) -> Self {
         CommandSpec {
             id,
+            typed: id,
             label,
             menu: &[],
             shortcut: None,
@@ -124,6 +131,7 @@ impl CommandSpec {
         let e = (self.enabled)(s);
         CommandInfo {
             id: self.id,
+            typed: self.typed,
             label: self.label,
             menu: self.menu.to_vec(),
             shortcut: self.shortcut,
@@ -140,6 +148,7 @@ impl CommandSpec {
 #[serde(rename_all = "camelCase")]
 pub struct CommandInfo {
     pub id: &'static str,
+    pub typed: &'static str,
     pub label: &'static str,
     pub menu: Vec<&'static str>,
     pub shortcut: Option<&'static str>,
@@ -190,35 +199,65 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(utility::specs());
         v.extend(table::specs());
         v.extend(constraints::specs());
+        for spec in &mut v {
+            if let Some(name) = names::typed(spec.id) {
+                spec.typed = name;
+            }
+        }
         v
     })
 }
 
+/// The command with this id. Ids are exact: `execute` and every other programmatic path take
+/// the id alone, never a typed name or an alias.
 pub fn find_command(id: &str) -> Option<&'static CommandSpec> {
-    let l = id.to_ascii_lowercase();
-    command_specs().iter().find(|c| c.id == l)
+    command_specs().iter().find(|c| c.id == id)
+}
+
+/// The name command `id` is typed by at the command line, or `id` itself for no command.
+pub fn typed_name(id: &str) -> &str {
+    find_command(id).map_or(id, |c| c.typed)
+}
+
+/// The command a lower-case name names at the command line: by its typed name, then by its id
+/// (in any case), then by an alias.
+fn find_typed(lower: &str) -> Option<&'static CommandSpec> {
+    let specs = command_specs();
+    specs
+        .iter()
+        .find(|c| c.typed == lower)
+        .or_else(|| specs.iter().find(|c| c.id.eq_ignore_ascii_case(lower)))
+        .or_else(|| specs.iter().find(|c| c.aliases.iter().any(|a| a.eq_ignore_ascii_case(lower))))
 }
 
 /// The command a name typed at the command line starts: after a leading `'` (transparent) and the
-/// `_`, `.` and `-` prefixes, a dashed form with an id of its own (-ATTEDIT) before the command it
-/// prefixes, then aliases. [`crate::Session::start`] and the command line's gate
-/// ([`crate::Session::step_gate`]) read a name the same way.
+/// `_`, `.` and `-` prefixes, a dashed form with a name of its own (-ATTEDIT, -BLOCK) before the
+/// command it prefixes. A name is a command's typed name (LINE), its id (`line.add`) or an alias
+/// (L). [`crate::Session::start`] and the command line's gate ([`crate::Session::step_gate`]) read
+/// a name the same way.
 pub fn resolve_typed(name: &str) -> Option<&'static CommandSpec> {
     let name = name.trim();
     let name = name.strip_prefix('\'').unwrap_or(name);
-    let lower = name.trim_start_matches(['_', '.', '-']).to_ascii_lowercase();
-    let dashed = resolve_alias(&name.trim_start_matches(['_', '.']).to_ascii_lowercase());
-    let id = if find_command(&dashed).is_some() { dashed } else { resolve_alias(&lower) };
-    find_command(&id)
+    let dashed = name.trim_start_matches(['_', '.']).to_ascii_lowercase();
+    let plain = name.trim_start_matches(['_', '.', '-']).to_ascii_lowercase();
+    find_typed(&dashed).or_else(|| find_typed(&plain))
 }
 
-/// Resolve a typed name or alias (AutoCAD-style short names such as `L`, `C`, `PL`) to an id.
+/// The id of the command a typed name, id or alias (AutoCAD-style short names such as `L`, `C`,
+/// `PL`) names at the command line; the name itself, in lower case, when it names none.
 pub fn resolve_alias(name: &str) -> String {
     let l = name.to_ascii_lowercase();
-    if find_command(&l).is_some() {
-        return l;
+    find_typed(&l).map(|c| c.id.to_string()).unwrap_or(l)
+}
+
+/// An error as the command line shows it: a command is named as it is typed (`line`), where the
+/// error itself names the id (`line.add`) for whoever called the command.
+pub fn typed_error(e: &EngineError) -> String {
+    match e {
+        EngineError::BadParams { cmd, msg } => EngineError::BadParams { cmd: typed_name(cmd).into(), msg: msg.clone() }.to_string(),
+        EngineError::Disabled(cmd, msg) => EngineError::Disabled(typed_name(cmd).into(), msg.clone()).to_string(),
+        other => other.to_string(),
     }
-    command_specs().iter().find(|c| c.aliases.iter().any(|a| a.eq_ignore_ascii_case(&l))).map(|c| c.id.to_string()).unwrap_or(l)
 }
 
 // ---------- param helpers ----------

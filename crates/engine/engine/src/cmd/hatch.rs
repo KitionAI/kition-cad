@@ -11,10 +11,10 @@ use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, St
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("hatch", "Hatch...", run_hatch).menu(&["Draw", "Hatch..."]).alias(&["h", "bh", "-hatch"]).params("{points?: [[x,y]] (internal points) | handles?: [str] (handles of closed objects), pattern?: \"ANSI31\", scale?, angle? (degrees), associative?}").interactive(|s| Ok(Box::new(HatchM::new(s, false)))),
-        CommandSpec::new("gradient", "Gradient...", run_gradient).menu(&["Draw", "Gradient..."]).alias(&["gd"]).params("{points? | handles?, color1?, color2?, angle?}").interactive(|s| Ok(Box::new(HatchM::new(s, true)))),
-        CommandSpec::new("boundary", "Boundary...", run_boundary).menu(&["Draw", "Boundary..."]).alias(&["bo", "bpoly"]).params("{points: [[x,y]]}").interactive(|_| Ok(Box::new(BoundaryM { region: false }))),
-        CommandSpec::new("region", "Region", run_region).menu(&["Draw", "Region"]).alias(&["reg"]).params("{handles?}"),
+        CommandSpec::new("hatch.add", "Hatch...", run_hatch).menu(&["Draw", "Hatch..."]).alias(&["h", "bh", "-hatch"]).params("{points?: [[x,y]] (internal points) | handles?: [str] (handles of closed objects), pattern?: \"ANSI31\", scale?, angle? (degrees), associative?}").interactive(|s| Ok(Box::new(HatchM::new(s, false)))),
+        CommandSpec::new("hatch.addGradient", "Gradient...", run_gradient).menu(&["Draw", "Gradient..."]).alias(&["gd"]).params("{points? | handles?, color1?, color2?, angle?}").interactive(|s| Ok(Box::new(HatchM::new(s, true)))),
+        CommandSpec::new("boundary.add", "Boundary...", run_boundary).menu(&["Draw", "Boundary..."]).alias(&["bo", "bpoly"]).params("{points: [[x,y]]}").interactive(|_| Ok(Box::new(BoundaryM { region: false }))),
+        CommandSpec::new("region.add", "Region", run_region).menu(&["Draw", "Region"]).alias(&["reg"]).params("{handles?}"),
         CommandSpec::new("hatch.edit", "Hatch Edit", run_hatchedit).menu(&["Modify", "Object", "Hatch..."]).alias(&["he"]).params("{handles?, pattern?, scale?, angle?}"),
     ]
 }
@@ -234,7 +234,7 @@ impl HatchSettings {
 
 fn make(s: &mut Session, p: &Value, gradient: bool) -> Result<Value> {
     // A zero or negative pattern scale would be clamped to a near-zero spacing.
-    size_param(if gradient { "gradient" } else { "hatch" }, p, "scale", false)?;
+    size_param(if gradient { "hatch.addGradient" } else { "hatch.add" }, p, "scale", false)?;
     let st = HatchSettings::from(s, p, gradient);
     let mut loops = Vec::new();
     if let Some(pts) = points_param(p, "points") {
@@ -246,7 +246,7 @@ fn make(s: &mut Session, p: &Value, gradient: bool) -> Result<Value> {
         loops = loops_from_handles(s, &hs)?;
     }
     if loops.is_empty() {
-        return Err(bad("hatch", "give internal `points` or boundary `handles`"));
+        return Err(bad("hatch.add", "give internal `points` or boundary `handles`"));
     }
     let h = s.add_entity(st.hatch(loops))?;
     // Hatches go under other objects (HPDRAWORDER = behind boundary).
@@ -274,7 +274,7 @@ fn boundary_at(s: &mut Session, q: Vec2) -> Result<Vec<Handle>> {
 }
 
 fn run_boundary(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts = points_param(p, "points").ok_or_else(|| bad("boundary", "`points` is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("boundary.add", "`points` is required"))?;
     let mut out = Vec::new();
     for q in pts {
         out.extend(boundary_at(s, q)?.into_iter().map(|h| h.hex()));
@@ -520,7 +520,7 @@ mod tests {
     fn hatchedit_pattern_replaces_gradient() {
         let mut s = Session::new();
         s.execute("rectangle.add", &json!({ "p1": [0, 0], "p2": [10, 10] })).unwrap();
-        s.execute("gradient", &json!({ "points": [[5, 5]], "color1": "1", "color2": "3" })).unwrap();
+        s.execute("hatch.addGradient", &json!({ "points": [[5, 5]], "color1": "1", "color2": "3" })).unwrap();
         let (h, hatch) = only_hatch(&s);
         assert!(hatch.gradient.is_some());
         // Scale-only and angle-only edits keep the gradient.

@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 /// Make block `name` from what is in model space now (the objects are removed).
 fn make_block(s: &mut Session, name: &str) {
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
-    s.execute("block", &json!({"name": name, "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
+    s.execute("block.addDialog", &json!({"name": name, "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
 }
 
 fn attdef(s: &mut Session, tag: &str, default: &str, y: f64, height: f64, invisible: bool) {
@@ -15,11 +15,11 @@ fn attdef(s: &mut Session, tag: &str, default: &str, y: f64, height: f64, invisi
 }
 
 fn line(s: &mut Session) {
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
 }
 
 fn insert(s: &mut Session, x: f64, attribs: Value) -> Handle {
-    let r = s.execute("insert", &json!({"name": "B", "at": [x, 0], "attribs": attribs})).unwrap();
+    let r = s.execute("block.insert", &json!({"name": "B", "at": [x, 0], "attribs": attribs})).unwrap();
     Handle::parse_hex(r["handle"].as_str().unwrap()).unwrap()
 }
 
@@ -70,14 +70,14 @@ fn attsync_brings_references_in_line_with_the_definitions() {
     let r2 = insert(&mut s, 200.0, json!({}));
     // A reference nested in another block.
     let nested = insert(&mut s, 0.0, json!({"A": "inner"}));
-    s.execute("block", &json!({"name": "N", "base": [0, 0], "handles": [nested.hex()], "keep": "delete"})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "N", "base": [0, 0], "handles": [nested.hex()], "keep": "delete"})).unwrap();
 
     // Redefine B: A moves and grows and turns invisible, OLD goes, NEW comes.
     attdef(&mut s, "A", "a", 5.0, 0.5, true);
     attdef(&mut s, "NEW", "new", 7.0, 0.2, false);
     line(&mut s);
     let others: Vec<String> = s.doc().unwrap().model.iter().filter(|e| ![r1, r2].contains(&e.handle)).map(|e| e.handle.hex()).collect();
-    s.execute("block", &json!({"name": "B", "base": [0, 0], "handles": others, "keep": "delete"})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "B", "base": [0, 0], "handles": others, "keep": "delete"})).unwrap();
 
     // Name option, typed as at the command line.
     s.cmdline("attsync").unwrap();
@@ -103,7 +103,7 @@ fn attsync_brings_references_in_line_with_the_definitions() {
 
     // Select option (the default), confirmed with Enter; one undo step per run.
     s.execute("attribute.edit", &json!({"handle": r2.hex(), "values": {"A": "changed"}})).unwrap();
-    for l in ["attribute.sync", "", "205,0", ""] {
+    for l in ["attsync", "", "205,0", ""] {
         s.cmdline(l).unwrap();
     }
     assert!(s.running.is_none(), "{}", s.prompt_text());

@@ -8,7 +8,7 @@ use serde_json::json;
 async fn annotation_reassociation_ignores_source_layer_lock() {
     check_with_setup(
         |f| ("dimension.reassociate", json!({"handles":[f.attached_dim]})),
-        |f| vec![("move", json!({"handles":[f.line],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[0,5]}))],
         |_| vec![("layer.set", json!({"name":"Secondary","locked":true}))],
         |f| vec![("object.setProperties", json!({"handles":[f.line],"layer":"Secondary"}))],
     )
@@ -18,7 +18,7 @@ async fn annotation_reassociation_ignores_source_layer_lock() {
 async fn annotation_disassociation_ignores_non_dimension_lock() {
     check(
         |f| ("dimension.disassociate", json!({"handles":[f.circle]})),
-        |f| vec![("erase", json!({"handles":[f.circle]}))],
+        |f| vec![("object.delete", json!({"handles":[f.circle]}))],
         |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
     )
     .await;

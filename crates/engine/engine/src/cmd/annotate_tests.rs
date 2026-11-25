@@ -16,7 +16,7 @@ fn dim(s: &Session, hd: Handle) -> Dimension {
 }
 
 fn line(s: &mut Session, a: [f64; 2], b: [f64; 2]) -> Handle {
-    s.execute("line", &json!({ "points": [a, b] })).unwrap();
+    s.execute("line.add", &json!({ "points": [a, b] })).unwrap();
     s.doc().unwrap().model.last().unwrap().handle
 }
 
@@ -51,12 +51,12 @@ fn moving_the_object_carries_the_dimension() {
     let mut s = Session::new();
     let l = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
     let d = h(&s.execute("dimension.addAligned", &json!({ "p1": [0, 0], "p2": [10, 0], "at": [5, -2] })).unwrap());
-    s.execute("move", &json!({ "handles": [l.hex()], "from": [0, 0], "to": [3, 4] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [l.hex()], "from": [0, 0], "to": [3, 4] })).unwrap();
     let dm = dim(&s, d);
     assert!(near(dm.p13.xy(), Vec2::new(3.0, 4.0)) && near(dm.p14.xy(), Vec2::new(13.0, 4.0)), "{dm:?}");
     assert!(near(dm.defpt.xy(), Vec2::new(8.0, 2.0)), "rigid move carries the dimension line: {:?}", dm.defpt);
     // Moving both together keeps them attached and unchanged relative to each other.
-    s.execute("move", &json!({ "handles": [l.hex(), d.hex()], "from": [0, 0], "to": [1, 0] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [l.hex(), d.hex()], "from": [0, 0], "to": [1, 0] })).unwrap();
     let dm = dim(&s, d);
     assert_eq!(dm.assoc.len(), 2);
     assert!(near(dm.p13.xy(), Vec2::new(4.0, 4.0)) && near(dm.defpt.xy(), Vec2::new(9.0, 2.0)), "{dm:?}");
@@ -67,7 +67,7 @@ fn moving_the_object_keeps_the_ordinate_datum() {
     let mut s = Session::new();
     let l = line(&mut s, [5.0, 0.0], [5.0, 5.0]);
     let d = h(&s.execute("dimension.addOrdinate", &json!({ "feature": [5, 5], "leader": [5, 8] })).unwrap());
-    s.execute("move", &json!({ "handles": [l.hex()], "from": [5, 5], "to": [8, 5] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [l.hex()], "from": [5, 5], "to": [8, 5] })).unwrap();
     let dm = dim(&s, d);
     assert!(near(dm.p13.xy(), Vec2::new(8.0, 5.0)) && near(dm.p14.xy(), Vec2::new(8.0, 8.0)), "{dm:?}");
     assert!(near(dm.defpt.xy(), Vec2::ZERO), "datum must stay at the origin: {:?}", dm.defpt);
@@ -82,12 +82,12 @@ fn moving_the_line_keeps_a_free_continued_origin() {
     s.execute("dimension.addLinear", &json!({ "p1": [0, 0], "p2": [10, 0], "at": [5, -2] })).unwrap();
     s.execute("dimension.addContinue", &json!({ "points": [[25, 0]] })).unwrap();
     let d = s.doc().unwrap().model.last().unwrap().handle;
-    s.execute("move", &json!({ "handles": [l.hex()], "delta": [3, 0] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [l.hex()], "delta": [3, 0] })).unwrap();
     let dm = dim(&s, d);
     assert!(near(dm.p13.xy(), Vec2::new(13.0, 0.0)), "attached origin follows: {dm:?}");
     assert!(near(dm.p14.xy(), Vec2::new(25.0, 0.0)), "free origin stays: {dm:?}");
     assert_eq!(kition_cad_render::dimension_in(s.doc().unwrap(), &dm).value, "12.0000");
-    s.execute("move", &json!({ "handles": [l.hex()], "delta": [3, 0] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [l.hex()], "delta": [3, 0] })).unwrap();
     let dm = dim(&s, d);
     assert!(near(dm.p13.xy(), Vec2::new(16.0, 0.0)) && near(dm.p14.xy(), Vec2::new(25.0, 0.0)), "{dm:?}");
     assert_eq!(kition_cad_render::dimension_in(s.doc().unwrap(), &dm).value, "9.0000");
@@ -114,7 +114,7 @@ fn interactive_dimlinear_select_object_is_associative() {
 #[test]
 fn radius_and_diameter_follow_circle() {
     let mut s = Session::new();
-    s.execute("circle", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
+    s.execute("circle.add", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
     let c = s.doc().unwrap().model.last().unwrap().handle;
     let r = h(&s.execute("dimension.addRadius", &json!({ "handle": c.hex(), "at": [5, 0] })).unwrap());
     let dd = h(&s.execute("dimension.addDiameter", &json!({ "handle": c.hex(), "at": [0, 5] })).unwrap());
@@ -125,7 +125,7 @@ fn radius_and_diameter_follow_circle() {
     assert_eq!(g.value, "R3.0000");
     let g = kition_cad_render::dimension_in(s.doc().unwrap(), &dim(&s, dd));
     assert_eq!(g.value, "⌀6.0000");
-    s.execute("move", &json!({ "handles": [c.hex()], "from": [0, 0], "to": [10, 0] })).unwrap();
+    s.execute("object.move", &json!({ "handles": [c.hex()], "from": [0, 0], "to": [10, 0] })).unwrap();
     assert!(near(dim(&s, r).defpt.xy(), Vec2::new(10.0, 0.0)));
 }
 
@@ -199,7 +199,7 @@ fn erase_disassociate_and_reassociate() {
     assert_eq!(r["associated"], 1);
     assert_eq!(dim(&s, d).assoc.len(), 2);
     // Erasing the object leaves the dimension where it is (and no longer attached).
-    s.execute("erase", &json!({ "handles": [l.hex()] })).unwrap();
+    s.execute("object.delete", &json!({ "handles": [l.hex()] })).unwrap();
     let dm = dim(&s, d);
     assert!(dm.assoc.is_empty());
     assert!(near(dm.p14.xy(), Vec2::new(4.0, 0.0)));
@@ -236,7 +236,7 @@ fn dimstyle_commands() {
     assert!(s.execute("dimensionStyle.delete", &json!({ "name": "Arch" })).is_err());
     s.execute("dimensionStyle.rename", &json!({ "from": "Arch", "to": "Architectural" })).unwrap();
     assert_eq!(dim(&s, d).style, "Architectural");
-    s.execute("erase", &json!({ "handles": [d.hex()] })).unwrap();
+    s.execute("object.delete", &json!({ "handles": [d.hex()] })).unwrap();
     s.execute("dimensionStyle.delete", &json!({ "name": "Architectural" })).unwrap();
     assert!(s.doc().unwrap().dim_style("Architectural").is_none());
     assert!(s.execute("dimensionStyle.delete", &json!({ "name": "Standard" })).is_err());
@@ -306,7 +306,7 @@ fn text_style_commands() {
     let mut s = Session::new();
     let r = s
         .execute(
-            "style",
+            "textStyle.open",
             &json!({ "name": "Notes", "font": "Arial", "height": 0.25, "widthFactor": 0.8, "oblique": 15, "backwards": true, "upsideDown": true }),
         )
         .unwrap();
@@ -314,7 +314,7 @@ fn text_style_commands() {
     let st = s.doc().unwrap().text_style("Notes").unwrap().clone();
     assert!(st.backwards && st.upside_down);
     assert!((st.oblique.to_degrees() - 15.0).abs() < 1e-9);
-    s.execute("text", &json!({ "at": [0, 0], "height": 0.25, "text": "X" })).unwrap();
+    s.execute("text.add", &json!({ "at": [0, 0], "height": 0.25, "text": "X" })).unwrap();
     let l = s.execute("textStyle.list", &json!({})).unwrap();
     assert_eq!(l["styles"].as_array().unwrap().len(), 2);
     s.execute("textStyle.rename", &json!({ "from": "Notes", "to": "Labels" })).unwrap();
@@ -335,7 +335,7 @@ fn table_create_edit_merge() {
     let mut s = Session::new();
     let t = h(&s
         .execute(
-            "table",
+            "table.add",
             &json!({ "at": [0, 10], "rows": 2, "cols": 3, "title": "Parts", "header": ["No", "Name", "Qty"], "cells": [["1", "Bolt", "4"]] }),
         )
         .unwrap());
@@ -369,7 +369,7 @@ fn table_create_edit_merge() {
     s.execute("table.unmerge", &json!({ "handle": t.hex(), "row": 0, "col": 1 })).unwrap();
     assert_eq!(get(&s).cells[0][0].merged, None);
     assert!(s.execute("table.set", &json!({ "handle": t.hex(), "row": 99, "col": 0, "text": "x" })).is_err());
-    assert!(s.execute("table", &json!({ "at": [0, 0], "rows": 1_000_000, "cols": 3 })).is_err());
+    assert!(s.execute("table.add", &json!({ "at": [0, 0], "rows": 1_000_000, "cols": 3 })).is_err());
     // It renders: grid lines plus text.
     let dl = kition_cad_render::build(s.doc().unwrap(), &kition_cad_doc::Space::Model, &kition_cad_render::Options::default());
     assert!(dl.prims.len() > 10);
@@ -402,8 +402,8 @@ fn hostile_annotation_params_never_panic() {
         ("dimension.addAngular", json!({ "lines": ["1"], "at": [0, 0] })),
         ("dimension.addLinear", json!({ "object": "ffff", "at": [0, 0] })),
         ("table.merge", json!({ "handle": "1", "row": 0, "col": 0, "rows": 1e9, "cols": -1 })),
-        ("table", json!({ "at": [0, 0], "cols": 0 })),
-        ("style", json!({ "name": "" })),
+        ("table.add", json!({ "at": [0, 0], "cols": 0 })),
+        ("textStyle.open", json!({ "name": "" })),
         ("textStyle.rename", json!({ "from": "Standard", "to": "Y" })),
         ("dimension.space", json!({ "base": "1", "handles": [] })),
         ("dimension.editText", json!({ "handles": [], "mode": "angle" })),
@@ -483,18 +483,18 @@ fn setvar_dim_variables_apply_to_new_dimensions() {
 #[test]
 fn linetype_rename_updates_references() {
     fn line(s: &mut Session, y: f64) -> Handle {
-        let r = s.execute("line", &json!({ "points": [[0.0, y], [10.0, y]] })).unwrap();
+        let r = s.execute("line.add", &json!({ "points": [[0.0, y], [10.0, y]] })).unwrap();
         Handle::parse_hex(r["handles"][0].as_str().unwrap()).unwrap()
     }
     let mut s = Session::new();
-    s.execute("linetype", &json!({ "load": "DASHED" })).unwrap();
+    s.execute("property.linetype", &json!({ "load": "DASHED" })).unwrap();
     s.execute("layer.add", &json!({ "name": "A", "linetype": "DASHED", "current": true })).unwrap();
     let by_layer = line(&mut s, 0.0);
-    s.execute("linetype", &json!({ "current": "DASHED" })).unwrap();
+    s.execute("property.linetype", &json!({ "current": "DASHED" })).unwrap();
     let explicit = line(&mut s, 2.0);
     let in_block = line(&mut s, 4.0);
-    s.execute("block", &json!({ "name": "B", "base": [0, 0], "handles": [in_block.hex()], "keep": "delete" })).unwrap();
-    s.execute("rename", &json!({ "table": "linetype", "from": "DASHED", "to": "MYDASH" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "B", "base": [0, 0], "handles": [in_block.hex()], "keep": "delete" })).unwrap();
+    s.execute("namedObject.rename", &json!({ "table": "linetype", "from": "DASHED", "to": "MYDASH" })).unwrap();
     let d = s.doc().unwrap();
     assert!(d.linetype("DASHED").is_none());
     assert!(d.linetype("MYDASH").is_some());
@@ -506,8 +506,8 @@ fn linetype_rename_updates_references() {
     assert_eq!(block, ["MYDASH"]);
     assert_eq!(d.header.str("CELTYPE", ""), "MYDASH");
     // An existing target name and the reserved linetypes are refused.
-    assert!(s.execute("rename", &json!({ "table": "linetype", "from": "MYDASH", "to": "Continuous" })).is_err());
-    assert!(s.execute("rename", &json!({ "table": "linetype", "from": "ByLayer", "to": "X" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "linetype", "from": "MYDASH", "to": "Continuous" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "linetype", "from": "ByLayer", "to": "X" })).is_err());
     assert_eq!(s.doc().unwrap().entity(by_layer).unwrap().common.linetype, "ByLayer");
 }
 
@@ -531,7 +531,7 @@ fn issue_1_multileader_and_table_text_in_a_metric_drawing() {
     assert!((l.bounds.width() - text_width(&font, "Existing oak, retain", 4.0, 1.0)).abs() < 1e-9, "{}", l.bounds.width());
 
     let table = |s: &mut Session, p: Value| -> kition_cad_doc::Table {
-        let hd = h(&s.execute("table", &p).unwrap());
+        let hd = h(&s.execute("table.add", &p).unwrap());
         match &s.doc().unwrap().entity(hd).unwrap().kind {
             EntityKind::Table(t) => t.clone(),
             other => panic!("not a table: {other:?}"),
@@ -547,7 +547,7 @@ fn issue_1_multileader_and_table_text_in_a_metric_drawing() {
     // Rows too low for their text grow to the text height plus the style's margins.
     let t = table(&mut s, json!({ "at": [0, 0], "cols": 1, "rows": 1, "rowHeight": 2, "cells": [["A"]] }));
     assert_eq!(t.row_heights.last(), Some(&(4.5 + 2.0 * 1.5)));
-    assert!(s.execute("table", &json!({ "at": [0, 0], "cols": 1, "rows": 1, "textHeight": -1 })).is_err());
+    assert!(s.execute("table.add", &json!({ "at": [0, 0], "cols": 1, "rows": 1, "textHeight": -1 })).is_err());
 }
 
 /// A radius or diameter dimension's `at` places its text, outside the circle as inside
@@ -555,7 +555,7 @@ fn issue_1_multileader_and_table_text_in_a_metric_drawing() {
 #[test]
 fn issue_3_radial_dimension_text_goes_where_at_says() {
     let mut s = Session::new();
-    s.execute("circle", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
+    s.execute("circle.add", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
     let c = s.doc().unwrap().model.last().unwrap().handle;
     for (id, at) in [
         ("dimension.addRadius", [5.0, 0.0]),

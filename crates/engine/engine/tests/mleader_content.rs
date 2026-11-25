@@ -21,7 +21,7 @@ fn logged(s: &Session, text: &str) -> bool {
 fn with_block() -> Session {
     let mut s = Session::new();
     let sq = s.execute("polyline.add", &json!({"vertices": [[-1, -1], [1, -1], [1, 1], [-1, 1]], "closed": true})).unwrap()["handle"].clone();
-    s.execute("block", &json!({"name": "TAG", "base": [-1, -1], "handles": [sq], "keep": "delete"})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "TAG", "base": [-1, -1], "handles": [sq], "keep": "delete"})).unwrap();
     s
 }
 
@@ -94,14 +94,14 @@ fn block_content_keeps_the_block_alive() {
     let h =
         s.execute("multileader.add", &json!({"points": [[0, 0], [10, 5]], "block": "tag", "blockAttach": "insertion"})).unwrap()["handle"].clone();
     // PURGE keeps a block used only as multileader content.
-    s.execute("purge", &json!({"type": "blocks"})).ok();
+    s.execute("file.purge", &json!({"type": "blocks"})).ok();
     assert!(s.doc().unwrap().block("TAG").is_some(), "purged a block in use");
     // RENAME follows into the multileader.
-    s.execute("rename", &json!({"table": "block", "from": "TAG", "to": "NOTE"})).unwrap();
+    s.execute("namedObject.rename", &json!({"table": "block", "from": "TAG", "to": "NOTE"})).unwrap();
     assert_eq!(last_mleader(&s).block.unwrap().block, "NOTE");
     // MOVE carries the block along.
     let before = last_mleader(&s).block.unwrap().insert.xy();
-    s.execute("move", &json!({"handles": [h], "from": [0, 0], "to": [5, 5]})).unwrap();
+    s.execute("object.move", &json!({"handles": [h], "from": [0, 0], "to": [5, 5]})).unwrap();
     assert!(last_mleader(&s).block.unwrap().insert.xy().near(before + Vec2::new(5.0, 5.0), 1e-9));
 }
 

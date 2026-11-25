@@ -154,12 +154,12 @@ fn a_layer_parameter_is_a_layer_name() {
     assert!(wrong.is_empty(), "layer is not a string in: {wrong:#?}");
 }
 
-/// `object.setProperties {layer}` moves the objects onto the named layer.
+/// `properties.set {layer}` moves the objects onto the named layer.
 #[test]
 fn properties_set_moves_objects_to_a_named_layer() {
     let mut doc = doc();
-    doc.execute("line", serde_json::json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-    let handle = doc.execute("object.query", serde_json::json!({})).unwrap()["object.query"][0]["handle"].clone();
+    doc.execute("line.add", serde_json::json!({ "points": [[0, 0], [10, 0]] })).unwrap();
+    let handle = doc.execute("object.query", serde_json::json!({})).unwrap()["entities"][0]["handle"].clone();
     doc.execute("layer.add", serde_json::json!({ "name": "Walls" })).unwrap();
     doc.execute("object.setProperties", serde_json::json!({ "handles": [handle], "layer": "Walls" })).unwrap();
     assert_eq!(doc.execute("object.query", serde_json::json!({ "layer": "Walls" })).unwrap()["count"], 1);

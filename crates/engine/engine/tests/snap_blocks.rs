@@ -13,10 +13,10 @@ fn handle(s: &mut Session, cmd: &str, p: serde_json::Value) -> String {
 
 /// Block "B": a line (0,0)-(10,0), a circle at (20,0) r2 and an arc at (0,10) r5 from 0° to 90°.
 fn block_b(s: &mut Session) {
-    let l = handle(s, "line", json!({ "points": [[0, 0], [10, 0]] }));
-    let c = handle(s, "circle", json!({ "center": [20, 0], "radius": 2 }));
-    let a = handle(s, "arc", json!({ "center": [0, 10], "radius": 5, "start": 0, "end": 90 }));
-    s.execute("block", &json!({ "name": "B", "base": [0, 0], "handles": [l, c, a], "keep": "delete" })).unwrap();
+    let l = handle(s, "line.add", json!({ "points": [[0, 0], [10, 0]] }));
+    let c = handle(s, "circle.add", json!({ "center": [20, 0], "radius": 2 }));
+    let a = handle(s, "arc.add", json!({ "center": [0, 10], "radius": 5, "start": 0, "end": 90 }));
+    s.execute("block.addDialog", &json!({ "name": "B", "base": [0, 0], "handles": [l, c, a], "keep": "delete" })).unwrap();
 }
 
 /// Adds a reference of `block`; `grid` is (columns, rows, column spacing, row spacing).
@@ -99,18 +99,18 @@ fn snaps_inside_nested_and_arrayed_references_but_not_hidden_objects() {
     block_b(&mut s);
     // Block "N" holds a reference of B at (0,100); N is placed at (1000,0) as 3 columns 50 apart.
     let inner = insert(&mut s, "B", (0.0, 100.0), (1.0, 1.0), 0.0, ONE);
-    s.execute("block", &json!({ "name": "N", "base": [0, 0], "handles": [inner], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "N", "base": [0, 0], "handles": [inner], "keep": "delete" })).unwrap();
     insert(&mut s, "N", (1000.0, 0.0), (1.0, 1.0), 0.0, (3, 1, 50.0, 0.0));
     assert_snaps(&s, Vec2::new(1010.0, 100.0), mode::END);
     assert_snaps(&s, Vec2::new(1120.0, 100.0), mode::CEN);
     // A loose line crossing the nested line of the second column.
-    s.execute("line", &json!({ "points": [[1055, 90], [1055, 110]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[1055, 90], [1055, 110]] })).unwrap();
     assert_snaps(&s, Vec2::new(1055.0, 100.0), mode::INT);
 
     // A reference rotated 30° inside one mirrored and stretched 3x in Y: the arc becomes an
     // elliptical arc whose axes don't follow the stretch; its ends still snap where they are.
     let inner = insert(&mut s, "B", (0.0, 0.0), (1.0, 1.0), 30.0, ONE);
-    s.execute("block", &json!({ "name": "S", "base": [0, 0], "handles": [inner], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "S", "base": [0, 0], "handles": [inner], "keep": "delete" })).unwrap();
     insert(&mut s, "S", (0.0, 500.0), (1.0, -3.0), 0.0, ONE);
     let m = Mat3::translate(Vec2::new(0.0, 500.0)).then_before(Mat3::scale(1.0, -3.0)).then_before(Mat3::rotate(30f64.to_radians()));
     assert_snaps(&s, m.apply(Vec2::new(5.0, 10.0)), mode::END);
@@ -121,7 +121,7 @@ fn snaps_inside_nested_and_arrayed_references_but_not_hidden_objects() {
     let line = EntityKind::Line(kition_cad_engine::doc::Line { a: Vec3::new(0.0, 0.0, 0.0), b: Vec3::new(10.0, 0.0, 0.0) });
     let common = Common { layer: "Hidden".into(), ..Common::default() };
     let l = s.doc_mut().unwrap().add(&Space::Model, common, line).unwrap().hex();
-    s.execute("block", &json!({ "name": "H", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "H", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
     insert(&mut s, "H", (0.0, 0.0), (1.0, 1.0), 0.0, ONE);
     assert_snaps(&s, Vec2::new(10.0, 0.0), mode::END);
     s.doc_mut().unwrap().layer_mut("Hidden").unwrap().on = false;

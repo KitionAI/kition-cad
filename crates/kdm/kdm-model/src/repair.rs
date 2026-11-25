@@ -174,7 +174,7 @@ fn cleanup(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, deleted: bool) -> KdmR
     }
     let mut listed: HashSet<ObjectId> = HashSet::new();
     for owner in &stores {
-        let field = if *owner == root { "model" } else { "object.query" };
+        let field = if *owner == root { "model" } else { "entities" };
         wrote |= clean_dangling(tx, owner, field)?;
         listed.extend(tx.list_items(owner, field)?);
     }
@@ -234,8 +234,8 @@ fn cleanup(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, deleted: bool) -> KdmR
     let mut order: Vec<ObjectId> = Vec::new();
     let mut seen = HashSet::new();
     let mut owners = vec![(root.clone(), "model")];
-    owners.extend(entries(&*tx, "layouts", "Layout")?.into_iter().map(|e| (e.object, "object.query")));
-    owners.extend(entries(&*tx, "blocks", "Block")?.into_iter().map(|e| (e.object, "object.query")));
+    owners.extend(entries(&*tx, "layouts", "Layout")?.into_iter().map(|e| (e.object, "entities")));
+    owners.extend(entries(&*tx, "blocks", "Block")?.into_iter().map(|e| (e.object, "entities")));
     for (owner, field) in &owners {
         for object in tx.list_items(owner, field)? {
             if tx.exists(&object) && seen.insert(object.clone()) {

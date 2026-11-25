@@ -47,20 +47,20 @@ pub fn deliver() -> Option<DeliverHook> {
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("new", "New Drawing...", run_new)
+        CommandSpec::new("file.new", "New Drawing...", run_new)
             .menu(&["File", "New Drawing..."])
             .key("Cmd+N")
             .alias(&["qnew"])
             .params("{metric?: bool (default true: millimetres and ISO-25 dimensions, as a new document; false: inches)}")
             .enabled(always)
             .noundo(),
-        CommandSpec::new("open", "Open...", run_open)
+        CommandSpec::new("file.open", "Open...", run_open)
             .menu(&["File", "Open..."])
             .key("Cmd+O")
             .params("{path} | {data: base64, name}")
             .enabled(always)
             .noundo(),
-        CommandSpec::new("close", "Close", run_close).menu(&["File", "Close"]).key("Cmd+W").params("{index?}").noundo(),
+        CommandSpec::new("file.close", "Close", run_close).menu(&["File", "Close"]).key("Cmd+W").params("{index?}").noundo(),
         CommandSpec::new("file.closeAll", "Close All", run_closeall).menu(&["File", "Close All"]).enabled(always).noundo(),
         CommandSpec::new("file.save", "Save", run_qsave_reporting).menu(&["File", "Save"]).key("Cmd+S").alias(&["save"]).params("{path?}").noundo(),
         CommandSpec::new("file.saveAs", "Save As...", run_saveas_reporting)
@@ -84,27 +84,27 @@ fn file_name(path: &str) -> String {
 }
 
 pub(crate) fn open_bytes(s: &mut Session, bytes: &[u8], name: &str, path: Option<String>) -> Result<usize> {
-    let hooks = io().ok_or_else(|| bad("open", "file formats are not available in this build"))?;
-    let d = (hooks.read)(bytes, name).map_err(|e| bad("open", e))?;
+    let hooks = io().ok_or_else(|| bad("file.open", "file formats are not available in this build"))?;
+    let d = (hooks.read)(bytes, name).map_err(|e| bad("file.open", e))?;
     Ok(s.open_drawing(d, &file_name(name), path))
 }
 
 fn run_open(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(_path) = str_param(p, "path") {
-        s.files_by_path("open")?;
+        s.files_by_path("file.open")?;
         #[cfg(not(target_arch = "wasm32"))]
         let path = _path;
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes = std::fs::read(path).map_err(|e| bad("open", format!("{path}: {e}")))?;
+            let bytes = std::fs::read(path).map_err(|e| bad("file.open", format!("{path}: {e}")))?;
             let i = open_bytes(s, &bytes, path, Some(path.to_string()))?;
-            return Ok(json!({ "index": i, "object.query": s.docs.get(i).map(|d| d.doc.entity_count()) }));
+            return Ok(json!({ "index": i, "entities": s.docs.get(i).map(|d| d.doc.entity_count()) }));
         }
         #[cfg(target_arch = "wasm32")]
-        return Err(bad("open", "paths are not available on the web; pass `data`"));
+        return Err(bad("file.open", "paths are not available on the web; pass `data`"));
     }
-    let data = str_param(p, "data").ok_or_else(|| bad("open", "`path` or `data` (base64) is required"))?;
-    let bytes = base64_decode(data).ok_or_else(|| bad("open", "invalid base64"))?;
+    let data = str_param(p, "data").ok_or_else(|| bad("file.open", "`path` or `data` (base64) is required"))?;
+    let bytes = base64_decode(data).ok_or_else(|| bad("file.open", "invalid base64"))?;
     let name = str_param(p, "name").unwrap_or("Drawing.dxf");
     let i = open_bytes(s, &bytes, name, None)?;
     Ok(json!({ "index": i }))
@@ -113,7 +113,7 @@ fn run_open(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_close(s: &mut Session, p: &Value) -> Result<Value> {
     let i = p.get("index").and_then(Value::as_u64).map(|i| i as usize).unwrap_or(s.active);
     if i >= s.docs.len() {
-        return Err(bad("close", "no such drawing"));
+        return Err(bad("file.close", "no such drawing"));
     }
     s.cancel();
     s.docs.remove(i);
@@ -189,7 +189,7 @@ fn saved(path: &str, bytes: usize) -> Value {
 fn run_save(s: &mut Session, p: &Value) -> Result<Value> {
     let path = match str_param(p, "path") {
         Some(p) => p.to_string(),
-        None => s.state()?.path.clone().ok_or_else(|| bad("file.save", "drawing has no file name yet; use saveas {path}"))?,
+        None => s.state()?.path.clone().ok_or_else(|| bad("save", "drawing has no file name yet; use saveas {path}"))?,
     };
     let n = save_to(s, &path)?;
     Ok(saved(&path, n))
@@ -335,11 +335,11 @@ mod tests {
     #[test]
     fn closing_earlier_inactive_drawing_keeps_active_drawing() {
         let mut s = Session::new();
-        s.execute("new", &json!({})).unwrap();
-        s.execute("new", &json!({})).unwrap();
+        s.execute("file.new", &json!({})).unwrap();
+        s.execute("file.new", &json!({})).unwrap();
         s.execute("file.switch", &json!({"index": 1})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
-        s.execute("close", &json!({"index": 0})).unwrap();
+        s.execute("file.close", &json!({"index": 0})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
         assert_eq!(s.docs.len(), 2);
     }
@@ -349,20 +349,20 @@ mod tests {
     #[test]
     fn issue_2_new_drawings_are_metric() {
         let mut s = Session::new();
-        s.execute("new", &json!({})).unwrap();
+        s.execute("file.new", &json!({})).unwrap();
         assert_eq!(s.doc().unwrap().header.i64("MEASUREMENT", 0), 1);
         assert_eq!(s.doc().unwrap().header.str("DIMSTYLE", ""), "ISO-25");
-        s.execute("new", &json!({ "metric": false })).unwrap();
+        s.execute("file.new", &json!({ "metric": false })).unwrap();
         assert_eq!(s.doc().unwrap().header.i64("MEASUREMENT", 1), 0);
     }
 
     #[test]
     fn closing_later_inactive_drawing_keeps_active_drawing() {
         let mut s = Session::new();
-        s.execute("new", &json!({})).unwrap();
-        s.execute("new", &json!({})).unwrap();
+        s.execute("file.new", &json!({})).unwrap();
+        s.execute("file.new", &json!({})).unwrap();
         s.execute("file.switch", &json!({"index": 1})).unwrap();
-        s.execute("close", &json!({"index": 2})).unwrap();
+        s.execute("file.close", &json!({"index": 2})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
     }
 }

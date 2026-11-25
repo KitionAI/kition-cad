@@ -194,7 +194,7 @@ pub(super) fn json_options(s: &Session, p: &Value) -> Result<FitOptions> {
             .map(str::to_string)
             .or_else(|| v.as_u64().map(|n| n.to_string()))
             .and_then(|t| KnotParam::parse(&t))
-            .ok_or_else(|| bad("spline", "`knots` must be \"chord\", \"sqrt\" or \"uniform\""))?,
+            .ok_or_else(|| bad("spline.add", "`knots` must be \"chord\", \"sqrt\" or \"uniform\""))?,
     };
     let tangent = |key: &str| -> Result<Option<Vec2>> {
         match p.get(key) {
@@ -202,12 +202,12 @@ pub(super) fn json_options(s: &Session, p: &Value) -> Result<FitOptions> {
             Some(_) => point_param(p, key)
                 .filter(|d| d.len() > 1e-12)
                 .map(|d| Some(d.normalized()))
-                .ok_or_else(|| bad("spline", format!("`{key}` must be a non-zero direction [dx, dy]"))),
+                .ok_or_else(|| bad("spline.add", format!("`{key}` must be a non-zero direction [dx, dy]"))),
         }
     };
     let tolerance = f64_or(p, "tolerance", 0.0);
     if tolerance < 0.0 {
-        return Err(bad("spline", "`tolerance` must be zero or positive"));
+        return Err(bad("spline.add", "`tolerance` must be zero or positive"));
     }
     Ok(FitOptions { knots, start_tangent: tangent("startTangent")?, end_tangent: tangent("endTangent")?, tolerance })
 }
@@ -216,11 +216,11 @@ pub(super) fn json_options(s: &Session, p: &Value) -> Result<FitOptions> {
 pub(super) fn run_object(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = match p.get("object") {
         Some(Value::Bool(true)) => targets(s, p)?,
-        Some(v) => vec![curves::handle_value(v).ok_or_else(|| bad("spline", "`object` must be a handle or true"))?],
-        None => return Err(bad("spline", "`object` is required")),
+        Some(v) => vec![curves::handle_value(v).ok_or_else(|| bad("spline.add", "`object` must be a handle or true"))?],
+        None => return Err(bad("spline.add", "`object` is required")),
     };
     if hs.is_empty() {
-        return Err(bad("spline", "no polyline to convert: give `object` a handle or select polylines"));
+        return Err(bad("spline.add", "no polyline to convert: give `object` a handle or select polylines"));
     }
     let opts = json_options(s, p)?;
     let mut converted = Vec::new();

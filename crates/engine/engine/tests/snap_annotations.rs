@@ -27,8 +27,8 @@ fn dimensions_snap_to_their_lines_and_definition_points() {
     assert_eq!(snap_at(&s, Vec2::new(10.0, 0.0), mode::NOD), Some((Vec2::new(10.0, 0.0), mode::NOD)));
 
     // A dimension with a block (as read from a file) snaps to the block's objects.
-    let l = handle(&mut s, "line", json!({ "points": [[0, 7], [10, 7]] }));
-    s.execute("block", &json!({ "name": "DIMGEOM", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
+    let l = handle(&mut s, "line.add", json!({ "points": [[0, 7], [10, 7]] }));
+    s.execute("block.addDialog", &json!({ "name": "DIMGEOM", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
     let d = s.doc_mut().unwrap();
     let dim = d.model.iter().find(|e| matches!(e.kind, EntityKind::Dimension(_))).unwrap().handle;
     d.model.modify(dim, |e| {
@@ -70,8 +70,8 @@ fn justified_text_snaps_and_grips_at_its_alignment_point() {
 fn hatches_snap_only_with_osnaphatch() {
     let mut s = Session::new();
     let r = handle(&mut s, "rectangle.add", json!({ "p1": [0, 0], "p2": [10, 5] }));
-    s.execute("hatch", &json!({ "handles": [r] })).unwrap();
-    s.execute("erase", &json!({ "handles": [r] })).unwrap();
+    s.execute("hatch.add", &json!({ "handles": [r] })).unwrap();
+    s.execute("object.delete", &json!({ "handles": [r] })).unwrap();
     assert!(matches!(s.doc().unwrap().model.iter().last().map(|e| &e.kind), Some(EntityKind::Hatch(_))));
     assert_eq!(snap_at(&s, Vec2::new(10.0, 5.0), mode::END), None);
     assert_eq!(s.execute("variable.get", &json!({ "name": "OSNAPHATCH" })).unwrap()["value"], json!(0));

@@ -170,7 +170,7 @@ fn edge_mode_param(cmd: &str, p: &Value) -> Result<bool> {
 }
 
 fn run(s: &mut Session, p: &Value, extending: bool) -> Result<Value> {
-    let cmd = if extending { "extend" } else { "trim" };
+    let cmd = if extending { "object.extend" } else { "object.trim" };
     let only: Option<Vec<Handle>> = match p.get("edges") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(

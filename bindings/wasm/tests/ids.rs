@@ -28,8 +28,8 @@ fn opened() -> CadDocument {
 #[test]
 fn an_entity_made_in_the_session_is_named_by_the_handle_it_keeps_in_the_file() {
     let mut doc = opened();
-    let line = handle_of(&doc.execute("line", json!({ "points": [[10, 10], [100, 60]] })).unwrap());
-    let circle = handle_of(&doc.execute("circle", json!({ "center": [50, 50], "radius": 10 })).unwrap());
+    let line = handle_of(&doc.execute("line.add", json!({ "points": [[10, 10], [100, 60]] })).unwrap());
+    let circle = handle_of(&doc.execute("circle.add", json!({ "center": [50, 50], "radius": 10 })).unwrap());
     // The object model names both by the handles the commands answered.
     let model = load(&mut doc, "root", &["model"])["model"].clone();
     assert_eq!(model, json!([line, circle]), "the model space list names entities by handle");
@@ -39,10 +39,10 @@ fn an_entity_made_in_the_session_is_named_by_the_handle_it_keeps_in_the_file() {
     let mut again = CadDocument::open("Plan.dxf", &bytes).unwrap();
     assert_eq!(load(&mut again, "root", &["model"])["model"], json!([line, circle]));
     let listed = again.execute("object.query", json!({})).unwrap();
-    let handles: Vec<&str> = listed["object.query"].as_array().unwrap().iter().filter_map(|e| e["handle"].as_str()).collect();
+    let handles: Vec<&str> = listed["entities"].as_array().unwrap().iter().filter_map(|e| e["handle"].as_str()).collect();
     assert_eq!(handles, [line.as_str(), circle.as_str()]);
     // A move by that handle in the reopened drawing moves that line.
-    again.execute("move", json!({ "handles": [line], "delta": [5, 0] })).unwrap();
+    again.execute("object.move", json!({ "handles": [line], "delta": [5, 0] })).unwrap();
     let moved = load(&mut again, &line, &["kind"])["kind"].to_string();
     assert!(moved.contains("15.0") || moved.contains("15,"), "the line moved by 5: {moved}");
 }

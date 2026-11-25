@@ -27,9 +27,9 @@ fn qdim_attaches_like_dimreassociate_and_large_input_is_capped() {
     let mut s = Session::new();
     for i in 0..40 {
         let x = f64::from(i);
-        s.execute("line", &json!({"points": [[x, 0], [x + 1.0, 0]]})).unwrap();
-        s.execute("point", &json!({"at": [x, 0]})).unwrap();
-        s.execute("circle", &json!({"center": [x + 0.5, 0], "radius": 0.1})).unwrap();
+        s.execute("line.add", &json!({"points": [[x, 0], [x + 1.0, 0]]})).unwrap();
+        s.execute("point.add", &json!({"at": [x, 0]})).unwrap();
+        s.execute("circle.add", &json!({"center": [x + 0.5, 0], "radius": 0.1})).unwrap();
     }
     let objs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
     let r = s.execute("dimension.addQuick", &json!({"handles": objs, "at": [0, 3]})).unwrap();
@@ -44,7 +44,7 @@ fn qdim_attaches_like_dimreassociate_and_large_input_is_capped() {
     // Many objects finish (this was quadratic in the number of dimensions).
     let mut s = Session::new();
     let pts: Vec<[f64; 2]> = (0..=20_000).map(|i| [f64::from(i), 0.0]).collect();
-    let objs = handles(&s.execute("line", &json!({"points": pts})).unwrap());
+    let objs = handles(&s.execute("line.add", &json!({"points": pts})).unwrap());
     let r = s.execute("dimension.addQuick", &json!({"handles": objs, "at": [0, 3]})).unwrap();
     let hs = handles(&r);
     assert_eq!(hs.len(), 20_000);

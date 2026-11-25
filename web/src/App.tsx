@@ -114,8 +114,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
                     type="button"
                     className="cad-mode"
                     aria-pressed={state.drafting[mode.id]}
-                    disabled={!editor.enabled(mode.id)}
-                    onClick={() => void editor.run(mode.id, { on: !state.drafting[mode.id] })}
+                    disabled={!editor.enabled(mode.command)}
+                    onClick={() => void editor.run(mode.command, { on: !state.drafting[mode.id] })}
                     data-testid={`cad-mode-${mode.id}`}
                   >
                     {phrase(mode.label)}

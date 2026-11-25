@@ -33,11 +33,11 @@ fn rename_away_and_recreate_does_not_reuse_the_old_identity() {
 #[test]
 fn style_block_and_layout_ids_survive_rename() {
     let mut d = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    d.execute("style", json!({"name":"Notes"})).unwrap();
-    let h = d.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
-    d.execute("block", json!({"name":"Door","base":[0,0],"handles":[h],"keep":"delete"})).unwrap();
+    d.execute("textStyle.open", json!({"name":"Notes"})).unwrap();
+    let h = d.execute("line.add", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
+    d.execute("block.addDialog", json!({"name":"Door","base":[0,0],"handles":[h],"keep":"delete"})).unwrap();
     for (table, from, to) in [("style", "Notes", "NewNotes"), ("block", "Door", "NewDoor")] {
-        d.execute("rename", json!({"table":table,"from":from,"to":to})).unwrap();
+        d.execute("namedObject.rename", json!({"table":table,"from":from,"to":to})).unwrap();
     }
     d.execute("layout.rename", json!({"from":"Layout1","to":"Sheet"})).unwrap();
     d = CadDocument::open("Plan.dxf", &d.save(Some("Plan.dxf")).unwrap()).unwrap();

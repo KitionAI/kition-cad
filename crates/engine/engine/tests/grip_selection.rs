@@ -9,7 +9,7 @@ use kition_cad_engine::grips::GripMode;
 use serde_json::json;
 
 fn line(s: &mut Session, a: [f64; 2], b: [f64; 2]) -> Handle {
-    let r = s.execute("line", &json!({ "points": [a, b] })).unwrap();
+    let r = s.execute("line.add", &json!({ "points": [a, b] })).unwrap();
     Handle::parse_hex(r["handles"][0].as_str().unwrap()).unwrap()
 }
 

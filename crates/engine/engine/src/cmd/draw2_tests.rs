@@ -75,18 +75,18 @@ fn arc_variants_json() {
 #[test]
 fn arc_variants_command_line() {
     for (cmd, expect_quarter) in [
-        ("arc.addStartCenterEnd 1,0 0,0 0,2", true),
-        ("arc.addStartCenterAngle 1,0 0,0 90", true),
-        ("arc.addStartCenterLength 1,0 0,0 1.41421356237", true),
-        ("arc.addStartEndAngle 1,0 0,1 90", true),
-        ("arc.addStartEndDirection 1,0 0,1 90", true),
-        ("arc.addStartEndRadius 1,0 0,1 1", true),
-        ("arc.addCenterStartEnd 0,0 1,0 0,4", true),
-        ("arc.addCenterStartAngle 0,0 1,0 90", true),
-        ("arc.addCenterStartLength 0,0 1,0 1.41421356237", true),
+        ("arc.sce 1,0 0,0 0,2", true),
+        ("arc.sca 1,0 0,0 90", true),
+        ("arc.scl 1,0 0,0 1.41421356237", true),
+        ("arc.sea 1,0 0,1 90", true),
+        ("arc.sed 1,0 0,1 90", true),
+        ("arc.ser 1,0 0,1 1", true),
+        ("arc.cse 0,0 1,0 0,4", true),
+        ("arc.csa 0,0 1,0 90", true),
+        ("arc.csl 0,0 1,0 1.41421356237", true),
         // Angle/direction given by a point.
-        ("arc.addStartEndDirection 1,0 0,1 1,5", true),
-        ("arc.addCenterStartAngle 0,0 1,0 0,7", true),
+        ("arc.sed 1,0 0,1 1,5", true),
+        ("arc.csa 0,0 1,0 0,7", true),
     ] {
         let mut s = Session::new();
         s.cmdline(cmd).unwrap();
@@ -149,7 +149,7 @@ fn circle_variants_json_and_command_line() {
 }
 
 fn line_h(s: &mut Session, pts: serde_json::Value) -> String {
-    s.execute("line", &json!({ "points": pts })).unwrap()["handles"][0].as_str().unwrap().to_string()
+    s.execute("line.add", &json!({ "points": pts })).unwrap()["handles"][0].as_str().unwrap().to_string()
 }
 
 fn corner(s: &mut Session) -> (String, String) {
@@ -164,8 +164,8 @@ fn circle_ttr_json_and_command_line() {
     let (c, r) = as_circle(&last(&s));
     assert!(near(c, 1.0, 1.0) && (r - 1.0).abs() < 1e-9);
     // Circle-circle and line-circle.
-    let k = h(&s.execute("circle", &json!({"center": [20, 0], "radius": 2})).unwrap());
-    let k2 = h(&s.execute("circle", &json!({"center": [26, 0], "radius": 2})).unwrap());
+    let k = h(&s.execute("circle.add", &json!({"center": [20, 0], "radius": 2})).unwrap());
+    let k2 = h(&s.execute("circle.add", &json!({"center": [26, 0], "radius": 2})).unwrap());
     s.execute("circle.addTanTanRadius", &json!({"h1": k, "p1": [21, 1], "h2": k2, "p2": [25, 1], "radius": 2})).unwrap();
     let (c, r) = as_circle(&last(&s));
     assert!((c.x - 23.0).abs() < 1e-9 && c.y > 0.0 && (r - 2.0).abs() < 1e-9, "{c:?}");
@@ -185,7 +185,7 @@ fn circle_ttr_json_and_command_line() {
 fn circle_ttt_json_and_command_line() {
     let mut s = Session::new();
     let (a, b) = corner(&mut s);
-    let hyp = s.execute("line", &json!({"points": [[4, 0], [0, 3]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let hyp = s.execute("line.add", &json!({"points": [[4, 0], [0, 3]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
     s.execute("circle.addTanTanTan", &json!({"h1": a, "p1": [2, 0], "h2": b, "p2": [0, 1], "h3": hyp, "p3": [2, 1.5]})).unwrap();
     let (c, r) = as_circle(&last(&s));
     assert!(near(c, 1.0, 1.0) && (r - 1.0).abs() < 1e-6, "{c:?} {r}");
@@ -196,8 +196,10 @@ fn circle_ttt_json_and_command_line() {
     // Three circles: the small circle in the middle of three touching circles.
     let mut s = Session::new();
     let r = 1.0;
-    let cs: Vec<String> =
-        [[0.0, 0.0], [2.0, 0.0], [1.0, 3f64.sqrt()]].iter().map(|c| h(&s.execute("circle", &json!({"center": c, "radius": r})).unwrap())).collect();
+    let cs: Vec<String> = [[0.0, 0.0], [2.0, 0.0], [1.0, 3f64.sqrt()]]
+        .iter()
+        .map(|c| h(&s.execute("circle.add", &json!({"center": c, "radius": r})).unwrap()))
+        .collect();
     let centroid = Vec2::new(1.0, 3f64.sqrt() / 3.0);
     let picks: Vec<Vec2> = [[0.0, 0.0], [2.0, 0.0], [1.0, 3f64.sqrt()]]
         .iter()
@@ -241,7 +243,7 @@ fn ellipse_axis_and_arc() {
 fn ellipse_arc_typed_angles_are_true_angles() {
     let want = 2f64.atan2(1.0);
     // Horizontal and rotated major axis, ratio 0.5: typed 0 and 45 degrees match the JSON form.
-    for line in ["ellipse.addArc 0,0 10,0 2.5 0 45", "ellipse.addArc 5,-5 5,5 2.5 0 45"] {
+    for line in ["ellipse.arc 0,0 10,0 2.5 0 45", "ellipse.arc 5,-5 5,5 2.5 0 45"] {
         let mut s = Session::new();
         s.cmdline(line).unwrap();
         assert!(matches!(last(&s), EntityKind::Ellipse(e) if e.start.abs() < 1e-9 && (e.end - want).abs() < 1e-9), "{line}");
@@ -253,37 +255,37 @@ fn ellipse_arc_typed_angles_are_true_angles() {
 #[test]
 fn divide_and_measure_json() {
     let mut s = Session::new();
-    let l = s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
-    let r = s.execute("divide", &json!({"handle": l, "segments": 5})).unwrap();
+    let l = s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let r = s.execute("point.divide", &json!({"handle": l, "segments": 5})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 4);
     let pts: Vec<Vec2> =
         s.doc().unwrap().model.iter().filter_map(|e| if let EntityKind::Point(p) = &e.kind { Some(p.p.xy()) } else { None }).collect();
     assert!(near(pts[0], 2.0, 0.0) && near(pts[3], 8.0, 0.0));
-    let r = s.execute("measure", &json!({"handle": l, "length": 3})).unwrap();
+    let r = s.execute("point.measure", &json!({"handle": l, "length": 3})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 3);
     // From the other end.
-    s.execute("measure", &json!({"handle": l, "length": 4, "from": [10, 0]})).unwrap();
+    s.execute("point.measure", &json!({"handle": l, "length": 4, "from": [10, 0]})).unwrap();
     assert!(matches!(last(&s), EntityKind::Point(p) if near(p.p.xy(), 2.0, 0.0)));
     // A circle divides into n points including the start.
-    let c = h(&s.execute("circle", &json!({"center": [20, 0], "radius": 1})).unwrap());
-    assert_eq!(s.execute("divide", &json!({"handle": c, "segments": 6})).unwrap()["handles"].as_array().unwrap().len(), 6);
+    let c = h(&s.execute("circle.add", &json!({"center": [20, 0], "radius": 1})).unwrap());
+    assert_eq!(s.execute("point.divide", &json!({"handle": c, "segments": 6})).unwrap()["handles"].as_array().unwrap().len(), 6);
     // Blocks, aligned with the object.
-    let tick = s.execute("line", &json!({"points": [[0, -0.1], [0, 0.1]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
-    s.execute("block", &json!({"name": "TICK", "base": [0, 0], "handles": [tick], "keep": "delete"})).unwrap();
-    let arc = h(&s.execute("arc", &json!({"center": [0, 20], "radius": 2, "start": 0, "end": 180})).unwrap());
-    let r = s.execute("divide", &json!({"handle": arc, "segments": 2, "block": "TICK"})).unwrap();
+    let tick = s.execute("line.add", &json!({"points": [[0, -0.1], [0, 0.1]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    s.execute("block.addDialog", &json!({"name": "TICK", "base": [0, 0], "handles": [tick], "keep": "delete"})).unwrap();
+    let arc = h(&s.execute("arc.add", &json!({"center": [0, 20], "radius": 2, "start": 0, "end": 180})).unwrap());
+    let r = s.execute("point.divide", &json!({"handle": arc, "segments": 2, "block": "TICK"})).unwrap();
     let ins = s.doc().unwrap().entity(kition_cad_doc::Handle::parse_hex(r["handles"][0].as_str().unwrap()).unwrap()).unwrap().kind.clone();
     assert!(matches!(ins, EntityKind::Insert(i) if near(i.insert.xy(), 0.0, 22.0) && (i.rotation - std::f64::consts::PI).abs() < 1e-6));
-    assert!(s.execute("divide", &json!({"handle": l, "segments": 3, "block": "NOPE"})).is_err());
-    assert!(s.execute("divide", &json!({"handle": l, "segments": 1})).is_err());
-    assert!(s.execute("measure", &json!({"handle": l, "length": 0})).is_err());
-    assert!(s.execute("measure", &json!({"handle": l, "length": 1e-300})).is_err());
+    assert!(s.execute("point.divide", &json!({"handle": l, "segments": 3, "block": "NOPE"})).is_err());
+    assert!(s.execute("point.divide", &json!({"handle": l, "segments": 1})).is_err());
+    assert!(s.execute("point.measure", &json!({"handle": l, "length": 0})).is_err());
+    assert!(s.execute("point.measure", &json!({"handle": l, "length": 1e-300})).is_err());
 }
 
 #[test]
 fn divide_and_measure_command_line() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     s.cmdline("divide 5,0 4").unwrap();
     assert!(s.running.is_none());
     assert_eq!(kinds(&s).iter().filter(|k| **k == "Point").count(), 3);
@@ -292,8 +294,8 @@ fn divide_and_measure_command_line() {
     // Measured from the end nearest the pick.
     assert!(matches!(last(&s), EntityKind::Point(p) if near(p.p.xy(), 2.5, 0.0)));
     // Block option.
-    let tick = s.execute("circle", &json!({"center": [50, 50], "radius": 0.1})).unwrap();
-    s.execute("block", &json!({"name": "DOT", "base": [50, 50], "handles": [h(&tick)], "keep": "delete"})).unwrap();
+    let tick = s.execute("circle.add", &json!({"center": [50, 50], "radius": 0.1})).unwrap();
+    s.execute("block.addDialog", &json!({"name": "DOT", "base": [50, 50], "handles": [h(&tick)], "keep": "delete"})).unwrap();
     s.cmdline("divide 6,0 b DOT n 2").unwrap();
     assert!(s.running.is_none(), "{}", s.prompt_text());
     assert!(matches!(last(&s), EntityKind::Insert(i) if near(i.insert.xy(), 5.0, 0.0) && i.rotation == 0.0));
@@ -321,7 +323,7 @@ fn revcloud_json() {
     assert!(matches!(last(&s), EntityKind::LwPolyline(p) if p.vertices.len() > 10));
     s.execute("revisionCloud.addFreehand", &json!({"freehand": [[0, 0], [5, 0], [5, 5], [0, 5]], "arcLength": 2, "style": "calligraphy"})).unwrap();
     assert!(matches!(last(&s), EntityKind::LwPolyline(p) if p.vertices.len() == 10 && p.vertices[0].end_width > 0.0));
-    let c = h(&s.execute("circle", &json!({"center": [10, 10], "radius": 1})).unwrap());
+    let c = h(&s.execute("circle.add", &json!({"center": [10, 10], "radius": 1})).unwrap());
     let n = s.doc().unwrap().model.len();
     s.execute("revisionCloud.add", &json!({"handle": c, "arcLength": 0.5})).unwrap();
     assert_eq!(s.doc().unwrap().model.len(), n, "the circle is replaced");
@@ -355,15 +357,15 @@ fn revcloud_command_line() {
 #[test]
 fn wipeout_json_and_command_line() {
     let mut s = Session::new();
-    s.execute("wipeout", &json!({"points": [[0, 0], [2, 0], [2, 2]]})).unwrap();
+    s.execute("wipeout.add", &json!({"points": [[0, 0], [2, 0], [2, 2]]})).unwrap();
     assert!(matches!(last(&s), EntityKind::Wipeout(w) if w.boundary.len() == 3));
     let r = h(&s.execute("rectangle.add", &json!({"p1": [5, 5], "p2": [6, 6]})).unwrap());
-    s.execute("wipeout", &json!({"handle": r, "erase": true})).unwrap();
+    s.execute("wipeout.add", &json!({"handle": r, "erase": true})).unwrap();
     assert_eq!(kinds(&s), vec!["Wipeout", "Wipeout"]);
-    s.execute("wipeout", &json!({"frames": "off"})).unwrap();
+    s.execute("wipeout.add", &json!({"frames": "off"})).unwrap();
     assert_eq!(s.doc().unwrap().header.i64("WIPEOUTFRAME", 1), 0);
-    assert!(s.execute("wipeout", &json!({"points": [[0, 0], [1, 1]]})).is_err());
-    assert!(s.execute("wipeout", &json!({"frames": "sideways"})).is_err());
+    assert!(s.execute("wipeout.add", &json!({"points": [[0, 0], [1, 1]]})).is_err());
+    assert!(s.execute("wipeout.add", &json!({"frames": "sideways"})).is_err());
 
     s.cmdline("wipeout 0,0 3,0 3,3").unwrap();
     s.cmdline("").unwrap();
@@ -392,7 +394,7 @@ fn xline_options_json() {
     s.execute("constructionLine.add", &json!({"vertex": [0, 0], "start": [1, 0], "end": [0, 1]})).unwrap();
     let (_, d) = xline_dir(&last(&s));
     assert!(d.near(Vec2::new(1.0, 1.0).normalized(), 1e-9));
-    let l = s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let l = s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
     s.execute("constructionLine.add", &json!({"handle": l, "distance": 2, "side": [5, -1]})).unwrap();
     let (b, d) = xline_dir(&last(&s));
     assert!((b.y + 2.0).abs() < 1e-9 && d.near(Vec2::X, 1e-9));
@@ -414,7 +416,7 @@ fn xline_options_command_line() {
     s.cmdline("xline a 45 3,3").unwrap();
     s.cmdline("").unwrap();
     assert!(xline_dir(&last(&s)).1.near(Vec2::new(1.0, 1.0).normalized(), 1e-9));
-    s.execute("line", &json!({"points": [[20, 0], [30, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[20, 0], [30, 0]]})).unwrap();
     s.cmdline("xline o 2 25,0 25,5").unwrap();
     s.cmdline("").unwrap();
     let (b, _) = xline_dir(&last(&s));
@@ -526,7 +528,7 @@ fn mline_json_and_command_line() {
 #[test]
 fn helix_json_and_command_line() {
     let mut s = Session::new();
-    s.execute("helix", &json!({"center": [0, 0], "baseRadius": 2, "topRadius": 1, "height": 6, "turns": 2})).unwrap();
+    s.execute("helix.add", &json!({"center": [0, 0], "baseRadius": 2, "topRadius": 1, "height": 6, "turns": 2})).unwrap();
     match last(&s) {
         EntityKind::Polyline3d(p) => {
             assert!(near(p.points[0].xy(), 2.0, 0.0));
@@ -535,7 +537,7 @@ fn helix_json_and_command_line() {
         }
         k => panic!("{k:?}"),
     }
-    assert!(s.execute("helix", &json!({"center": [0, 0], "baseRadius": 1, "turns": 1e9})).is_err());
+    assert!(s.execute("helix.add", &json!({"center": [0, 0], "baseRadius": 1, "turns": 1e9})).is_err());
     s.cmdline("helix 0,0 1 2 t 4 w cw 5").unwrap();
     assert!(s.running.is_none(), "{}", s.prompt_text());
     match last(&s) {
@@ -566,28 +568,28 @@ fn spline_cv_json_and_command_line() {
 #[test]
 fn centermark_and_centerline() {
     let mut s = Session::new();
-    let c = h(&s.execute("circle", &json!({"center": [0, 0], "radius": 2})).unwrap());
+    let c = h(&s.execute("circle.add", &json!({"center": [0, 0], "radius": 2})).unwrap());
     let r = s.execute("centerMark.add", &json!({"handle": c})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 2);
     let e = (**s.doc().unwrap().model.last().unwrap()).clone();
     assert_eq!(e.common.linetype, "CENTER");
     assert!(s.doc().unwrap().linetype("CENTER").is_some());
     assert!(matches!(e.kind, EntityKind::Line(l) if (l.b.y - 2.12).abs() < 1e-9));
-    let a = s.execute("line", &json!({"points": [[10, 0], [20, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
-    let b = s.execute("line", &json!({"points": [[20, 4], [10, 4]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let a = s.execute("line.add", &json!({"points": [[10, 0], [20, 0]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
+    let b = s.execute("line.add", &json!({"points": [[20, 4], [10, 4]]})).unwrap()["handles"][0].as_str().unwrap().to_string();
     s.execute("centerLine.add", &json!({"h1": a, "h2": b})).unwrap();
     assert!(matches!(last(&s), EntityKind::Line(l) if (l.a.y - 2.0).abs() < 1e-9 && (l.a.x - 9.88).abs() < 1e-9));
     assert!(s.execute("centerLine.add", &json!({"h1": a, "h2": c})).is_err());
     assert!(s.execute("centerMark.add", &json!({"handle": a})).is_err());
 
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 2})).unwrap();
-    s.execute("arc", &json!({"center": [10, 0], "radius": 1, "start": 0, "end": 90})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 2})).unwrap();
+    s.execute("arc.add", &json!({"center": [10, 0], "radius": 1, "start": 0, "end": 90})).unwrap();
     s.cmdline("centermark 2,0 11,0").unwrap();
     s.cmdline("").unwrap();
     assert_eq!(kinds(&s).iter().filter(|k| **k == "Line").count(), 4);
-    s.execute("line", &json!({"points": [[0, 10], [10, 10]]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 12], [10, 12]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 10], [10, 10]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 12], [10, 12]]})).unwrap();
     s.cmdline("centerline 5,10 5,12").unwrap();
     assert!(s.running.is_none());
     assert!(matches!(last(&s), EntityKind::Line(l) if (l.a.y - 11.0).abs() < 1e-9));
@@ -613,15 +615,15 @@ fn new_draw_commands_survive_garbage_input() {
         "circle.addTanTanTan",
         "ellipse.addAxisEnd",
         "ellipse.addArc",
-        "divide",
-        "measure",
+        "point.divide",
+        "point.measure",
         "revisionCloud.add",
         "revisionCloud.addPolygonal",
         "revisionCloud.addFreehand",
-        "wipeout",
+        "wipeout.add",
         "polyline.add3d",
         "multiline.add",
-        "helix",
+        "helix.add",
         "spline.addControlVertices",
         "centerMark.add",
         "centerLine.add",
@@ -629,7 +631,7 @@ fn new_draw_commands_survive_garbage_input() {
         "rectangle.add",
     ];
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     for id in ids {
         for p in [
             json!({"start": [0, 0], "center": [0, 0], "end": [0, 0], "angle": 1e308, "length": -1e308, "radius": 0, "direction": [0, 0]}),

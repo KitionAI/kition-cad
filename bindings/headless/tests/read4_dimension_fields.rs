@@ -9,7 +9,7 @@ async fn dimension_disassociation_preserves_remeasured_coordinates() {
     check(
         |f| ("dimension.disassociate", json!({"handles":[f.attached_dim]})),
         |f| vec![("dimension.disassociate", json!({"handles":[f.attached_dim]}))],
-        |f| vec![("move", json!({"handles":[f.line],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.line],"delta":[0,5]}))],
     )
     .await;
 }

@@ -57,21 +57,21 @@ fn line_undo_option_and_aliases() {
 #[test]
 fn programmatic_undo_during_a_command_ends_it_first() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     // TEXT stays active, waiting for the next line.
     s.script("TEXT 0,0 5 0 HELLO\n").unwrap();
     assert!(s.running.is_some());
     assert_eq!(kinds(&s), vec!["Line", "Text"]);
     // Like Ctrl+Z during a command: end it (as Esc does), then undo it, not the line.
-    s.execute("undo", &json!({})).unwrap();
+    s.execute("edit.undoMany", &json!({})).unwrap();
     assert!(s.running.is_none());
     assert_eq!(kinds(&s), vec!["Line"]);
-    s.execute("redo", &json!({})).unwrap();
+    s.execute("edit.redoStep", &json!({})).unwrap();
     assert_eq!(kinds(&s), vec!["Line", "Text"]);
     // Redo while a command runs ends it the same way and leaves the drawing alone.
     s.script("TEXT 0,-10 5 0\n").unwrap();
     assert!(s.running.is_some());
-    s.execute("redo", &json!({})).unwrap();
+    s.execute("edit.redoStep", &json!({})).unwrap();
     assert!(s.running.is_none());
     assert_eq!(kinds(&s), vec!["Line", "Text"]);
 }
@@ -133,10 +133,10 @@ fn rectangle_polygon_and_pline() {
 #[test]
 fn json_execute_and_errors() {
     let mut s = Session::new();
-    let r = s.execute("circle", &json!({"center": [1, 2], "radius": 3})).unwrap();
+    let r = s.execute("circle.add", &json!({"center": [1, 2], "radius": 3})).unwrap();
     assert!(r["handle"].is_string());
-    assert!(s.execute("circle", &json!({"center": [1, 2]})).is_err());
-    assert!(s.execute("circle", &json!("not an object")).is_err());
+    assert!(s.execute("circle.add", &json!({"center": [1, 2]})).is_err());
+    assert!(s.execute("circle.add", &json!("not an object")).is_err());
     assert!(s.execute("nope", &json!({})).is_err());
     // Bad params don't create undo steps.
     assert_eq!(s.state().unwrap().undo.len(), 1);
@@ -145,8 +145,8 @@ fn json_execute_and_errors() {
 #[test]
 fn move_with_pickfirst_and_window_selection() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [1, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[5, 5], [6, 5]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [1, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[5, 5], [6, 5]]})).unwrap();
     s.viewport_px = (1000.0, 1000.0);
     s.state_mut().unwrap().set_view(View { center: Vec2::new(3.0, 3.0), height: 10.0 });
     // Window selection from left to right picks only the first line.
@@ -165,8 +165,8 @@ fn move_with_pickfirst_and_window_selection() {
 #[test]
 fn erase_all_and_selection_keywords() {
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
-    s.execute("circle", &json!({"center": [5, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [5, 0], "radius": 1})).unwrap();
     s.cmdline("erase").unwrap();
     s.cmdline("all").unwrap();
     s.cmdline("").unwrap();
@@ -176,11 +176,11 @@ fn erase_all_and_selection_keywords() {
 #[test]
 fn trim_line_between_edges() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[3, -2], [3, 2]]})).unwrap();
-    s.execute("line", &json!({"points": [[7, -2], [7, 2]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[3, -2], [3, 2]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[7, -2], [7, 2]]})).unwrap();
     let h = s.doc().unwrap().model.iter().next().unwrap().handle;
-    s.execute("trim", &json!({"handle": h.hex(), "pick": [5, 0]})).unwrap();
+    s.execute("object.trim", &json!({"handle": h.hex(), "pick": [5, 0]})).unwrap();
     let lines: Vec<_> = s
         .doc()
         .unwrap()
@@ -195,10 +195,10 @@ fn trim_line_between_edges() {
 #[test]
 fn extend_line_to_boundary() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [5, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[8, -2], [8, 2]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [5, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[8, -2], [8, 2]]})).unwrap();
     let h = s.doc().unwrap().model.iter().next().unwrap().handle;
-    s.execute("extend", &json!({"handle": h.hex(), "pick": [4.5, 0]})).unwrap();
+    s.execute("object.extend", &json!({"handle": h.hex(), "pick": [4.5, 0]})).unwrap();
     let g = s.doc().unwrap().entity(h).unwrap().kind.grips();
     assert!(g[2].near(Vec2::new(8.0, 0.0), 1e-9));
 }
@@ -207,7 +207,7 @@ fn extend_line_to_boundary() {
 fn properties_set_circle_size_and_dim_style() {
     // The Properties palette edits a circle's circumference/area and a dimension's style.
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
     let c = s.doc().unwrap().model.last().unwrap().handle;
     let radius = |s: &Session| match &s.doc().unwrap().entity(c).unwrap().kind {
         EntityKind::Circle(c) => c.radius,
@@ -242,7 +242,7 @@ fn properties_set_circle_size_and_dim_style() {
 fn properties_palette_current_property_commands() {
     // The commands the Properties palette runs with nothing selected.
     let mut s = Session::new();
-    s.execute("linetype", &json!({"current": "ByBlock"})).unwrap();
+    s.execute("property.linetype", &json!({"current": "ByBlock"})).unwrap();
     s.execute("property.lineweight", &json!({"lineweight": 0.5})).unwrap();
     s.execute("variable.set", &json!({"name": "THICKNESS", "value": 2.5})).unwrap();
     s.execute("dimensionStyle.open", &json!({"name": "Big", "current": false})).unwrap();
@@ -251,7 +251,7 @@ fn properties_palette_current_property_commands() {
     s.execute("multileaderStyle.open", &json!({"name": "Callout", "current": true})).unwrap();
     s.execute("tableStyle.open", &json!({"name": "Schedule", "current": false})).unwrap();
     s.execute("tableStyle.open", &json!({"name": "Schedule", "current": true})).unwrap();
-    s.execute("style", &json!({"name": "Notes", "current": false})).unwrap();
+    s.execute("textStyle.open", &json!({"name": "Notes", "current": false})).unwrap();
     s.execute("textStyle.setCurrent", &json!({"name": "Notes"})).unwrap();
     let h = &s.doc().unwrap().header;
     assert_eq!(h.str("CELTYPE", ""), "ByBlock");
@@ -267,9 +267,9 @@ fn properties_palette_current_property_commands() {
 fn pickadd_controls_idle_picks() {
     // The palette's PICKADD toggle must change how clicks select.
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let a = s.doc().unwrap().model.last().unwrap().handle;
-    s.execute("line", &json!({"points": [[0, 5], [10, 5]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 5], [10, 5]]})).unwrap();
     let b = s.doc().unwrap().model.last().unwrap().handle;
     let (pa, pb) = (Vec2::new(5.0, 0.0), Vec2::new(5.0, 5.0));
     // PICKADD on: picks add, Shift removes.
@@ -297,10 +297,10 @@ fn pickadd_controls_idle_picks() {
 #[test]
 fn fillet_two_lines() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 0], [0, 10]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [0, 10]]})).unwrap();
     let hs: Vec<_> = s.doc().unwrap().model.handles();
-    let r = s.execute("fillet", &json!({"h1": hs[0].hex(), "p1": [5, 0], "h2": hs[1].hex(), "p2": [0, 5], "radius": 2})).unwrap();
+    let r = s.execute("object.fillet", &json!({"h1": hs[0].hex(), "p1": [5, 0], "h2": hs[1].hex(), "p2": [0, 5], "radius": 2})).unwrap();
     assert!(r["arc"].is_string());
     let g = s.doc().unwrap().entity(hs[0]).unwrap().kind.grips();
     assert!(g[0].near(Vec2::new(10.0, 0.0), 1e-9) || g[2].near(Vec2::new(10.0, 0.0), 1e-9));
@@ -310,10 +310,10 @@ fn fillet_two_lines() {
 #[test]
 fn offset_circle_and_polyline() {
     let mut s = Session::new();
-    let c = s.execute("circle", &json!({"center": [0, 0], "radius": 5})).unwrap();
-    s.execute("offset", &json!({"handle": c["handle"], "distance": 1, "side": [0, 0]})).unwrap();
+    let c = s.execute("circle.add", &json!({"center": [0, 0], "radius": 5})).unwrap();
+    s.execute("object.offset", &json!({"handle": c["handle"], "distance": 1, "side": [0, 0]})).unwrap();
     let r = s.execute("rectangle.add", &json!({"p1": [0, 0], "p2": [10, 10]})).unwrap();
-    s.execute("offset", &json!({"handle": r["handle"], "distance": 1, "side": [5, 5]})).unwrap();
+    s.execute("object.offset", &json!({"handle": r["handle"], "distance": 1, "side": [5, 5]})).unwrap();
     let d = s.doc().unwrap();
     let last = d.model.last().unwrap();
     match &last.kind {
@@ -329,16 +329,16 @@ fn offset_circle_and_polyline() {
 #[test]
 fn copy_rotate_scale_mirror() {
     let mut s = Session::new();
-    let l = s.execute("line", &json!({"points": [[0, 0], [1, 0]]})).unwrap();
+    let l = s.execute("line.add", &json!({"points": [[0, 0], [1, 0]]})).unwrap();
     let h = l["handles"][0].clone();
-    s.execute("copy", &json!({"handles": [h], "delta": [0, 2], "count": 3})).unwrap();
+    s.execute("object.copy", &json!({"handles": [h], "delta": [0, 2], "count": 3})).unwrap();
     assert_eq!(s.doc().unwrap().model.len(), 4);
-    s.execute("rotate", &json!({"handles": [h], "base": [0, 0], "angle": 90})).unwrap();
-    s.execute("scale", &json!({"handles": [h], "base": [0, 0], "factor": 3})).unwrap();
+    s.execute("object.rotate", &json!({"handles": [h], "base": [0, 0], "angle": 90})).unwrap();
+    s.execute("object.scale", &json!({"handles": [h], "base": [0, 0], "factor": 3})).unwrap();
     let hh = kition_cad_doc::Handle::parse_hex(h.as_str().unwrap()).unwrap();
     let g = s.doc().unwrap().entity(hh).unwrap().kind.grips();
     assert!(g[2].near(Vec2::new(0.0, 3.0), 1e-9));
-    s.execute("mirror", &json!({"handles": [h], "p1": [-1, 0], "p2": [-1, 1]})).unwrap();
+    s.execute("object.mirror", &json!({"handles": [h], "p1": [-1, 0], "p2": [-1, 1]})).unwrap();
     assert_eq!(s.doc().unwrap().model.len(), 5);
 }
 
@@ -351,7 +351,7 @@ fn scale_reference_typed_and_picked() {
         l.b.xy()
     }
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[0, 0], [56, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [56, 0]]})).unwrap();
     // Typed lengths: 56 → 100.
     for t in ["scale", "all", "", "0,0", "r"] {
         s.cmdline(t).unwrap();
@@ -385,7 +385,7 @@ fn scale_reference_typed_and_picked() {
 fn layers_and_properties() {
     let mut s = Session::new();
     s.execute("layer.add", &json!({"name": "Walls", "color": "red", "current": true})).unwrap();
-    let c = s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    let c = s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
     let h = kition_cad_doc::Handle::parse_hex(c["handle"].as_str().unwrap()).unwrap();
     assert_eq!(s.doc().unwrap().entity(h).unwrap().common.layer, "Walls");
     assert!(s.execute("layer.set", &json!({"name": "Walls", "frozen": true})).is_err());
@@ -401,7 +401,7 @@ fn properties_set_transparency() {
     use kition_cad_doc::Transparency;
     // `object.setProperties` applies `transparency`.
     let mut s = Session::new();
-    let r = s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
+    let r = s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let h = r["handles"][0].as_str().unwrap().to_string();
     let hh = kition_cad_doc::Handle::parse_hex(&h).unwrap();
     let tr = |s: &Session| s.doc().unwrap().entity(hh).unwrap().common.transparency;
@@ -422,18 +422,18 @@ fn properties_set_transparency() {
         assert_eq!(tr(&s), Transparency::Percent(90), "{v}");
     }
     // `properties` and `file.inspect` report it in the form `object.setProperties` takes.
-    let p = s.execute("properties", &json!({"handles": [h]})).unwrap();
+    let p = s.execute("object.properties", &json!({"handles": [h]})).unwrap();
     assert_eq!(p["objects"][0]["transparency"], json!(90));
     s.execute("object.setProperties", &json!({"handles": [h], "transparency": "ByBlock"})).unwrap();
-    let i = s.execute("file.inspect", &json!({"object.query": true})).unwrap();
-    assert_eq!(i["object.query"][0]["transparency"], json!("ByBlock"));
+    let i = s.execute("file.inspect", &json!({"entities": true})).unwrap();
+    assert_eq!(i["entities"][0]["transparency"], json!("ByBlock"));
 }
 
 #[test]
 fn zoom_extents_fits_drawing() {
     let mut s = Session::new();
     s.viewport_px = (1000.0, 500.0);
-    s.execute("line", &json!({"points": [[0, 0], [100, 10]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [100, 10]]})).unwrap();
     s.execute("view.zoomToFit", &json!({})).unwrap();
     let v = s.state().unwrap().view();
     assert!((v.center.x - 50.0).abs() < 1e-9);
@@ -535,7 +535,7 @@ fn enter_repeats_last_command() {
     let mut s = Session::new();
     s.cmdline("circle 0,0 1").unwrap();
     s.cmdline("").unwrap();
-    assert_eq!(s.running.as_ref().map(|r| r.id.as_str()), Some("circle"));
+    assert_eq!(s.running.as_ref().map(|r| r.id.as_str()), Some("circle.add"));
     s.cmdline("5,5 1").unwrap();
     assert_eq!(s.doc().unwrap().model.len(), 2);
 }
@@ -599,14 +599,14 @@ fn count_from_the_menu_shows_its_result() {
     let mut s = Session::new();
     s.start("count").unwrap();
     assert_eq!(s.log.last().map(String::as_str), Some("No block references in model space."));
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
     s.execute("edit.selectAll", &json!({})).unwrap();
     s.cmdline("block Valve 0,0").unwrap();
     s.cmdline("insert Valve 10,0 1 1 0").unwrap();
     s.start("count").unwrap();
     let n = s.log.len();
     assert_eq!(&s.log[n - 3..], ["Block references in model space:", "  Valve: 2", "  Total: 2"]);
-    let r = s.execute("count", &json!({"block": "Valve"})).unwrap();
+    let r = s.execute("object.count", &json!({"block": "Valve"})).unwrap();
     assert_eq!((r["count"].as_u64(), r["message"].as_str()), (Some(2), Some("Block Valve: 2 in model space.")));
 }
 
@@ -638,7 +638,7 @@ fn dimlinear_interactive_and_continue() {
 fn dim_auto_vertical_and_radius() {
     let mut s = Session::new();
     s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [3, 8], "at": [6, 4]})).unwrap();
-    let c = s.execute("circle", &json!({"center": [20, 0], "radius": 2})).unwrap();
+    let c = s.execute("circle.add", &json!({"center": [20, 0], "radius": 2})).unwrap();
     s.execute("dimension.addRadius", &json!({"handle": c["handle"], "at": [23, 1]})).unwrap();
     let d = s.doc().unwrap();
     let kinds: Vec<_> = d.model.iter().filter_map(|e| if let EntityKind::Dimension(d) = &e.kind { Some(d.kind) } else { None }).collect();
@@ -651,9 +651,9 @@ fn area_of_hatch_excludes_island() {
     let mut s = Session::new();
     s.execute("polyline.add", &json!({"vertices": [[0, 0], [10, 0], [10, 10], [0, 10]], "closed": true})).unwrap();
     s.execute("polyline.add", &json!({"vertices": [[4, 4], [6, 4], [6, 6], [4, 6]], "closed": true})).unwrap();
-    s.execute("hatch", &json!({"points": [[1, 1]], "pattern": "SOLID"})).unwrap();
+    s.execute("hatch.add", &json!({"points": [[1, 1]], "pattern": "SOLID"})).unwrap();
     let h = s.doc().unwrap().model.iter().find_map(|e| if let EntityKind::Hatch(_) = &e.kind { Some(e.handle) } else { None }).unwrap();
-    let r = s.execute("area", &json!({"handle": h.hex()})).unwrap();
+    let r = s.execute("measure.area", &json!({"handle": h.hex()})).unwrap();
     assert!((r["area"].as_f64().unwrap() - 96.0).abs() < 1e-6);
     assert!((r["perimeter"].as_f64().unwrap() - 48.0).abs() < 1e-6);
     // A loop nested inside the island is filled again: 100 - 36 + 4.
@@ -661,9 +661,9 @@ fn area_of_hatch_excludes_island() {
     s.execute("polyline.add", &json!({"vertices": [[0, 0], [10, 0], [10, 10], [0, 10]], "closed": true})).unwrap();
     s.execute("polyline.add", &json!({"vertices": [[2, 2], [8, 2], [8, 8], [2, 8]], "closed": true})).unwrap();
     s.execute("polyline.add", &json!({"vertices": [[4, 4], [6, 4], [6, 6], [4, 6]], "closed": true})).unwrap();
-    s.execute("hatch", &json!({"points": [[1, 1]], "pattern": "SOLID"})).unwrap();
+    s.execute("hatch.add", &json!({"points": [[1, 1]], "pattern": "SOLID"})).unwrap();
     let h = s.doc().unwrap().model.iter().find_map(|e| if let EntityKind::Hatch(_) = &e.kind { Some(e.handle) } else { None }).unwrap();
-    let r = s.execute("area", &json!({"handle": h.hex()})).unwrap();
+    let r = s.execute("measure.area", &json!({"handle": h.hex()})).unwrap();
     assert!((r["area"].as_f64().unwrap() - 68.0).abs() < 1e-6);
 }
 
@@ -671,7 +671,7 @@ fn area_of_hatch_excludes_island() {
 fn hatch_by_pick_point_with_island() {
     let mut s = Session::new();
     s.execute("rectangle.add", &json!({"p1": [0, 0], "p2": [10, 10]})).unwrap();
-    s.execute("circle", &json!({"center": [5, 5], "radius": 2})).unwrap();
+    s.execute("circle.add", &json!({"center": [5, 5], "radius": 2})).unwrap();
     s.cmdline("hatch 1,1").unwrap();
     s.cmdline("").unwrap();
     let h = s.doc().unwrap().model.iter().find_map(|e| if let EntityKind::Hatch(h) = &e.kind { Some(h.clone()) } else { None }).unwrap();
@@ -680,20 +680,20 @@ fn hatch_by_pick_point_with_island() {
     assert!(matches!(s.doc().unwrap().model.iter().next().unwrap().kind, EntityKind::Hatch(_)));
     // No boundary → error message, no hatch.
     let mut s2 = Session::new();
-    s2.execute("line", &json!({"points": [[0, 0], [5, 0]]})).unwrap();
-    assert!(s2.execute("hatch", &json!({"points": [[1, 1]]})).is_err());
+    s2.execute("line.add", &json!({"points": [[0, 0], [5, 0]]})).unwrap();
+    assert!(s2.execute("hatch.add", &json!({"points": [[1, 1]]})).is_err());
 }
 
 #[test]
 fn hatch_from_overlapping_lines() {
     let mut s = Session::new();
-    s.execute("line", &json!({"points": [[-1, 0], [11, 0]]})).unwrap();
-    s.execute("line", &json!({"points": [[10, -1], [10, 6]]})).unwrap();
-    s.execute("line", &json!({"points": [[11, 5], [-1, 5]]})).unwrap();
-    s.execute("line", &json!({"points": [[0, 6], [0, -1]]})).unwrap();
-    let r = s.execute("boundary", &json!({"points": [[3, 3]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[-1, 0], [11, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[10, -1], [10, 6]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[11, 5], [-1, 5]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 6], [0, -1]]})).unwrap();
+    let r = s.execute("boundary.add", &json!({"points": [[3, 3]]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 1);
-    let area = s.execute("area", &json!({"handle": r["handles"][0]})).unwrap();
+    let area = s.execute("measure.area", &json!({"handle": r["handles"][0]})).unwrap();
     assert!((area["area"].as_f64().unwrap() - 50.0).abs() < 1e-6);
 }
 
@@ -705,7 +705,7 @@ fn square_hole_fixture(lines: bool) -> Session {
     let sq = [[5, 5], [10, 5], [10, 10], [5, 10]];
     if lines {
         for i in 0..4 {
-            s.execute("line", &json!({"points": [sq[i], sq[(i + 1) % 4]]})).unwrap();
+            s.execute("line.add", &json!({"points": [sq[i], sq[(i + 1) % 4]]})).unwrap();
         }
     } else {
         s.execute("polyline.add", &json!({"vertices": sq, "closed": true})).unwrap();
@@ -737,7 +737,7 @@ fn inside_open_hole(q: Vec2) -> bool {
 fn hatch_pick_point_keeps_island_of_separate_lines() {
     for lines in [true, false] {
         let mut s = square_hole_fixture(lines);
-        s.execute("hatch", &json!({"points": [[2, 2]]})).unwrap();
+        s.execute("hatch.add", &json!({"points": [[2, 2]]})).unwrap();
         let e = only_hatch(&s);
         let EntityKind::Hatch(h) = &e.kind else { panic!("not a hatch") };
         assert_outer_and_square_island(h);
@@ -767,7 +767,7 @@ fn hatch_pick_point_keeps_island_of_separate_lines() {
 fn gradient_pick_point_keeps_island_of_separate_lines() {
     for lines in [true, false] {
         let mut s = square_hole_fixture(lines);
-        s.execute("gradient", &json!({"points": [[2, 2]]})).unwrap();
+        s.execute("hatch.addGradient", &json!({"points": [[2, 2]]})).unwrap();
         let e = only_hatch(&s);
         let EntityKind::Hatch(h) = &e.kind else { panic!("not a hatch") };
         assert_outer_and_square_island(h);
@@ -784,10 +784,10 @@ fn gradient_pick_point_keeps_island_of_separate_lines() {
 fn boundary_pick_point_keeps_island_of_separate_lines() {
     for lines in [true, false] {
         let mut s = square_hole_fixture(lines);
-        let r = s.execute("boundary", &json!({"points": [[2, 2]]})).unwrap();
+        let r = s.execute("boundary.add", &json!({"points": [[2, 2]]})).unwrap();
         let hs = r["handles"].as_array().unwrap();
         assert_eq!(hs.len(), 2, "outer and island polylines (lines: {lines})");
-        let mut areas: Vec<f64> = hs.iter().map(|h| s.execute("area", &json!({"handle": h})).unwrap()["area"].as_f64().unwrap()).collect();
+        let mut areas: Vec<f64> = hs.iter().map(|h| s.execute("measure.area", &json!({"handle": h})).unwrap()["area"].as_f64().unwrap()).collect();
         areas.sort_by(f64::total_cmp);
         assert!((areas[0] - 25.0).abs() < 1e-6 && (areas[1] - 400.0).abs() < 1e-6, "{areas:?}");
     }
@@ -795,22 +795,22 @@ fn boundary_pick_point_keeps_island_of_separate_lines() {
     let mut s = Session::new();
     let sq = [[0, 0], [20, 0], [20, 20], [0, 20]];
     for i in 0..4 {
-        s.execute("line", &json!({"points": [sq[i], sq[(i + 1) % 4]]})).unwrap();
+        s.execute("line.add", &json!({"points": [sq[i], sq[(i + 1) % 4]]})).unwrap();
     }
-    let r = s.execute("boundary", &json!({"points": [[2, 2]]})).unwrap();
+    let r = s.execute("boundary.add", &json!({"points": [[2, 2]]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 1);
     // Picking inside the line square bounds the square itself, with no island.
     let mut s = square_hole_fixture(true);
-    let r = s.execute("boundary", &json!({"points": [[7, 7]]})).unwrap();
+    let r = s.execute("boundary.add", &json!({"points": [[7, 7]]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 1);
-    let area = s.execute("area", &json!({"handle": r["handles"][0]})).unwrap();
+    let area = s.execute("measure.area", &json!({"handle": r["handles"][0]})).unwrap();
     assert!((area["area"].as_f64().unwrap() - 25.0).abs() < 1e-6);
 }
 
 #[test]
 fn block_insert_with_attributes() {
     let mut s = Session::new();
-    s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 1})).unwrap();
     s.execute("attribute.define", &json!({"tag": "TAG", "prompt": "Tag?", "default": "A1", "at": [1.2, 0]})).unwrap();
     s.execute("edit.selectAll", &json!({})).unwrap();
     s.cmdline("block").unwrap();
@@ -827,10 +827,10 @@ fn block_insert_with_attributes() {
     assert!((ins[1].scale.x - 2.0).abs() < 1e-12);
     // Explode the scaled insert back into geometry.
     let h = s.doc().unwrap().model.last().unwrap().handle;
-    s.execute("explode", &json!({"handles": [h.hex()]})).unwrap();
+    s.execute("object.explode", &json!({"handles": [h.hex()]})).unwrap();
     assert!(s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, EntityKind::Circle(c) if (c.radius - 2.0).abs() < 1e-9)));
     // PURGE keeps the used block.
-    s.execute("purge", &json!({})).unwrap();
+    s.execute("file.purge", &json!({})).unwrap();
     assert!(s.doc().unwrap().block("Valve").is_some());
 }
 
@@ -842,7 +842,7 @@ fn mleader_and_qdim() {
     assert!(
         s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, EntityKind::MLeader(m) if m.text.as_ref().is_some_and(|t| t.contents == "NOTE A")))
     );
-    s.execute("line", &json!({"points": [[0, 0], [4, 0], [9, 0]]})).unwrap();
+    s.execute("line.add", &json!({"points": [[0, 0], [4, 0], [9, 0]]})).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().filter(|e| matches!(e.kind, EntityKind::Line(_))).map(|e| e.handle.hex()).collect();
     let r = s.execute("dimension.addQuick", &json!({"handles": hs, "at": [0, -2]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 2);
@@ -986,7 +986,7 @@ fn deferred_pick_elsewhere_is_a_plain_point() {
 fn arc_refuses_zero_radius() {
     for params in [json!({"center": [0, 0], "radius": 0, "start": 0, "end": 90}), json!({"start": [0, 0], "center": [0, 0], "end": [1, 0]})] {
         let mut s = Session::new();
-        let err = s.execute("arc", &params).unwrap_err().to_string();
+        let err = s.execute("arc.add", &params).unwrap_err().to_string();
         assert!(err.contains("do not define an arc"), "{params}: {err}");
         let info = s.execute("file.inspect", &json!({})).unwrap();
         assert_eq!(info["entityCount"], 0, "{params}: {info}");
@@ -995,7 +995,7 @@ fn arc_refuses_zero_radius() {
     }
     // The positive-radius control still adds the quarter circle.
     let mut s = Session::new();
-    s.execute("arc", &json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})).unwrap();
+    s.execute("arc.add", &json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})).unwrap();
     match &s.doc().unwrap().model.iter().next().unwrap().kind {
         EntityKind::Arc(a) => assert_eq!((a.radius, a.start, a.end), (5.0, 0.0, std::f64::consts::FRAC_PI_2)),
         other => panic!("{other:?}"),

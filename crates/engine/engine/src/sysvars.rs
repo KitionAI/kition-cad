@@ -74,7 +74,7 @@ pub fn get(s: &Session, name: &str) -> Option<Value> {
         // Process-wide font substitution (profile settings, not saved in the drawing).
         "FONTALT" => json!(kition_cad_fonts::ttf::font_alt()),
         "FONTFALLBACK" => json!(kition_cad_fonts::ttf::fallback_fonts()),
-        "CMDNAMES" => json!(s.running.as_ref().map(|r| r.id.to_ascii_uppercase()).unwrap_or_default()),
+        "CMDNAMES" => json!(s.running.as_ref().map(|r| crate::cmd::typed_name(&r.id).to_ascii_uppercase()).unwrap_or_default()),
         "DWGNAME" => json!(s.state().map(|d| d.title.clone()).unwrap_or_default()),
         "DBMOD" => json!(s.state().map(|d| i32::from(d.is_dirty())).unwrap_or(0)),
         "CTAB" => json!(

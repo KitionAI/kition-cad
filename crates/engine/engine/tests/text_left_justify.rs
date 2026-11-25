@@ -8,7 +8,7 @@ use serde_json::json;
 #[test]
 fn moving_top_left_text_through_properties_moves_it() {
     let mut s = Session::new();
-    let r = s.execute("text", &json!({ "at": [5, 5], "text": "TL", "height": 1, "justify": "TL" })).unwrap();
+    let r = s.execute("text.add", &json!({ "at": [5, 5], "text": "TL", "height": 1, "justify": "TL" })).unwrap();
     let h = r["handle"].as_str().unwrap().to_string();
     s.execute("object.setProperties", &json!({ "handles": [h], "position": [20, 20] })).unwrap();
     let d = s.doc().unwrap();

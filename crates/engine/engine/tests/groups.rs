@@ -10,7 +10,7 @@ use serde_json::json;
 fn three_lines() -> (Session, Vec<Handle>) {
     let mut s = Session::new();
     for y in [0, 5, 10] {
-        s.execute("line", &json!({ "points": [[0, y], [10, y]] })).unwrap();
+        s.execute("line.add", &json!({ "points": [[0, y], [10, y]] })).unwrap();
     }
     let hs = s.doc().unwrap().model.iter().map(|e| e.handle).collect();
     (s, hs)
@@ -27,20 +27,20 @@ fn groups(s: &Session) -> Vec<(String, String, Vec<Handle>)> {
 #[test]
 fn group_json_named_and_unnamed() {
     let (mut s, hs) = three_lines();
-    let r = s.execute("group", &json!({ "name": "Doors", "description": "front", "handles": hex(&hs[..2]) })).unwrap();
+    let r = s.execute("arrange.group", &json!({ "name": "Doors", "description": "front", "handles": hex(&hs[..2]) })).unwrap();
     assert_eq!(r, json!({ "name": "Doors", "members": 2 }));
     // Unnamed groups are *A1, *A2…; the current selection is the default.
     s.set_selection(vec![hs[2]]);
-    let r = s.execute("group", &json!({})).unwrap();
+    let r = s.execute("arrange.group", &json!({})).unwrap();
     assert_eq!(r["name"], "*A1");
     assert_eq!(groups(&s), vec![("Doors".into(), "front".into(), hs[..2].to_vec()), ("*A1".into(), String::new(), vec![hs[2]])]);
     // A taken name (any case), an invalid name or nothing to group is refused.
-    assert!(s.execute("group", &json!({ "name": "DOORS", "handles": hex(&hs) })).is_err());
-    assert!(s.execute("group", &json!({ "name": "a*b", "handles": hex(&hs) })).is_err());
+    assert!(s.execute("arrange.group", &json!({ "name": "DOORS", "handles": hex(&hs) })).is_err());
+    assert!(s.execute("arrange.group", &json!({ "name": "a*b", "handles": hex(&hs) })).is_err());
     s.set_selection(Vec::new());
-    assert!(s.execute("group", &json!({ "name": "Empty" })).is_err());
-    assert!(s.execute("group", &json!({ "name": "Gone", "handles": ["FFFFF"] })).is_err());
-    assert!(s.execute("group", &json!({ "handles": "1A" })).is_err());
+    assert!(s.execute("arrange.group", &json!({ "name": "Empty" })).is_err());
+    assert!(s.execute("arrange.group", &json!({ "name": "Gone", "handles": ["FFFFF"] })).is_err());
+    assert!(s.execute("arrange.group", &json!({ "handles": "1A" })).is_err());
     assert_eq!(s.doc().unwrap().groups.len(), 2);
     let list = s.execute("group.list", &json!({})).unwrap();
     assert_eq!(list["groups"][1]["unnamed"], true);
@@ -70,7 +70,7 @@ fn group_typed_name_description_and_undo() {
     assert!(s.log.iter().any(|l| l.contains("already exists")), "{:?}", s.log);
     assert!(s.prompt_text().contains("Enter a group name"), "{}", s.prompt_text());
     s.cancel();
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert!(s.doc().unwrap().groups.is_empty(), "undo removes the group");
     // With a pickfirst selection GROUP makes an unnamed group at once.
     s.set_selection(vec![hs[2]]);
@@ -82,11 +82,11 @@ fn group_typed_name_description_and_undo() {
 #[test]
 fn ungroup_by_pick_name_and_json() {
     let (mut s, hs) = three_lines();
-    s.execute("group", &json!({ "name": "A", "handles": hex(&hs[..2]) })).unwrap();
-    s.execute("group", &json!({ "name": "B", "handles": hex(&hs[2..]) })).unwrap();
-    s.execute("group", &json!({ "name": "C", "handles": hex(&hs[2..]) })).unwrap();
+    s.execute("arrange.group", &json!({ "name": "A", "handles": hex(&hs[..2]) })).unwrap();
+    s.execute("arrange.group", &json!({ "name": "B", "handles": hex(&hs[2..]) })).unwrap();
+    s.execute("arrange.group", &json!({ "name": "C", "handles": hex(&hs[2..]) })).unwrap();
     // Typed: pick a member; a non-member is reported and asked again.
-    s.execute("line", &json!({ "points": [[0, 20], [10, 20]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 20], [10, 20]] })).unwrap();
     let loose = s.doc().unwrap().model.last().unwrap().handle;
     s.cmdline("ungroup").unwrap();
     assert!(s.prompt_text().contains("Select group or [Name]"), "{}", s.prompt_text());
@@ -101,9 +101,9 @@ fn ungroup_by_pick_name_and_json() {
     assert!(s.running.is_none());
     assert_eq!(groups(&s).iter().map(|g| g.0.as_str()).collect::<Vec<_>>(), ["B"]);
     // JSON: unknown names and objects in no group are errors.
-    assert!(s.execute("ungroup", &json!({ "name": "nope" })).is_err());
-    assert!(s.execute("ungroup", &json!({ "handles": [loose.hex()] })).is_err());
-    let r = s.execute("ungroup", &json!({ "handles": [hs[2].hex()] })).unwrap();
+    assert!(s.execute("arrange.ungroup", &json!({ "name": "nope" })).is_err());
+    assert!(s.execute("arrange.ungroup", &json!({ "handles": [loose.hex()] })).is_err());
+    let r = s.execute("arrange.ungroup", &json!({ "handles": [hs[2].hex()] })).unwrap();
     assert_eq!(r, json!({ "ungrouped": ["B"] }));
     assert!(s.doc().unwrap().groups.is_empty());
 }
@@ -111,7 +111,7 @@ fn ungroup_by_pick_name_and_json() {
 #[test]
 fn groupedit_add_remove_rename() {
     let (mut s, hs) = three_lines();
-    s.execute("group", &json!({ "handles": hex(&hs[..1]) })).unwrap();
+    s.execute("arrange.group", &json!({ "handles": hex(&hs[..1]) })).unwrap();
     // Typed: pick the group, add an object, then rename the unnamed group.
     s.cmdline("groupedit").unwrap();
     s.input(Input::Pick(vec![hs[0]])).unwrap();
@@ -143,11 +143,11 @@ fn groupedit_add_remove_rename() {
 #[test]
 fn erased_members_leave_groups() {
     let (mut s, hs) = three_lines();
-    s.execute("group", &json!({ "name": "A", "handles": hex(&hs[..2]) })).unwrap();
-    s.execute("group", &json!({ "name": "B", "handles": hex(&hs[2..]) })).unwrap();
-    s.execute("erase", &json!({ "handles": [hs[0].hex(), hs[2].hex()] })).unwrap();
+    s.execute("arrange.group", &json!({ "name": "A", "handles": hex(&hs[..2]) })).unwrap();
+    s.execute("arrange.group", &json!({ "name": "B", "handles": hex(&hs[2..]) })).unwrap();
+    s.execute("object.delete", &json!({ "handles": [hs[0].hex(), hs[2].hex()] })).unwrap();
     assert_eq!(groups(&s), vec![("A".into(), String::new(), vec![hs[1]])], "B lost its only member");
-    s.execute("u", &json!({})).unwrap();
+    s.execute("edit.undoStep", &json!({})).unwrap();
     assert_eq!(groups(&s).len(), 2, "undo restores both groups");
     // Typed ERASE too.
     s.cmdline("erase").unwrap();

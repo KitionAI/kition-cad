@@ -17,8 +17,8 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
     Some(match command {
         id if constraint_command(id) => {
             if matches!(id, "constraint.auto")
-                || id.starts_with("gc")
-                || id.starts_with("dc") && !id.starts_with("constraint.dynamicDimensions")
+                || crate::acts::geometric_constraint(id)
+                || crate::acts::dimensional_constraint(id)
                 || matches!(id, "constraint.addGeometric" | "constraint.addDimensional")
             {
                 let mut f = curve_fields(e);
@@ -74,8 +74,8 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         } else {
             &["kind.type"]
         }),
-        "wipeout" if p.get("erase").and_then(Value::as_bool) != Some(true) => curve_fields(e),
-        "offset" if p.get("erase").and_then(Value::as_bool) != Some(true) => {
+        "wipeout.add" if p.get("erase").and_then(Value::as_bool) != Some(true) => curve_fields(e),
+        "object.offset" if p.get("erase").and_then(Value::as_bool) != Some(true) => {
             let mut f = curve_fields(e);
             if p.get("layer").and_then(Value::as_str).is_some_and(|l| l.eq_ignore_ascii_case("current")) {
                 f.extend(fields(&[
@@ -94,17 +94,19 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        "copy" | "object.arrayRectangular" | "object.arrayPolar" => fields(&["common", "kind", "~space"]),
+        "object.copy" | "object.arrayRectangular" | "object.arrayPolar" => fields(&["common", "kind", "~space"]),
         "constructionLine.add" => curve_fields(e),
-        "spline" if p.get("object").is_some() => {
+        "spline.add" if p.get("object").is_some() => {
             let mut f = curve_fields(e);
             f.push("~locked".into());
             f
         }
-        "hatch" | "gradient" if p.get("points").is_none() => curve_fields(e),
+        "hatch.add" | "hatch.addGradient" if p.get("points").is_none() => curve_fields(e),
         // modify2.rs:259-351 clones preserved fields; these flags assign only one
         // field (CLOSE additionally reads whether there are at least two vertices).
-        "polyline.edit" if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j")) => {
+        "polyline.edit"
+            if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "object.join" | "j")) =>
+        {
             let option = p.get("option").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
             match (&e.kind, option.as_str()) {
                 (EntityKind::LwPolyline(_), "open" | "o") => fields(&["kind.type", "kind.closed"]),
@@ -114,7 +116,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
         }
         // groups.rs::make_group/add_members only resolve membership by handle.
-        "group" | "group.edit" => Vec::new(),
+        "arrange.group" | "group.edit" => Vec::new(),
         // layout/plotstyle.rs::run_plotstyle: a constant assignment after is_locked.
         "plot.style" => fields(&["common.plotStyle", "~locked"]),
         // blocks/attedit.rs::run and run_global: the insert transform is not consulted.
@@ -148,13 +150,13 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        id if id == "dimension.editText" || id.starts_with("dimtedit.") => {
+        id if id == "dimension.editText" || crate::acts::dimension_text_mode(id).is_some() => {
             let mut f = fields(&["kind.type"]);
             if matches!(e.kind, EntityKind::Dimension(_)) {
                 if p.get("at").is_some() {
                     f.extend(fields(&["kind.textMid", "kind.userTextPos"]));
                 }
-                let mode = id.strip_prefix("dimtedit.").or_else(|| p.get("mode").and_then(Value::as_str)).unwrap_or("").to_ascii_lowercase();
+                let mode = crate::acts::dimension_text_mode(id).or_else(|| p.get("mode").and_then(Value::as_str)).unwrap_or("").to_ascii_lowercase();
                 match mode.as_str() {
                     "home" => f.extend(fields(&["kind.userTextPos", "kind.textRotation", "~dimOverride_textJust"])),
                     "angle" => f.push("kind.textRotation".into()),
@@ -185,7 +187,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             f
         }
         // modify2.rs::reverse_kind rebuilds supported kinds and skips all other kinds.
-        "reverse" => match e.kind {
+        "object.reverse" => match e.kind {
             EntityKind::Line(_) => fields(&["kind.a", "kind.b", "~locked"]),
             EntityKind::LwPolyline(_) | EntityKind::Polyline3d(_) | EntityKind::Spline(_) => fields(&["kind", "~locked"]),
             _ => fields(&["kind.type", "~locked"]),
@@ -199,7 +201,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         },
         // FLATTEN assigns z/elevation/thickness. Ray directions are renormalized; polyline-3d
         // vertices become new 2d vertices, so those two paths also consume stored coordinates.
-        "flatten" => {
+        "object.flatten" => {
             let mut f = fields(&["kind.type", "common.thickness", "~locked"]);
             fn coordinates(value: &Value, path: &str, out: &mut Vec<String>) {
                 match value {
@@ -243,7 +245,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         "centerMark.add" => fields(&["kind.type", "kind.center", "kind.radius"]),
         "centerLine.add" => fields(&["kind.type", "kind.a", "kind.b"]),
         // draw2::divide/measure sample geometry; continuation takes the saved endpoint/tangent.
-        "divide" | "measure" | "arc.addContinue" => match e.kind {
+        "point.divide" | "point.measure" | "arc.addContinue" => match e.kind {
             EntityKind::Line(_) => fields(&["kind.a", "kind.b"]),
             EntityKind::Circle(_) => fields(&["kind.center", "kind.radius"]),
             EntityKind::Arc(_) if command == "arc.addContinue" => fields(&["kind.center", "kind.radius", "kind.end"]),
@@ -259,7 +261,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
         }
         // Tangency and blend likewise take source shapes, with no copied common properties.
-        "circle.addTanTanRadius" | "circle.addTanTanTan" | "blend" => curve_fields(e),
+        "circle.addTanTanRadius" | "circle.addTanTanTan" | "object.blend" => curve_fields(e),
         // layer.rs::obj_layers selects layers from the target's layer name alone.
         "layer.makeObjectCurrent" | "layer.isolate" | "layer.off" | "layer.freeze" | "layer.lock" | "layer.unlock" => fields(&["common.layer"]),
         "layer.match" | "layer.changeToCurrent" => fields(&["common.layer"]),
@@ -268,7 +270,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             fields(&["common.layer", "common.color", "common.linetype", "common.lineweight", "common.ltscale", "common.transparency"])
         }
         // hatch.rs::closed_loop converts only these source geometry fields.
-        "region" => match e.kind {
+        "region.add" => match e.kind {
             EntityKind::Circle(_) => fields(&["kind.type", "kind.center", "kind.radius"]),
             EntityKind::LwPolyline(_) => fields(&["kind.type", "kind.vertices", "kind.closed"]),
             EntityKind::Ellipse(_) | EntityKind::Spline(_) => fields(&["kind"]),
@@ -277,7 +279,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         // SPLINEDIT replaces the supported spline kind, without reading common properties.
         "spline.edit" => fields(if matches!(e.kind, EntityKind::Spline(_)) { &["kind", "~locked"] } else { &["kind.type", "~locked"] }),
         // ALIGN applies one transform to the kind; common properties remain untouched.
-        "align" => fields(&["kind", "~locked"]),
+        "object.align" => fields(&["kind", "~locked"]),
         _ => return None,
     })
 }
@@ -366,11 +368,11 @@ pub(crate) fn attribute_projection(attributes: &Value, values: &Value) -> Option
 pub(crate) fn writes_existing(command: &str, p: &Value, h: Handle) -> bool {
     match command {
         "object.matchProperties" => p.get("source").and_then(Value::as_str).and_then(Handle::parse_hex) != Some(h),
-        "wipeout" => p.get("erase").and_then(Value::as_bool) == Some(true),
-        "block" | "block.add" => p.get("keep").and_then(Value::as_str) != Some("retain"),
+        "wipeout.add" => p.get("erase").and_then(Value::as_bool) == Some(true),
+        "block.addDialog" | "block.add" => p.get("keep").and_then(Value::as_str) != Some("retain"),
         id => {
-            id.starts_with("table.")
-                || id.starts_with("dimtedit.")
+            crate::acts::edits_a_table(id)
+                || crate::acts::dimension_text_mode(id).is_some()
                 || matches!(
                     id,
                     "object.setProperties"
@@ -384,9 +386,9 @@ pub(crate) fn writes_existing(command: &str, p: &Value, h: Handle) -> bool {
                         | "dimension.reassociate"
                         | "dimension.editText"
                         | "dimension.space"
-                        | "join"
+                        | "object.join"
                         | "polyline.edit"
-                        | "region"
+                        | "region.add"
                         | "revisionCloud.add"
                         | "revisionCloud.addPolygonal"
                         | "revisionCloud.addFreehand"
@@ -474,13 +476,14 @@ pub(crate) fn curve_fields(e: &Entity) -> Vec<String> {
 
 /// The commands whose handlers edit constraint or parametric state.
 pub(crate) fn constraint_command(id: &str) -> bool {
-    id.starts_with("gc")
-        || id.starts_with("dc")
+    crate::acts::geometric_constraint(id)
+        || crate::acts::dimensional_constraint(id)
+        || crate::acts::dynamic_dimensions(id)
         || matches!(
             id,
             "constraint.addGeometric"
                 | "constraint.addDimensional"
-                | "parameters"
+                | "constraint.parameters"
                 | "constraint.auto"
                 | "constraint.delete"
                 | "constraint.settings"

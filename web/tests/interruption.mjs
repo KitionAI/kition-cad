@@ -89,7 +89,7 @@ try {
     await kit.getByTestId('cad-save').click()
     await until(`${kind}: the subsequent edit saves cleanly`, async () => !(await inspect()).dirty)
     await page.evaluate(async () => { const file = window.devHost.files.get('Sample.dxf'); await window.devHost.open('Sample.dxf', file.bytes) })
-    await command('edit.selectAll')
+    await command('selectall')
     await until(`${kind}: saved coordinates survive reopening`, async () => JSON.stringify((await circle())?.center) === JSON.stringify(center))
 
     await open()

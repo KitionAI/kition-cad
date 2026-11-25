@@ -26,7 +26,7 @@ fn undo_takes_a_count() {
     let mut s = session_with_circles(4);
     s.cmdline("UNDO 3").unwrap();
     assert_eq!(count(&s), 1);
-    s.execute("redo", &serde_json::json!({ "count": 3 })).unwrap();
+    s.execute("edit.redoStep", &serde_json::json!({ "count": 3 })).unwrap();
     assert_eq!(count(&s), 4);
     // Enter takes the default of one.
     s.cmdline("UNDO").unwrap();

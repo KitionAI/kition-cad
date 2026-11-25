@@ -19,7 +19,7 @@ fn explode_vertical(setup: &[(&str, Value)]) -> (f64, f64, MText) {
         EntityKind::Dimension(dm) => kition_cad_engine::render::dimension_in(s.doc().unwrap(), dm),
         k => panic!("not a dimension: {k:?}"),
     };
-    s.execute("explode", &json!({"handles": [h.hex()]})).unwrap();
+    s.execute("object.explode", &json!({"handles": [h.hex()]})).unwrap();
     let mut texts = s.doc().unwrap().model.iter().filter_map(|e| match &e.kind {
         EntityKind::MText(m) => Some(m.clone()),
         _ => None,

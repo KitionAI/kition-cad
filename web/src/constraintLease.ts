@@ -17,19 +17,49 @@ export const CONSTRAINT_IDLE_MS = 3_000
 /** One renewal's length; the host renews it while it is held. */
 export const CONSTRAINT_LEASE_TTL = 15_000
 
-/** Whether an engine command solves the drawing's constraints: adds, changes, removes or infers them. */
+/** The commands that solve the drawing's constraints, by id. */
+const SOLVING = new Set(
+  [
+    'constraint.addGeometric',
+    'constraint.addDimensional',
+    'constraint.auto',
+    'constraint.delete',
+    'constraint.parameters',
+    'constraint.coincident',
+    'constraint.perpendicular',
+    'constraint.parallel',
+    'constraint.tangent',
+    'constraint.horizontal',
+    'constraint.vertical',
+    'constraint.collinear',
+    'constraint.concentric',
+    'constraint.smooth',
+    'constraint.symmetric',
+    'constraint.equal',
+    'constraint.fix',
+    'constraint.dimensionLinear',
+    'constraint.dimensionAligned',
+    'constraint.dimensionHorizontal',
+    'constraint.dimensionVertical',
+    'constraint.dimensionAngular',
+    'constraint.dimensionRadius',
+    'constraint.dimensionDiameter',
+  ].map((id) => id.toLowerCase()),
+)
+
+/** The same commands as a person types them at the command line (GCPARALLEL, DCLINEAR, PARAMETERS, …). */
+function typedSolves(name: string): boolean {
+  if (name.startsWith('dcdisplay')) return false
+  return name.startsWith('gc') || name.startsWith('dc') || name.startsWith('parameters') || ['geomconstraint', 'dimconstraint', 'autoconstrain', 'delconstraint'].includes(name)
+}
+
+/**
+ * Whether an engine command solves the drawing's constraints: adds, changes, removes or infers
+ * them. `command` is a command id, or the name typed at the command line (`commandOf`).
+ */
 export function solvesConstraints(command: string): boolean {
-  const id = command.toLowerCase()
-  if (id.startsWith('constraint.dynamicDimensions')) return false
-  return (
-    id.startsWith('gc') ||
-    id.startsWith('dc') ||
-    id.startsWith('parameters') ||
-    id === 'constraint.addGeometric' ||
-    id === 'constraint.addDimensional' ||
-    id === 'constraint.auto' ||
-    id === 'constraint.delete'
-  )
+  const name = command.toLowerCase()
+  return SOLVING.has(name) || typedSolves(name)
 }
 
 /** The engine command a call runs: the command itself, or the first word typed on the command line. */

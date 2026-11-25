@@ -27,13 +27,13 @@ struct Drawing {
 fn drawing() -> Drawing {
     let bytes = CadDocument::create("Plan.dxf", 420, 297).unwrap().save(Some("Plan.dxf")).unwrap();
     let mut doc = CadDocument::open("Plan.dxf", &bytes).unwrap();
-    let a = handle(&doc.execute("line", json!({ "points": [[0, 0], [100, 0]] })).unwrap());
-    let b = handle(&doc.execute("line", json!({ "points": [[0, 50], [100, 50]] })).unwrap());
+    let a = handle(&doc.execute("line.add", json!({ "points": [[0, 0], [100, 0]] })).unwrap());
+    let b = handle(&doc.execute("line.add", json!({ "points": [[0, 50], [100, 50]] })).unwrap());
     doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
-    let c = handle(&doc.execute("line", json!({ "points": [[10, 10], [60, 10]] })).unwrap());
+    let c = handle(&doc.execute("line.add", json!({ "points": [[10, 10], [60, 10]] })).unwrap());
     doc.execute("layout.set", json!({ "name": "Model" })).unwrap();
     doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
-    doc.execute("select", json!({ "handles": [a] })).unwrap();
+    doc.execute("select.set", json!({ "handles": [a] })).unwrap();
     doc.execute("view.set", json!({ "center": [50, 0], "height": 20 })).unwrap();
     Drawing { doc, a, b, c }
 }
@@ -59,7 +59,7 @@ fn content(doc: &CadDocument) -> Value {
 /// Each entity of a space: handle → (layer, start x).
 fn space(doc: &mut CadDocument, layout: &str) -> Vec<(String, String)> {
     let listed = doc.execute("object.query", json!({ "layout": layout })).unwrap();
-    listed["object.query"]
+    listed["entities"]
         .as_array()
         .unwrap()
         .iter()
@@ -68,7 +68,7 @@ fn space(doc: &mut CadDocument, layout: &str) -> Vec<(String, String)> {
 }
 
 fn start_x(doc: &mut CadDocument, h: &str) -> f64 {
-    let listed = doc.execute("list", json!({ "handles": [h] })).unwrap().to_string();
+    let listed = doc.execute("object.list", json!({ "handles": [h] })).unwrap().to_string();
     let found = doc.execute("object.measure", json!({ "bounds": [h] })).unwrap();
     found["bounds"][0]["min"][0].as_f64().unwrap_or_else(|| panic!("{listed}"))
 }
@@ -78,12 +78,12 @@ fn editor_state_changes_nothing_in_what_an_agent_reads() {
     let mut d = drawing();
     let before = content(&d.doc);
     d.doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
-    d.doc.execute("select", json!({ "handles": [d.c] })).unwrap();
-    d.doc.execute("zoom", json!({ "mode": "extents" })).unwrap();
-    d.doc.execute("ortho", json!({ "on": true })).unwrap();
+    d.doc.execute("select.set", json!({ "handles": [d.c] })).unwrap();
+    d.doc.execute("view.zoomRealtime", json!({ "mode": "extents" })).unwrap();
+    d.doc.execute("drafting.ortho", json!({ "on": true })).unwrap();
     assert_eq!(content(&d.doc), before, "the space shown, the selection, the view and the drafting modes are editor state");
     let listed = content(&d.doc);
-    assert_eq!(listed["layouts"][0], json!({ "name": "Model", "part": { "layout": "Model" }, "object.query": 2 }));
+    assert_eq!(listed["layouts"][0], json!({ "name": "Model", "part": { "layout": "Model" }, "entities": 2 }));
     assert_eq!(listed["layouts"][1]["id"], "layout:Layout1");
     assert!(listed["layers"].as_array().unwrap().iter().any(|l| l["id"] == "layer:Walls"), "{listed}");
 }
@@ -110,7 +110,7 @@ fn c8_context_checks_the_full_editor_state_inventory() {
     }
     let command = d.doc.commands().into_iter().find(|c| c.id == "object.setProperties").unwrap();
     assert_eq!(command.reads, &[kition_kit::EditorState::Selection]);
-    let command = d.doc.commands().into_iter().find(|c| c.id == "line").unwrap();
+    let command = d.doc.commands().into_iter().find(|c| c.id == "line.add").unwrap();
     assert_eq!(command.reads, &[kition_kit::EditorState::Active, kition_kit::EditorState::Part]);
 }
 
@@ -165,13 +165,13 @@ fn a_selection_command_driven_by_on_changes_exactly_those_entities() {
     // What a host does for `{command: "object.move", on: [C]}` with C in Layout1 (`on` into the
     // selection, as for a command without `handles`): the context, the command, the restore.
     d.doc.set_context(&context(&[&d.c], None)).unwrap();
-    d.doc.execute_as("move", json!({ "delta": [5, 0] }), &agent()).unwrap();
+    d.doc.execute_as("object.move", json!({ "delta": [5, 0] }), &agent()).unwrap();
     d.doc.restore_editor_state(&saved).unwrap();
     assert_eq!(start_x(&mut d.doc, &d.c), 15.0, "C moved");
     assert_eq!((start_x(&mut d.doc, &d.a), start_x(&mut d.doc, &d.b)), (0.0, 0.0), "A, the person's selection, and B stayed");
     assert_eq!(editor(&d.doc), before, "the space shown, the view and the selection are the person's");
     // `on` into the command's `handles`, as hosts do for commands that declare them.
-    d.doc.execute_as("erase", json!({ "handles": [d.b] }), &agent()).unwrap();
+    d.doc.execute_as("object.delete", json!({ "handles": [d.b] }), &agent()).unwrap();
     d.doc.execute_as("object.setProperties", json!({ "handles": [d.a], "layer": "Walls" }), &agent()).unwrap();
     assert_eq!(space(&mut d.doc, "Model"), [(d.a.clone(), "Walls".to_owned())]);
     assert_eq!(editor(&d.doc)[3], before[3], "the selection is still A");
@@ -184,17 +184,17 @@ fn a_drawing_command_with_an_explicit_layer_and_layout_draws_there_and_moves_not
     for who in [Some(agent()), None] {
         let params = json!({ "points": [[0, 90], [40, 90]], "layer": "Walls", "layout": "Layout2" });
         let made = match &who {
-            Some(origin) => d.doc.execute_as("line", params, origin).unwrap(),
-            None => d.doc.execute("line", params).unwrap(),
+            Some(origin) => d.doc.execute_as("line.add", params, origin).unwrap(),
+            None => d.doc.execute("line.add", params).unwrap(),
         };
         let made = handle(&made);
         assert!(space(&mut d.doc, "Layout2").contains(&(made, "Walls".to_owned())), "drawn in Layout2 on Walls");
         assert_eq!(d.doc.inspect().unwrap()["currentLayer"], "0", "the current layer stays");
         assert_eq!(editor(&d.doc), before, "the space shown stays");
     }
-    let error = d.doc.execute_as("line", json!({ "points": [[0, 0], [1, 1]], "layer": "Nope" }), &agent()).unwrap_err();
+    let error = d.doc.execute_as("line.add", json!({ "points": [[0, 0], [1, 1]], "layer": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("no layer `Nope`") && error.contains("layer.add"), "{error}");
-    let error = d.doc.execute_as("circle", json!({ "center": [0, 0], "radius": 1, "layout": "Nope" }), &agent()).unwrap_err();
+    let error = d.doc.execute_as("circle.add", json!({ "center": [0, 0], "radius": 1, "layout": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("no layout `Nope`"), "{error}");
 }
 
@@ -204,7 +204,7 @@ fn two_layouts_in_one_run() {
     let saved = d.doc.editor_state();
     for layout in ["Layout1", "Layout2"] {
         d.doc.set_context(&context(&[], Some(json!({ "layout": layout })))).unwrap();
-        d.doc.execute_as("circle", json!({ "center": [50, 50], "radius": 5 }), &agent()).unwrap();
+        d.doc.execute_as("circle.add", json!({ "center": [50, 50], "radius": 5 }), &agent()).unwrap();
     }
     d.doc.restore_editor_state(&saved).unwrap();
     assert_eq!((space(&mut d.doc, "Layout1").len(), space(&mut d.doc, "Layout2").len(), space(&mut d.doc, "Model").len()), (2, 1, 2));
@@ -232,8 +232,8 @@ fn create_then_act_in_one_run() {
     let saved = d.doc.editor_state();
     let made = handle(&d.doc.execute_as("rectangle.add", json!({ "p1": [200, 200], "p2": [220, 210] }), &agent()).unwrap());
     // `select` keeps its effect for the rest of the call; `move` acts on it.
-    d.doc.execute_as("select", json!({ "window": [[190, 190], [230, 230]] }), &agent()).unwrap();
-    d.doc.execute_as("move", json!({ "delta": [0, 10] }), &agent()).unwrap();
+    d.doc.execute_as("select.set", json!({ "window": [[190, 190], [230, 230]] }), &agent()).unwrap();
+    d.doc.execute_as("object.move", json!({ "delta": [0, 10] }), &agent()).unwrap();
     d.doc.restore_editor_state(&saved).unwrap();
     let bounds = d.doc.execute("object.measure", json!({ "bounds": [made] })).unwrap();
     assert_eq!(bounds["bounds"][0]["min"], json!([200.0, 210.0]));
@@ -245,14 +245,14 @@ fn picking_by_a_point_with_an_explicit_tolerance_is_independent_of_zoom() {
     // A point 0.3 units above A: picked at a tolerance of 0.5 whatever the zoom.
     for height in [1.0, 10_000.0] {
         d.doc.execute("view.set", json!({ "center": [50, 0], "height": height })).unwrap();
-        let picked = d.doc.execute_as("select", json!({ "at": [50, 0.3], "aperture": 0.5 }), &agent()).unwrap();
+        let picked = d.doc.execute_as("select.set", json!({ "at": [50, 0.3], "aperture": 0.5 }), &agent()).unwrap();
         assert_eq!(picked["handles"], json!([d.a]), "at zoom height {height}");
-        let missed = d.doc.execute_as("select", json!({ "at": [50, 0.3], "aperture": 0.1 }), &agent()).unwrap();
+        let missed = d.doc.execute_as("select.set", json!({ "at": [50, 0.3], "aperture": 0.1 }), &agent()).unwrap();
         assert_eq!(missed["handles"], json!([]), "at zoom height {height}");
         // The agent's default: 0.5% of the larger side of the extents (100 x 50 here: 0.5 units).
-        let default = d.doc.execute_as("select", json!({ "at": [50, 0.4] }), &agent()).unwrap();
+        let default = d.doc.execute_as("select.set", json!({ "at": [50, 0.4] }), &agent()).unwrap();
         assert_eq!(default["handles"], json!([d.a]), "the default tolerance at zoom height {height}");
-        let beyond = d.doc.execute_as("select", json!({ "at": [50, 100.0 * AGENT_TOLERANCE + 0.2] }), &agent()).unwrap();
+        let beyond = d.doc.execute_as("select.set", json!({ "at": [50, 100.0 * AGENT_TOLERANCE + 0.2] }), &agent()).unwrap();
         assert_eq!(beyond["handles"], json!([]), "beyond the default at zoom height {height}");
     }
 }
@@ -265,9 +265,9 @@ fn an_agents_zoom_inside_a_layout_viewport_is_refused_and_writes_nothing() {
     d.doc.execute("viewport.modelSpace", json!({})).unwrap();
     let saved = d.doc.save(None).unwrap();
     for (command, params) in [
-        ("zoom", json!({ "mode": "extents" })),
+        ("view.zoomRealtime", json!({ "mode": "extents" })),
         ("view.zoomIn", json!({})),
-        ("pan", json!({ "delta": [5, 5] })),
+        ("view.pan", json!({ "delta": [5, 5] })),
         ("view.set", json!({ "center": [0, 0], "height": 5 })),
     ] {
         let error = d.doc.execute_as(command, params, &agent()).unwrap_err();
@@ -276,7 +276,7 @@ fn an_agents_zoom_inside_a_layout_viewport_is_refused_and_writes_nothing() {
     assert_eq!(d.doc.save(None).unwrap(), saved, "the saved drawing is unchanged");
     // In paper space an agent navigates freely, and the drawing does not change.
     d.doc.execute_as("viewport.paperSpace", json!({}), &agent()).unwrap();
-    d.doc.execute_as("zoom", json!({ "mode": "extents" }), &agent()).unwrap();
+    d.doc.execute_as("view.zoomRealtime", json!({ "mode": "extents" }), &agent()).unwrap();
     assert_eq!(d.doc.save(None).unwrap(), saved);
 }
 
@@ -285,12 +285,9 @@ fn entities_lists_any_space_by_name_with_paging_without_going_there() {
     let mut d = drawing();
     let before = editor(&d.doc);
     let listed = d.doc.execute_as("object.query", json!({ "layout": "Layout1" }), &agent()).unwrap();
-    assert_eq!((listed["count"].clone(), listed["object.query"][0]["handle"].clone()), (json!(1), json!(d.c)));
+    assert_eq!((listed["count"].clone(), listed["entities"][0]["handle"].clone()), (json!(1), json!(d.c)));
     let page = d.doc.execute_as("object.query", json!({ "layout": "Model", "limit": 1, "offset": 1 }), &agent()).unwrap();
-    assert_eq!(
-        (page["count"].clone(), page["object.query"].as_array().unwrap().len(), page["object.query"][0]["handle"].clone()),
-        (json!(2), 1, json!(d.b))
-    );
+    assert_eq!((page["count"].clone(), page["entities"].as_array().unwrap().len(), page["entities"][0]["handle"].clone()), (json!(2), 1, json!(d.b)));
     assert_eq!(editor(&d.doc), before);
     let error = d.doc.execute_as("object.query", json!({ "layout": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("no layout"), "{error}");

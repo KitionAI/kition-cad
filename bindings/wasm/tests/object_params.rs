@@ -17,9 +17,10 @@ fn id_parameters_are_marked_and_typed() {
     for c in &commands {
         for key in c.schema.as_ref().and_then(|s| s.as_object()).into_iter().flatten().map(|(k, _)| k.as_str()) {
             // All of these are entity handles in their implementations; no coordinates.
-            let opaque = (c.id == "constraint.delete" || c.id.starts_with("constraint.bars") || c.id.starts_with("constraint.dynamicDimensions"))
-                && matches!(key, "handle" | "handles")
-                || c.id == "group.edit" && key == "remove";
+            let opaque =
+                (c.id == "constraint.delete" || kition_cad_kit::acts::constraint_bars(&c.id) || kition_cad_kit::acts::dynamic_dimensions(&c.id))
+                    && matches!(key, "handle" | "handles")
+                    || c.id == "group.edit" && key == "remove";
             if opaque {
                 assert_ne!(c.targets, Some(key), "{} {key} is membership data", c.id);
                 assert!(!c.objects.contains(&key), "{} {key} must remain opaque", c.id);
@@ -32,9 +33,9 @@ fn id_parameters_are_marked_and_typed() {
                         ("object.matchProperties", "source" | "targets")
                             | ("object.arrayPath", "path")
                             | ("object.changeSpace", "viewport")
-                            | ("trim" | "extend", "edges")
+                            | ("object.trim" | "object.extend", "edges")
                             | ("group.edit", "add")
-                            | ("dim" | "dimension.addLinear" | "spline", "object")
+                            | ("dimension.add" | "dimension.addLinear" | "spline.add", "object")
                             | ("dimension.addAngular", "lines" | "arc")
                             | ("dimension.space", "base")
                             | ("object.measure", "bounds" | "intersections")
@@ -69,13 +70,13 @@ fn name_gaps(commands: &[KitCommand]) -> Vec<String> {
         ("dimensionStyle.setCurrent", "name", "DimStyle"),
         ("dimensionStyle.delete", "name", "DimStyle"),
         ("dimensionStyle.rename", "from", "DimStyle"),
-        ("insert", "name", "Block"),
+        ("block.insert", "name", "Block"),
         ("attribute.manage", "name", "Block"),
         ("attribute.sync", "name", "Block"),
-        ("divide", "block", "Block"),
-        ("measure", "block", "Block"),
+        ("point.divide", "block", "Block"),
+        ("point.measure", "block", "Block"),
         ("group.edit", "name", "Group"),
-        ("ungroup", "name", "Group"),
+        ("arrange.ungroup", "name", "Group"),
         ("layout.set", "name", "Layout"),
         ("layout.delete", "name", "Layout"),
         ("layout.rename", "from", "Layout"),
@@ -114,7 +115,7 @@ fn a_table_cell_is_its_own_object_whose_tool_id_survives_a_reopen() {
     use kition_kit::session::model::Exchange;
     use serde_json::json;
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    let table = doc.execute("table", json!({"at":[0,0],"rows":2,"cols":2,"cells":[["a","b"],["c","d"]]})).unwrap()["handle"].clone();
+    let table = doc.execute("table.add", json!({"at":[0,0],"rows":2,"cols":2,"cells":[["a","b"],["c","d"]]})).unwrap()["handle"].clone();
     // The table numbers its cells 1, 2, … row by row: the first cell of the second row is 3.
     let id = format!("cell:{}-3", table.as_str().unwrap());
     for saved in [false, true] {
@@ -150,7 +151,7 @@ fn every_named_table_has_a_tool_id_that_survives_a_reopen() {
     use kition_kit::session::model::Exchange;
     use serde_json::json;
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    let line = doc.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
+    let line = doc.execute("line.add", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
     doc.execute("constraint.horizontal", json!({"h1":line})).unwrap();
     let ids = ["linetype:Continuous", "textstyle:Standard", "dimstyle:Standard", "mleaderstyle:Standard", "tablestyle:Standard", "constraint:1"];
     for saved in [false, true] {

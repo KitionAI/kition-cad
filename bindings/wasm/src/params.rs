@@ -17,12 +17,12 @@ const HANDLES: &[&str] = &["handle", "handles", "h1", "h2", "h3", "baseHandle", 
 fn extra_handles(id: &str) -> &'static [&'static str] {
     match id {
         "object.matchProperties" => &["source", "targets"],
-        "array" | "object.arrayPath" => &["path"],
+        "object.array" | "object.arrayPath" => &["path"],
         "object.changeSpace" => &["viewport"],
-        "trim" | "extend" => &["edges"],
+        "object.trim" | "object.extend" => &["edges"],
         // Removal compares an opaque handle with membership; it never resolves the entity.
         "group.edit" => &["add"],
-        "dim" | "dimension.addLinear" | "spline" => &["object"],
+        "dimension.add" | "dimension.addLinear" | "spline.add" => &["object"],
         "dimension.addAngular" => &["lines", "arc"],
         "dimension.space" => &["base"],
         "object.measure" => &["bounds", "intersections", "distance[]"],
@@ -39,7 +39,7 @@ fn names(id: &str) -> &'static [(&'static str, &'static [&'static str])] {
         "layer.deleteWithObjects" => &[("name", &["Layer"]), ("names", &["Layer"])],
         "object.setProperties" => &[("dimStyle", &["DimStyle"]), ("layer", &["Layer"]), ("linetype", &["Linetype"])],
         "layer.add" => &[("linetype", &["Linetype"])],
-        "style" | "textStyle.setCurrent" | "textStyle.delete" => &[("name", &["TextStyle"])],
+        "textStyle.open" | "textStyle.setCurrent" | "textStyle.delete" => &[("name", &["TextStyle"])],
         "textStyle.rename" => &[("from", &["TextStyle"])],
         "dimensionStyle.open" | "dimensionStyle.openManager" | "dimensionStyle.setCurrent" | "dimensionStyle.delete" | "dimensionStyle.list" => {
             &[("name", &["DimStyle"])]
@@ -47,18 +47,18 @@ fn names(id: &str) -> &'static [(&'static str, &'static [&'static str])] {
         "dimensionStyle.rename" => &[("from", &["DimStyle"])],
         "tableStyle.open" => &[("name", &["TableStyle"])],
         "multileaderStyle.open" => &[("name", &["MLeaderStyle"]), ("textStyle", &["TextStyle"])],
-        "insert" | "attribute.manage" | "attribute.sync" | "block.write" => &[("name", &["Block"])],
-        "block" | "block.add" => &[("name", &["Block"])],
-        "divide" | "measure" => &[("block", &["Block"])],
-        "group.edit" | "ungroup" => &[("name", &["Group"])],
+        "block.insert" | "attribute.manage" | "attribute.sync" | "block.write" => &[("name", &["Block"])],
+        "block.addDialog" | "block.add" => &[("name", &["Block"])],
+        "point.divide" | "point.measure" => &[("block", &["Block"])],
+        "group.edit" | "arrange.ungroup" => &[("name", &["Group"])],
         "layout.set" | "layout.delete" => &[("name", &["Layout"])],
         "layout.rename" | "layout.duplicate" => &[("from", &["Layout"])],
         "layerState.save" | "layerState.restore" | "layerState.delete" => &[("name", &["LayerState"])],
         "layerState.rename" => &[("from", &["LayerState"])],
-        "linetype" => &[("current", &["Linetype"])],
+        "property.linetype" => &[("current", &["Linetype"])],
         "multilineText.add" => &[("style", &["TextStyle"])],
         "multileader.add" => &[("block", &["Block"])],
-        "plot.pageSetup" | "plot" | "file.exportPdf" => &[("layout", &["Layout"])],
+        "plot.pageSetup" | "file.print" | "file.exportPdf" => &[("layout", &["Layout"])],
         "viewport.set" | "viewport.freezeLayer" | "vports.set" => &[("freeze[]", &["Layer"]), ("thaw[]", &["Layer"])],
         "object.changeSpace" => &[("to", &["Layout"])],
         _ => &[],
@@ -66,9 +66,8 @@ fn names(id: &str) -> &'static [(&'static str, &'static [&'static str])] {
 }
 
 pub fn declare(commands: &mut [KitCommand]) {
-    for command in commands
-        .iter_mut()
-        .filter(|c| c.id == "constraint.delete" || c.id.starts_with("constraint.bars") || c.id.starts_with("constraint.dynamicDimensions"))
+    for command in
+        commands.iter_mut().filter(|c| c.id == "constraint.delete" || crate::acts::constraint_bars(&c.id) || crate::acts::dynamic_dimensions(&c.id))
     {
         if let Some(schema) = command.schema.as_mut().and_then(Value::as_object_mut)
             && schema.contains_key("handles")
@@ -95,10 +94,7 @@ pub fn declare(commands: &mut [KitCommand]) {
                     .iter()
                     .chain(extra_handles(&c.id))
                     .filter(|key| {
-                        has(key)
-                            && c.id != "constraint.delete"
-                            && !c.id.starts_with("constraint.bars")
-                            && !c.id.starts_with("constraint.dynamicDimensions")
+                        has(key) && c.id != "constraint.delete" && !crate::acts::constraint_bars(&c.id) && !crate::acts::dynamic_dimensions(&c.id)
                     })
                     .map(|key| (*key, &["Entity"][..]))
                     .collect();
@@ -139,7 +135,7 @@ pub fn declare(commands: &mut [KitCommand]) {
 /// A constraint has a prefixed id in the shared tool id space. Only its typed parameter is
 /// decoded; integer coordinates and indexes are never ids.
 pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) -> Result<Value, String> {
-    if command == "layout" {
+    if command == "layout.manage" {
         let (command, p) = kition_cad_engine::cmd::layout_operation(&params).map_err(|e| e.to_string())?;
         let mut p = resolve(d, command, p)?;
         if matches!(command, "layout.duplicate" | "layout.rename")
@@ -150,7 +146,7 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
         }
         return Ok(p);
     }
-    if matches!(command, "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "tableStyle.open" | "multileaderStyle.open")
+    if matches!(command, "textStyle.open" | "dimensionStyle.open" | "dimensionStyle.openManager" | "tableStyle.open" | "multileaderStyle.open")
         && let Some(name) = params.get_mut("name")
         && let Some(text) = name.as_str()
     {
@@ -162,19 +158,19 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
     {
         named.push(("value", ty));
     }
-    if command == "rename" {
+    if command == "namedObject.rename" {
         named.push((
             "from",
             match params.get("table").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase().as_str() {
                 "layer" => &["Layer"],
                 "linetype" | "ltype" => &["Linetype"],
                 "style" | "textstyle" => &["TextStyle"],
-                "dimensionStyle.open" => &["DimStyle"],
+                "dimstyle" => &["DimStyle"],
                 "block" => &["Block"],
                 "view" => &["View"],
                 "ucs" => &["Ucs"],
-                "multileaderStyle.open" | "multileaderstyle" => &["MLeaderStyle"],
-                "tableStyle.open" => &["TableStyle"],
+                "mleaderstyle" | "multileaderstyle" => &["MLeaderStyle"],
+                "tablestyle" => &["TableStyle"],
                 _ => &[],
             },
         ));

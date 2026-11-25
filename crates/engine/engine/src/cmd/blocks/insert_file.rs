@@ -36,7 +36,7 @@ impl FileRef {
 
     /// Read the file and (re)define its block. Returns the block's name.
     pub fn define(&self, s: &mut Session) -> Result<String> {
-        s.files_by_path("insert")?;
+        s.files_by_path("block.insert")?;
         let src = read_drawing(&self.path)?;
         define_from(s, &src, &self.name)
     }
@@ -70,26 +70,26 @@ fn stem(path: &str) -> String {
 
 /// Read a drawing file through the io hooks; a path without extension tries .dwg, then .dxf.
 fn read_drawing(path: &str) -> Result<Drawing> {
-    let hooks = io().ok_or_else(|| bad("insert", "file formats are not available in this build"))?;
+    let hooks = io().ok_or_else(|| bad("block.insert", "file formats are not available in this build"))?;
     let has_ext = stem(path) != path.rsplit(['/', '\\']).next().unwrap_or(path);
     let candidates = if has_ext { vec![path.to_string()] } else { vec![path.to_string(), format!("{path}.dwg"), format!("{path}.dxf")] };
     let mut last = None;
     for p in candidates {
         match read_file(&p) {
-            Ok(bytes) => return (hooks.read)(&bytes, &p).map_err(|e| bad("insert", format!("{p}: {e}"))),
+            Ok(bytes) => return (hooks.read)(&bytes, &p).map_err(|e| bad("block.insert", format!("{p}: {e}"))),
             Err(e) => last = Some(e),
         }
     }
-    Err(last.unwrap_or_else(|| bad("insert", format!("{path}: file not found"))))
+    Err(last.unwrap_or_else(|| bad("block.insert", format!("{path}: file not found"))))
 }
 
 fn read_file(_path: &str) -> Result<Vec<u8>> {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        std::fs::read(_path).map_err(|e| bad("insert", format!("{_path}: {e}")))
+        std::fs::read(_path).map_err(|e| bad("block.insert", format!("{_path}: {e}")))
     }
     #[cfg(target_arch = "wasm32")]
-    Err(bad("insert", "paths are not available on the web"))
+    Err(bad("block.insert", "paths are not available on the web"))
 }
 
 /// (Re)define block `name` from `src`'s model space with base point `$INSBASE`, adding the
@@ -97,7 +97,7 @@ fn read_file(_path: &str) -> Result<Vec<u8>> {
 /// the definition fails (an invalid name, or a block that would contain itself).
 fn define_from(s: &mut Session, src: &Drawing, name: &str) -> Result<String> {
     if !valid_block_name(name) {
-        return Err(bad("insert", format!("\"{name}\" is not a valid block name")));
+        return Err(bad("block.insert", format!("\"{name}\" is not a valid block name")));
     }
     let mut d = s.doc()?.clone();
     // Redefining keeps the existing definition's name (block names are case-insensitive).
@@ -124,7 +124,7 @@ fn define_from(s: &mut Session, src: &Drawing, name: &str) -> Result<String> {
         ents.push(e);
     }
     if references_block(&d, &ents, &name) {
-        return Err(bad("insert", format!("Block \"{name}\" references itself.")));
+        return Err(bad("block.insert", format!("Block \"{name}\" references itself.")));
     }
     for e in ents {
         b.entities.push(e);

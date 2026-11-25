@@ -27,10 +27,10 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let mut d = CadDocument::create(FILE, 420, 297).unwrap();
-        let line = d.execute("line", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
-        let other = d.execute("line", json!({"points":[[0,50],[100,50]]})).unwrap()["handles"][0].clone();
-        let circle = d.execute("circle", json!({"center":[200,0],"radius":5})).unwrap()["handle"].clone();
-        let cross = d.execute("line", json!({"points":[[50,-10],[50,10]]})).unwrap()["handles"][0].clone();
+        let line = d.execute("line.add", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
+        let other = d.execute("line.add", json!({"points":[[0,50],[100,50]]})).unwrap()["handles"][0].clone();
+        let circle = d.execute("circle.add", json!({"center":[200,0],"radius":5})).unwrap()["handle"].clone();
+        let cross = d.execute("line.add", json!({"points":[[50,-10],[50,10]]})).unwrap()["handles"][0].clone();
         let dim = d.execute("dimension.addLinear", json!({"object":line,"at":[50,-20]})).unwrap()["handle"].clone();
         d.execute("layer.add", json!({"name":"Walls"})).unwrap();
         let workspace = tempfile::tempdir().unwrap();
@@ -148,7 +148,7 @@ async fn new_viewports_take_my_current_colour_not_a_colleagues() {
         let f = Fixture::new();
         let basis = f.basis().await;
         // A move would change the model extents the viewport is fitted to.
-        f.colleague(&[if colleague_colour { ("color", json!({"color":"red"})) } else { ("layer.add", json!({"name":"Other"})) }]);
+        f.colleague(&[if colleague_colour { ("property.color", json!({"color":"red"})) } else { ("layer.add", json!({"name":"Other"})) }]);
         let layout = |d: &kition_cad_doc::Drawing| d.layouts.iter().find(|l| l.name == "Layout1").map(|l| handles_of(&l.entities)).unwrap();
         let old = layout(&kition_cad_io::read(&f.disk(), FILE).unwrap());
         f.write(basis, "viewport.add", json!({"layout":"Layout1"})).await.unwrap();
@@ -173,10 +173,10 @@ async fn an_offset_onto_the_current_layer_takes_mine_not_a_colleagues() {
         f.colleague(&[if colleague_current {
             ("layer.setCurrent", json!({"name":"Walls"}))
         } else {
-            ("move", json!({"handles":[f.other],"delta":[0,5]}))
+            ("object.move", json!({"handles":[f.other],"delta":[0,5]}))
         }]);
         let old = handles_of(&kition_cad_io::read(&f.disk(), FILE).unwrap().model);
-        f.write(basis, "offset", json!({"handle":f.line,"distance":5,"side":[50,10],"layer":"current"})).await.unwrap();
+        f.write(basis, "object.offset", json!({"handle":f.line,"distance":5,"side":[50,10],"layer":"current"})).await.unwrap();
         let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
         let made: Vec<_> = saved.model.iter().filter(|e| !old.contains(&e.handle)).collect();
         assert_eq!(made.len(), 1, "the offset made one entity");
@@ -190,9 +190,9 @@ async fn an_offset_onto_the_current_layer_takes_mine_not_a_colleagues() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_new_block_rests_on_its_name_being_free() {
     check(
-        |f| ("block", json!({"name":"B1","base":[0,0],"handles":[f.line],"keep":"retain"})),
-        |f| vec![("block", json!({"name":"B1","base":[0,50],"handles":[f.other],"keep":"retain"}))],
-        |f| vec![("block", json!({"name":"B2","base":[0,50],"handles":[f.other],"keep":"retain"}))],
+        |f| ("block.addDialog", json!({"name":"B1","base":[0,0],"handles":[f.line],"keep":"retain"})),
+        |f| vec![("block.addDialog", json!({"name":"B1","base":[0,50],"handles":[f.other],"keep":"retain"}))],
+        |f| vec![("block.addDialog", json!({"name":"B2","base":[0,50],"handles":[f.other],"keep":"retain"}))],
     )
     .await;
 }
@@ -205,7 +205,7 @@ async fn a_centre_mark_rests_on_its_circle_not_on_a_colleagues_extension_or_line
     check(
         |f| ("centerMark.add", json!({"handles":[f.circle]})),
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":7}))],
-        |_| vec![("variable.set", json!({"name":"CENTEREXE","value":7})), ("linetype", json!({"load":"DASHED","current":"DASHED"}))],
+        |_| vec![("variable.set", json!({"name":"CENTEREXE","value":7})), ("property.linetype", json!({"load":"DASHED","current":"DASHED"}))],
     )
     .await;
 }
@@ -215,8 +215,8 @@ async fn a_centre_mark_rests_on_its_circle_not_on_a_colleagues_extension_or_line
 #[tokio::test(flavor = "multi_thread")]
 async fn a_trim_rests_on_all_of_the_line_it_replaces() {
     check(
-        |f| ("trim", json!({"handle":f.line,"pick":[90,0],"edges":[f.cross],"mode":"quick"})),
-        |f| vec![("group", json!({"name":"G","handles":[f.line]}))],
+        |f| ("object.trim", json!({"handle":f.line,"pick":[90,0],"edges":[f.cross],"mode":"quick"})),
+        |f| vec![("arrange.group", json!({"name":"G","handles":[f.line]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.other],"color":"blue"}))],
     )
     .await;
@@ -229,7 +229,7 @@ async fn an_array_path_also_holds_its_implicit_source_selection() {
         true,
         |f| ("object.arrayPath", json!({"path":f.line,"count":3})),
         |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":7}))],
-        |f| vec![("move", json!({"handles":[f.other],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.other],"delta":[0,5]}))],
     )
     .await;
 }
@@ -240,7 +240,7 @@ async fn page_setup_holds_the_page_it_copies() {
     check(
         |_| ("plot.pageSetup", json!({"layout":"Layout1","paper":"A3"})),
         |_| vec![("plot.pageSetup", json!({"layout":"Layout1","margins":[9,8,7,6]}))],
-        |f| vec![("move", json!({"handles":[f.other],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.other],"delta":[0,5]}))],
     )
     .await;
 }
@@ -266,9 +266,9 @@ async fn hosted_plot_style_commands_are_disabled_without_writing() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_geometry_edit_holds_the_dimensions_it_remeasures() {
     check(
-        |f| ("move", json!({"handles":[f.line],"delta":[1,0]})),
+        |f| ("object.move", json!({"handles":[f.line],"delta":[1,0]})),
         |f| vec![("text.edit", json!({"handle":f.dim,"text":"Custom"}))],
-        |f| vec![("move", json!({"handles":[f.other],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.other],"delta":[0,5]}))],
     )
     .await;
 }
@@ -282,11 +282,11 @@ async fn a_new_line_does_not_hold_unrelated_constraint_geometry() {
         f.colleague(&[("constraint.perpendicular", json!({"h1":f.line,"h2":f.cross}))]);
         let basis = f.basis().await;
         f.colleague(&if colleague_colour {
-            vec![("color", json!({"color":"red"}))]
+            vec![("property.color", json!({"color":"red"}))]
         } else {
-            vec![("move", json!({"handles":[f.cross],"delta":[10,0]}))]
+            vec![("object.move", json!({"handles":[f.cross],"delta":[10,0]}))]
         });
-        let answer = f.write(basis, "line", json!({"points":[[0,150],[10,150]]})).await.unwrap();
+        let answer = f.write(basis, "line.add", json!({"points":[[0,150],[10,150]]})).await.unwrap();
         let h = kition_cad_doc::Handle::parse_hex(answer["completed"][0]["result"]["handles"][0].as_str().unwrap()).unwrap();
         let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
         assert_eq!(saved.entity(h).unwrap().common.color.to_aci(), 256, "the new line takes my current colour, ByLayer");
@@ -301,8 +301,12 @@ async fn setting_my_current_colour_applies_over_a_colleagues() {
     for colleague_colour in [false, true] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[if colleague_colour { ("color", json!({"color":"blue"})) } else { ("move", json!({"handles":[f.circle],"delta":[1,0]})) }]);
-        f.write(basis, "color", json!({"color":"red"})).await.unwrap();
+        f.colleague(&[if colleague_colour {
+            ("property.color", json!({"color":"blue"}))
+        } else {
+            ("object.move", json!({"handles":[f.circle],"delta":[1,0]}))
+        }]);
+        f.write(basis, "property.color", json!({"color":"red"})).await.unwrap();
         let saved = kition_cad_io::read(&f.disk(), FILE).unwrap();
         assert_eq!(saved.header.i64("CECOLOR", 256), 1);
         f.stop().await;
@@ -321,7 +325,7 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
         let f = Fixture::new();
         let (command, params) = match kind {
             "usedtextstyle" => {
-                f.colleague(&[("style", json!({"name":"S","current":false}))]);
+                f.colleague(&[("textStyle.open", json!({"name":"S","current":false}))]);
                 ("textStyle.delete", json!({"name":"S"}))
             }
             _ => ("layout.delete", json!({"name":"Layout2"})),
@@ -330,7 +334,7 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
         let colleague = match kind {
             "usedtextstyle" => vec![
                 ("textStyle.setCurrent", json!({"name":"S"})),
-                ("text", json!({"at":[300,300],"text":"uses S","height":3})),
+                ("text.add", json!({"at":[300,300],"text":"uses S","height":3})),
                 ("textStyle.setCurrent", json!({"name":"Standard"})),
             ],
             _ => vec![("layout.delete", json!({"name":"Layout1"}))],
@@ -354,19 +358,19 @@ async fn kit_defect_deletion_holds_current_style_and_remaining_layout_checks() {
 /// the saved file carries my current text style, dimension style and layer.
 #[tokio::test(flavor = "multi_thread")]
 async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
-    for kind in ["textstyle", "dimensionStyle.open", "freeze"] {
+    for kind in ["textstyle", "dimstyle", "freeze"] {
         let f = Fixture::new();
         let my_dimstyle = kition_cad_io::read(&f.disk(), FILE).unwrap().header.str("DIMSTYLE", "Standard");
         if kind == "textstyle" {
-            f.colleague(&[("style", json!({"name":"S","current":false}))]);
-        } else if kind == "dimensionStyle.open" {
+            f.colleague(&[("textStyle.open", json!({"name":"S","current":false}))]);
+        } else if kind == "dimstyle" {
             f.colleague(&[("dimensionStyle.open", json!({"name":"D2","current":false}))]);
         }
         let basis = f.basis().await;
         if kind == "textstyle" {
             f.colleague(&[("textStyle.setCurrent", json!({"name":"S"}))]);
             f.write(basis, "textStyle.delete", json!({"name":"S"})).await.unwrap();
-        } else if kind == "dimensionStyle.open" {
+        } else if kind == "dimstyle" {
             f.colleague(&[("dimensionStyle.setCurrent", json!({"name":"D2"}))]);
             f.write(basis, "dimensionStyle.delete", json!({"name":"D2"})).await.unwrap();
         } else {
@@ -376,7 +380,7 @@ async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
         let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
         if kind == "textstyle" {
             assert!(d.text_style("S").is_none(), "S is deleted");
-        } else if kind == "dimensionStyle.open" {
+        } else if kind == "dimstyle" {
             assert!(d.dim_style("D2").is_none(), "D2 is deleted");
         } else {
             assert!(d.layer("Walls").unwrap().frozen, "Walls is frozen");
@@ -392,9 +396,9 @@ async fn eligibility_ignores_a_colleagues_current_style_or_layer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn deletion_eligibility_ignores_unrelated_records_and_geometry() {
     let f = Fixture::new();
-    f.colleague(&[("style", json!({"name":"S","current":false}))]);
+    f.colleague(&[("textStyle.open", json!({"name":"S","current":false}))]);
     let basis = f.basis().await;
-    f.colleague(&[("layer.add", json!({"name":"Colleague","color":3})), ("move", json!({"handles":[f.circle],"delta":[10,0]}))]);
+    f.colleague(&[("layer.add", json!({"name":"Colleague","color":3})), ("object.move", json!({"handles":[f.circle],"delta":[10,0]}))]);
     f.write(basis, "textStyle.delete", json!({"name":"S"})).await.unwrap();
     let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
     assert!(d.text_style("S").is_none());
@@ -408,7 +412,7 @@ async fn deletion_eligibility_ignores_unrelated_records_and_geometry() {
 #[tokio::test(flavor = "multi_thread")]
 async fn deletion_eligibility_does_not_hold_another_styles_eligibility() {
     let f = Fixture::new();
-    f.colleague(&[("style", json!({"name":"S","current":false})), ("style", json!({"name":"Other","current":false}))]);
+    f.colleague(&[("textStyle.open", json!({"name":"S","current":false})), ("textStyle.open", json!({"name":"Other","current":false}))]);
     let basis = f.basis().await;
     f.colleague(&[("textStyle.setCurrent", json!({"name":"Other"}))]);
     f.write(basis, "textStyle.delete", json!({"name":"S"})).await.unwrap();
@@ -425,7 +429,7 @@ async fn deletion_eligibility_does_not_hold_another_styles_eligibility() {
 #[tokio::test(flavor = "multi_thread")]
 async fn incremental_style_eligibility_is_a_conflict() {
     let f = Fixture::new();
-    f.colleague(&[("style", json!({"name":"S","current":false}))]);
+    f.colleague(&[("textStyle.open", json!({"name":"S","current":false}))]);
     let basis = f.basis().await;
     let before = f.disk();
     tools::call_as(

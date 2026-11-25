@@ -12,7 +12,7 @@ use std::sync::Arc;
 async fn nonrotating_array_holds_definition_geometry() {
     check(
         |f| ("object.arrayPolar", json!({"handles":[f.insert],"center":[0,0],"count":3,"rotate":false})),
-        |f| vec![("block", json!({"name":"Marker","base":[5,0],"handles":[f.rect],"keep":"retain"}))],
+        |f| vec![("block.addDialog", json!({"name":"Marker","base":[5,0],"handles":[f.rect],"keep":"retain"}))],
         |_| vec![("layer.set", json!({"name":"Editable","locked":true}))],
     )
     .await;
@@ -51,7 +51,7 @@ async fn insertion_holds_external_path_but_preserves_description() {
             assert_ne!(observed, before, "the independent writer must really save");
             let params = json!({"name":"Marker","at":[700,0]});
             let mut oracle = CadDocument::open(FILE, &before).unwrap();
-            oracle.execute("insert", params.clone()).unwrap();
+            oracle.execute("block.insert", params.clone()).unwrap();
             let expected = kition_cad_io::read(&oracle.save(Some(FILE)).unwrap(), FILE).unwrap();
             let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"block.insert","params":params}]})).await;
             if refuse {
@@ -72,7 +72,7 @@ async fn nonrotating_array_holds_member_layer_visibility() {
         |f| ("object.arrayPolar", json!({"handles":[f.insert],"center":[0,0],"count":3,"rotate":false})),
         |_| vec![("layer.set", json!({"name":"Secondary","on":false}))],
         |_| vec![("layer.set", json!({"name":"Secondary","locked":true}))],
-        |f| vec![("block", json!({"name":"Marker","handles":[f.joined],"base":[200,200],"keep":"retain"}))],
+        |f| vec![("block.addDialog", json!({"name":"Marker","handles":[f.joined],"base":[200,200],"keep":"retain"}))],
     )
     .await;
 }

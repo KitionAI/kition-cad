@@ -8,7 +8,7 @@ use serde_json::json;
 async fn spacing_preserves_base_color() {
     check(
         |f| ("dimension.space", json!({"base":f.dim,"handles":[f.attached_dim],"spacing":12})),
-        |f| vec![("move", json!({"handles":[f.dim],"delta":[0,5]}))],
+        |f| vec![("object.move", json!({"handles":[f.dim],"delta":[0,5]}))],
         |f| vec![("object.setProperties", json!({"handles":[f.dim],"color":"blue"}))],
     )
     .await;
@@ -17,8 +17,8 @@ async fn spacing_preserves_base_color() {
 async fn spacing_noop_preserves_base_geometry() {
     check(
         |f| ("dimension.space", json!({"base":f.dim,"handles":[f.dim],"spacing":12})),
-        |f| vec![("erase", json!({"handles":[f.dim]}))],
-        |f| vec![("move", json!({"handles":[f.dim],"delta":[0,5]}))],
+        |f| vec![("object.delete", json!({"handles":[f.dim]}))],
+        |f| vec![("object.move", json!({"handles":[f.dim],"delta":[0,5]}))],
     )
     .await;
 }

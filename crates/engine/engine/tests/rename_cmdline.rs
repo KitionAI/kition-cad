@@ -15,16 +15,18 @@ fn insert_targets(d: &Drawing) -> Vec<String> {
 /// Valve (with an attribute) inserted in model space, in Layout1 and nested inside Assy.
 fn drawing() -> Session {
     let mut s = Session::new();
-    s.execute("circle", &json!({ "center": [0, 0], "radius": 1 })).unwrap();
+    s.execute("circle.add", &json!({ "center": [0, 0], "radius": 1 })).unwrap();
     s.execute("attribute.define", &json!({ "tag": "TAG", "at": [0, 2] })).unwrap();
     s.execute("edit.selectAll", &json!({})).unwrap();
-    s.execute("block", &json!({ "name": "Valve", "base": [0, 0], "keep": "delete" })).unwrap();
-    let h =
-        s.execute("insert", &json!({ "name": "Valve", "at": [0, 0], "attribs": { "TAG": "V-1" } })).unwrap()["handle"].as_str().unwrap().to_string();
-    s.execute("block", &json!({ "name": "Assy", "base": [0, 0], "handles": [h], "keep": "convert" })).unwrap();
-    s.execute("insert", &json!({ "name": "Valve", "at": [5, 0], "attribs": { "TAG": "V-2" } })).unwrap();
+    s.execute("block.addDialog", &json!({ "name": "Valve", "base": [0, 0], "keep": "delete" })).unwrap();
+    let h = s.execute("block.insert", &json!({ "name": "Valve", "at": [0, 0], "attribs": { "TAG": "V-1" } })).unwrap()["handle"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    s.execute("block.addDialog", &json!({ "name": "Assy", "base": [0, 0], "handles": [h], "keep": "convert" })).unwrap();
+    s.execute("block.insert", &json!({ "name": "Valve", "at": [5, 0], "attribs": { "TAG": "V-2" } })).unwrap();
     s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
-    s.execute("insert", &json!({ "name": "Valve", "at": [1, 1] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "Valve", "at": [1, 1] })).unwrap();
     s.execute("layout.set", &json!({ "name": "Model" })).unwrap();
     s
 }
@@ -34,7 +36,7 @@ fn json_block_rename_repoints_every_insert() {
     let mut s = drawing();
     assert_eq!(insert_targets(s.doc().unwrap()), ["Assy", "Valve", "Valve", "Valve"]);
     let undo = s.state().unwrap().undo.len();
-    s.execute("rename", &json!({ "table": "block", "from": "valve", "to": "Pump" })).unwrap();
+    s.execute("namedObject.rename", &json!({ "table": "block", "from": "valve", "to": "Pump" })).unwrap();
     assert_eq!(s.state().unwrap().undo.len(), undo + 1);
     let d = s.doc().unwrap();
     assert!(d.block("Valve").is_none());
@@ -43,19 +45,19 @@ fn json_block_rename_repoints_every_insert() {
     // The attribute values stay on the renamed inserts.
     assert!(d.model.iter().any(|e| matches!(&e.kind, EntityKind::Insert(i) if i.block == "Pump" && i.attribs.iter().any(|a| a.text.value == "V-2"))));
     // Duplicates (any case), invalid names and unknown blocks are refused.
-    assert!(s.execute("rename", &json!({ "table": "block", "from": "Pump", "to": "ASSY" })).is_err());
-    assert!(s.execute("rename", &json!({ "table": "block", "from": "Pump", "to": "a*b" })).is_err());
-    assert!(s.execute("rename", &json!({ "table": "block", "from": "Nope", "to": "X" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "block", "from": "Pump", "to": "ASSY" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "block", "from": "Pump", "to": "a*b" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "block", "from": "Nope", "to": "X" })).is_err());
     assert_eq!(insert_targets(s.doc().unwrap()), ["Assy", "Pump", "Pump", "Pump"]);
     // Multileader styles: the current-style variable follows; Standard stays.
     s.execute("multileaderStyle.open", &json!({ "name": "Callout", "current": true })).unwrap();
-    s.execute("rename", &json!({ "table": "multileaderStyle.open", "from": "Callout", "to": "Notes" })).unwrap();
+    s.execute("namedObject.rename", &json!({ "table": "mleaderstyle", "from": "Callout", "to": "Notes" })).unwrap();
     assert_eq!(s.doc().unwrap().header.str("CMLEADERSTYLE", ""), "Notes");
-    assert!(s.execute("rename", &json!({ "table": "multileaderStyle.open", "from": "Standard", "to": "X" })).is_err());
+    assert!(s.execute("namedObject.rename", &json!({ "table": "mleaderstyle", "from": "Standard", "to": "X" })).is_err());
     // A layer rename is one undo step too.
     s.execute("layer.add", &json!({ "name": "Old" })).unwrap();
     let undo = s.state().unwrap().undo.len();
-    s.execute("rename", &json!({ "table": "layer", "from": "Old", "to": "New" })).unwrap();
+    s.execute("namedObject.rename", &json!({ "table": "layer", "from": "Old", "to": "New" })).unwrap();
     assert_eq!(s.state().unwrap().undo.len(), undo + 1);
 }
 

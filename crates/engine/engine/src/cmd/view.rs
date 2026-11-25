@@ -10,7 +10,7 @@ use crate::{Accept, Input, Interactive, Prompt, Result, Session, Step, View};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("zoom", "Zoom", run_zoom)
+        CommandSpec::new("view.zoomRealtime", "Zoom", run_zoom)
             .menu(&["View", "Zoom", "Realtime"])
             .alias(&["z"])
             .params("{mode: extents|all|window|previous|in|out|center|scale|object, p1?, p2?, center?, height?, factor?, xp?: bool (scale relative to paper space: in a viewport, `factor` paper units per model unit), limits?: bool (scale relative to the limits)} (center: `height`, or `factor` with `xp`/`limits`)")
@@ -42,7 +42,7 @@ pub fn specs() -> Vec<CommandSpec> {
         .noundo()
         .transparent()
         .interactive(|_| Ok(Box::new(SelectRun::new("view.zoomObject", "ZOOM")))),
-        CommandSpec::new("pan", "Pan", run_pan)
+        CommandSpec::new("view.pan", "Pan", run_pan)
             .menu(&["View", "Pan", "Realtime"])
             .alias(&["p"])
             .params("{delta: [dx,dy]} | {from, to} | {center}")
@@ -111,8 +111,8 @@ pub(crate) fn zoom(s: &mut Session, p: &Value) -> Result<Value> {
             fit(s, b.expand(b.height().max(b.width()) * 0.02))?;
         }
         "window" | "w" => {
-            let a = point_req("zoom", p, "p1")?;
-            let b = point_req("zoom", p, "p2")?;
+            let a = point_req("view.zoomRealtime", p, "p1")?;
+            let b = point_req("view.zoomRealtime", p, "p2")?;
             fit(s, Bounds2::new(a, b))?;
         }
         "previous" | "p" => {
@@ -130,7 +130,7 @@ pub(crate) fn zoom(s: &mut Session, p: &Value) -> Result<Value> {
             st.set_zoom_frame(View { center: v.center, height: v.height / f });
         }
         "center" | "c" => {
-            let c = point_req("zoom", p, "center")?;
+            let c = point_req("view.zoomRealtime", p, "center")?;
             let cur = s.state()?.zoom_frame().height;
             let h = if p.get("factor").is_some() { factor_height(s, p, cur)? } else { f64_or(p, "height", cur) };
             s.state_mut()?.set_zoom_frame(View { center: c, height: h.max(1e-9) });
@@ -146,7 +146,7 @@ pub(crate) fn zoom(s: &mut Session, p: &Value) -> Result<Value> {
             let b = hs.iter().filter_map(|h| d.entity(*h)).fold(Bounds2::EMPTY, |a, e| a.union(&entity_bounds(d, e, 0)));
             fit(s, b.expand(b.height().max(b.width()) * 0.05))?;
         }
-        _ => return Err(bad("zoom", "unknown mode")),
+        _ => return Err(bad("view.zoomRealtime", "unknown mode")),
     }
     s.touch();
     Ok(Value::Null)
@@ -156,9 +156,9 @@ pub(crate) fn zoom(s: &mut Session, p: &Value) -> Result<Value> {
 /// with `xp` (nXP; in a viewport `factor` paper units per model unit, elsewhere like nX), or to
 /// the limits with `limits` (a plain n: 1 fits the limits).
 fn factor_height(s: &Session, p: &Value, cur: f64) -> Result<f64> {
-    let f = f64_req("zoom", p, "factor")?;
+    let f = f64_req("view.zoomRealtime", p, "factor")?;
     if f <= 0.0 {
-        return Err(bad("zoom", "factor must be positive"));
+        return Err(bad("view.zoomRealtime", "factor must be positive"));
     }
     let st = s.state()?;
     if bool_or(p, "xp", false)
@@ -221,8 +221,8 @@ fn run_pan(s: &mut Session, p: &Value) -> Result<Value> {
     } else if let Some(d) = point_param(p, "delta") {
         v.center - d
     } else {
-        let a = point_req("pan", p, "from")?;
-        let b = point_req("pan", p, "to")?;
+        let a = point_req("view.pan", p, "from")?;
+        let b = point_req("view.pan", p, "to")?;
         v.center - (b - a)
     };
     st.set_view(View { center: c, height: v.height });

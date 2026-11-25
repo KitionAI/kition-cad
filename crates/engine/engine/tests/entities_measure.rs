@@ -26,12 +26,12 @@ struct Fixture {
 
 fn fixture() -> Fixture {
     let mut s = Session::new();
-    let bottom = handle(&s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap());
-    s.execute("line", &json!({ "points": [[10, 0], [10, 10]] })).unwrap();
-    s.execute("line", &json!({ "points": [[10, 10], [0, 10]] })).unwrap();
-    s.execute("line", &json!({ "points": [[0, 10], [0, 0]] })).unwrap();
-    let circle = handle(&s.execute("circle", &json!({ "center": [20, 5], "radius": 5 })).unwrap());
-    let across = handle(&s.execute("line", &json!({ "points": [[-5, 5], [30, 5]] })).unwrap());
+    let bottom = handle(&s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap());
+    s.execute("line.add", &json!({ "points": [[10, 0], [10, 10]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[10, 10], [0, 10]] })).unwrap();
+    s.execute("line.add", &json!({ "points": [[0, 10], [0, 0]] })).unwrap();
+    let circle = handle(&s.execute("circle.add", &json!({ "center": [20, 5], "radius": 5 })).unwrap());
+    let across = handle(&s.execute("line.add", &json!({ "points": [[-5, 5], [30, 5]] })).unwrap());
     Fixture { s, bottom, circle, across }
 }
 
@@ -81,7 +81,7 @@ fn intersections_of_two_entities() {
 #[test]
 fn overlaps_are_reported_and_nothing_is_deleted() {
     let mut f = fixture();
-    let copy = handle(&f.s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap());
+    let copy = handle(&f.s.execute("line.add", &json!({ "points": [[0, 0], [10, 0]] })).unwrap());
     let revision = f.s.state().unwrap().revision;
     let answer = measure(&mut f.s, json!({ "overlaps": {} }));
     assert_eq!(answer["pairs"], json!([{ "a": f.bottom, "b": copy, "kind": "duplicate" }]), "{answer}");
@@ -98,7 +98,7 @@ fn what_cannot_be_measured_is_refused_by_name() {
         (json!({}), "one of"),
         (json!({ "bounds": ["FFFFFF"] }), "FFFFFF"),
         (json!({ "distance": [f.bottom] }), "two"),
-        (json!({ "intersections": [[0, 0], f.circle] }), "object.query"),
+        (json!({ "intersections": [[0, 0], f.circle] }), "entities"),
         (json!({ "overlaps": { "layout": "Nope" } }), "Nope"),
         (json!({ "bounds": [f.bottom], "distance": [f.bottom, f.circle] }), "one of"),
     ] {

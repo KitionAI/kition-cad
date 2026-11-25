@@ -67,7 +67,7 @@ fn offset_json_erase_and_layer() {
     let mut s = one_line();
     s.execute("layer.add", &json!({ "name": "Other", "current": true })).unwrap();
     let h = s.doc().unwrap().model.iter().next().unwrap().handle.hex();
-    s.execute("offset", &json!({ "handle": h, "distance": 2, "side": [5, 1], "erase": true, "layer": "current" })).unwrap();
+    s.execute("object.offset", &json!({ "handle": h, "distance": 2, "side": [5, 1], "erase": true, "layer": "current" })).unwrap();
     assert_eq!(lines(&s), vec![l((0.0, 2.0), (10.0, 2.0), "Other")]);
 }
 

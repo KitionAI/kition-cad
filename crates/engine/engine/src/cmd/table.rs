@@ -14,7 +14,7 @@ const MAX_COLS: usize = 200;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("table", "Table...", run_table)
+        CommandSpec::new("table.add", "Table...", run_table)
             .menu(&["Draw", "Table..."])
             .alias(&["tb"])
             .params("{at: [x,y], rows (data rows), cols, rowHeight? (rows grow to fit their text), colWidth? (default 63.5 in metric drawings, 2.5 in imperial), textHeight? (default: the table style's), cells?: [[text]], title?: text, header?: [text]}")
@@ -109,7 +109,7 @@ pub fn make_table(
 }
 
 fn run_table(s: &mut Session, p: &Value) -> Result<Value> {
-    let at = point_req("table", p, "at")?;
+    let at = point_req("table.add", p, "at")?;
     let cells: Vec<Vec<String>> = p
         .get("cells")
         .and_then(Value::as_array)
@@ -127,11 +127,11 @@ fn run_table(s: &mut Session, p: &Value) -> Result<Value> {
     let rows = usize_param(p, "rows").unwrap_or(cells.len().max(1));
     let cols = usize_param(p, "cols").unwrap_or_else(|| cells.iter().map(Vec::len).max().unwrap_or(1).max(1));
     if rows > MAX_ROWS || cols > MAX_COLS || cols == 0 {
-        return Err(bad("table", format!("rows must be ≤ {MAX_ROWS} and columns 1..={MAX_COLS}")));
+        return Err(bad("table.add", format!("rows must be ≤ {MAX_ROWS} and columns 1..={MAX_COLS}")));
     }
-    let row_height = size_param("table", p, "rowHeight", false)?;
-    let col_width = size_param("table", p, "colWidth", false)?.unwrap_or_else(|| default_col_width(s));
-    let text_height = size_param("table", p, "textHeight", false)?;
+    let row_height = size_param("table.add", p, "rowHeight", false)?;
+    let col_width = size_param("table.add", p, "colWidth", false)?.unwrap_or_else(|| default_col_width(s));
+    let text_height = size_param("table.add", p, "textHeight", false)?;
     let header: Option<Vec<String>> =
         p.get("header").and_then(Value::as_array).map(|a| a.iter().map(|v| v.as_str().unwrap_or("").to_string()).collect());
     let st = style_of(s);

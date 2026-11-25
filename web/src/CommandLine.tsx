@@ -27,8 +27,8 @@ export function CommandLine({ prompt, running, input, history, onCommand }: { pr
       <input
         className="kui-field cad-command-input"
         ref={input}
-        placeholder={t('command.runLine')}
-        aria-label={t('command.runLine')}
+        placeholder={t('commandLine')}
+        aria-label={t('commandLine')}
         spellCheck={false}
         disabled={disabled}
         onChange={() => setHistoryIndex(null)}

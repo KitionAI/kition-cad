@@ -25,7 +25,7 @@ async fn destination_layout_copy_holds_the_empty_name_slot() {
 #[tokio::test(flavor = "multi_thread")]
 async fn destination_layout_dispatch_new_holds_the_empty_name_slot() {
     check(
-        |_| ("layout", json!({"option":"new","name":"Sheet"})),
+        |_| ("layout.manage", json!({"option":"new","name":"Sheet"})),
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Sheet"}))],
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Other"}))],
     )
@@ -34,7 +34,7 @@ async fn destination_layout_dispatch_new_holds_the_empty_name_slot() {
 #[tokio::test(flavor = "multi_thread")]
 async fn destination_layout_dispatch_copy_holds_the_empty_name_slot() {
     check(
-        |_| ("layout", json!({"option":"copy","name":"Layout1","to":"Sheet"})),
+        |_| ("layout.manage", json!({"option":"copy","name":"Layout1","to":"Sheet"})),
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Sheet"}))],
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Other"}))],
     )

@@ -6,13 +6,13 @@ use kition_kit::files::FileParam;
 
 /// Every file or folder parameter of the kit's commands.
 pub const FILES: &[FileParam] = &[
-    FileParam::read("open", "path", &[]),
+    FileParam::read("file.open", "path", &[]),
     FileParam::write("file.save", "path", &[]),
     FileParam::create("file.saveAs", "path", &[]),
-    FileParam::read("recover", "path", &[]),
-    FileParam::read("insert", "file", &[]),
+    FileParam::read("file.recover", "path", &[]),
+    FileParam::read("block.insert", "file", &[]),
     FileParam::create("block.write", "path", &[]),
-    FileParam::create("plot", "path", &["pdf"]),
+    FileParam::create("file.print", "path", &["pdf"]),
     FileParam::create("file.exportPdf", "path", &["pdf"]),
     // `load` reads the plot style table, `save` writes it.
     FileParam::write("plot.styleManager", "path", &["ctb", "stb"]),
@@ -27,7 +27,7 @@ mod tests {
     /// Parameters whose names read like files but are not: ids, property paths, directions,
     /// folders of the kit's own panels, in-memory data. ARRAY and ARRAYPATH use `path` for the
     /// handle of the curve the copies follow.
-    const NOT_FILES: &[(&str, &str)] = &[("object.arrayPath", "path"), ("array", "path")];
+    const NOT_FILES: &[(&str, &str)] = &[("object.arrayPath", "path"), ("object.array", "path")];
 
     #[test]
     fn every_file_parameter_is_declared() {

@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 
 fn drawing() -> (CadDocument, Value) {
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    let h = doc.execute("line", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
+    let h = doc.execute("line.add", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
     (doc, h)
 }
 
@@ -27,7 +27,7 @@ fn drawing_holds_stored_defaults_but_an_explicit_layer_drops_clayer() {
         if explicit {
             p["layer"] = json!("0");
         }
-        let under = doc.under("line", &p).unwrap().unwrap();
+        let under = doc.under("line.add", &p).unwrap().unwrap();
         let root = under.premises.iter().find(|p| p.id == "drawing").unwrap();
         let fields = root.fields.as_ref().unwrap();
         assert_eq!(fields.contains(&"header.CLAYER".into()), !explicit);
@@ -38,7 +38,7 @@ fn drawing_holds_stored_defaults_but_an_explicit_layer_drops_clayer() {
 #[test]
 fn a_move_holds_geometry_and_the_layer_lock() {
     let (mut doc, h) = drawing();
-    let under = doc.under("move", &json!({"handles":[h],"delta":[5,0]})).unwrap().unwrap();
+    let under = doc.under("object.move", &json!({"handles":[h],"delta":[5,0]})).unwrap().unwrap();
     let p = under.premises.iter().find(|p| p.id == h).unwrap();
     assert_eq!(p.fields, Some(["kind.a", "kind.b", "kind.type", "~locked", "~solve"].into_iter().map(str::to_owned).collect()));
     let before = doc.derived(std::slice::from_ref(&h), &["locked".into()]).unwrap();
@@ -56,7 +56,7 @@ fn a_pick_and_replay_use_the_same_engine_hit_test() {
     assert_eq!(under.objects, vec![h.clone()]);
     assert!(under.covers.is_some());
     let asked = before_pick(&mut doc, h.clone());
-    doc.execute("move", json!({"handles":[h],"delta":[0,20]})).unwrap();
+    doc.execute("object.move", json!({"handles":[h],"delta":[0,20]})).unwrap();
     assert!(doc.under("object.setProperties", &params).unwrap().unwrap().objects.is_empty());
     let replay = doc.covered("object.setProperties", &params, &[asked]).unwrap().unwrap();
     assert_eq!(replay.under, vec![h]);
@@ -73,7 +73,7 @@ fn referenced_names_hold_the_name_and_not_unrelated_style_fields() {
 #[test]
 fn table_cells_hold_the_cell_and_merge_topology_not_every_other_cell() {
     let (mut doc, _) = drawing();
-    let h = doc.execute("table", json!({"at":[0,20],"rows":3,"cols":2})).unwrap()["handle"].clone();
+    let h = doc.execute("table.add", json!({"at":[0,20],"rows":3,"cols":2})).unwrap()["handle"].clone();
     let under = doc.under("table.set", &json!({"handle":h,"row":1,"col":0,"text":"new"})).unwrap().unwrap();
     let p = under.premises.iter().find(|p| p.id == h).unwrap();
     assert_eq!(
@@ -105,7 +105,7 @@ fn before_pick(doc: &mut CadDocument, id: Value) -> CoveredAsk {
 #[test]
 fn spatial_replay_restores_the_observed_draw_order() {
     let (mut doc, a) = drawing();
-    let b = doc.execute("line", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
+    let b = doc.execute("line.add", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
     let params = json!({"pick":[50,0],"aperture":0.1,"color":"red"});
     assert_eq!(doc.under("object.setProperties", &params).unwrap().unwrap().objects, vec![b.clone()]);
     let asked = before_pick(&mut doc, a.clone());
@@ -119,8 +119,8 @@ fn spatial_replay_restores_block_child_layer_visibility() {
     let (mut doc, child) = drawing();
     doc.execute("layer.add", json!({"name":"Children"})).unwrap();
     doc.execute("object.setProperties", json!({"handles":[child],"layer":"Children"})).unwrap();
-    doc.execute("block", json!({"name":"Parent","base":[0,0],"handles":[child],"keep":"delete"})).unwrap();
-    let parent = doc.execute("insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
+    doc.execute("block.addDialog", json!({"name":"Parent","base":[0,0],"handles":[child],"keep":"delete"})).unwrap();
+    let parent = doc.execute("block.insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
     let params = json!({"pick":[50,0],"aperture":0.1,"color":"red"});
     let asked = before_pick(&mut doc, parent.clone());
     doc.execute("layer.set", json!({"name":"Children","on":false})).unwrap();
@@ -131,13 +131,12 @@ fn spatial_replay_restores_block_child_layer_visibility() {
 #[test]
 fn exploding_an_insert_holds_the_block_definition_it_copies() {
     let (mut doc, child) = drawing();
-    doc.execute("block", json!({"name":"Parent","base":[0,0],"handles":[child],"keep":"delete"})).unwrap();
-    let parent = doc.execute("insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
-    let under = doc.under("explode", &json!({"handles":[parent]})).unwrap().unwrap();
+    doc.execute("block.addDialog", json!({"name":"Parent","base":[0,0],"handles":[child],"keep":"delete"})).unwrap();
+    let parent = doc.execute("block.insert", json!({"name":"Parent","at":[0,0]})).unwrap()["handle"].clone();
+    let under = doc.under("object.explode", &json!({"handles":[parent]})).unwrap().unwrap();
     assert!(under.premises.iter().any(|p| p.id == "block:Parent"));
     let block = doc.derived(&[], &["pick".into()]).unwrap().into_iter().find(|v| v.id == parent).unwrap();
-    let copied: kition_cad_doc::Handle =
-        serde_json::from_value(block.values["pick"]["blocks"]["Parent"]["object.query"][0]["handle"].clone()).unwrap();
+    let copied: kition_cad_doc::Handle = serde_json::from_value(block.values["pick"]["blocks"]["Parent"]["entities"][0]["handle"].clone()).unwrap();
     let copied = copied.hex();
     assert!(under.premises.iter().any(|p| p.id == copied));
 }
@@ -147,7 +146,7 @@ fn deleted_geometry_without_its_stored_kind_is_unknown() {
     let (mut doc, h) = drawing();
     let mut asked = before_pick(&mut doc, h.clone());
     asked.before.remove("kind");
-    doc.execute("erase", json!({"handles":[h]})).unwrap();
+    doc.execute("object.delete", json!({"handles":[h]})).unwrap();
     let result = doc.covered("object.setProperties", &json!({"pick":[50,0],"aperture":0.1,"color":"red"}), &[asked]).unwrap().unwrap();
     assert_eq!(result.covered[0].covered, None, "Missing historical geometry cannot prove that a deleted entity was unrelated");
 }

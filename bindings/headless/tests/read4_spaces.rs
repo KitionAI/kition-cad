@@ -18,7 +18,7 @@ async fn space_change_ignores_unselected_destination_entities() {
     check(
         |f| ("object.changeSpace", json!({"handles":[f.line],"to":"Layout1"})),
         |f| vec![("viewport.set", json!({"handle":f.viewport,"viewHeight":10}))],
-        |_| vec![("line", json!({"points":[[1000,1000],[1100,1000]],"layout":"Layout1"}))],
+        |_| vec![("line.add", json!({"points":[[1000,1000],[1100,1000]],"layout":"Layout1"}))],
     )
     .await;
 }

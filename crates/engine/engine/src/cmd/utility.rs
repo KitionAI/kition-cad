@@ -9,14 +9,14 @@ use crate::{EngineError, Result, Session};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("cal", "QuickCalc", run_cal)
+        CommandSpec::new("calculator.open", "QuickCalc", run_cal)
             .menu(&["Tools", "Inquiry", "Quick"])
             .alias(&["quickcalc", "qc"])
             .params("{expr: \"(3+4)*2^2\", vars?: {x: 1}}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("find", "Find...", run_find).menu(&["Edit", "Find..."]).params("{find, replace?, matchCase?: bool, wholeWord?: bool}"),
+        CommandSpec::new("edit.find", "Find...", run_find).menu(&["Edit", "Find..."]).params("{find, replace?, matchCase?: bool, wholeWord?: bool}"),
         CommandSpec::new("measure.massProperties", "Region/Mass Properties", run_massprop)
             .menu(&["Tools", "Inquiry", "Region/Mass Properties"])
             .params("{handles?}")
@@ -201,9 +201,9 @@ pub fn eval(expr: &str, vars: &serde_json::Map<String, Value>) -> std::result::R
 }
 
 fn run_cal(_s: &mut Session, p: &Value) -> Result<Value> {
-    let e = str_param(p, "expr").ok_or_else(|| bad("cal", "`expr` is required"))?;
+    let e = str_param(p, "expr").ok_or_else(|| bad("calculator.open", "`expr` is required"))?;
     let vars = p.get("vars").and_then(Value::as_object).cloned().unwrap_or_default();
-    let v = eval(e, &vars).map_err(|m| bad("cal", m))?;
+    let v = eval(e, &vars).map_err(|m| bad("calculator.open", m))?;
     Ok(json!({ "value": v, "message": format!("{v}") }))
 }
 
@@ -244,7 +244,7 @@ pub fn find_matches(text: &str, p: &Value) -> bool {
 }
 
 fn run_find(s: &mut Session, p: &Value) -> Result<Value> {
-    let find = str_param(p, "find").ok_or_else(|| bad("find", "`find` is required"))?.to_string();
+    let find = str_param(p, "find").ok_or_else(|| bad("edit.find", "`find` is required"))?.to_string();
     let rep = str_param(p, "replace").map(str::to_string);
     let case = bool_or(p, "matchCase", false);
     let whole = bool_or(p, "wholeWord", false);
@@ -409,10 +409,10 @@ fn run_angle(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_measuregeom(s: &mut Session, p: &Value) -> Result<Value> {
     match str_param(p, "mode").unwrap_or("distance").to_ascii_lowercase().as_str() {
-        "distance" | "d" => s.execute("dist", p),
+        "distance" | "d" => s.execute("measure.distance", p),
         "radius" | "r" => run_radius(s, p),
         "angle" | "a" => run_angle(s, p),
-        "area" | "ar" => s.execute("area", p),
+        "area" | "ar" => s.execute("measure.area", p),
         _ => Err(bad("measure.geometry", "mode must be distance, radius, angle or area")),
     }
 }

@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 /// A drawing with one line, opened from its file, as an agent opens one.
 fn drawing() -> CadDocument {
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    doc.execute("line", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
+    doc.execute("line.add", json!({ "points": [[10, 10], [100, 60]] })).unwrap();
     let bytes = doc.save(Some("Plan.dxf")).unwrap();
     CadDocument::open("Plan.dxf", &bytes).unwrap()
 }
@@ -48,7 +48,7 @@ fn issue_read_only_fields_a_batch_setting_a_handle_is_refused_and_changes_nothin
         assert_eq!(error.index, Some(1), "the error names the operation: {error:?}");
         assert!(error.message.contains("Entity.handle") && error.message.contains("read-only"), "the error names the field: {error:?}");
         assert_eq!(doc.version().unwrap(), version, "the refused batch changed the replica");
-        assert_eq!(doc.inspect().unwrap()["object.query"], 1, "the refused batch's copy stayed");
+        assert_eq!(doc.inspect().unwrap()["entities"], 1, "the refused batch's copy stayed");
         assert_eq!(load(&mut doc, &entity, &["handle"])["handle"], handle, "the handle changed");
         assert_eq!(doc.save(Some("Plan.dxf")).unwrap(), saved, "the refused batch changed the file");
     }
@@ -70,7 +70,7 @@ fn issue_read_only_fields_a_new_entity_gets_its_handle_from_the_kit() {
     let fields = load(&mut doc, &entity, &["handle", "common", "kind"]);
     let create = json!({ "ops": [{ "op": "create", "type": "Entity", "in": "root.model", "fields": { "common": fields["common"], "kind": fields["kind"] } }] });
     let created = Exchange::new().batch(&mut doc, &create, false).unwrap();
-    assert_eq!(doc.inspect().unwrap()["object.query"], 2, "{created}");
+    assert_eq!(doc.inspect().unwrap()["entities"], 2, "{created}");
     let copy = load(&mut doc, &json!("root"), &["model"])["model"][1].clone();
     let handle = load(&mut doc, &copy, &["handle"])["handle"].clone();
     assert!(handle.as_str().is_some_and(|h| !h.is_empty()) && handle != fields["handle"], "the copy has a handle of its own: {handle}");
@@ -83,7 +83,7 @@ fn issue_read_only_fields_a_new_entity_gets_its_handle_from_the_kit() {
     // preserves handle allocation policy; custom validation has code invalid-value.
     assert_eq!(error.code, ModelErrorCode::InvalidValue, "{error:?}");
     assert!(error.message.contains("read-only") && error.message.contains("Entity.handle"), "{error:?}");
-    assert_eq!(doc.inspect().unwrap()["object.query"], 2);
+    assert_eq!(doc.inspect().unwrap()["entities"], 2);
     assert_eq!(doc.version().unwrap(), version);
     assert_eq!(doc.save(Some("Plan.dxf")).unwrap(), before);
 }

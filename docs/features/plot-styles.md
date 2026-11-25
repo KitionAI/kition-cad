@@ -47,15 +47,15 @@ prints as `Normal`. A colour-dependent table ignores the property.
 
 ## Commands
 
-- `pagesetup {layout, plotStyleTable, displayPlotStyles}` sets the layout's table and the
+- `plot.pageSetup {layout, plotStyleTable, displayPlotStyles}` sets the layout's table and the
   Display plot styles flag. Without a layout, it reports the built-in tables in `plotStyleTables`.
-- `plot` / `exportpdf {plotStyleTable}` replaces the page setup's table for one plot. `"None"`
+- `file.print` / `file.exportPdf {plotStyleTable}` replaces the page setup's table for one plot. `"None"`
   plots object colours.
-- `plotstyle {name, handles?}` sets the objects' plot style. With nothing selected, it sets the
+- `plot.style {name, handles?}` sets the objects' plot style. With nothing selected, it sets the
   current plot style for new objects (`CPLOTSTYLE`). Without `name`, it reports the current
   style and the named styles.
 - `layer.set {name, plotStyle}` sets a layer's plot style.
-- `stylesmanager {action, …}` manages the tables: `list`, `get`, `new` (`kind`, `from`), `set`
+- `plot.styleManager {action, …}` manages the tables: `list`, `get`, `new` (`kind`, `from`), `set`
   (`style: {name, …fields}`, `removeStyle`, `description`), `delete`, `load` (`path` or `text`)
   and `save` (`path`, or returns `text`).
 

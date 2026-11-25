@@ -34,17 +34,17 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["len"])
             .params("{handle, pick?: [x,y] (end), delta? | deltaAngle? (deg) | percent? | total? | totalAngle? (deg) | to?: [x,y]} ({handle} alone measures)")
             .interactive(|_| Ok(Box::new(LengthenM::default()))),
-        CommandSpec::new("align", "Align", run_align)
+        CommandSpec::new("object.align", "Align", run_align)
             .menu(&["Modify", "3D Operations", "Align"])
             .alias(&["al"])
             .params("{handles?, s1, d1, s2?, d2?, scale?: bool}")
             .interactive(|_| Ok(Box::new(AlignM::default()))),
-        CommandSpec::new("blend", "Blend", run_blend)
+        CommandSpec::new("object.blend", "Blend", run_blend)
             .menu(&["Modify", "Blend"])
             .alias(&["blendcurves"])
             .params("{h1, p1, h2, p2, continuity?: tangent|smooth}")
             .interactive(|_| Ok(Box::new(BlendM::default()))),
-        CommandSpec::new("reverse", "Reverse", run_reverse)
+        CommandSpec::new("object.reverse", "Reverse", run_reverse)
             .params("{handles?} (lines, polylines, 3D polylines, splines)")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Reverse)))),
         CommandSpec::new("object.copyNested", "Copy Nested Objects", run_ncopy)
@@ -55,7 +55,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Modify", "Change Space"])
             .params("{handles?, to?: \"model\" | layout name, viewport?: handle}")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Chspace)))),
-        CommandSpec::new("flatten", "Flatten Objects", run_flatten)
+        CommandSpec::new("object.flatten", "Flatten Objects", run_flatten)
             .menu(&["Modify", "Flatten Objects"])
             .params("{handles?} (z = 0, 3D polylines become polylines)")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Flatten)))),
@@ -1128,8 +1128,8 @@ pub(crate) fn align_matrix(s1: Vec2, d1: Vec2, pair2: Option<(Vec2, Vec2)>, scal
 
 fn run_align(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let s1 = point_req("align", p, "s1")?;
-    let d1 = point_req("align", p, "d1")?;
+    let s1 = point_req("object.align", p, "s1")?;
+    let d1 = point_req("object.align", p, "d1")?;
     let pair2 = point_param(p, "s2").zip(point_param(p, "d2"));
     let m = align_matrix(s1, d1, pair2, bool_or(p, "scale", false));
     let r = super::modify::transform_entities(s, &hs, &m, false)?;
@@ -1277,10 +1277,10 @@ fn blend(s: &mut Session, h1: Handle, p1: Vec2, h2: Handle, p2: Vec2, smooth: bo
 }
 
 fn run_blend(s: &mut Session, p: &Value) -> Result<Value> {
-    let h1 = curves::handle_param(p, "h1").ok_or_else(|| bad("blend", "`h1` is required"))?;
-    let h2 = curves::handle_param(p, "h2").ok_or_else(|| bad("blend", "`h2` is required"))?;
-    let p1 = point_req("blend", p, "p1")?;
-    let p2 = point_req("blend", p, "p2")?;
+    let h1 = curves::handle_param(p, "h1").ok_or_else(|| bad("object.blend", "`h1` is required"))?;
+    let h2 = curves::handle_param(p, "h2").ok_or_else(|| bad("object.blend", "`h2` is required"))?;
+    let p1 = point_req("object.blend", p, "p1")?;
+    let p2 = point_req("object.blend", p, "p2")?;
     let smooth = str_param(p, "continuity").is_some_and(|c| c.eq_ignore_ascii_case("smooth"));
     let h = blend(s, h1, p1, h2, p2, smooth)?;
     Ok(json!({ "handle": h.hex() }))
