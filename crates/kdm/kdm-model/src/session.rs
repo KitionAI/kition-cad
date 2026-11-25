@@ -206,6 +206,39 @@ impl CadSession {
         (self.undo_steps, self.redo_steps)
     }
 
+    /// Takes a draft's changes (made on a replica forked from this one) in as one transaction of
+    /// `origin` (`KitSession::merge_changes`): the edits made here since the fork stay, the result
+    /// is repaired and the view patched as an import does. Answers the undo steps it made (1, or 0
+    /// when nothing changed or `origin` is a `system`/`import` one) and the damage; a failed repair
+    /// or view load is the damage's error, the transaction staying ([`CadSession::view_loaded`]
+    /// tells whether the view followed). A refused merge changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> (u32, Result<Damage>) {
+        let before = self.inner.version();
+        let result = self.inner.merge_changes(bytes, origin);
+        (self.took_in(&before, origin), result)
+    }
+
+    /// Writes the state `snapshot` holds (a checkpoint's snapshot of this document) over the
+    /// replica by object id as one transaction of `origin` (`KitSession::restore_state`), so every
+    /// object the two share keeps its id; answers as [`CadSession::merge_changes`] does. Nothing
+    /// changes when the states are equal; another document's snapshot is refused.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> (u32, Result<Damage>) {
+        let before = self.inner.version();
+        let result = self.inner.restore_state(snapshot, origin);
+        (self.took_in(&before, origin), result)
+    }
+
+    /// After a merge or a restore since `before`: counts what it wrote as one undo step of
+    /// `origin`'s scope, as [`CadSession::record`] does.
+    fn took_in(&mut self, before: &Version, origin: &Origin) -> u32 {
+        let undoable = self.inner.version() != *before && !matches!(origin.kind, OriginKind::System | OriginKind::Import);
+        if undoable {
+            self.undo_steps = self.undo_steps.saturating_add(1);
+            self.redo_steps = 0;
+        }
+        u32::from(undoable)
+    }
+
     /// Imports remote or stored changes, repairs the merged state and patches the view. An
     /// import whose repair or view load fails has still imported its changes:
     /// [`CadSession::view_loaded`] tells whether the view followed.

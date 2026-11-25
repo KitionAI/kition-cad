@@ -33,7 +33,7 @@
 use std::sync::Arc;
 
 use kdm_model::CadSession;
-use kdm_model::kition_kit::kdm::{Origin, UndoScope, Version};
+use kdm_model::kition_kit::kdm::{Origin, OriginKind, UndoScope, Version};
 use kdm_model::kition_kit::session::Damage;
 use kition_cad_doc::{Drawing, Space};
 
@@ -443,6 +443,52 @@ impl Session {
             st.follow_kdm();
         } else if changed {
             st.detach_kdm();
+        }
+        st.trim_kdm();
+        result.map_err(kdm_error)
+    }
+
+    /// Takes a draft's changes (made on a replica forked from this one, `mergeChanges`) into the
+    /// active drawing as one undo step of `origin`'s scope, as a command's edit is: local edits not
+    /// written yet are written first, the drawing and its selection follow the replica, and one
+    /// Undo takes the whole draft back. A refused merge changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage> {
+        self.take_in(origin, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
+    }
+
+    /// Writes the state a snapshot holds (a checkpoint of this drawing, `replica/restore`) over the
+    /// active drawing by object id, as one undo step of `origin`'s scope, taken in as a merged
+    /// draft is ([`Session::merge_changes`]). Nothing changes when the states are equal.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage> {
+        self.take_in(origin, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
+    }
+
+    /// One transaction `write` makes on the active drawing's replica, taken into the drawing as a
+    /// command's step: the drawing follows the replica (as after an import), and the history gets
+    /// the step, its replica undo steps the transaction's, when it is one.
+    fn take_in(
+        &mut self,
+        origin: &Origin,
+        label: &str,
+        write: impl FnOnce(&mut CadSession) -> (u32, kdm_model::kition_kit::session::Result<Damage>),
+    ) -> Result<Damage> {
+        let kdm = self.active_kdm(true)?;
+        let before_version = kdm.version();
+        let (steps, result) = write(kdm);
+        let changed = kdm.version() != before_version;
+        let follow = changed && (result.is_ok() || kdm.view_loaded());
+        let st = self.state_mut()?;
+        let (before, selection) = (st.doc.clone(), st.selection.clone());
+        if follow {
+            st.follow_kdm();
+        } else if changed {
+            st.detach_kdm();
+        }
+        if follow && steps > 0 {
+            let scope = if matches!(origin.kind, OriginKind::Agent) { UndoScope::Agent } else { UndoScope::Person };
+            st.push_undo(crate::Snapshot { label: label.to_owned(), doc: before, selection, steps, scope });
+            // The step is written already: the bridge has nothing of it left to record.
+            st.link.mark = st.pushed;
         }
         st.trim_kdm();
         result.map_err(kdm_error)

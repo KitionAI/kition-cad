@@ -5,7 +5,8 @@ each package is published with a `package-v<version>` tag.
 
 ## Unreleased
 
-- The engine runs on kition-sdk's plain document model (no CRDT, kition-sdk 91cf510): Kition Desktop is for one person, so drawings are no longer merged from concurrent edits; changes go in order on one line. A drawing changed outside Kition still opens with the host's stored replica, the file's difference recorded as one `import` step, and its entities keep their object ids (paired by DXF handle). Loro is no longer bundled or linked.
+- The engine runs on kition-sdk's plain document model (no CRDT, kition-sdk 74e9a1c): Kition Desktop is for one person, so drawings are no longer merged from concurrent edits; changes go in order on one line. A drawing changed outside Kition still opens with the host's stored replica, the file's difference recorded as one `import` step, and its entities keep their object ids (paired by DXF handle). Loro is no longer bundled or linked.
+- The engine merges drafts and restores versions itself (`mergeChanges`, `compareChanges`, `restoreState`), each taken into the drawing and its history as one undo step, and answers receipts (`changesSince`), agent replies in tool ids (`modelReply`) and the object model (`modelDescribe`, `modelBatch`) in the editor, as the engine contract (K3a) asks; `test:contract` checks the built engine against `kit.json`.
 
 ## 0.1.3
 
