@@ -191,6 +191,6 @@ async fn position_parent_premises_hold_changed_leaves() {
         "the guard must have seen the colleague's held positional leaf: {answer}"
     );
     let mut reread = CadDocument::open(FILE, &std::fs::read(&path).unwrap()).unwrap();
-    let measured = reread.execute("entities.measure", json!({"bounds":[handle]})).unwrap();
+    let measured = reread.execute("object.measure", json!({"bounds":[handle]})).unwrap();
     assert_eq!(measured["bounds"][0]["min"][0].as_f64(), Some(1.0), "the refused move must leave the colleague's geometry: {measured}");
 }

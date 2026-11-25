@@ -1,6 +1,6 @@
 //! VPLAYER typed at the command line: an option loop (ends on Enter) that freezes, thaws, resets
 //! or recolours layers in chosen viewports, and sets layers' default visibility in new
-//! viewports. Changes go through `viewport.set` / `layer.new` / `layer.set`, so validation
+//! viewports. Changes go through `viewport.set` / `layer.add` / `layer.set`, so validation
 //! matches the JSON forms and the whole session is one undo step.
 
 use kition_cad_color::Color;
@@ -294,7 +294,7 @@ impl VplayerM {
                         .collect();
                     let mut made = Vec::new();
                     for n in t.split(',').map(str::trim).filter(|n| !n.is_empty()).take(1000) {
-                        match call(s, "layer.new", &json!({ "name": n, "newVpFreeze": true })) {
+                        match call(s, "layer.add", &json!({ "name": n, "newVpFreeze": true })) {
                             Ok(_) => made.push(n.to_string()),
                             Err(e) => s.echo(format!("Layer \"{n}\": {}", message(&e))),
                         }

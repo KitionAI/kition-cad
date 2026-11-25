@@ -9,8 +9,8 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn group_nonmember_handle_is_an_opaque_membership_id() {
     check(
-        |f| ("groupedit", json!({"name":"Group","remove":[f.circle]})),
-        |f| vec![("groupedit", json!({"name":"Group","add":[f.circle]}))],
+        |f| ("group.edit", json!({"name":"Group","remove":[f.circle]})),
+        |f| vec![("group.edit", json!({"name":"Group","add":[f.circle]}))],
         |f| vec![("erase", json!({"handles":[f.circle]}))],
     )
     .await;
@@ -21,8 +21,8 @@ async fn group_nonmember_handle_is_an_opaque_membership_id() {
 async fn find_without_followup_does_not_hold_matching_word_values() {
     check(
         |_| ("find", json!({"find":"Before"})),
-        |f| vec![("textedit", json!({"handle":f.text,"text":"Other"}))],
-        |f| vec![("textedit", json!({"handle":f.text,"text":"Before colleague"}))],
+        |f| vec![("text.edit", json!({"handle":f.text,"text":"Other"}))],
+        |f| vec![("text.edit", json!({"handle":f.text,"text":"Before colleague"}))],
     )
     .await;
 }
@@ -56,7 +56,7 @@ async fn boundary_outline_is_refreshed_from_extents_changes() {
             );
             vec![("line", json!({"points":[[10000,10000],[20000,20000]]}))]
         },
-        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
 }
@@ -76,8 +76,8 @@ fn sampled_hatch_kind(bytes: &[u8]) -> serde_json::Value {
 #[tokio::test(flavor = "multi_thread")]
 async fn delconstraint_nonmember_handle_is_an_opaque_membership_id() {
     check(
-        |f| ("delconstraint", json!({"handles":[f.circle]})),
-        |f| vec![("gcfix", json!({"h1":f.circle}))],
+        |f| ("constraint.delete", json!({"handles":[f.circle]})),
+        |f| vec![("constraint.fix", json!({"h1":f.circle}))],
         |f| vec![("erase", json!({"handles":[f.circle]}))],
     )
     .await;

@@ -88,7 +88,7 @@ fn as_saved(v: Value) -> Value {
 }
 
 fn reopen(s: &mut Session, path: &str) -> Session {
-    ok(s, "saveas", json!({ "path": path }));
+    ok(s, "file.saveAs", json!({ "path": path }));
     let mut reopened = Session::empty();
     ok(&mut reopened, "open", json!({ "path": path }));
     reopened
@@ -127,8 +127,8 @@ fn lines_curves_and_polylines_survive_save_and_reopen() {
     ok(&mut s, "line", json!({ "points": [[0, 0], [100, 0], [100, 50]] }));
     ok(&mut s, "circle", json!({ "center": [20, 20], "radius": 7.5 }));
     ok(&mut s, "arc", json!({ "center": [60, 20], "radius": 10, "start": 0, "end": 135 }));
-    ok(&mut s, "pline", json!({ "vertices": [[0, 60], [30, 60], [30, 90], [0, 90]], "closed": true }));
-    ok(&mut s, "rectang", json!({ "p1": [50, 60], "p2": [80, 80] }));
+    ok(&mut s, "polyline.add", json!({ "vertices": [[0, 60], [30, 60], [30, 90], [0, 90]], "closed": true }));
+    ok(&mut s, "rectangle.add", json!({ "p1": [50, 60], "p2": [80, 80] }));
     let k = kinds(&s);
     assert_eq!(k.iter().filter(|k| *k == "Line").count(), 2, "{k:?}");
     assert!(["Circle", "Arc", "LwPolyline"].iter().all(|w| k.iter().any(|k| k == w)), "{k:?}");
@@ -139,7 +139,11 @@ fn lines_curves_and_polylines_survive_save_and_reopen() {
 fn text_and_mtext_survive_save_and_reopen() {
     let mut s = Session::new();
     ok(&mut s, "text", json!({ "at": [5, 5], "text": "Plan A", "height": 2.5, "justify": "TL" }));
-    ok(&mut s, "mtext", json!({ "at": [5, 20], "text": "Line one\nLine two", "justify": "BR", "lineSpacing": 1.25, "lineSpacingExact": true }));
+    ok(
+        &mut s,
+        "multilineText.add",
+        json!({ "at": [5, 20], "text": "Line one\nLine two", "justify": "BR", "lineSpacing": 1.25, "lineSpacingExact": true }),
+    );
     let k = kinds(&s);
     assert!(k.contains(&"Text".to_string()) && k.contains(&"MText".to_string()), "{k:?}");
     survives_save_and_reopen(&mut s, "text");
@@ -148,11 +152,11 @@ fn text_and_mtext_survive_save_and_reopen() {
 #[test]
 fn layers_survive_save_and_reopen() {
     let mut s = Session::new();
-    ok(&mut s, "layer.new", json!({ "name": "Walls", "color": "red", "current": true }));
+    ok(&mut s, "layer.add", json!({ "name": "Walls", "color": "red", "current": true }));
     ok(&mut s, "line", json!({ "points": [[0, 0], [50, 0]] }));
-    ok(&mut s, "layer.new", json!({ "name": "Furniture" }));
+    ok(&mut s, "layer.add", json!({ "name": "Furniture" }));
     ok(&mut s, "layer.set", json!({ "name": "Furniture", "frozen": true, "color": 3 }));
-    ok(&mut s, "layer.current", json!({ "name": "0" }));
+    ok(&mut s, "layer.setCurrent", json!({ "name": "0" }));
     ok(&mut s, "circle", json!({ "center": [10, 10], "radius": 2 }));
     let d = s.doc().unwrap();
     assert!(d.model.iter().any(|e| e.common.layer == "Walls"));
@@ -176,10 +180,10 @@ fn blocks_and_inserts_survive_save_and_reopen() {
 fn dimensions_survive_save_and_reopen() {
     let mut s = Session::new();
     ok(&mut s, "line", json!({ "points": [[0, 0], [40, 0]] }));
-    ok(&mut s, "dimlinear", json!({ "p1": [0, 0], "p2": [40, 0], "at": [20, -6] }));
-    ok(&mut s, "dimaligned", json!({ "p1": [0, 10], "p2": [30, 30], "at": [10, 30] }));
+    ok(&mut s, "dimension.addLinear", json!({ "p1": [0, 0], "p2": [40, 0], "at": [20, -6] }));
+    ok(&mut s, "dimension.addAligned", json!({ "p1": [0, 10], "p2": [30, 30], "at": [10, 30] }));
     let c = handle(&ok(&mut s, "circle", json!({ "center": [80, 20], "radius": 10 })));
-    ok(&mut s, "dimradius", json!({ "handle": c, "at": [95, 25] }));
+    ok(&mut s, "dimension.addRadius", json!({ "handle": c, "at": [95, 25] }));
     assert_eq!(kinds(&s).iter().filter(|k| *k == "Dimension").count(), 3, "{:?}", kinds(&s));
     survives_save_and_reopen(&mut s, "dimensions");
 }
@@ -195,7 +199,7 @@ fn modified_and_arrayed_objects_survive_save_and_reopen() {
     ok(&mut s, "copy", json!({ "handles": [c], "delta": [0, 30] }));
     ok(&mut s, "mirror", json!({ "handles": [l], "p1": [-1, 0], "p2": [-1, 1] }));
     ok(&mut s, "array", json!({ "type": "polar", "handles": [c], "center": [0, 0], "count": 3 }));
-    let r = handle(&ok(&mut s, "rectang", json!({ "p1": [40, 40], "p2": [60, 60] })));
+    let r = handle(&ok(&mut s, "rectangle.add", json!({ "p1": [40, 40], "p2": [60, 60] })));
     ok(&mut s, "hatch", json!({ "handles": [r] }));
     assert!(kinds(&s).iter().any(|k| k == "Hatch"), "{:?}", kinds(&s));
     survives_save_and_reopen(&mut s, "modify");
@@ -224,14 +228,14 @@ fn saved_extents_cover_dimensions_as_drawn_on_every_save() {
     real_files();
     let mut s = Session::new();
     let c = handle(&ok(&mut s, "circle", json!({ "center": [80, 20], "radius": 10 })));
-    ok(&mut s, "dimradius", json!({ "handle": c, "at": [95, 25] }));
-    ok(&mut s, "dimlinear", json!({ "p1": [0, 0], "p2": [40, 0], "at": [20, -6], "text": "Overall length of the bracket <>" }));
+    ok(&mut s, "dimension.addRadius", json!({ "handle": c, "at": [95, 25] }));
+    ok(&mut s, "dimension.addLinear", json!({ "p1": [0, 0], "p2": [40, 0], "at": [20, -6], "text": "Overall length of the bracket <>" }));
     let dir = std::env::temp_dir().join(format!("kition-cad-extents-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let first = dir.join("first.dxf").to_string_lossy().into_owned();
     let second = dir.join("second.dxf").to_string_lossy().into_owned();
     let mut reopened = reopen(&mut s, &first);
-    ok(&mut reopened, "saveas", json!({ "path": second }));
+    ok(&mut reopened, "file.saveAs", json!({ "path": second }));
     let (a, b) = (saved_extents(&first), saved_extents(&second));
     for (p, q) in a.iter().zip(&b) {
         assert!((p.0 - q.0).abs() < 1e-6 && (p.1 - q.1).abs() < 1e-6, "first save {a:?}, after reopening {b:?}");

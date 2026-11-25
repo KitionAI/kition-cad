@@ -156,7 +156,7 @@ impl Interactive for LayoutM {
             },
             Stage::CopyFrom => {
                 let from = need(name.or_else(|| current_layout(s)))?;
-                let from = super::layout_name("layout.copy", s.doc()?, &from).map_err(retry)?;
+                let from = super::layout_name("layout.duplicate", s.doc()?, &from).map_err(retry)?;
                 self.stage = Stage::CopyTo(from);
                 Ok(Step::Continue)
             }

@@ -303,7 +303,7 @@ fn reach(code: &[u8], with_strings: &[u8]) -> Reach {
             let module = qualifier(code, at).filter(|m| !["crate", "super", "self", "Self", "cmd"].contains(m));
             found.calls.insert(module.map_or_else(|| name.to_owned(), |m| format!("{m}::{name}")));
         }
-        // `s.execute("zoom", …)`, or a command found by id (`find_command("arrayrect")`): the
+        // `s.execute("zoom", …)`, or a command found by id (`find_command("object.arrayRectangular")`): the
         // command runs another, and reads what it reads.
         if matches!(name, "find_command" | "execute") && code.get(after) == Some(&b'(') {
             let rest = strings[after + 1..].trim_start();
@@ -335,9 +335,9 @@ fn setting_current_properties_does_not_read_them() {
 /// Looking up one command does not invoke other command names used as ordinary string data.
 #[test]
 fn command_lookup_reads_only_its_command_argument() {
-    let source = r#"find_command("layer.set"); let table = "block"; find_command("style.rename");"#;
+    let source = r#"find_command("layer.set"); let table = "block"; find_command("textStyle.rename");"#;
     let found = reach(&blanked(source, false), &blanked(source, true));
-    assert_eq!(found.runs, BTreeSet::from(["layer.set".to_owned(), "style.rename".to_owned()]));
+    assert_eq!(found.runs, BTreeSet::from(["layer.set".to_owned(), "textStyle.rename".to_owned()]));
 }
 
 /// The engine's modules: its files' and folders' names.
@@ -375,7 +375,7 @@ fn in_engine(code: &[u8], at: usize) -> bool {
     start == at || modules().contains(ident_at(code, start))
 }
 
-/// The module right before the call at `at` (`sysvars` in `crate::sysvars::get(`), if any.
+/// The module right before the call at `at` (`variable.list` in `crate::sysvars::get(`), if any.
 fn qualifier(code: &[u8], at: usize) -> Option<&str> {
     if at < 2 || &code[at - 2..at] != b"::" {
         return None;
@@ -696,7 +696,7 @@ fn every_command_declares_the_editor_state_its_code_reads_and_its_target() {
         // [corrected C8-cad-pin: constraints.rs:801-810,871-916 compares raw
         // handles with saved references/exceptions and never resolves entities.
         // targets() reads selection syntax here, not an Entity address.]
-        let target = if matches!(command.id.as_str(), "delconstraint" | "constraintbar" | "dcdisplay") {
+        let target = if matches!(command.id.as_str(), "constraint.delete" | "constraint.bars" | "constraint.dynamicDimensions") {
             assert_eq!(target, Some("handles"), "the native opaque list is still scanned");
             let source = std::fs::read_to_string(engine_src().join("cmd/constraints.rs")).unwrap();
             assert!(source.contains("c.refs.iter().any(|r| hs.contains(&r.handle))"));
@@ -744,15 +744,15 @@ fn the_published_commands_pass_the_sdks_checks() {
     let commands = doc.commands();
     kition_kit::testing::check_commands(&commands, &[]).unwrap_or_else(|problems| panic!("{}", problems.join("\n")));
     let by_id = |id: &str| commands.iter().find(|c| c.id == id).unwrap_or_else(|| panic!("no {id}"));
-    for id in ["erase", "move", "properties.set"] {
+    for id in ["erase", "move", "object.setProperties"] {
         assert_eq!(by_id(id).targets, Some("handles"), "{id}");
         assert!(by_id(id).reads.contains(&kition_kit::EditorState::Selection), "{id}");
     }
-    for id in ["line", "circle", "rectang", "text", "dimlinear"] {
+    for id in ["line", "circle", "rectangle.add", "text", "dimension.addLinear"] {
         let command = by_id(id);
         assert!(command.reads.contains(&kition_kit::EditorState::Active) && command.reads.contains(&kition_kit::EditorState::Part), "{id}");
         let schema = command.schema.as_ref().unwrap();
         assert_eq!((schema["layer"]["type"].as_str(), schema["layout"]["type"].as_str()), (Some("string"), Some("string")), "{id}");
     }
-    assert!(by_id("file.render").reads.is_empty() && by_id("entities.measure").reads.is_empty());
+    assert!(by_id("file.render").reads.is_empty() && by_id("object.measure").reads.is_empty());
 }

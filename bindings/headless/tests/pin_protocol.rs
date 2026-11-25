@@ -42,7 +42,7 @@ fn replacement_plans_advance_without_changing_the_live_drawing() {
         .context_plan(
             &opened.id,
             &json!({"action":"advance","token":token,"steps":[
-                {"command":"new"},{"command":"line","params":{"points":[[0,0],[10,0]]}}
+                {"command":"file.new"},{"command":"line.add","params":{"points":[[0,0],[10,0]]}}
             ]})
             .as_object()
             .unwrap()

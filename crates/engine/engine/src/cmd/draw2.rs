@@ -14,71 +14,71 @@ use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, St
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("arc.sce", "Start, Center, End", run_arc_variant)
+        CommandSpec::new("arc.addStartCenterEnd", "Start, Center, End", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, Center, End"])
             .params("{start, center, end}")
             .interactive(|_| Ok(seq(ArcV::Sce))),
-        CommandSpec::new("arc.sca", "Start, Center, Angle", run_arc_variant)
+        CommandSpec::new("arc.addStartCenterAngle", "Start, Center, Angle", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, Center, Angle"])
             .params("{start, center, angle (degrees, + = CCW)}")
             .interactive(|_| Ok(seq(ArcV::Sca))),
-        CommandSpec::new("arc.scl", "Start, Center, Length", run_arc_variant)
+        CommandSpec::new("arc.addStartCenterLength", "Start, Center, Length", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, Center, Length"])
             .params("{start, center, length (chord; negative = major arc)}")
             .interactive(|_| Ok(seq(ArcV::Scl))),
-        CommandSpec::new("arc.sea", "Start, End, Angle", run_arc_variant)
+        CommandSpec::new("arc.addStartEndAngle", "Start, End, Angle", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, End, Angle"])
             .params("{start, end, angle (degrees, + = CCW)}")
             .interactive(|_| Ok(seq(ArcV::Sea))),
-        CommandSpec::new("arc.sed", "Start, End, Direction", run_arc_variant)
+        CommandSpec::new("arc.addStartEndDirection", "Start, End, Direction", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, End, Direction"])
             .params("{start, end, direction (degrees | [dx,dy])}")
             .interactive(|_| Ok(seq(ArcV::Sed))),
-        CommandSpec::new("arc.ser", "Start, End, Radius", run_arc_variant)
+        CommandSpec::new("arc.addStartEndRadius", "Start, End, Radius", run_arc_variant)
             .menu(&["Draw", "Arc", "Start, End, Radius"])
             .params("{start, end, radius (negative = major arc)}")
             .interactive(|_| Ok(seq(ArcV::Ser))),
-        CommandSpec::new("arc.cse", "Center, Start, End", run_arc_variant)
+        CommandSpec::new("arc.addCenterStartEnd", "Center, Start, End", run_arc_variant)
             .menu(&["Draw", "Arc", "Center, Start, End"])
             .params("{center, start, end}")
             .interactive(|_| Ok(seq(ArcV::Cse))),
-        CommandSpec::new("arc.csa", "Center, Start, Angle", run_arc_variant)
+        CommandSpec::new("arc.addCenterStartAngle", "Center, Start, Angle", run_arc_variant)
             .menu(&["Draw", "Arc", "Center, Start, Angle"])
             .params("{center, start, angle (degrees)}")
             .interactive(|_| Ok(seq(ArcV::Csa))),
-        CommandSpec::new("arc.csl", "Center, Start, Length", run_arc_variant)
+        CommandSpec::new("arc.addCenterStartLength", "Center, Start, Length", run_arc_variant)
             .menu(&["Draw", "Arc", "Center, Start, Length"])
             .params("{center, start, length (chord)}")
             .interactive(|_| Ok(seq(ArcV::Csl))),
-        CommandSpec::new("arc.continue", "Continue", run_arc_continue)
+        CommandSpec::new("arc.addContinue", "Continue", run_arc_continue)
             .menu(&["Draw", "Arc", "Continue"])
             .params("{end} | {start, direction, end} (with only end, the arc continues tangent from the last line or arc)")
             .interactive(|_| Ok(Box::new(ArcContinueM::default()))),
-        CommandSpec::new("circle.cd", "Center, Diameter", run_circle_variant)
+        CommandSpec::new("circle.addCenterDiameter", "Center, Diameter", run_circle_variant)
             .menu(&["Draw", "Circle", "Center, Diameter"])
             .params("{center, diameter}")
             .interactive(|_| Ok(seq(ArcV::CircleCd))),
-        CommandSpec::new("circle.2p", "2 Points", run_circle_variant)
+        CommandSpec::new("circle.addTwoPoints", "2 Points", run_circle_variant)
             .menu(&["Draw", "Circle", "2 Points"])
             .params("{p1, p2} | {center, diameter}")
             .interactive(|_| Ok(seq(ArcV::Circle2p))),
-        CommandSpec::new("circle.3p", "3 Points", run_circle_variant)
+        CommandSpec::new("circle.addThreePoints", "3 Points", run_circle_variant)
             .menu(&["Draw", "Circle", "3 Points"])
             .params("{p1, p2, p3} | {center, diameter}")
             .interactive(|_| Ok(seq(ArcV::Circle3p))),
-        CommandSpec::new("circle.ttr", "Tan, Tan, Radius", run_circle_ttr)
+        CommandSpec::new("circle.addTanTanRadius", "Tan, Tan, Radius", run_circle_ttr)
             .menu(&["Draw", "Circle", "Tan, Tan, Radius"])
             .params("{h1, p1, h2, p2, radius} (lines, circles, arcs, polyline segments; nearest solution to the picks)")
             .interactive(|_| Ok(Box::new(TanCircleM::new(true)))),
-        CommandSpec::new("circle.ttt", "Tan, Tan, Tan", run_circle_ttt)
+        CommandSpec::new("circle.addTanTanTan", "Tan, Tan, Tan", run_circle_ttt)
             .menu(&["Draw", "Circle", "Tan, Tan, Tan"])
             .params("{h1, p1, h2, p2, h3, p3}")
             .interactive(|_| Ok(Box::new(TanCircleM::new(false)))),
-        CommandSpec::new("ellipse.axis", "Axis, End", run_ellipse_axis)
+        CommandSpec::new("ellipse.addAxisEnd", "Axis, End", run_ellipse_axis)
             .menu(&["Draw", "Ellipse", "Axis, End"])
             .params("{p1, p2, distance} | {p1, p2, p3} (axis endpoints, then half the other axis)")
             .interactive(|_| Ok(super::draw::ellipse_machine(false, false))),
-        CommandSpec::new("ellipse.arc", "Elliptical Arc", run_ellipse_arc)
+        CommandSpec::new("ellipse.addArc", "Elliptical Arc", run_ellipse_arc)
             .menu(&["Draw", "Ellipse", "Arc"])
             .params("{center, major: [dx,dy], ratio, start, end (degrees)} | {p1, p2, distance, start, end}")
             .interactive(|_| Ok(super::draw::ellipse_machine(false, true))),
@@ -92,15 +92,15 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["me"])
             .params("{handle, length, block?, align?: bool, from?: [x,y] (end to start at)}")
             .interactive(|_| Ok(Box::new(DivideM::new(true)))),
-        CommandSpec::new("revcloud", "Rectangular", run_revcloud)
+        CommandSpec::new("revisionCloud.add", "Rectangular", run_revcloud)
             .menu(&["Draw", "Revision Cloud", "Rectangular"])
             .params("{p1?: [x,y], p2?: [x,y] (a rectangle), points?: [[x,y],...] (a polygon), freehand?: [[x,y],...], handle? (an object to turn into a cloud), arcLength?: number, style?: normal|calligraphy, reverse?: bool} (one of p1 with p2, points, freehand or handle)")
             .interactive(|s| Ok(Box::new(RevcloudM::new(s, CloudKind::Rect)))),
-        CommandSpec::new("revcloud.polygonal", "Polygonal", run_revcloud)
+        CommandSpec::new("revisionCloud.addPolygonal", "Polygonal", run_revcloud)
             .menu(&["Draw", "Revision Cloud", "Polygonal"])
             .params("{points?: [[x,y],...], freehand?: [[x,y],...], handle? (an object to turn into a cloud), arcLength?: number, style?: normal|calligraphy, reverse?: bool} (one of points, freehand or handle)")
             .interactive(|s| Ok(Box::new(RevcloudM::new(s, CloudKind::Poly)))),
-        CommandSpec::new("revcloud.freehand", "Freehand", run_revcloud)
+        CommandSpec::new("revisionCloud.addFreehand", "Freehand", run_revcloud)
             .menu(&["Draw", "Revision Cloud", "Freehand"])
             .params("{freehand?: [[x,y],...], points?: [[x,y],...], handle? (an object to turn into a cloud), arcLength?: number, style?: normal|calligraphy, reverse?: bool} (one of freehand, points or handle)")
             .interactive(|s| Ok(Box::new(RevcloudM::new(s, CloudKind::Free)))),
@@ -108,12 +108,12 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Draw", "Wipeout"])
             .params("{points: [[x,y],...]} | {handle (closed polyline), erase?: bool} | {frames: on|off|display}")
             .interactive(|_| Ok(Box::new(WipeoutM::default()))),
-        CommandSpec::new("3dpoly", "3D Polyline", run_3dpoly)
+        CommandSpec::new("polyline.add3d", "3D Polyline", run_3dpoly)
             .menu(&["Draw", "3D Polyline"])
             .alias(&["3p"])
             .params("{points: [[x,y,z?],...], closed?}")
             .interactive(|_| Ok(Box::new(Poly3dM::default()))),
-        CommandSpec::new("mline", "Multiline", run_mline)
+        CommandSpec::new("multiline.add", "Multiline", run_mline)
             .menu(&["Draw", "Multiline"])
             .alias(&["ml"])
             .params("{points, scale?, justification?: top|zero|bottom, closed?} (two offset polylines)")
@@ -122,15 +122,15 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Draw", "Helix"])
             .params("{center, baseRadius, topRadius?, height?, turns?, ccw?} (3D polyline approximation)")
             .interactive(|_| Ok(Box::new(HelixM::default()))),
-        CommandSpec::new("spline.cv", "Control Vertices", run_spline_cv)
+        CommandSpec::new("spline.addControlVertices", "Control Vertices", run_spline_cv)
             .menu(&["Draw", "Spline", "Control Vertices"])
             .params("{control: [[x,y],...], degree?: 1..10 (default 3), closed?}")
             .interactive(|_| Ok(Box::new(SplineCvM::default()))),
-        CommandSpec::new("centermark", "Center Mark", run_centermark)
+        CommandSpec::new("centerMark.add", "Center Mark", run_centermark)
             .menu(&["Draw", "Center Mark"])
             .params("{handle | handles} (circles/arcs; lines on the CENTER linetype)")
             .interactive(|_| Ok(Box::new(CenterM { first: None, mark: true }))),
-        CommandSpec::new("centerline", "Center Line", run_centerline)
+        CommandSpec::new("centerLine.add", "Center Line", run_centerline)
             .menu(&["Draw", "Center Line"])
             .params("{h1, h2} (two lines)")
             .interactive(|_| Ok(Box::new(CenterM { first: None, mark: false }))),
@@ -455,17 +455,17 @@ fn run_arc_variant(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_arc_continue(s: &mut Session, p: &Value) -> Result<Value> {
-    let e = point_req("arc.continue", p, "end")?;
+    let e = point_req("arc.addContinue", p, "end")?;
     let (st, dir) = match (point_param(p, "start"), direction_param(p)) {
         (Some(st), Some(d)) => (st, Vec2::from_angle(d)),
         _ if ["start", "direction"].iter().any(|k| p.get(k).is_some_and(|v| !v.is_null())) => {
-            return Err(bad("arc.continue", "explicit continuation requires both a valid `start` and `direction`"));
+            return Err(bad("arc.addContinue", "explicit continuation requires both a valid `start` and `direction`"));
         }
         _ => curves::last_curve_end(s.doc()?, &s.space())
             .map(|(_, p, t)| (p, t))
-            .ok_or_else(|| bad("arc.continue", "no line or arc to continue from"))?,
+            .ok_or_else(|| bad("arc.addContinue", "no line or arc to continue from"))?,
     };
-    let a = curves::arc_sed(st, e, dir).ok_or_else(|| bad("arc.continue", "end point is on the tangent line"))?;
+    let a = curves::arc_sed(st, e, dir).ok_or_else(|| bad("arc.addContinue", "end point is on the tangent line"))?;
     added(s.add_entity(arc(&a))?)
 }
 
@@ -539,9 +539,9 @@ fn pick_pair(cmd: &str, p: &Value, hk: &str, pk: &str) -> Result<(Handle, Vec2)>
 }
 
 fn run_circle_ttr(s: &mut Session, p: &Value) -> Result<Value> {
-    let (h1, p1) = pick_pair("circle.ttr", p, "h1", "p1")?;
-    let (h2, p2) = pick_pair("circle.ttr", p, "h2", "p2")?;
-    let r = f64_req("circle.ttr", p, "radius")?;
+    let (h1, p1) = pick_pair("circle.addTanTanRadius", p, "h1", "p1")?;
+    let (h2, p2) = pick_pair("circle.addTanTanRadius", p, "h2", "p2")?;
+    let r = f64_req("circle.addTanTanRadius", p, "radius")?;
     let c = curves::ttr(tan_obj(s, h1, p1)?, p1, tan_obj(s, h2, p2)?, p2, r).ok_or_else(|| other("Circle does not exist."))?;
     let h = s.add_entity(circle(c.center, c.radius))?;
     s.doc_mut()?.header.set_f64("CIRCLERAD", c.radius);
@@ -549,9 +549,9 @@ fn run_circle_ttr(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_circle_ttt(s: &mut Session, p: &Value) -> Result<Value> {
-    let (h1, p1) = pick_pair("circle.ttt", p, "h1", "p1")?;
-    let (h2, p2) = pick_pair("circle.ttt", p, "h2", "p2")?;
-    let (h3, p3) = pick_pair("circle.ttt", p, "h3", "p3")?;
+    let (h1, p1) = pick_pair("circle.addTanTanTan", p, "h1", "p1")?;
+    let (h2, p2) = pick_pair("circle.addTanTanTan", p, "h2", "p2")?;
+    let (h3, p3) = pick_pair("circle.addTanTanTan", p, "h3", "p3")?;
     let objs = [(tan_obj(s, h1, p1)?, p1), (tan_obj(s, h2, p2)?, p2), (tan_obj(s, h3, p3)?, p3)];
     let c = curves::ttt(objs).ok_or_else(|| other("Circle does not exist."))?;
     let h = s.add_entity(circle(c.center, c.radius))?;
@@ -675,20 +675,20 @@ fn ellipse_kind(e: &Ellipse) -> EntityKind {
 }
 
 fn run_ellipse_axis(s: &mut Session, p: &Value) -> Result<Value> {
-    let e = axis_ellipse_params("ellipse.axis", p)?;
+    let e = axis_ellipse_params("ellipse.addAxisEnd", p)?;
     added(s.add_entity(ellipse_kind(&e))?)
 }
 
 fn run_ellipse_arc(s: &mut Session, p: &Value) -> Result<Value> {
     let mut e = if let Some(c) = point_param(p, "center") {
-        let m = point_req("ellipse.arc", p, "major")?;
-        let ratio = f64_req("ellipse.arc", p, "ratio")?;
+        let m = point_req("ellipse.addArc", p, "major")?;
+        let ratio = f64_req("ellipse.addArc", p, "ratio")?;
         if !(ratio > 0.0 && ratio <= 1.0) || m.len() < 1e-12 {
-            return Err(bad("ellipse.arc", "ratio must be in (0, 1] and major non-zero"));
+            return Err(bad("ellipse.addArc", "ratio must be in (0, 1] and major non-zero"));
         }
         Ellipse::full(c, m, ratio)
     } else {
-        axis_ellipse_params("ellipse.arc", p)?
+        axis_ellipse_params("ellipse.addArc", p)?
     };
     // Angles are measured from the major axis (like the prompts); convert to parameters.
     let to_param = |deg: f64| {
@@ -696,8 +696,8 @@ fn run_ellipse_arc(s: &mut Session, p: &Value) -> Result<Value> {
         let ge = Ellipse { start: 0.0, end: TAU, ..e };
         ge.param_of(e.center + Vec2::from_angle(a + e.major.angle()))
     };
-    let st = to_param(f64_req("ellipse.arc", p, "start")?);
-    let en = to_param(f64_req("ellipse.arc", p, "end")?);
+    let st = to_param(f64_req("ellipse.addArc", p, "start")?);
+    let en = to_param(f64_req("ellipse.addArc", p, "end")?);
     e.start = st;
     e.end = en;
     added(s.add_entity(ellipse_kind(&e))?)
@@ -986,12 +986,12 @@ fn run_revcloud(s: &mut Session, p: &Value) -> Result<Value> {
     } else if let Some(h) = curves::handle_param(p, "handle") {
         (object_outline(s, h)?, false, Some(h))
     } else {
-        return Err(bad("revcloud", "give {p1, p2}, {points}, {freehand} or {handle}"));
+        return Err(bad("revisionCloud.add", "give {p1, p2}, {points}, {freehand} or {handle}"));
     };
     if pts.len() > MAX_GEN {
-        return Err(bad("revcloud", "too many points"));
+        return Err(bad("revisionCloud.add", "too many points"));
     }
-    let vs = cloud_vertices(&pts, arc_len, per_edge, reverse).ok_or_else(|| bad("revcloud", "the boundary needs an area"))?;
+    let vs = cloud_vertices(&pts, arc_len, per_edge, reverse).ok_or_else(|| bad("revisionCloud.add", "the boundary needs an area"))?;
     let h = s.add_entity(cloud_entity(vs, calligraphy, arc_len))?;
     if let Some(src) = src {
         let common = curves::entity(s, src)?.common;
@@ -1341,7 +1341,7 @@ fn offset_xline(base: Vec2, dir: Vec2, dist: f64, side: Vec2) -> (Vec2, Vec2) {
 
 pub(crate) fn run_xline2(s: &mut Session, p: &Value) -> Result<Value> {
     if let (Some(v), Some(a), Some(b)) = (point_param(p, "vertex"), point_param(p, "start"), point_param(p, "end")) {
-        let d = bisect_dir(v, a, b).ok_or_else(|| bad("xline", "degenerate angle"))?;
+        let d = bisect_dir(v, a, b).ok_or_else(|| bad("constructionLine.add", "degenerate angle"))?;
         return added(add_xline(s, v, d)?);
     }
     if let Some(h) = curves::handle_param(p, "handle") {
@@ -1349,13 +1349,13 @@ pub(crate) fn run_xline2(s: &mut Session, p: &Value) -> Result<Value> {
         let (nb, nd) = if let Some(t) = point_param(p, "through") {
             (t, dir)
         } else {
-            let dist = f64_req("xline", p, "distance")?;
-            let side = point_req("xline", p, "side")?;
+            let dist = f64_req("constructionLine.add", p, "distance")?;
+            let side = point_req("constructionLine.add", p, "side")?;
             offset_xline(base, dir, dist, side)
         };
         return added(add_xline(s, nb, nd)?);
     }
-    let b = point_param(p, "base").or_else(|| point_param(p, "through")).ok_or_else(|| bad("xline", "`base` is required"))?;
+    let b = point_param(p, "base").or_else(|| point_param(p, "through")).ok_or_else(|| bad("constructionLine.add", "`base` is required"))?;
     let dir = if bool_or(p, "hor", false) {
         Vec2::X
     } else if bool_or(p, "ver", false) {
@@ -1363,10 +1363,10 @@ pub(crate) fn run_xline2(s: &mut Session, p: &Value) -> Result<Value> {
     } else if let (Some(t), Some(_)) = (point_param(p, "through"), point_param(p, "base")) {
         t - b
     } else {
-        Vec2::from_angle(f64_req("xline", p, "angle")?.to_radians())
+        Vec2::from_angle(f64_req("constructionLine.add", p, "angle")?.to_radians())
     };
     if dir.len() < 1e-12 {
-        return Err(bad("xline", "through point equals base"));
+        return Err(bad("constructionLine.add", "through point equals base"));
     }
     added(add_xline(s, b, dir)?)
 }
@@ -1564,7 +1564,7 @@ fn rect_kind(first: Vec2, w: f64, h: f64, rot: f64, fillet: f64, chamfer: (f64, 
 }
 
 pub(crate) fn run_rectang2(s: &mut Session, p: &Value) -> Result<Value> {
-    let a = point_req("rectang", p, "p1")?;
+    let a = point_req("rectangle.add", p, "p1")?;
     let rot = f64_or(p, "rotation", 0.0).to_radians();
     let ch = p
         .get("chamfer")
@@ -1573,13 +1573,13 @@ pub(crate) fn run_rectang2(s: &mut Session, p: &Value) -> Result<Value> {
         .map(|(x, y)| (if x.is_finite() { x } else { 0.0 }, if y.is_finite() { y } else { 0.0 }))
         .unwrap_or((0.0, 0.0));
     if ch.0 < 0.0 || ch.1 < 0.0 {
-        return Err(bad("rectang", "`chamfer` distances must be zero or positive"));
+        return Err(bad("rectangle.add", "`chamfer` distances must be zero or positive"));
     }
-    let fillet = size_param("rectang", p, "fillet", true)?.unwrap_or(0.0);
-    let width = size_param("rectang", p, "width", true)?.unwrap_or(0.0);
+    let fillet = size_param("rectangle.add", p, "fillet", true)?.unwrap_or(0.0);
+    let width = size_param("rectangle.add", p, "width", true)?.unwrap_or(0.0);
     let (w, h) = if let Some(d) = p.get("dimensions").and_then(Value::as_array) {
-        let l = d.first().and_then(Value::as_f64).filter(|v| v.is_finite()).ok_or_else(|| bad("rectang", "dimensions: [length, width]"))?;
-        let wd = d.get(1).and_then(Value::as_f64).filter(|v| v.is_finite()).ok_or_else(|| bad("rectang", "dimensions: [length, width]"))?;
+        let l = d.first().and_then(Value::as_f64).filter(|v| v.is_finite()).ok_or_else(|| bad("rectangle.add", "dimensions: [length, width]"))?;
+        let wd = d.get(1).and_then(Value::as_f64).filter(|v| v.is_finite()).ok_or_else(|| bad("rectangle.add", "dimensions: [length, width]"))?;
         let (sx, sy) = match point_param(p, "p2") {
             Some(q) => {
                 let loc = (q - a).rotate(-rot);
@@ -1590,20 +1590,20 @@ pub(crate) fn run_rectang2(s: &mut Session, p: &Value) -> Result<Value> {
         (l.abs() * sx, wd.abs() * sy)
     } else if let Some(area) = p.get("area").and_then(Value::as_f64).filter(|v| v.is_finite()) {
         if area <= 0.0 {
-            return Err(bad("rectang", "area must be positive"));
+            return Err(bad("rectangle.add", "area must be positive"));
         }
         match (p.get("length").and_then(Value::as_f64), p.get("breadth").and_then(Value::as_f64)) {
             (Some(l), _) if l.is_finite() && l > 0.0 => (l, area / l),
             (_, Some(b)) if b.is_finite() && b > 0.0 => (area / b, b),
-            _ => return Err(bad("rectang", "area needs `length` or `breadth`")),
+            _ => return Err(bad("rectangle.add", "area needs `length` or `breadth`")),
         }
     } else {
-        let b = point_req("rectang", p, "p2")?;
+        let b = point_req("rectangle.add", p, "p2")?;
         let loc = (b - a).rotate(-rot);
         (loc.x, loc.y)
     };
     if w.abs() < 1e-12 || h.abs() < 1e-12 || !w.is_finite() || !h.is_finite() {
-        return Err(bad("rectang", "rectangle has no area"));
+        return Err(bad("rectangle.add", "rectangle has no area"));
     }
     let k = rect_kind(a, w, h, rot, fillet, ch, width, f64_or(p, "elevation", 0.0));
     let hd = s.add_entity(k)?;
@@ -1831,7 +1831,7 @@ fn point3_value(v: &Value) -> Option<Vec3> {
 fn run_3dpoly(s: &mut Session, p: &Value) -> Result<Value> {
     let pts: Vec<Vec3> = p.get("points").and_then(Value::as_array).map(|a| a.iter().filter_map(point3_value).collect()).unwrap_or_default();
     if pts.len() < 2 || pts.len() > MAX_GEN {
-        return Err(bad("3dpoly", "`points` needs 2 or more [x,y,z] points"));
+        return Err(bad("polyline.add3d", "`points` needs 2 or more [x,y,z] points"));
     }
     added(s.add_entity(EntityKind::Polyline3d(Polyline3d { points: pts, closed: bool_or(p, "closed", false) }))?)
 }
@@ -1951,13 +1951,13 @@ fn mline_defaults(s: &Session) -> (Just, f64) {
 }
 
 fn run_mline(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts = points_param(p, "points").ok_or_else(|| bad("mline", "`points` (2 or more) is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("multiline.add", "`points` (2 or more) is required"))?;
     if pts.len() < 2 || pts.len() > MAX_GEN {
-        return Err(bad("mline", "need 2 or more points"));
+        return Err(bad("multiline.add", "need 2 or more points"));
     }
     let (dj, ds) = mline_defaults(s);
     let j = match str_param(p, "justification") {
-        Some(t) => just_of(t).ok_or_else(|| bad("mline", "justification must be top, zero or bottom"))?,
+        Some(t) => just_of(t).ok_or_else(|| bad("multiline.add", "justification must be top, zero or bottom"))?,
         None => dj,
     };
     let scale = f64_or(p, "scale", ds);
@@ -2269,9 +2269,9 @@ impl Interactive for HelixM {
 // =====================================================================================
 
 fn run_spline_cv(s: &mut Session, p: &Value) -> Result<Value> {
-    let mut c = points_param(p, "control").ok_or_else(|| bad("spline.cv", "`control` points are required"))?;
+    let mut c = points_param(p, "control").ok_or_else(|| bad("spline.addControlVertices", "`control` points are required"))?;
     if c.len() < 2 || c.len() > MAX_GEN {
-        return Err(bad("spline.cv", "need 2+ control points"));
+        return Err(bad("spline.addControlVertices", "need 2+ control points"));
     }
     let closed = bool_or(p, "closed", false);
     if closed && let Some(f) = c.first().copied() {
@@ -2423,7 +2423,7 @@ fn center_line(s: &mut Session, h1: Handle, h2: Handle) -> Result<Handle> {
 fn run_centermark(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.is_empty() {
-        return Err(bad("centermark", "`handle` or `handles` is required"));
+        return Err(bad("centerMark.add", "`handle` or `handles` is required"));
     }
     let mut out = Vec::new();
     for h in hs {
@@ -2433,8 +2433,8 @@ fn run_centermark(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_centerline(s: &mut Session, p: &Value) -> Result<Value> {
-    let h1 = curves::handle_param(p, "h1").ok_or_else(|| bad("centerline", "`h1` is required"))?;
-    let h2 = curves::handle_param(p, "h2").ok_or_else(|| bad("centerline", "`h2` is required"))?;
+    let h1 = curves::handle_param(p, "h1").ok_or_else(|| bad("centerLine.add", "`h1` is required"))?;
+    let h2 = curves::handle_param(p, "h2").ok_or_else(|| bad("centerLine.add", "`h2` is required"))?;
     added(center_line(s, h1, h2)?)
 }
 

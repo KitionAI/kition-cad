@@ -16,16 +16,16 @@ const HANDLES: &[&str] = &["handle", "handles", "h1", "h2", "h3", "baseHandle", 
 
 fn extra_handles(id: &str) -> &'static [&'static str] {
     match id {
-        "matchprop" => &["source", "targets"],
-        "array" | "arraypath" => &["path"],
-        "chspace" => &["viewport"],
+        "object.matchProperties" => &["source", "targets"],
+        "array" | "object.arrayPath" => &["path"],
+        "object.changeSpace" => &["viewport"],
         "trim" | "extend" => &["edges"],
         // Removal compares an opaque handle with membership; it never resolves the entity.
-        "groupedit" => &["add"],
-        "dim" | "dimlinear" | "spline" => &["object"],
-        "dimangular" => &["lines", "arc"],
-        "dimspace" => &["base"],
-        "entities.measure" => &["bounds", "intersections", "distance[]"],
+        "group.edit" => &["add"],
+        "dim" | "dimension.addLinear" | "spline" => &["object"],
+        "dimension.addAngular" => &["lines", "arc"],
+        "dimension.space" => &["base"],
+        "object.measure" => &["bounds", "intersections", "distance[]"],
         _ => &[],
     }
 }
@@ -33,38 +33,43 @@ fn extra_handles(id: &str) -> &'static [&'static str] {
 fn names(id: &str) -> &'static [(&'static str, &'static [&'static str])] {
     match id {
         "layer.set" => &[("name", &["Layer"]), ("linetype", &["Linetype"])],
-        "layer.current" | "layer.delete" => &[("name", &["Layer"])],
-        "laymch" => &[("layer", &["Layer"])],
-        "laymrg" => &[("from", &["Layer"]), ("to", &["Layer"])],
-        "laydel" => &[("name", &["Layer"]), ("names", &["Layer"])],
-        "properties.set" => &[("dimStyle", &["DimStyle"]), ("layer", &["Layer"]), ("linetype", &["Linetype"])],
-        "layer.new" => &[("linetype", &["Linetype"])],
-        "style" | "style.current" | "style.delete" => &[("name", &["TextStyle"])],
-        "style.rename" => &[("from", &["TextStyle"])],
-        "dimstyle" | "dimstyle.dimension" | "dimstyle.current" | "dimstyle.delete" | "dimstyle.list" => &[("name", &["DimStyle"])],
-        "dimstyle.rename" => &[("from", &["DimStyle"])],
-        "tablestyle" => &[("name", &["TableStyle"])],
-        "mleaderstyle" => &[("name", &["MLeaderStyle"]), ("textStyle", &["TextStyle"])],
-        "insert" | "battman" | "attsync" | "wblock" => &[("name", &["Block"])],
-        "block" | "-block" => &[("name", &["Block"])],
+        "layer.setCurrent" | "layer.delete" => &[("name", &["Layer"])],
+        "layer.match" => &[("layer", &["Layer"])],
+        "layer.merge" => &[("from", &["Layer"]), ("to", &["Layer"])],
+        "layer.deleteWithObjects" => &[("name", &["Layer"]), ("names", &["Layer"])],
+        "object.setProperties" => &[("dimStyle", &["DimStyle"]), ("layer", &["Layer"]), ("linetype", &["Linetype"])],
+        "layer.add" => &[("linetype", &["Linetype"])],
+        "style" | "textStyle.setCurrent" | "textStyle.delete" => &[("name", &["TextStyle"])],
+        "textStyle.rename" => &[("from", &["TextStyle"])],
+        "dimensionStyle.open" | "dimensionStyle.openManager" | "dimensionStyle.setCurrent" | "dimensionStyle.delete" | "dimensionStyle.list" => {
+            &[("name", &["DimStyle"])]
+        }
+        "dimensionStyle.rename" => &[("from", &["DimStyle"])],
+        "tableStyle.open" => &[("name", &["TableStyle"])],
+        "multileaderStyle.open" => &[("name", &["MLeaderStyle"]), ("textStyle", &["TextStyle"])],
+        "insert" | "attribute.manage" | "attribute.sync" | "block.write" => &[("name", &["Block"])],
+        "block" | "block.add" => &[("name", &["Block"])],
         "divide" | "measure" => &[("block", &["Block"])],
-        "groupedit" | "ungroup" => &[("name", &["Group"])],
+        "group.edit" | "ungroup" => &[("name", &["Group"])],
         "layout.set" | "layout.delete" => &[("name", &["Layout"])],
-        "layout.rename" | "layout.copy" => &[("from", &["Layout"])],
-        "layerstate.save" | "layerstate.restore" | "layerstate.delete" => &[("name", &["LayerState"])],
-        "layerstate.rename" => &[("from", &["LayerState"])],
+        "layout.rename" | "layout.duplicate" => &[("from", &["Layout"])],
+        "layerState.save" | "layerState.restore" | "layerState.delete" => &[("name", &["LayerState"])],
+        "layerState.rename" => &[("from", &["LayerState"])],
         "linetype" => &[("current", &["Linetype"])],
-        "mtext" => &[("style", &["TextStyle"])],
-        "mleader" => &[("block", &["Block"])],
-        "pagesetup" | "plot" | "exportpdf" => &[("layout", &["Layout"])],
-        "viewport.set" | "vplayer" | "vports.set" => &[("freeze[]", &["Layer"]), ("thaw[]", &["Layer"])],
-        "chspace" => &[("to", &["Layout"])],
+        "multilineText.add" => &[("style", &["TextStyle"])],
+        "multileader.add" => &[("block", &["Block"])],
+        "plot.pageSetup" | "plot" | "file.exportPdf" => &[("layout", &["Layout"])],
+        "viewport.set" | "viewport.freezeLayer" | "vports.set" => &[("freeze[]", &["Layer"]), ("thaw[]", &["Layer"])],
+        "object.changeSpace" => &[("to", &["Layout"])],
         _ => &[],
     }
 }
 
 pub fn declare(commands: &mut [KitCommand]) {
-    for command in commands.iter_mut().filter(|c| c.id == "delconstraint" || c.id.starts_with("constraintbar") || c.id.starts_with("dcdisplay")) {
+    for command in commands
+        .iter_mut()
+        .filter(|c| c.id == "constraint.delete" || c.id.starts_with("constraint.bars") || c.id.starts_with("constraint.dynamicDimensions"))
+    {
         if let Some(schema) = command.schema.as_mut().and_then(Value::as_object_mut)
             && schema.contains_key("handles")
         {
@@ -73,7 +78,7 @@ pub fn declare(commands: &mut [KitCommand]) {
     }
     // draw2::run_xline2 supports reference-line offset forms which the textual
     // union parser stops reading after the earlier bisector form.
-    for command in commands.iter_mut().filter(|c| c.id == "xline") {
+    for command in commands.iter_mut().filter(|c| c.id == "constructionLine.add") {
         if let Some(schema) = command.schema.as_mut().and_then(Value::as_object_mut) {
             schema.insert("handle".into(), serde_json::json!({"type":"string"}));
             schema.insert("distance".into(), serde_json::json!({"type":"number"}));
@@ -89,10 +94,15 @@ pub fn declare(commands: &mut [KitCommand]) {
                 let mut types: Vec<(&'static str, &'static [&'static str])> = HANDLES
                     .iter()
                     .chain(extra_handles(&c.id))
-                    .filter(|key| has(key) && c.id != "delconstraint" && !c.id.starts_with("constraintbar") && !c.id.starts_with("dcdisplay"))
+                    .filter(|key| {
+                        has(key)
+                            && c.id != "constraint.delete"
+                            && !c.id.starts_with("constraint.bars")
+                            && !c.id.starts_with("constraint.dynamicDimensions")
+                    })
                     .map(|key| (*key, &["Entity"][..]))
                     .collect();
-                if c.id == "delconstraint" {
+                if c.id == "constraint.delete" {
                     types.push(("ids", &["Constraint"]));
                 }
                 let objects: Vec<_> = types.iter().filter_map(|(key, _)| (c.targets != Some(*key)).then_some(*key)).collect();
@@ -132,7 +142,7 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
     if command == "layout" {
         let (command, p) = kition_cad_engine::cmd::layout_operation(&params).map_err(|e| e.to_string())?;
         let mut p = resolve(d, command, p)?;
-        if matches!(command, "layout.copy" | "layout.rename")
+        if matches!(command, "layout.duplicate" | "layout.rename")
             && let Some(map) = p.as_object_mut()
             && let Some(from) = map.remove("from")
         {
@@ -140,14 +150,14 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
         }
         return Ok(p);
     }
-    if matches!(command, "style" | "dimstyle" | "dimstyle.dimension" | "tablestyle" | "mleaderstyle")
+    if matches!(command, "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "tableStyle.open" | "multileaderStyle.open")
         && let Some(name) = params.get_mut("name")
         && let Some(text) = name.as_str()
     {
         *name = Value::String(text.trim().into());
     }
     let mut named = names(command).to_vec();
-    if command == "setvar"
+    if command == "variable.set"
         && let Some(ty) = params.get("name").and_then(Value::as_str).and_then(sysvar_reference)
     {
         named.push(("value", ty));
@@ -159,12 +169,12 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
                 "layer" => &["Layer"],
                 "linetype" | "ltype" => &["Linetype"],
                 "style" | "textstyle" => &["TextStyle"],
-                "dimstyle" => &["DimStyle"],
+                "dimensionStyle.open" => &["DimStyle"],
                 "block" => &["Block"],
                 "view" => &["View"],
                 "ucs" => &["Ucs"],
-                "mleaderstyle" | "multileaderstyle" => &["MLeaderStyle"],
-                "tablestyle" => &["TableStyle"],
+                "multileaderStyle.open" | "multileaderstyle" => &["MLeaderStyle"],
+                "tableStyle.open" => &["TableStyle"],
                 _ => &[],
             },
         ));
@@ -193,7 +203,7 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
             }
         }
     }
-    if command == "delconstraint"
+    if command == "constraint.delete"
         && let Some(items) = params.get_mut("ids").and_then(Value::as_array_mut)
     {
         for item in items {
@@ -202,7 +212,7 @@ pub fn resolve(d: &kition_cad_doc::Drawing, command: &str, mut params: Value) ->
             }
         }
     }
-    if matches!(command, "viewport.set" | "vplayer" | "vports.set")
+    if matches!(command, "viewport.set" | "viewport.freezeLayer" | "vports.set")
         && let Some(colors) = params.get_mut("colors").and_then(Value::as_object_mut)
     {
         let mut resolved = serde_json::Map::new();
@@ -237,7 +247,7 @@ pub fn sysvar_reference(var: &str) -> Option<&'static [&'static str]> {
 }
 
 fn dimension_names(command: &str) -> Vec<(&'static str, &'static [&'static str])> {
-    if !matches!(command, "dimstyle" | "dimstyle.dimension" | "dimstyle.override" | "dimoverride") {
+    if !matches!(command, "dimensionStyle.open" | "dimensionStyle.openManager" | "dimensionStyle.override" | "dimension.override") {
         return vec![];
     }
     vec![

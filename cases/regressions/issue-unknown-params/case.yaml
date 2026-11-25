@@ -6,7 +6,7 @@ intent: >-
   the parameter it resembles and the ones the command takes (platform rule E7a), instead of
   running without it; every key a command reads is in its schema, so a valid call still runs.
   Before, 102 of 317 commands ran with an unknown key without a word, and the schemas left out
-  keys commands read (properties.set's geometry fields, measuregeom's, keys written one or another).
+  keys commands read (object.setProperties's geometry fields, measuregeom's, keys written one or another).
 layer: gate
 source:
   kind: probe

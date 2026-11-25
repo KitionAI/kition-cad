@@ -11,13 +11,13 @@ fn drawing() -> Session {
     let mut s = Session::new();
     for name in ["U1", "U2"] {
         s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
-        s.execute("selectall", &json!({})).unwrap();
+        s.execute("edit.selectAll", &json!({})).unwrap();
         s.execute("block", &json!({ "name": name, "base": [0, 0], "keep": "delete" })).unwrap();
     }
-    s.execute("layer.new", &json!({ "name": "Spare" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Spare" })).unwrap();
     s.execute("linetype", &json!({ "load": "DASHED" })).unwrap();
     s.execute("style", &json!({ "name": "Notes", "current": false })).unwrap();
-    s.execute("dimstyle", &json!({ "name": "Arch", "current": false })).unwrap();
+    s.execute("dimensionStyle.open", &json!({ "name": "Arch", "current": false })).unwrap();
     s
 }
 
@@ -95,7 +95,7 @@ fn json_type_and_names_and_kept_linetypes() {
     s.execute("linetype", &json!({ "load": "HIDDEN" })).unwrap();
     s.execute("linetype", &json!({ "load": "CENTER" })).unwrap();
     let l = s.execute("line", &json!({ "points": [[0, 0], [1, 0]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
-    s.execute("properties.set", &json!({ "handles": [l], "linetype": "HIDDEN" })).unwrap();
+    s.execute("object.setProperties", &json!({ "handles": [l], "linetype": "HIDDEN" })).unwrap();
     s.execute("block", &json!({ "name": "Part", "base": [0, 0], "handles": [l], "keep": "convert" })).unwrap();
     s.execute("linetype", &json!({ "current": "CENTER" })).unwrap();
     s.execute("purge", &json!({ "type": "ltypes" })).unwrap();

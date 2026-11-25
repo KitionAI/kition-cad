@@ -21,12 +21,12 @@ fn json_geometric_and_dimensional_constraints() {
     let mut s = Session::new();
     let a = line(&mut s, [0.0, 0.0], [10.0, 0.5]);
     let b = line(&mut s, [10.2, 0.3], [10.5, 6.0]);
-    s.execute("gchorizontal", &json!({ "h1": a })).unwrap();
-    s.execute("gccoincident", &json!({ "h1": a, "h2": b })).unwrap(); // closest end points
-    s.execute("geomconstraint", &json!({ "type": "perpendicular", "h1": a, "h2": b })).unwrap();
-    let r = s.execute("dcaligned", &json!({ "h1": a, "expr": "8" })).unwrap();
+    s.execute("constraint.horizontal", &json!({ "h1": a })).unwrap();
+    s.execute("constraint.coincident", &json!({ "h1": a, "h2": b })).unwrap(); // closest end points
+    s.execute("constraint.addGeometric", &json!({ "type": "perpendicular", "h1": a, "h2": b })).unwrap();
+    let r = s.execute("constraint.dimensionAligned", &json!({ "h1": a, "expr": "8" })).unwrap();
     assert_eq!(r["name"], "d1");
-    s.execute("dimconstraint", &json!({ "type": "aligned", "h1": b, "expr": "d1/2" })).unwrap();
+    s.execute("constraint.addDimensional", &json!({ "type": "aligned", "h1": b, "expr": "d1/2" })).unwrap();
     let ((a0, a1), (b0, b1)) = (ends(&s, &a), ends(&s, &b));
     assert!((a0.y - a1.y).abs() < 1e-6);
     assert!(a1.near(b0, 1e-6));
@@ -47,10 +47,10 @@ fn json_geometric_and_dimensional_constraints() {
     assert!(s.execute("parameters", &json!({ "delete": "d1" })).is_err(), "dimensional");
     // Conflict is reported and changes nothing.
     let before = s.doc().unwrap().clone();
-    let e = s.execute("gcvertical", &json!({ "h1": a })).unwrap_err().to_string();
+    let e = s.execute("constraint.vertical", &json!({ "h1": a })).unwrap_err().to_string();
     assert!(e.contains("conflict") || e.contains("over-constrain"), "{e}");
     assert_eq!(*s.doc().unwrap(), before);
-    let inspect = s.execute("constraints.inspect", &json!({})).unwrap();
+    let inspect = s.execute("constraint.inspect", &json!({})).unwrap();
     assert_eq!(inspect["constraints"].as_array().unwrap().len(), 5);
     assert_eq!(inspect["satisfied"], true);
     assert_eq!(inspect["glyphs"][0]["kind"], "Horizontal");
@@ -61,8 +61,8 @@ fn edits_are_resolved_and_erase_purges() {
     let mut s = Session::new();
     let a = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
     let b = line(&mut s, [10.0, 0.0], [10.0, 5.0]);
-    s.execute("gccoincident", &json!({ "h1": a, "p1": "end", "h2": b, "p2": "start" })).unwrap();
-    s.execute("gcfix", &json!({ "h1": a })).unwrap();
+    s.execute("constraint.coincident", &json!({ "h1": a, "p1": "end", "h2": b, "p2": "start" })).unwrap();
+    s.execute("constraint.fix", &json!({ "h1": a })).unwrap();
     // Move line b: the coincidence pulls its start back onto a's (fixed) end.
     s.execute("move", &json!({ "handles": [b], "from": [0, 0], "to": [3, 2] })).unwrap();
     let ((_, a1), (b0, _)) = (ends(&s, &a), ends(&s, &b));
@@ -72,7 +72,7 @@ fn edits_are_resolved_and_erase_purges() {
     s.execute("erase", &json!({ "handles": [b] })).unwrap();
     let kinds: Vec<ConstraintKind> = s.doc().unwrap().constraints.iter().map(|c| c.kind).collect();
     assert_eq!(kinds, vec![ConstraintKind::Fix]);
-    s.execute("delconstraint", &json!({ "handles": [a] })).unwrap();
+    s.execute("constraint.delete", &json!({ "handles": [a] })).unwrap();
     assert!(s.doc().unwrap().constraints.is_empty());
 }
 
@@ -126,17 +126,17 @@ fn interactive_prompts() {
 fn bars_settings_and_autoconstrain_json() {
     let mut s = Session::new();
     let a = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
-    s.execute("constraintbar.hideall", &json!({})).unwrap();
-    let r = s.execute("constraintbar", &json!({ "mode": "show", "handles": [a] })).unwrap();
+    s.execute("constraint.hideAllBars", &json!({})).unwrap();
+    let r = s.execute("constraint.bars", &json!({ "mode": "show", "handles": [a] })).unwrap();
     assert_eq!(r["visible"], false);
     assert_eq!(r["exceptions"][0], a);
-    s.execute("dcdisplay.showall", &json!({})).unwrap();
-    assert!(s.execute("constraintbar", &json!({ "mode": "bogus", "handles": [a] })).is_err());
-    let r = s.execute("constraintsettings", &json!({ "angleTolerance": 2.5, "autoTypes": ["Horizontal", "nope"], "infer": true })).unwrap();
+    s.execute("constraint.showAllDynamicDimensions", &json!({})).unwrap();
+    assert!(s.execute("constraint.bars", &json!({ "mode": "bogus", "handles": [a] })).is_err());
+    let r = s.execute("constraint.settings", &json!({ "angleTolerance": 2.5, "autoTypes": ["Horizontal", "nope"], "infer": true })).unwrap();
     assert_eq!(r["angleTolerance"], 2.5);
     assert_eq!(r["autoTypes"], json!(["Horizontal"]));
     let b = line(&mut s, [0.0, 5.0], [0.01, 9.0]);
-    let r = s.execute("autoconstrain", &json!({ "handles": [a, b] })).unwrap();
+    let r = s.execute("constraint.auto", &json!({ "handles": [a, b] })).unwrap();
     // Only Horizontal is enabled: a is horizontal; b (near vertical) is left alone.
     assert_eq!(r["added"], 1);
     assert_eq!(s.doc().unwrap().constraints[0].kind, ConstraintKind::Horizontal);
@@ -148,16 +148,16 @@ fn auto_types_spellings_are_stored_canonically() {
         let mut s = Session::new();
         let a = line(&mut s, [0.0, 0.0], [10.0, 10.0]);
         let b = line(&mut s, [0.0, 3.0], [10.0, 13.01]);
-        let r = s.execute("constraintsettings", &json!({ "autoTypes": [spelling], "angleTolerance": 1 })).unwrap();
+        let r = s.execute("constraint.settings", &json!({ "autoTypes": [spelling], "angleTolerance": 1 })).unwrap();
         assert_eq!(r["autoTypes"], json!(["Parallel"]));
-        let r = s.execute("autoconstrain", &json!({ "handles": [a, b] })).unwrap();
+        let r = s.execute("constraint.auto", &json!({ "handles": [a, b] })).unwrap();
         assert_eq!(r["added"], 1, "{spelling}");
         assert_eq!(s.doc().unwrap().constraints[0].kind, ConstraintKind::Parallel);
         // The per-command `types` override accepts the same spellings.
         let mut s = Session::new();
         let a = line(&mut s, [0.0, 0.0], [10.0, 10.0]);
         let b = line(&mut s, [0.0, 3.0], [10.0, 13.01]);
-        let r = s.execute("autoconstrain", &json!({ "handles": [a, b], "types": [spelling], "angleTolerance": 1 })).unwrap();
+        let r = s.execute("constraint.auto", &json!({ "handles": [a, b], "types": [spelling], "angleTolerance": 1 })).unwrap();
         assert_eq!(r["added"], 1, "{spelling}");
         assert_eq!(s.doc().unwrap().constraints[0].kind, ConstraintKind::Parallel);
     }
@@ -217,17 +217,17 @@ fn delconstraint_rejects_referenced_dimension() {
     let mut s = Session::new();
     let a = line(&mut s, [0.0, 0.0], [10.0, 0.0]);
     let b = line(&mut s, [0.0, 5.0], [4.0, 5.0]);
-    s.execute("dimconstraint", &json!({ "type": "horizontal", "h1": a, "expr": "8" })).unwrap();
-    s.execute("dimconstraint", &json!({ "type": "horizontal", "h1": b, "expr": "d1/2" })).unwrap();
+    s.execute("constraint.addDimensional", &json!({ "type": "horizontal", "h1": a, "expr": "8" })).unwrap();
+    s.execute("constraint.addDimensional", &json!({ "type": "horizontal", "h1": b, "expr": "d1/2" })).unwrap();
     let before = s.doc().unwrap().clone();
     let first = s.doc().unwrap().constraints[0].id;
-    let e = s.execute("delconstraint", &json!({ "ids": [first] })).unwrap_err().to_string();
+    let e = s.execute("constraint.delete", &json!({ "ids": [first] })).unwrap_err().to_string();
     assert!(e.contains("`d1` is used by `d2`"), "{e}");
     assert_eq!(*s.doc().unwrap(), before);
-    assert!(s.execute("delconstraint", &json!({ "handles": [a] })).is_err());
+    assert!(s.execute("constraint.delete", &json!({ "handles": [a] })).is_err());
     assert_eq!(*s.doc().unwrap(), before);
     // Selecting both dimensions removes both; the dependent one may go with its source.
     let ids: Vec<u32> = s.doc().unwrap().constraints.iter().map(|c| c.id).collect();
-    s.execute("delconstraint", &json!({ "ids": ids })).unwrap();
+    s.execute("constraint.delete", &json!({ "ids": ids })).unwrap();
     assert!(s.doc().unwrap().constraints.is_empty());
 }

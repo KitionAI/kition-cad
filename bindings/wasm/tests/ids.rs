@@ -38,8 +38,8 @@ fn an_entity_made_in_the_session_is_named_by_the_handle_it_keeps_in_the_file() {
     let bytes = doc.save(Some("Plan.dxf")).unwrap();
     let mut again = CadDocument::open("Plan.dxf", &bytes).unwrap();
     assert_eq!(load(&mut again, "root", &["model"])["model"], json!([line, circle]));
-    let listed = again.execute("entities", json!({})).unwrap();
-    let handles: Vec<&str> = listed["entities"].as_array().unwrap().iter().filter_map(|e| e["handle"].as_str()).collect();
+    let listed = again.execute("object.query", json!({})).unwrap();
+    let handles: Vec<&str> = listed["object.query"].as_array().unwrap().iter().filter_map(|e| e["handle"].as_str()).collect();
     assert_eq!(handles, [line.as_str(), circle.as_str()]);
     // A move by that handle in the reopened drawing moves that line.
     again.execute("move", json!({ "handles": [line], "delta": [5, 0] })).unwrap();
@@ -61,7 +61,7 @@ fn layers_blocks_layouts_and_views_are_named_by_their_names() {
     });
     let bytes = kition_cad_io::write(&drawing, "Plan.dxf").unwrap();
     let mut doc = CadDocument::open("Plan.dxf", &bytes).unwrap();
-    doc.execute("layer.new", json!({ "name": "Walls" })).unwrap();
+    doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
     for (id, name) in [("layer:Walls", "Walls"), ("layer:0", "0"), ("layout:Layout1", "Layout1"), ("view:Front", "Front")] {
         assert_eq!(load(&mut doc, id, &["name"])["name"], json!(name), "{id}");
     }

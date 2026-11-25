@@ -17,7 +17,7 @@ fn every_computed_guard_fact_has_a_model_declaration() {
             "block" => "Block",
             "layer" => "Layer",
             "textstyle" => "TextStyle",
-            "dimstyle" => "DimStyle",
+            "dimensionStyle.open" => "DimStyle",
             _ => "Entity",
         };
         for name in fact.values.keys() {

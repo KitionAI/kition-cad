@@ -7,7 +7,7 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn destination_new_layout_holds_the_empty_name_slot() {
     check(
-        |_| ("layout.new", json!({"name":"Sheet","viewport":false})),
+        |_| ("layout.add", json!({"name":"Sheet","viewport":false})),
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Sheet"}))],
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Other"}))],
     )
@@ -16,7 +16,7 @@ async fn destination_new_layout_holds_the_empty_name_slot() {
 #[tokio::test(flavor = "multi_thread")]
 async fn destination_layout_copy_holds_the_empty_name_slot() {
     check(
-        |_| ("layout.copy", json!({"from":"Layout1","to":"Sheet"})),
+        |_| ("layout.duplicate", json!({"from":"Layout1","to":"Sheet"})),
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Sheet"}))],
         |_| vec![("layout.rename", json!({"from":"Layout2","to":"Other"}))],
     )

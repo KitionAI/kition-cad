@@ -7,8 +7,8 @@ use serde_json::{Value, json};
 /// Block B: a line from 0,0 to 10,0 with attributes T (default "one") and U (default "u").
 fn with_block() -> Session {
     let mut s = Session::new();
-    s.execute("attdef", &json!({"tag": "T", "default": "one", "at": [0, 1]})).unwrap();
-    s.execute("attdef", &json!({"tag": "U", "default": "u", "at": [0, 2]})).unwrap();
+    s.execute("attribute.define", &json!({"tag": "T", "default": "one", "at": [0, 1]})).unwrap();
+    s.execute("attribute.define", &json!({"tag": "U", "default": "u", "at": [0, 2]})).unwrap();
     s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
     s.execute("block", &json!({"name": "B", "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
@@ -73,7 +73,7 @@ fn dash_attedit_global_replaces_a_string_in_matching_attributes() {
     assert!(s.log.iter().any(|l| l == "2 attributes changed."), "{:?}", s.log);
 
     // The JSON form does the same.
-    let r = s.execute("-attedit", &json!({"tag": "u", "find": "9", "replace": "8"})).unwrap();
+    let r = s.execute("attribute.editGlobal", &json!({"tag": "u", "find": "9", "replace": "8"})).unwrap();
     assert_eq!(r["changed"], 1);
     assert_eq!(value(&s, a, "U"), "A-8");
 }
@@ -82,7 +82,7 @@ fn dash_attedit_global_replaces_a_string_in_matching_attributes() {
 fn dash_attedit_one_at_a_time_edits_the_selected_attributes() {
     let mut s = with_block();
     let h = handle(&insert(&mut s, 100.0, json!({"T": "abc"})));
-    type_lines(&mut s, &["-attedit", "y", "", "T", "", "105,0", ""]);
+    type_lines(&mut s, &["attribute.editGlobal", "y", "", "T", "", "105,0", ""]);
     assert!(s.prompt_text().contains("[Value/Layer/Color/Next] <N>"), "{}", s.prompt_text());
     // Unsupported options say so and keep the prompt.
     s.cmdline("p").unwrap();
@@ -101,11 +101,11 @@ fn attribute_tags_match_in_any_case_and_unknown_tags_are_reported() {
     assert_eq!(value(&s, h, "T"), "two");
     assert_eq!(r["unknownTags"], json!(["nope"]));
 
-    let r = s.execute("attedit", &json!({"handle": h.hex(), "values": {"t": "three", "u": 4, "W": "w"}})).unwrap();
+    let r = s.execute("attribute.edit", &json!({"handle": h.hex(), "values": {"t": "three", "u": 4, "W": "w"}})).unwrap();
     assert_eq!(r["changed"], 2);
     assert_eq!(r["unknownTags"], json!(["W"]));
     assert_eq!((value(&s, h, "T"), value(&s, h, "U")), ("three".into(), "4".into()));
 
-    let r = s.execute("attedit", &json!({"handle": h.hex(), "values": {"T": "four"}})).unwrap();
+    let r = s.execute("attribute.edit", &json!({"handle": h.hex(), "values": {"T": "four"}})).unwrap();
     assert_eq!(r, json!({"changed": 1}));
 }

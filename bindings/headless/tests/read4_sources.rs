@@ -8,9 +8,9 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn source_xline_uses_line_geometry() {
     check(
-        |f| ("xline", json!({"handle":f.line,"distance":5,"side":[50,10]})),
+        |f| ("constructionLine.add", json!({"handle":f.line,"distance":5,"side":[50,10]})),
         |f| vec![("move", json!({"handles":[f.line],"delta":[0,2]}))],
-        |f| vec![("properties.set", json!({"handles":[f.line],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
     )
     .await;
 }
@@ -19,7 +19,7 @@ async fn source_hatch_uses_closed_geometry() {
     check(
         |f| ("hatch", json!({"handles":[f.rect],"pattern":"SOLID"})),
         |f| vec![("move", json!({"handles":[f.rect],"delta":[0,2]}))],
-        |f| vec![("properties.set", json!({"handles":[f.rect],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.rect],"color":"blue"}))],
     )
     .await;
 }
@@ -28,7 +28,7 @@ async fn source_spline_conversion_preserves_unassigned_common() {
     check(
         |f| ("spline", json!({"object":f.rect})),
         |f| vec![("move", json!({"handles":[f.rect],"delta":[0,2]}))],
-        |f| vec![("properties.set", json!({"handles":[f.rect],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.rect],"color":"blue"}))],
     )
     .await;
 }

@@ -52,10 +52,10 @@ pub fn canonical(d: &Drawing) -> Value {
     let store = |s: &kition_cad_doc::EntityStore| Value::Array(s.iter().map(|e| serde_json::to_value(&**e).unwrap_or(Value::Null)).collect());
     let blocks: Map<String, Value> = blocks
         .iter()
-        .map(|(name, b)| (name.clone(), json!({ "block": serde_json::to_value(&**b).unwrap_or(Value::Null), "entities": store(&b.entities) })))
+        .map(|(name, b)| (name.clone(), json!({ "block": serde_json::to_value(&**b).unwrap_or(Value::Null), "object.query": store(&b.entities) })))
         .collect();
     let layouts: Vec<Value> =
-        layouts.iter().map(|l| json!({ "layout": serde_json::to_value(l).unwrap_or(Value::Null), "entities": store(&l.entities) })).collect();
+        layouts.iter().map(|l| json!({ "layout": serde_json::to_value(l).unwrap_or(Value::Null), "object.query": store(&l.entities) })).collect();
     let v = json!({
         "header": header,
         "layers": layers,

@@ -15,7 +15,7 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("gradient", "Gradient...", run_gradient).menu(&["Draw", "Gradient..."]).alias(&["gd"]).params("{points? | handles?, color1?, color2?, angle?}").interactive(|s| Ok(Box::new(HatchM::new(s, true)))),
         CommandSpec::new("boundary", "Boundary...", run_boundary).menu(&["Draw", "Boundary..."]).alias(&["bo", "bpoly"]).params("{points: [[x,y]]}").interactive(|_| Ok(Box::new(BoundaryM { region: false }))),
         CommandSpec::new("region", "Region", run_region).menu(&["Draw", "Region"]).alias(&["reg"]).params("{handles?}"),
-        CommandSpec::new("hatchedit", "Hatch Edit", run_hatchedit).menu(&["Modify", "Object", "Hatch..."]).alias(&["he"]).params("{handles?, pattern?, scale?, angle?}"),
+        CommandSpec::new("hatch.edit", "Hatch Edit", run_hatchedit).menu(&["Modify", "Object", "Hatch..."]).alias(&["he"]).params("{handles?, pattern?, scale?, angle?}"),
     ]
 }
 
@@ -306,7 +306,7 @@ fn run_region(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_hatchedit(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.is_empty() || hs.iter().any(|h| !s.doc().is_ok_and(|d| d.entity(*h).is_some_and(|e| matches!(e.kind, EntityKind::Hatch(_))))) {
-        return Err(bad("hatchedit", "give hatch objects only"));
+        return Err(bad("hatch.edit", "give hatch objects only"));
     }
     let mut q = json!({"handles":hs.iter().map(|h| h.hex()).collect::<Vec<_>>()});
     for key in ["pattern", "scale", "angle"] {
@@ -314,7 +314,7 @@ fn run_hatchedit(s: &mut Session, p: &Value) -> Result<Value> {
             q[key] = value.clone();
         }
     }
-    s.execute("properties.set", &q)
+    s.execute("object.setProperties", &q)
 }
 
 /// What a HATCH sub-prompt asks for.
@@ -519,14 +519,14 @@ mod tests {
     #[test]
     fn hatchedit_pattern_replaces_gradient() {
         let mut s = Session::new();
-        s.execute("rectang", &json!({ "p1": [0, 0], "p2": [10, 10] })).unwrap();
+        s.execute("rectangle.add", &json!({ "p1": [0, 0], "p2": [10, 10] })).unwrap();
         s.execute("gradient", &json!({ "points": [[5, 5]], "color1": "1", "color2": "3" })).unwrap();
         let (h, hatch) = only_hatch(&s);
         assert!(hatch.gradient.is_some());
         // Scale-only and angle-only edits keep the gradient.
-        s.execute("hatchedit", &json!({ "handles": [h.clone()], "scale": 2, "angle": 30 })).unwrap();
+        s.execute("hatch.edit", &json!({ "handles": [h.clone()], "scale": 2, "angle": 30 })).unwrap();
         assert!(only_hatch(&s).1.gradient.is_some());
-        s.execute("hatchedit", &json!({ "handles": [h], "pattern": "ANSI31" })).unwrap();
+        s.execute("hatch.edit", &json!({ "handles": [h], "pattern": "ANSI31" })).unwrap();
         let hatch = only_hatch(&s).1;
         assert_eq!(hatch.pattern, "ANSI31");
         assert!(!hatch.solid);

@@ -42,7 +42,7 @@ fn decode(text: &str) -> Vec<u8> {
 }
 
 fn entities(doc: &CadDocument) -> u64 {
-    doc.inspect().unwrap()["entities"].as_u64().unwrap()
+    doc.inspect().unwrap()["object.query"].as_u64().unwrap()
 }
 
 /// The room's drawing, as a collaborator holds it: one line.

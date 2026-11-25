@@ -7,8 +7,8 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn record_name_style_copy_preserves_an_unrelated_layer_rename() {
     check(
-        |_| ("dimstyle", json!({"name":"Fresh","current":false})),
-        |_| vec![("dimstyle", json!({"name":"ISO-25","arrowSize":8,"current":false}))],
+        |_| ("dimensionStyle.open", json!({"name":"Fresh","current":false})),
+        |_| vec![("dimensionStyle.open", json!({"name":"ISO-25","arrowSize":8,"current":false}))],
         |_| vec![("layer.set", json!({"name":"Secondary","newName":"Other"}))],
     )
     .await;

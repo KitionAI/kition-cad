@@ -42,7 +42,7 @@ fn group_json_named_and_unnamed() {
     assert!(s.execute("group", &json!({ "name": "Gone", "handles": ["FFFFF"] })).is_err());
     assert!(s.execute("group", &json!({ "handles": "1A" })).is_err());
     assert_eq!(s.doc().unwrap().groups.len(), 2);
-    let list = s.execute("groups.list", &json!({})).unwrap();
+    let list = s.execute("group.list", &json!({})).unwrap();
     assert_eq!(list["groups"][1]["unnamed"], true);
     assert_eq!(list["groups"][0]["members"], json!(hex(&hs[..2])));
     assert!(s.running.is_none(), "JSON calls never prompt");
@@ -130,12 +130,12 @@ fn groupedit_add_remove_rename() {
     s.cmdline("").unwrap();
     assert_eq!(groups(&s), vec![("Pair".into(), String::new(), vec![hs[1]])]);
     // JSON.
-    let r = s.execute("groupedit", &json!({ "name": "pair", "add": hex(&hs), "rename": "Trio" })).unwrap();
+    let r = s.execute("group.edit", &json!({ "name": "pair", "add": hex(&hs), "rename": "Trio" })).unwrap();
     assert_eq!(r, json!({ "name": "Trio", "members": 3 }));
-    assert!(s.execute("groupedit", &json!({ "name": "Trio", "add": ["FFFFF"] })).is_err());
-    assert!(s.execute("groupedit", &json!({ "name": "Trio", "rename": "bad?" })).is_err());
-    assert!(s.execute("groupedit", &json!({ "name": "nope" })).is_err());
-    let r = s.execute("groupedit", &json!({ "name": "Trio", "remove": hex(&hs) })).unwrap();
+    assert!(s.execute("group.edit", &json!({ "name": "Trio", "add": ["FFFFF"] })).is_err());
+    assert!(s.execute("group.edit", &json!({ "name": "Trio", "rename": "bad?" })).is_err());
+    assert!(s.execute("group.edit", &json!({ "name": "nope" })).is_err());
+    let r = s.execute("group.edit", &json!({ "name": "Trio", "remove": hex(&hs) })).unwrap();
     assert_eq!(r["deleted"], true);
     assert!(s.doc().unwrap().groups.is_empty());
 }

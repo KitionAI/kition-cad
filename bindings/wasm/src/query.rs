@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 pub fn selects(command: &str) -> bool {
-    matches!(command, "qselect" | "selectall")
+    matches!(command, "select.quick" | "edit.selectAll")
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,7 +51,7 @@ pub fn under(s: &Session, command: &str, p: &Value) -> Result<Under, String> {
         }
     }
     // Parameterless steps have no place for the pinned SDK to replay.
-    if command == "selectall" || p.as_object().is_none_or(|o| o.is_empty()) {
+    if command == "edit.selectAll" || p.as_object().is_none_or(|o| o.is_empty()) {
         let (id, field) = match s.space() {
             Space::Model => ("drawing".into(), "~modelSelection"),
             Space::Paper(name) => (format!("layout:{}", d.record_id("layout", &name, 0).ok_or("unknown layout identity")?), "~selection"),

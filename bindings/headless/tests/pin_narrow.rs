@@ -29,7 +29,7 @@ async fn repeated_block_inserts_hold_copied_attribute_definitions_only() {
             |f| {
                 vec![
                     ("block", json!({"name":"Repeated","base":[0,0],"handles":[f.joined],"keep":"retain"})),
-                    ("attdef", json!({"tag":"NEW","default":"copied","at":[200,200],"height":3})),
+                    ("attribute.define", json!({"tag":"NEW","default":"copied","at":[200,200],"height":3})),
                 ]
             },
         )
@@ -43,7 +43,7 @@ async fn multileader_style_reads_follow_the_content_branch() {
         check(
             |_| {
                 (
-                    "mleader",
+                    "multileader.add",
                     if block {
                         json!({"points":[[0,0],[10,10]],"block":"Marker","blockAttach":"insertion"})
                     } else {
@@ -51,8 +51,18 @@ async fn multileader_style_reads_follow_the_content_branch() {
                     },
                 )
             },
-            |_| vec![("mleaderstyle", if block { json!({"name":"Standard","dogleg":99}) } else { json!({"name":"Standard","textHeight":9}) })],
-            |_| vec![("mleaderstyle", if block { json!({"name":"Standard","textHeight":9}) } else { json!({"name":"Standard","dogleg":99}) })],
+            |_| {
+                vec![(
+                    "multileaderStyle.open",
+                    if block { json!({"name":"Standard","dogleg":99}) } else { json!({"name":"Standard","textHeight":9}) },
+                )]
+            },
+            |_| {
+                vec![(
+                    "multileaderStyle.open",
+                    if block { json!({"name":"Standard","textHeight":9}) } else { json!({"name":"Standard","dogleg":99}) },
+                )]
+            },
         )
         .await;
     }
@@ -61,9 +71,9 @@ async fn multileader_style_reads_follow_the_content_branch() {
 #[tokio::test(flavor = "multi_thread")]
 async fn attribute_sync_preserves_reference_appearance() {
     check(
-        |_| ("attsync", json!({"name":"Marker"})),
-        |f| vec![("attedit", json!({"handle":f.insert,"values":{"CODE":"colleague"}}))],
-        |f| vec![("properties.set", json!({"handles":[f.insert],"color":"blue"}))],
+        |_| ("attribute.sync", json!({"name":"Marker"})),
+        |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"colleague"}}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.insert],"color":"blue"}))],
     )
     .await;
 }

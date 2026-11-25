@@ -37,22 +37,22 @@ export function describe(info: KitEngineInfo): CadInfo {
 }
 
 /** File commands the host's own Save, Open, and Close already cover. */
-export const HOST_FILE_COMMANDS = ['new', 'open', 'close', 'closeall', 'qsave', 'saveas']
+export const HOST_FILE_COMMANDS = ['new', 'open', 'close', 'file.closeAll', 'file.save', 'file.saveAs']
 
 /** The ribbon's tabs after Home, each the engine's menu of that name. */
 export const MENU_TABS = ['File', 'Edit', 'Insert', 'Format', 'Tools', 'Draw', 'Dimension', 'Modify', 'View']
 
 /** The engine commands each menu tab shows in Single line's row (AutoCAD's most-used), by menu. */
 export const CAD_PRIMARY: Record<string, readonly string[]> = {
-  File: ['exportpdf', 'plot', 'pagesetup'],
-  Edit: ['cutclip', 'copyclip', 'pasteclip', 'erase.selection', 'selectall', 'find'],
-  Insert: ['insert', 'layout.new'],
-  Format: ['layer', 'color', 'linetype', 'lweight', 'style', 'dimstyle', 'units'],
-  Tools: ['dist', 'area', 'list', 'group', 'ungroup', 'draworder.front', 'draworder.back'],
-  Draw: ['line', 'pline', 'circle', 'arc', 'rectang', 'polygon', 'ellipse', 'spline', 'hatch', 'mtext'],
-  Dimension: ['dimlinear', 'dimaligned', 'dimangular', 'dimradius', 'dimdiameter', 'dimcontinue', 'dimbaseline', 'mleader', 'qdim'],
-  Modify: ['move', 'copy', 'rotate', 'scale', 'mirror', 'offset', 'trim', 'extend', 'fillet', 'erase', 'explode', 'arrayrect'],
-  View: ['zoom.extents', 'zoom.window', 'zoom.in', 'zoom.out', 'zoom.previous', 'pan', 'regen'],
+  File: ['file.exportPdf', 'plot', 'plot.pageSetup'],
+  Edit: ['edit.cut', 'edit.copy', 'edit.paste', 'edit.delete', 'edit.selectAll', 'find'],
+  Insert: ['insert', 'layout.add'],
+  Format: ['layer', 'color', 'linetype', 'property.lineweight', 'style', 'dimensionStyle.open', 'units'],
+  Tools: ['dist', 'area', 'list', 'group', 'ungroup', 'arrange.bringToFront', 'arrange.sendToBack'],
+  Draw: ['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'polygon', 'ellipse', 'spline', 'hatch', 'multilineText.add'],
+  Dimension: ['dimension.addLinear', 'dimension.addAligned', 'dimension.addAngular', 'dimension.addRadius', 'dimension.addDiameter', 'dimension.addContinue', 'dimension.addBaseline', 'multileader.add', 'dimension.addQuick'],
+  Modify: ['move', 'copy', 'rotate', 'scale', 'mirror', 'offset', 'trim', 'extend', 'fillet', 'erase', 'explode', 'object.arrayRectangular'],
+  View: ['view.zoomToFit', 'view.zoomWindow', 'view.zoomIn', 'view.zoomOut', 'view.zoomPrevious', 'pan', 'view.regen'],
 }
 
 /** The status bar's drafting modes, in AutoCAD's order, and the commands that set them. */
@@ -61,7 +61,7 @@ export const DRAFTING: Array<{ id: keyof Drafting; label: string }> = [
   { id: 'snap', label: 'Snap' },
   { id: 'ortho', label: 'Ortho' },
   { id: 'polar', label: 'Polar' },
-  { id: 'osnap', label: 'Osnap' },
-  { id: 'otrack', label: 'Otrack' },
-  { id: 'lwdisplay', label: 'Lineweight' },
+  { id: 'drafting.objectSnap', label: 'Osnap' },
+  { id: 'drafting.objectSnapTracking', label: 'Otrack' },
+  { id: 'drafting.lineweightDisplay', label: 'Lineweight' },
 ]

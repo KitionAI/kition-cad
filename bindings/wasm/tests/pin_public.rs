@@ -43,7 +43,7 @@ fn exchange_follows_a_new_drawing_and_subsequent_model_edits() {
     assert_eq!(result["loaded"][0]["fields"]["model"].as_array().unwrap().len(), 1);
     let model = exchange.describe(&mut doc).unwrap();
     assert_eq!(model["rootId"], before["rootId"], "CAD uses a fixed public root across replacements");
-    assert_eq!(doc.inspect().unwrap()["entities"], 1);
+    assert_eq!(doc.inspect().unwrap()["object.query"], 1);
     let old = exchange.batch(&mut doc, &json!({"ops":[],"load":[{"target":h}]}), false).unwrap();
     assert_ne!(old["loaded"][0]["fields"]["kind"]["type"], "circle");
 }

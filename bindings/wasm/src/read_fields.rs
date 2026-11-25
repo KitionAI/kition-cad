@@ -16,10 +16,10 @@ fn fields(paths: &[&str]) -> Vec<String> {
 pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<String>> {
     Some(match command {
         id if constraint_command(id) => {
-            if matches!(id, "autoconstrain")
+            if matches!(id, "constraint.auto")
                 || id.starts_with("gc")
-                || id.starts_with("dc") && !id.starts_with("dcdisplay")
-                || matches!(id, "geomconstraint" | "dimconstraint")
+                || id.starts_with("dc") && !id.starts_with("constraint.dynamicDimensions")
+                || matches!(id, "constraint.addGeometric" | "constraint.addDimensional")
             {
                 let mut f = curve_fields(e);
                 f.push("~solve".into());
@@ -28,8 +28,8 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
                 Vec::new()
             }
         }
-        "draworder.front" | "draworder.back" => fields(&["~pick.order", "~space"]),
-        "hatchedit" => {
+        "arrange.bringToFront" | "arrange.sendToBack" => fields(&["~pick.order", "~space"]),
+        "hatch.edit" => {
             let mut f = fields(&["kind.type"]);
             if matches!(e.kind, EntityKind::Hatch(_)) {
                 f.push("~locked".into());
@@ -44,7 +44,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        "viewport.set" | "vplayer" => {
+        "viewport.set" | "viewport.freezeLayer" => {
             let mut f = fields(&["kind.type"]);
             if matches!(e.kind, EntityKind::Viewport(_)) {
                 f.extend(fields(&["kind.id", "~locked"]));
@@ -69,7 +69,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        "ncopy" => fields(if matches!(e.kind, EntityKind::Insert(_)) {
+        "object.copyNested" => fields(if matches!(e.kind, EntityKind::Insert(_)) {
             &["kind.type", "kind.block", "kind.insert", "kind.scale", "kind.rotation"]
         } else {
             &["kind.type"]
@@ -94,8 +94,8 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        "copy" | "arrayrect" | "arraypolar" => fields(&["common", "kind", "~space"]),
-        "xline" => curve_fields(e),
+        "copy" | "object.arrayRectangular" | "object.arrayPolar" => fields(&["common", "kind", "~space"]),
+        "constructionLine.add" => curve_fields(e),
         "spline" if p.get("object").is_some() => {
             let mut f = curve_fields(e);
             f.push("~locked".into());
@@ -104,7 +104,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         "hatch" | "gradient" if p.get("points").is_none() => curve_fields(e),
         // modify2.rs:259-351 clones preserved fields; these flags assign only one
         // field (CLOSE additionally reads whether there are at least two vertices).
-        "pedit" if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j")) => {
+        "polyline.edit" if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j")) => {
             let option = p.get("option").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
             match (&e.kind, option.as_str()) {
                 (EntityKind::LwPolyline(_), "open" | "o") => fields(&["kind.type", "kind.closed"]),
@@ -114,23 +114,25 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
         }
         // groups.rs::make_group/add_members only resolve membership by handle.
-        "group" | "groupedit" => Vec::new(),
+        "group" | "group.edit" => Vec::new(),
         // layout/plotstyle.rs::run_plotstyle: a constant assignment after is_locked.
-        "plotstyle" => fields(&["common.plotStyle", "~locked"]),
+        "plot.style" => fields(&["common.plotStyle", "~locked"]),
         // blocks/attedit.rs::run and run_global: the insert transform is not consulted.
         // Tag/value membership is a content region over stored attribs, including absence.
-        "attedit" => fields(&["kind.type"]),
-        "attsync" => fields(if matches!(e.kind, EntityKind::Insert(_)) { &["kind.type", "kind.block"] } else { &["kind.type"] }),
-        "-attedit" => fields(if matches!(e.kind, EntityKind::Insert(_)) { &["kind.type", "kind.block", "~attributes"] } else { &["kind.type"] }),
+        "attribute.edit" => fields(&["kind.type"]),
+        "attribute.sync" => fields(if matches!(e.kind, EntityKind::Insert(_)) { &["kind.type", "kind.block"] } else { &["kind.type"] }),
+        "attribute.editGlobal" => {
+            fields(if matches!(e.kind, EntityKind::Insert(_)) { &["kind.type", "kind.block", "~attributes"] } else { &["kind.type"] })
+        }
         // annotate.rs::run_update and run_disassociate inspect the kind, then assign fields.
-        "dimstyle.update" => fields(if matches!(e.kind, EntityKind::Dimension(_)) { &["kind.type", "kind.style"] } else { &["kind.type"] }),
-        "dimdisassociate" => fields(if matches!(e.kind, EntityKind::Dimension(_)) { &["kind.type", "kind.assoc"] } else { &["kind.type"] }),
+        "dimension.updateStyle" => fields(if matches!(e.kind, EntityKind::Dimension(_)) { &["kind.type", "kind.style"] } else { &["kind.type"] }),
+        "dimension.disassociate" => fields(if matches!(e.kind, EntityKind::Dimension(_)) { &["kind.type", "kind.assoc"] } else { &["kind.type"] }),
         // props.rs::dim_override inserts/removes requested keys without reading other map
         // values. annotate.rs::run_dimtedit does the same for textJust.
-        "dimoverride" | "dimstyle.override" => {
+        "dimension.override" | "dimensionStyle.override" => {
             let mut f = fields(&["kind.type"]);
             if matches!(e.kind, EntityKind::Dimension(_)) {
-                if command == "dimoverride" && p.get("text").is_some() {
+                if command == "dimension.override" && p.get("text").is_some() {
                     f.push("kind.text".into());
                 }
                 if p.get("clear").and_then(Value::as_bool) == Some(true) {
@@ -146,7 +148,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
             f
         }
-        id if id == "dimtedit" || id.starts_with("dimtedit.") => {
+        id if id == "dimension.editText" || id.starts_with("dimtedit.") => {
             let mut f = fields(&["kind.type"]);
             if matches!(e.kind, EntityKind::Dimension(_)) {
                 if p.get("at").is_some() {
@@ -163,7 +165,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             f
         }
         // assoc.rs::reassociate scans at the stored definition points appropriate to the kind.
-        "dimreassociate" => {
+        "dimension.reassociate" => {
             if !matches!(e.kind, EntityKind::Dimension(_)) {
                 // The caller's `hs` may include association scan sources; their geometry is
                 // still required. Apply this policy only to the dimension target.
@@ -189,7 +191,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             _ => fields(&["kind.type", "~locked"]),
         },
         // modify2.rs::lengthen_kind computes new endpoints from these geometry fields.
-        "lengthen" => match e.kind {
+        "object.lengthen" => match e.kind {
             EntityKind::Line(_) => fields(&["kind.a", "kind.b", "~locked"]),
             EntityKind::Arc(_) => fields(&["kind.center", "kind.radius", "kind.start", "kind.end", "~locked"]),
             EntityKind::LwPolyline(_) => fields(&["kind", "~locked"]),
@@ -230,7 +232,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             f
         }
         // modify2.rs::set_text replaces one string and clears the cached dimension block.
-        "textedit" => fields(match e.kind {
+        "text.edit" => fields(match e.kind {
             EntityKind::Text(_) => &["kind.type", "kind.value", "~locked"],
             EntityKind::MText(_) => &["kind.type", "kind.contents", "~locked"],
             EntityKind::Dimension(_) => &["kind.type", "kind.text", "~locked"],
@@ -238,18 +240,18 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         }),
         // draw2.rs::center_mark/center_line use only the source geometry; output properties
         // come from current_common, not from the addressed circle/line.
-        "centermark" => fields(&["kind.type", "kind.center", "kind.radius"]),
-        "centerline" => fields(&["kind.type", "kind.a", "kind.b"]),
+        "centerMark.add" => fields(&["kind.type", "kind.center", "kind.radius"]),
+        "centerLine.add" => fields(&["kind.type", "kind.a", "kind.b"]),
         // draw2::divide/measure sample geometry; continuation takes the saved endpoint/tangent.
-        "divide" | "measure" | "arc.continue" => match e.kind {
+        "divide" | "measure" | "arc.addContinue" => match e.kind {
             EntityKind::Line(_) => fields(&["kind.a", "kind.b"]),
             EntityKind::Circle(_) => fields(&["kind.center", "kind.radius"]),
-            EntityKind::Arc(_) if command == "arc.continue" => fields(&["kind.center", "kind.radius", "kind.end"]),
+            EntityKind::Arc(_) if command == "arc.addContinue" => fields(&["kind.center", "kind.radius", "kind.end"]),
             EntityKind::Arc(_) => fields(&["kind.center", "kind.radius", "kind.start", "kind.end"]),
             EntityKind::LwPolyline(_) => fields(&["kind.vertices", "kind.closed"]),
             _ => fields(&["kind"]),
         },
-        "arraypath" => {
+        "object.arrayPath" => {
             if p.get("path").and_then(Value::as_str).and_then(Handle::parse_hex) == Some(e.handle) {
                 curve_fields(e)
             } else {
@@ -257,12 +259,14 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             }
         }
         // Tangency and blend likewise take source shapes, with no copied common properties.
-        "circle.ttr" | "circle.ttt" | "blend" => curve_fields(e),
+        "circle.addTanTanRadius" | "circle.addTanTanTan" | "blend" => curve_fields(e),
         // layer.rs::obj_layers selects layers from the target's layer name alone.
-        "laymcur" | "layiso" | "layoff" | "layfrz" | "laylck" | "layulk" => fields(&["common.layer"]),
-        "laymch" | "laycur" => fields(&["common.layer"]),
+        "layer.makeObjectCurrent" | "layer.isolate" | "layer.off" | "layer.freeze" | "layer.lock" | "layer.unlock" => fields(&["common.layer"]),
+        "layer.match" | "layer.changeToCurrent" => fields(&["common.layer"]),
         // props.rs::run_matchprop copies six common fields, never source geometry.
-        "matchprop" => fields(&["common.layer", "common.color", "common.linetype", "common.lineweight", "common.ltscale", "common.transparency"]),
+        "object.matchProperties" => {
+            fields(&["common.layer", "common.color", "common.linetype", "common.lineweight", "common.ltscale", "common.transparency"])
+        }
         // hatch.rs::closed_loop converts only these source geometry fields.
         "region" => match e.kind {
             EntityKind::Circle(_) => fields(&["kind.type", "kind.center", "kind.radius"]),
@@ -271,7 +275,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
             _ => fields(&["kind.type"]),
         },
         // SPLINEDIT replaces the supported spline kind, without reading common properties.
-        "splinedit" => fields(if matches!(e.kind, EntityKind::Spline(_)) { &["kind", "~locked"] } else { &["kind.type", "~locked"] }),
+        "spline.edit" => fields(if matches!(e.kind, EntityKind::Spline(_)) { &["kind", "~locked"] } else { &["kind.type", "~locked"] }),
         // ALIGN applies one transform to the kind; common properties remain untouched.
         "align" => fields(&["kind", "~locked"]),
         _ => return None,
@@ -282,7 +286,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
 /// are part of the handler contract: booleans/numbers accept numeric text, colours accept ACI
 /// numbers or names, and a string field also accepts a number as text. Unknown keys remain absent.
 pub(crate) fn declare(c: &mut KitCommand) {
-    if !matches!(c.id.as_str(), "dimstyle" | "dimstyle.dimension" | "dimstyle.override" | "dimoverride") {
+    if !matches!(c.id.as_str(), "dimensionStyle.open" | "dimensionStyle.openManager" | "dimensionStyle.override" | "dimension.override") {
         return;
     }
     let Ok(default) = serde_json::to_value(DimStyle::default()) else { return };
@@ -361,34 +365,34 @@ pub(crate) fn attribute_projection(attributes: &Value, values: &Value) -> Option
 /// Explicit source sampling/copying is allowed on locked layers. These paths mutate targets.
 pub(crate) fn writes_existing(command: &str, p: &Value, h: Handle) -> bool {
     match command {
-        "matchprop" => p.get("source").and_then(Value::as_str).and_then(Handle::parse_hex) != Some(h),
+        "object.matchProperties" => p.get("source").and_then(Value::as_str).and_then(Handle::parse_hex) != Some(h),
         "wipeout" => p.get("erase").and_then(Value::as_bool) == Some(true),
-        "block" | "-block" => p.get("keep").and_then(Value::as_str) != Some("retain"),
+        "block" | "block.add" => p.get("keep").and_then(Value::as_str) != Some("retain"),
         id => {
             id.starts_with("table.")
                 || id.starts_with("dimtedit.")
                 || matches!(
                     id,
-                    "properties.set"
-                        | "attedit"
-                        | "-attedit"
-                        | "attsync"
-                        | "dimoverride"
-                        | "dimstyle.override"
-                        | "dimstyle.update"
-                        | "dimdisassociate"
-                        | "dimreassociate"
-                        | "dimtedit"
-                        | "dimspace"
+                    "object.setProperties"
+                        | "attribute.edit"
+                        | "attribute.editGlobal"
+                        | "attribute.sync"
+                        | "dimension.override"
+                        | "dimensionStyle.override"
+                        | "dimension.updateStyle"
+                        | "dimension.disassociate"
+                        | "dimension.reassociate"
+                        | "dimension.editText"
+                        | "dimension.space"
                         | "join"
-                        | "pedit"
+                        | "polyline.edit"
                         | "region"
-                        | "revcloud"
-                        | "revcloud.polygonal"
-                        | "revcloud.freehand"
-                        | "laycur"
-                        | "laymch"
-                        | "breakatpoint"
+                        | "revisionCloud.add"
+                        | "revisionCloud.addPolygonal"
+                        | "revisionCloud.addFreehand"
+                        | "layer.changeToCurrent"
+                        | "layer.match"
+                        | "object.breakAtPoint"
                 )
         }
     }
@@ -435,14 +439,14 @@ pub(crate) fn table_fields(command: &str, p: &Value, t: &kition_cad_doc::Table) 
             f.push(format!("kind.cells.{row}.{col}.merged"));
         }
     }
-    if command == "table.insertrow" && !p.get("height").and_then(Value::as_f64).is_some_and(|h| h.is_finite() && h > 0.0) {
+    if command == "table.insertRow" && !p.get("height").and_then(Value::as_f64).is_some_and(|h| h.is_finite() && h > 0.0) {
         if rows > 0 {
             f.push(format!("kind.rowHeights.{}", rows - 1));
         } else {
             f.push("kind.textHeight".into());
         }
     }
-    if command == "table.insertcol" && !p.get("width").and_then(Value::as_f64).is_some_and(|w| w.is_finite() && w > 0.0) && cols > 0 {
+    if command == "table.insertColumn" && !p.get("width").and_then(Value::as_f64).is_some_and(|w| w.is_finite() && w > 0.0) && cols > 0 {
         f.push(format!("kind.colWidths.{}", cols - 1));
     }
     if command == "table.merge" {
@@ -474,14 +478,14 @@ pub(crate) fn constraint_command(id: &str) -> bool {
         || id.starts_with("dc")
         || matches!(
             id,
-            "geomconstraint"
-                | "dimconstraint"
+            "constraint.addGeometric"
+                | "constraint.addDimensional"
                 | "parameters"
-                | "autoconstrain"
-                | "delconstraint"
-                | "constraintsettings"
-                | "constraintbar"
-                | "constraintbar.hideall"
-                | "constraintbar.showall"
+                | "constraint.auto"
+                | "constraint.delete"
+                | "constraint.settings"
+                | "constraint.bars"
+                | "constraint.hideAllBars"
+                | "constraint.showAllBars"
         )
 }

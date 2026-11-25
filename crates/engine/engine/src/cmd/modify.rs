@@ -82,26 +82,26 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["x"])
             .params("{handles?}")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Explode)))),
-        CommandSpec::new("draworder.front", "Bring to Front", run_front)
+        CommandSpec::new("arrange.bringToFront", "Bring to Front", run_front)
             .menu(&["Tools", "Draw Order", "Bring to Front"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("draworder.front", "DRAWORDER")))),
-        CommandSpec::new("draworder.back", "Send to Back", run_back)
+            .interactive(|_| Ok(Box::new(SelectRun::new("arrange.bringToFront", "DRAWORDER")))),
+        CommandSpec::new("arrange.sendToBack", "Send to Back", run_back)
             .menu(&["Tools", "Draw Order", "Send to Back"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("draworder.back", "DRAWORDER")))),
+            .interactive(|_| Ok(Box::new(SelectRun::new("arrange.sendToBack", "DRAWORDER")))),
         CommandSpec::new("break", "Break", run_break)
             .menu(&["Modify", "Break"])
             .alias(&["br"])
             .params("{handle, p1, p2}")
             .interactive(|_| Ok(Box::new(BreakM::default()))),
-        CommandSpec::new("breakatpoint", "Break At Point", run_breakat).menu(&["Modify", "Break At Point"]).params("{handle, at}"),
+        CommandSpec::new("object.breakAtPoint", "Break At Point", run_breakat).menu(&["Modify", "Break At Point"]).params("{handle, at}"),
         CommandSpec::new("join", "Join", run_join)
             .menu(&["Modify", "Join"])
             .alias(&["j"])
             .params("{handles?}")
             .interactive(|_| Ok(Box::new(SelectThen::new(Op::Join)))),
-        CommandSpec::new("overkill", "Delete Duplicate Objects", run_overkill).menu(&["Modify", "Delete Duplicate Objects"]).params("{handles?}"),
+        CommandSpec::new("object.deleteDuplicates", "Delete Duplicate Objects", run_overkill).menu(&["Modify", "Delete Duplicate Objects"]).params("{handles?}"),
     ]
 }
 
@@ -1300,7 +1300,7 @@ fn run_explode(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_front(s: &mut Session, p: &Value) -> Result<Value> {
     for h in targets(s, p)? {
-        let space = s.doc()?.space_of(h).ok_or_else(|| bad("draworder.front", "no such entity"))?;
+        let space = s.doc()?.space_of(h).ok_or_else(|| bad("arrange.bringToFront", "no such entity"))?;
         if let Some(store) = s.doc_mut()?.space_mut(&space) {
             store.bring_to_front(h);
         }
@@ -1310,7 +1310,7 @@ fn run_front(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_back(s: &mut Session, p: &Value) -> Result<Value> {
     for h in targets(s, p)?.into_iter().rev() {
-        let space = s.doc()?.space_of(h).ok_or_else(|| bad("draworder.back", "no such entity"))?;
+        let space = s.doc()?.space_of(h).ok_or_else(|| bad("arrange.sendToBack", "no such entity"))?;
         if let Some(store) = s.doc_mut()?.space_mut(&space) {
             store.send_to_back(h);
         }
@@ -1418,8 +1418,8 @@ fn run_break(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_breakat(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("breakatpoint", "`handle` is required"))?;
-    let at = point_req("breakatpoint", p, "at")?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("object.breakAtPoint", "`handle` is required"))?;
+    let at = point_req("object.breakAtPoint", p, "at")?;
     let r = break_entity(s, h, at, at)?;
     Ok(json!({ "handles": r.iter().map(|h| h.hex()).collect::<Vec<_>>() }))
 }

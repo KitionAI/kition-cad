@@ -4,7 +4,7 @@
 //! [`KitDocument`] for a Kition CAD drawing (DXF) and [`KitTools`] for Kition CAD's way of working:
 //! a drawing tool starts its command, a click answers the command's prompt with a point (object
 //! snaps applied), and with no command running a click or drag selects. The prompt shows as a
-//! status line. The command line is the `commandLine` command (`{"text": "line"}`), for the host's
+//! status line. The command line is the `command.runLine` command (`{"text": "line"}`), for the host's
 //! command-line bar and for agents; the rail follows the command it starts.
 //!
 //! Document pixels: the drawing's limits and extents, with a margin, y down, at a power-of-two
@@ -82,19 +82,19 @@ const CROSSING: [u8; 4] = [22, 163, 74, 255];
 /// `tool-<kind>`, which Kition's editor maps to its own icons.
 const TOOLS: &[(&str, usize, &str)] = &[
     ("line", 1, "tool-line"),
-    ("pline", 1, "tool-pen"),
+    ("polyline.add", 1, "tool-pen"),
     ("circle", 2, "tool-ellipse"),
     ("arc", 2, "tool-arc"),
     ("ellipse", 2, "tool-ellipse"),
-    ("rectang", 3, "tool-rect"),
+    ("rectangle.add", 3, "tool-rect"),
     ("polygon", 3, "tool-polygon"),
     ("spline", 4, "tool-curvature"),
     ("hatch", 4, "tool-bucket"),
-    ("mtext", 5, "tool-type"),
+    ("multilineText.add", 5, "tool-type"),
     ("text", 5, "tool-type"),
-    ("dimlinear", 6, "tool-measure"),
-    ("dimaligned", 6, "tool-measure"),
-    ("dimradius", 6, "tool-measure"),
+    ("dimension.addLinear", 6, "tool-measure"),
+    ("dimension.addAligned", 6, "tool-measure"),
+    ("dimension.addRadius", 6, "tool-measure"),
     ("move", 7, "tool-move"),
     ("copy", 7, "tool-copy"),
     ("rotate", 8, "tool-rotate"),
@@ -204,7 +204,8 @@ fn command_line_gate(command: &str, params: Option<&Value>) -> Result<(), String
 
 /// Commands that change the drawing although the engine does not record them as undoable steps:
 /// the history itself, and the commands that make, open, close, recover, save, or switch drawings.
-const DOCUMENT_COMMANDS: &[&str] = &["u", "undo", "redo", "new", "open", "close", "closeall", "recover", "qsave", "saveas", "document.switch"];
+const DOCUMENT_COMMANDS: &[&str] =
+    &["u", "undo", "redo", "new", "open", "close", "file.closeAll", "recover", "file.save", "file.saveAs", "file.switch"];
 
 /// Whether running a command changes the drawing (the catalog's `mutates`): its edits (the
 /// engine's undoable commands) and [`DOCUMENT_COMMANDS`]. Selection, zoom and pan, drafting
@@ -236,7 +237,7 @@ const EXPORTS: &[&str] = &["pdf", "svg", "png"];
 /// Commands whose top level takes any dimension style field or DIM* variable as a key (as
 /// DIMSTYLE and DIMOVERRIDE do), so a schema cannot list them; every other command refuses a key
 /// its schema does not name (platform rule E7a).
-const OPEN_PARAMETERS: &[&str] = &["dimstyle", "dimstyle.dimension", "dimstyle.override", "dimoverride"];
+const OPEN_PARAMETERS: &[&str] = &["dimensionStyle.open", "dimensionStyle.openManager", "dimensionStyle.override", "dimension.override"];
 
 impl CadDocument {
     /// Each command's parameter schema, as the catalogue offers it to agents; read once, since a
@@ -413,7 +414,7 @@ impl CadDocument {
         Ok(json!({ "prompt": self.session.prompt_text(), "running": self.session.running.as_ref().map(|running| running.id.clone()) }))
     }
 
-    /// The display list's polylines for `entities`, as paths in document pixels.
+    /// The display list's polylines for `object.query`, as paths in document pixels.
     fn paths(&self, list: &DisplayList, place: &Placement, color: [u8; 4], width: f32, dashed: bool) -> Vec<ToolOverlay> {
         let mut out = Vec::new();
         for prim in &list.prims {
@@ -626,8 +627,8 @@ impl KitDocument for CadDocument {
     /// Runs `command`. An agent's command leaves the space shown, MSPACE, the views and the
     /// selection as they were, also when it fails, and picks by a point with a tolerance no zoom
     /// changes ([`context`]); only the commands whose work is moving the editor
-    /// ([`context::moves_the_editor`]: `zoom*`, `pan*`, `view.set`, `layout.set`, `mspace`,
-    /// `pspace`, `select`, `qselect`, `selectall`, `ai_deselect`) keep their effect, and inside an
+    /// ([`context::moves_the_editor`]: `zoom*`, `pan*`, `view.set`, `layout.set`, `viewport.modelSpace`,
+    /// `viewport.paperSpace`, `select`, `select.quick`, `edit.selectAll`, `edit.deselectAll`) keep their effect, and inside an
     /// MSPACE viewport an agent's zoom or pan, which the drawing would save, is refused. A drawing
     /// command ([`acts::takes_place`]) given `layer` or `layout` draws there and leaves the current
     /// layer and the space shown as they were, for anyone. A person's commands run as they always did.
@@ -764,7 +765,7 @@ impl KitDocument for CadDocument {
             }
             commands.push(
                 KitCommand {
-                    id: "commandLine".into(),
+                    id: "command.runLine".into(),
                     title: "Command line".into(),
                     params: Some("{text: string}".into()),
                     mutates: true,
@@ -962,7 +963,7 @@ impl CadDocument {
         let before = self.current_view();
         let document_uid = self.session.state().ok().map(|state| state.uid);
         let transparent = kition_cad_engine::cmd::find_command(command).is_some_and(|spec| spec.transparent);
-        if command != "commandLine" && !transparent {
+        if command != "command.runLine" && !transparent {
             self.hot_grip = None;
             self.snapped = None;
         }
@@ -982,7 +983,7 @@ impl CadDocument {
                 let scope = kition_kit::session::history_scope(&params, &self.session.origin()).map_err(|e| e.to_string())?;
                 self.session.redo_in(scope).map(|label| json!({ "redone": label })).map_err(engine_error)
             }
-            "commandLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
+            "command.runLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
             "file.export" => self.export_command(&params),
             render::RENDER => self.render_view(&params),
             _ => self.session.execute(command, &params).map_err(engine_error),
@@ -992,7 +993,7 @@ impl CadDocument {
         if result.is_ok() && document_uid.is_some_and(|uid| !self.session.docs.iter().any(|state| state.uid == uid)) {
             return Ok(json!({"closed":true}));
         }
-        if command != "commandLine" && result.is_ok() {
+        if command != "command.runLine" && result.is_ok() {
             self.record_view(before);
             if self.hot_grip.is_some()
                 && let Some(cursor) = self.cursor
@@ -1025,20 +1026,20 @@ impl CadDocument {
                     "on": layer.on,
                     "frozen": layer.frozen,
                     "locked": layer.locked,
-                    "entities": per_layer.get(&layer.name.to_ascii_lowercase()).copied().unwrap_or(0),
+                    "object.query": per_layer.get(&layer.name.to_ascii_lowercase()).copied().unwrap_or(0),
                 })
             })
             .collect();
         let mut layouts: Vec<&kition_cad_doc::Layout> = doc.layouts.iter().collect();
         layouts.sort_by_key(|l| l.tab_order);
-        let spaces: Vec<Value> = std::iter::once(json!({ "name": "Model", "part": { "layout": "Model" }, "entities": doc.model.len() }))
+        let spaces: Vec<Value> = std::iter::once(json!({ "name": "Model", "part": { "layout": "Model" }, "object.query": doc.model.len() }))
             .chain(layouts.iter().map(|l| {
                 let viewports = l.entities.iter().filter(|e| matches!(e.kind, kition_cad_doc::EntityKind::Viewport(_))).count();
                 json!({
                     "name": l.name,
                     "id": format!("layout:{}", doc.record_id("layout", &l.name, 0).unwrap_or(&l.name)),
                     "part": { "layout": l.name },
-                    "entities": l.entities.len(),
+                    "object.query": l.entities.len(),
                     "viewports": viewports,
                 })
             }))
@@ -1047,7 +1048,7 @@ impl CadDocument {
             .blocks
             .iter()
             .filter(|(name, _)| !name.starts_with('*'))
-            .map(|(name, block)| json!({ "id": format!("block:{}", doc.record_id("block", name, 0).unwrap_or(name)), "name": name, "entities": block.entities.len() }))
+            .map(|(name, block)| json!({ "id": format!("block:{}", doc.record_id("block", name, 0).unwrap_or(name)), "name": name, "object.query": block.entities.len() }))
             .collect();
         let views: Vec<Value> = doc
             .views
@@ -1061,7 +1062,7 @@ impl CadDocument {
         let links = links::report(doc);
         let mut inspected = json!({
             "title": state.title,
-            "entities": doc.model.len(),
+            "object.query": doc.model.len(),
             "layouts": spaces,
             "layers": layers,
             "blocks": blocks,
@@ -1075,11 +1076,11 @@ impl CadDocument {
             "drafting": {
                 "ortho": settings.orthomode,
                 "polar": settings.polarmode,
-                "osnap": settings.osmode != 0 && settings.osmode & 16384 == 0,
-                "otrack": settings.otrack,
+                "drafting.objectSnap": settings.osmode != 0 && settings.osmode & 16384 == 0,
+                "drafting.objectSnapTracking": settings.otrack,
                 "grid": settings.gridmode,
                 "snap": settings.snapmode,
-                "lwdisplay": settings.lwdisplay,
+                "drafting.lineweightDisplay": settings.lwdisplay,
             },
             "selection": self.session.selection().len(),
             "selectedObjects": self.selected_objects(),

@@ -13,13 +13,13 @@ use crate::cmd::{CommandSpec, bad, str_param, targets};
 use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, Step};
 
 pub(super) fn attdisp_spec() -> CommandSpec {
-    CommandSpec::new("attdisp", "Attribute Display", run_attdisp)
+    CommandSpec::new("attribute.display", "Attribute Display", run_attdisp)
         .params("{mode: \"normal\" | \"on\" | \"off\"} (sets ATTMODE to 1 / 2 / 0) → {attmode}")
         .interactive(|_| Ok(Box::new(AttdispM)))
 }
 
 pub(super) fn attsync_spec() -> CommandSpec {
-    CommandSpec::new("attsync", "Synchronize Attributes", run_attsync)
+    CommandSpec::new("attribute.sync", "Synchronize Attributes", run_attsync)
         .menu(&["Modify", "Object", "Attribute", "Synchronize Attributes"])
         .params("{name} | {handle} (a reference of the block) → {block, references}")
         .interactive(|_| Ok(Box::new(AttsyncM::default())))
@@ -52,7 +52,8 @@ fn set_attmode(s: &mut Session, mode: i64) -> Result<Value> {
 }
 
 fn run_attdisp(s: &mut Session, p: &Value) -> Result<Value> {
-    let mode = str_param(p, "mode").and_then(attmode).ok_or_else(|| bad("attdisp", "`mode` (\"normal\", \"on\" or \"off\") is required"))?;
+    let mode =
+        str_param(p, "mode").and_then(attmode).ok_or_else(|| bad("attribute.display", "`mode` (\"normal\", \"on\" or \"off\") is required"))?;
     set_attmode(s, mode)
 }
 
@@ -172,14 +173,14 @@ pub fn attsync_block(s: &Session, p: &Value) -> Result<String> {
     let name = match str_param(p, "name") {
         Some(n) => n.to_string(),
         None => {
-            let h = targets(s, p)?.first().copied().ok_or_else(|| bad("attsync", "`name` (or `handle` of a block reference) is required"))?;
+            let h = targets(s, p)?.first().copied().ok_or_else(|| bad("attribute.sync", "`name` (or `handle` of a block reference) is required"))?;
             match s.doc()?.entity(h).map(|e| &e.kind) {
                 Some(EntityKind::Insert(i)) => i.block.clone(),
-                _ => return Err(bad("attsync", "`handle` is not a block reference")),
+                _ => return Err(bad("attribute.sync", "`handle` is not a block reference")),
             }
         }
     };
-    s.doc()?.block(&name).map(|b| b.name.clone()).ok_or_else(|| bad("attsync", "no such block"))
+    s.doc()?.block(&name).map(|b| b.name.clone()).ok_or_else(|| bad("attribute.sync", "no such block"))
 }
 
 fn run_attsync(s: &mut Session, p: &Value) -> Result<Value> {

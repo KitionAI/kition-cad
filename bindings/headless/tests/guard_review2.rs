@@ -118,11 +118,11 @@ async fn propagation_dimension_target_holds_its_sources() {
         let mut d = drawing();
         let source = line(&mut d, "0", 0.0);
         let far = line(&mut d, "0", 40.0);
-        let dim = d.execute("dimlinear", json!({"object":source,"at":[0,5]})).unwrap()["handle"].clone();
+        let dim = d.execute("dimension.addLinear", json!({"object":source,"at":[0,5]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
-        f.steps(basis, json!([{"command":"properties.set","params":{"handles":[dim],"color":"red"}}]), relevant).await;
+        f.steps(basis, json!([{"command":"object.setProperties","params":{"handles":[dim],"color":"red"}}]), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -133,11 +133,11 @@ async fn propagation_find_dimension_target_holds_its_sources() {
         let mut d = drawing();
         let source = line(&mut d, "0", 0.0);
         let far = line(&mut d, "0", 40.0);
-        d.execute("dimlinear", json!({"object":source,"at":[0,5],"text":"Old"})).unwrap();
+        d.execute("dimension.addLinear", json!({"object":source,"at":[0,5],"text":"Old"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {source} else {far}],"delta":[1,0]}))]);
-        f.steps(basis, json!([{"command":"find","params":{"find":"Old","replace":"New"}}]), relevant).await;
+        f.steps(basis, json!([{"command":"edit.find","params":{"find":"Old","replace":"New"}}]), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -146,12 +146,12 @@ async fn propagation_find_dimension_target_holds_its_sources() {
 // dimension's stored values equal: only its held sources can refuse.
 #[tokio::test(flavor = "multi_thread")]
 async fn propagation_unpropagated_source_edit_refuses_every_dimension_write_form() {
-    for form in ["handles", "qselect", "select", "find"] {
+    for form in ["handles", "select.quick", "select", "find"] {
         for relevant in [true, false] {
             let mut d = drawing();
             let source = line(&mut d, "0", 0.0);
             let far = line(&mut d, "0", 40.0);
-            let dim = d.execute("dimlinear", json!({"object":source,"at":[0,5],"text":"Old"})).unwrap()["handle"].clone();
+            let dim = d.execute("dimension.addLinear", json!({"object":source,"at":[0,5],"text":"Old"})).unwrap()["handle"].clone();
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             let moved = if relevant { source.clone() } else { far.clone() };
@@ -164,16 +164,16 @@ async fn propagation_unpropagated_source_edit_refuses_every_dimension_write_form
                 .unwrap();
             });
             let steps = match form {
-                "handles" => json!([{"command":"properties.set","params":{"handles":[dim],"color":"red"}}]),
-                "qselect" => json!([
-                    {"command":"qselect","params":{"type":"Dimension"}},
-                    {"command":"properties.set","params":{"color":"red"}}
+                "handles" => json!([{"command":"object.setProperties","params":{"handles":[dim],"color":"red"}}]),
+                "select.quick" => json!([
+                    {"command":"select.quick","params":{"type":"Dimension"}},
+                    {"command":"object.setProperties","params":{"color":"red"}}
                 ]),
                 "select" => json!([
-                    {"command":"select","params":{"handles":[dim]}},
-                    {"command":"properties.set","params":{"color":"red"}}
+                    {"command":"select.set","params":{"handles":[dim]}},
+                    {"command":"object.setProperties","params":{"color":"red"}}
                 ]),
-                _ => json!([{"command":"find","params":{"find":"Old","replace":"New"}}]),
+                _ => json!([{"command":"edit.find","params":{"find":"Old","replace":"New"}}]),
             };
             f.steps(basis, steps, relevant).await;
             f.kits.shutdown().await;
@@ -187,15 +187,15 @@ async fn propagation_source_receipt_names_dimension_and_constraint_consequences(
         let mut d = drawing();
         let a = line(&mut d, "0", 0.0);
         let b = d.execute("line", json!({"points":[[10,0],[20,0]]})).unwrap()["handles"][0].clone();
-        let dim = d.execute("dimlinear", json!({"object":a,"at":[0,5]})).unwrap()["handle"].clone();
+        let dim = d.execute("dimension.addLinear", json!({"object":a,"at":[0,5]})).unwrap()["handle"].clone();
         if constrained {
-            d.execute("gccoincident", json!({"h1":a,"p1":"end","h2":b,"p2":"start"})).unwrap();
+            d.execute("constraint.coincident", json!({"h1":a,"p1":"end","h2":b,"p2":"start"})).unwrap();
         }
         let far = line(&mut d, "0", 40.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[far],"delta":[1,0]}))]);
-        let result = f.steps(basis, json!([{"command":"move","params":{"handles":[a],"delta":[2,0]}}]), false).await.unwrap();
+        let result = f.steps(basis, json!([{"command":"object.move","params":{"handles":[a],"delta":[2,0]}}]), false).await.unwrap();
         let changed = result["changes"]["changed"].as_array().unwrap();
         assert!(changed.iter().any(|c| c["id"] == dim), "propagated dimension must be named: {result}");
         if constrained {
@@ -213,7 +213,7 @@ async fn curves_continuation_holds_the_engine_last_curve() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[if relevant { ("line", json!({"points":[[0,20],[10,20]]})) } else { ("circle", json!({"center":[40,40],"radius":2})) }]);
-        f.steps(basis, json!([{"command":"arc.continue","params":{"end":[20,10]}}]), relevant).await;
+        f.steps(basis, json!([{"command":"arc.addContinue","params":{"end":[20,10]}}]), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -226,21 +226,21 @@ async fn curves_continuation_holds_source_identity_in_only_its_space() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("line", json!({"points":[[0,0],[10,0]],"layout":if same_space {"Model"} else {"Layout1"}}))]);
-        f.steps(basis, json!([{"command":"arc.continue","params":{"end":[20,10]}}]), same_space).await;
+        f.steps(basis, json!([{"command":"arc.addContinue","params":{"end":[20,10]}}]), same_space).await;
         f.kits.shutdown().await;
     }
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn curves_nested_copy_holds_recursive_members_and_tangent_tools_hold_sources() {
-    for family in ["ncopy", "divide", "circle.ttr"] {
+    for family in ["object.copyNested", "divide", "circle.addTanTanRadius"] {
         for relevant in [true, false] {
             let mut d = drawing();
             let a = line(&mut d, "0", 0.0);
             let b = d.execute("line", json!({"points":[[0,0],[0,10]]})).unwrap()["handles"][0].clone();
             let replacement = line(&mut d, "0", 20.0);
             let far = line(&mut d, "0", 40.0);
-            let (command, params) = if family == "ncopy" {
+            let (command, params) = if family == "object.copyNested" {
                 d.execute("block", json!({"name":"Inner","base":[0,0],"handles":[a],"keep":"delete"})).unwrap();
                 let inner = d.execute("insert", json!({"name":"Inner","at":[0,0]})).unwrap()["handle"].clone();
                 d.execute("block", json!({"name":"Outer","base":[0,0],"handles":[inner],"keep":"delete"})).unwrap();
@@ -255,7 +255,7 @@ async fn curves_nested_copy_holds_recursive_members_and_tangent_tools_hold_sourc
             let basis = f.basis().await;
             f.colleague(&[if !relevant {
                 ("move", json!({"handles":[far],"delta":[1,0]}))
-            } else if family == "ncopy" {
+            } else if family == "object.copyNested" {
                 ("block", json!({"name":"Inner","base":[0,0],"handles":[replacement],"keep":"delete"}))
             } else {
                 ("move", json!({"handles":[a],"delta":[1,0]}))
@@ -301,18 +301,18 @@ async fn query_find_holds_only_matching_words_and_membership() {
         let basis = f.basis().await;
         f.colleague(&[match mutation {
             "add" => ("text", json!({"at":[0,40],"text":"Door"})),
-            "enter" => ("textedit", json!({"handle":b,"text":"Door"})),
-            "change" => ("textedit", json!({"handle":a,"text":"Door colleague"})),
-            _ => ("textedit", json!({"handle":b,"text":"Ceiling"})),
+            "enter" => ("text.edit", json!({"handle":b,"text":"Door"})),
+            "change" => ("text.edit", json!({"handle":a,"text":"Door colleague"})),
+            _ => ("text.edit", json!({"handle":b,"text":"Ceiling"})),
         }]);
-        f.steps(basis, json!([{"command":"find","params":{"find":"Door","replace":"Window"}}]), mutation != "unrelated").await;
+        f.steps(basis, json!([{"command":"edit.find","params":{"find":"Door","replace":"Window"}}]), mutation != "unrelated").await;
         f.kits.shutdown().await;
     }
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn clipboard_capture_holds_nested_definitions() {
-    for copy in ["copyclip", "copybase", "cutclip"] {
+    for copy in ["edit.copy", "edit.copyWithBasePoint", "edit.cut"] {
         for relevant in [true, false] {
             let mut d = drawing();
             let a = line(&mut d, "0", 0.0);
@@ -324,14 +324,14 @@ async fn clipboard_capture_holds_nested_definitions() {
             if relevant {
                 f.colleague(&[("block", json!({"name":"Door","base":[5,0],"handles":[replacement],"keep":"delete"}))]);
             } else {
-                f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+                f.colleague(&[("layer.add", json!({"name":"Other"}))]);
             }
-            let params = if copy == "copybase" { json!({"handles":[insert],"base":[0,0]}) } else { json!({"handles":[insert]}) };
+            let params = if copy == "edit.copyWithBasePoint" { json!({"handles":[insert],"base":[0,0]}) } else { json!({"handles":[insert]}) };
             f.steps(
                 basis,
                 json!([
                     {"command":copy,"params":params},
-                    {"command":"pasteclip","params":{"at":[40,0]}}
+                    {"command":"edit.paste","params":{"at":[40,0]}}
                 ]),
                 relevant,
             )
@@ -352,9 +352,9 @@ async fn clipboard_capture_holds_layer_and_text_style_values() {
             f.colleague(&[if relevant {
                 (family, if family == "style" { json!({"name":"Standard","height":8}) } else { json!({"name":"0","color":"red"}) })
             } else {
-                ("layer.new", json!({"name":"Other"}))
+                ("layer.add", json!({"name":"Other"}))
             }]);
-            f.steps(basis, json!([{"command":"copyclip","params":{"handles":[a]}},{"command":"pasteclip","params":{"at":[40,0]}}]), relevant).await;
+            f.steps(basis, json!([{"command":"edit.copy","params":{"handles":[a]}},{"command":"edit.paste","params":{"at":[40,0]}}]), relevant).await;
             f.kits.shutdown().await;
         }
     }
@@ -368,7 +368,7 @@ async fn history_reload_never_reverts_the_independent_writer() {
         let b = line(&mut d, "0", 20.0);
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        let own = f.steps(basis, json!([{"command":"move","params":{"handles":[a],"delta":[1,0]}}]), false).await.unwrap();
+        let own = f.steps(basis, json!([{"command":"object.move","params":{"handles":[a],"delta":[1,0]}}]), false).await.unwrap();
         if command.ends_with("redo") {
             f.call("run", json!({"steps":[{"command":"edit.undo","params":{}}]})).await.unwrap();
         }
@@ -384,10 +384,10 @@ async fn history_reload_never_reverts_the_independent_writer() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn scan_layer_merge_delete_and_purge_hold_membership() {
-    for command in ["laymrg", "laydel", "purge", "overkill"] {
+    for command in ["layer.merge", "layer.deleteWithObjects", "purge", "object.deleteDuplicates"] {
         for relevant in [true, false] {
             let mut d = drawing();
-            d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+            d.execute("layer.add", json!({"name":"Walls"})).unwrap();
             if command != "purge" {
                 line(&mut d, "Walls", 0.0);
             }
@@ -396,7 +396,7 @@ async fn scan_layer_merge_delete_and_purge_hold_membership() {
             let basis = f.basis().await;
             if relevant {
                 f.colleague(&[if command == "purge" {
-                    ("layer.new", json!({"name":"NewUnused"}))
+                    ("layer.add", json!({"name":"NewUnused"}))
                 } else {
                     ("line", json!({"points":[[0,0],[10,0]],"layer":"Walls"}))
                 }]);
@@ -404,8 +404,8 @@ async fn scan_layer_merge_delete_and_purge_hold_membership() {
                 f.colleague(&[("move", json!({"handles":[far],"delta":[1,0]}))]);
             }
             let params = match command {
-                "laymrg" => json!({"from":["Walls"],"to":"0"}),
-                "laydel" => json!({"names":["Walls"]}),
+                "layer.merge" => json!({"from":["Walls"],"to":"0"}),
+                "layer.deleteWithObjects" => json!({"names":["Walls"]}),
                 "purge" => json!({"type":"layers"}),
                 _ => json!({}),
             };
@@ -420,7 +420,7 @@ async fn scan_purge_holds_victim_content_and_degenerate_membership() {
     for kind in ["layers", "emptytext", "zerolength"] {
         for relevant in [true, false] {
             let mut d = drawing();
-            d.execute("layer.new", json!({"name":"Unused"})).unwrap();
+            d.execute("layer.add", json!({"name":"Unused"})).unwrap();
             let a = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
             let b = line(&mut d, "0", 20.0);
             let f = Fixture::new(&mut d);
@@ -440,12 +440,12 @@ async fn scan_purge_holds_victim_content_and_degenerate_membership() {
                 } else {
                     match kind {
                         "layers" => ("layer.set", json!({"name":"Unused","color":"red"})),
-                        "emptytext" => ("textedit", json!({"handle":a,"text":""})),
+                        "emptytext" => ("text.edit", json!({"handle":a,"text":""})),
                         _ => ("line", json!({"points":[[0,40],[0,40]]})),
                     }
                 }]);
             }
-            f.steps(basis, json!([{"command":"purge","params":{"type":kind}}]), relevant).await;
+            f.steps(basis, json!([{"command":"file.purge","params":{"type":kind}}]), relevant).await;
             f.kits.shutdown().await;
         }
     }
@@ -455,12 +455,12 @@ async fn scan_purge_holds_victim_content_and_degenerate_membership() {
 async fn scan_purge_type_does_not_hold_other_types() {
     for ty in ["layers", "emptytext"] {
         let mut d = drawing();
-        d.execute("layer.new", json!({"name":"Unused"})).unwrap();
+        d.execute("layer.add", json!({"name":"Unused"})).unwrap();
         let text = d.execute("text", json!({"at":[0,0],"text":"Door"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if ty == "layers" { ("textedit", json!({"handle":text,"text":""})) } else { ("layer.new", json!({"name":"AnotherUnused"})) }]);
-        f.steps(basis, json!([{"command":"purge","params":{"type":ty}}]), false).await;
+        f.colleague(&[if ty == "layers" { ("text.edit", json!({"handle":text,"text":""})) } else { ("layer.add", json!({"name":"AnotherUnused"})) }]);
+        f.steps(basis, json!([{"command":"file.purge","params":{"type":ty}}]), false).await;
         f.kits.shutdown().await;
     }
 }
@@ -479,13 +479,13 @@ async fn scan_ungroup_holds_named_and_discovered_groups() {
             }
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
-            f.colleague(&[("groupedit", json!({"name":if relevant {"G1"} else {"Other"},"add":[extra]}))]);
+            f.colleague(&[("group.edit", json!({"name":if relevant {"G1"} else {"Other"},"add":[extra]}))]);
             let params = match form {
                 0 => json!({"name":"G1,G2"}),
                 1 => json!({"name":["G1","G2"]}),
                 _ => json!({"handles":[a]}),
             };
-            f.steps(basis, json!([{"command":"ungroup","params":params}]), relevant).await;
+            f.steps(basis, json!([{"command":"arrange.ungroup","params":params}]), relevant).await;
             f.kits.shutdown().await;
         }
     }
@@ -512,7 +512,7 @@ async fn scan_ungroup_holds_newly_discovered_groups_and_replaced_names() {
                 f.colleague(&[("ungroup", json!({"name":name})), ("group", json!({"name":name,"handles":[b]}))]);
                 json!({"name":"G1,G2"})
             };
-            f.steps(basis, json!([{"command":"ungroup","params":params}]), relevant).await;
+            f.steps(basis, json!([{"command":"arrange.ungroup","params":params}]), relevant).await;
             f.kits.shutdown().await;
         }
     }
@@ -538,7 +538,7 @@ async fn scan_audit_holds_new_invalid_geometry_but_allows_healthy_edits() {
         } else {
             f.colleague(&[("move", json!({"handles":[b],"delta":[1,0]}))]);
         }
-        f.steps(basis, json!([{"command":"audit","params":{"fix":true}}]), relevant).await;
+        f.steps(basis, json!([{"command":"file.audit","params":{"fix":true}}]), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -547,7 +547,7 @@ async fn scan_audit_holds_new_invalid_geometry_but_allows_healthy_edits() {
 async fn query_matching_set_is_held_across_independent_rewrites() {
     for mutation in ["add", "remove", "enter", "unrelated"] {
         let mut d = drawing();
-        d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls"})).unwrap();
         let a = line(&mut d, "Walls", 0.0);
         let b = line(&mut d, "0", 20.0);
         let f = Fixture::new(&mut d);
@@ -555,15 +555,15 @@ async fn query_matching_set_is_held_across_independent_rewrites() {
         f.colleague(&[match mutation {
             "add" => ("line", json!({"points":[[0,40],[10,40]],"layer":"Walls"})),
             "remove" => ("erase", json!({"handles":[a]})),
-            "enter" => ("properties.set", json!({"handles":[b],"layer":"Walls"})),
+            "enter" => ("object.setProperties", json!({"handles":[b],"layer":"Walls"})),
             _ => ("move", json!({"handles":[b],"delta":[1,0]})),
         }]);
         let result = f
             .steps(
                 basis,
                 json!([
-                    {"command":"qselect","params":{"layer":"Walls"}},
-                    {"command":"properties.set","params":{"color":"red"}}
+                    {"command":"select.quick","params":{"layer":"Walls"}},
+                    {"command":"object.setProperties","params":{"color":"red"}}
                 ]),
                 mutation != "unrelated",
             )
@@ -585,13 +585,13 @@ async fn query_chained_selection_holds_values_consumed_by_later_filters() {
             let b = line(&mut d, "0", 20.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
-            f.colleague(&[("properties.set", json!({"handles":[if relevant {a.clone()} else {b}],"color":"red"}))]);
+            f.colleague(&[("object.setProperties", json!({"handles":[if relevant {a.clone()} else {b}],"color":"red"}))]);
             f.steps(
                 basis,
                 json!([
-                    {"command":"select","params":if by_window { json!({"window":[[-1,-1],[11,1]]}) } else { json!({"handles":[a]}) }},
-                    {"command":"qselect","params":{"color":"red","applyTo":"selection","mode":"append"}},
-                    {"command":"properties.set","params":{"color":"yellow"}}
+                    {"command":"select.set","params":if by_window { json!({"window":[[-1,-1],[11,1]]}) } else { json!({"handles":[a]}) }},
+                    {"command":"select.quick","params":{"color":"red","applyTo":"selection","mode":"append"}},
+                    {"command":"object.setProperties","params":{"color":"yellow"}}
                 ]),
                 relevant,
             )
@@ -612,7 +612,7 @@ async fn query_type_color_numeric_wildcard_and_exclusion_use_engine_membership()
     ] {
         for relevant in [false, true] {
             let mut d = drawing();
-            d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+            d.execute("layer.add", json!({"name":"Walls"})).unwrap();
             let b = d.execute("circle", json!({"center":[20,20],"radius":2})).unwrap()["handle"].clone();
             let far = line(&mut d, "0", 40.0);
             let f = Fixture::new(&mut d);
@@ -623,16 +623,16 @@ async fn query_type_color_numeric_wildcard_and_exclusion_use_engine_membership()
                 } else {
                     let mut p = change.clone();
                     p["handles"] = json!([b]);
-                    f.colleague(&[("properties.set", p)]);
+                    f.colleague(&[("object.setProperties", p)]);
                 }
             } else {
-                f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+                f.colleague(&[("layer.add", json!({"name":"Other"}))]);
             }
             f.steps(
                 basis,
                 json!([
-                    {"command":"qselect","params":query},
-                    {"command":"properties.set","params":{"handles":[far],"color":"green"}}
+                    {"command":"select.quick","params":query},
+                    {"command":"object.setProperties","params":{"handles":[far],"color":"green"}}
                 ]),
                 relevant,
             )
@@ -648,7 +648,7 @@ async fn query_selectall_replays_layer_flags_in_only_its_space() {
         for relevant in [true, false] {
             let mut d = drawing();
             for name in ["Used", "Other"] {
-                d.execute("layer.new", json!({"name":name})).unwrap();
+                d.execute("layer.add", json!({"name":name})).unwrap();
             }
             line(&mut d, "Used", 0.0);
             d.execute("line", json!({"points":[[0,0],[10,0]],"layer":"Other","layout":"Layout1"})).unwrap();
@@ -658,8 +658,8 @@ async fn query_selectall_replays_layer_flags_in_only_its_space() {
             f.steps(
                 basis,
                 json!([
-                    {"command":"selectall","at":{"part":{"layout":space}}},
-                    {"command":"properties.set","at":{"part":{"layout":space}},"params":{"color":"yellow"}}
+                    {"command":"edit.selectAll","at":{"part":{"layout":space}}},
+                    {"command":"object.setProperties","at":{"part":{"layout":space}},"params":{"color":"yellow"}}
                 ]),
                 relevant,
             )
@@ -671,14 +671,14 @@ async fn query_selectall_replays_layer_flags_in_only_its_space() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn query_unfiltered_selection_holds_added_members() {
-    for command in ["selectall", "qselect"] {
+    for command in ["edit.selectAll", "select.quick"] {
         for relevant in [false, true] {
             let mut d = drawing();
             line(&mut d, "0", 0.0);
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
-            f.colleague(&[if relevant { ("line", json!({"points":[[0,20],[10,20]]})) } else { ("layer.new", json!({"name":"Other"})) }]);
-            f.steps(basis, json!([{"command":command,"params":{}},{"command":"scale","params":{"base":[0,0],"factor":2}}]), relevant).await;
+            f.colleague(&[if relevant { ("line", json!({"points":[[0,20],[10,20]]})) } else { ("layer.add", json!({"name":"Other"})) }]);
+            f.steps(basis, json!([{"command":command,"params":{}},{"command":"object.scale","params":{"base":[0,0],"factor":2}}]), relevant).await;
             f.kits.shutdown().await;
         }
     }

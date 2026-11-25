@@ -133,7 +133,7 @@ const report = await takeShots({
       name: 'see-3',
       steps: async (page, { kit }) => {
         await fit(page, kit)
-        await type(page, kit, 'dimlinear')
+        await type(page, kit, 'dimension.addLinear')
         await type(page, kit, '9500,9000')
         await type(page, kit, '9500,4800')
         await hover(page, await toPage(page, 'office', 8900, 6900))

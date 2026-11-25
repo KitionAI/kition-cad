@@ -137,9 +137,9 @@ pub fn is_read_only(name: &str) -> bool {
 pub fn set(s: &mut Session, name: &str, v: &Value) -> Result<()> {
     let n = name.trim().to_ascii_uppercase();
     if is_read_only(&n) {
-        return Err(EngineError::BadParams { cmd: "setvar".into(), msg: format!("{n} is read-only") });
+        return Err(EngineError::BadParams { cmd: "variable.set".into(), msg: format!("{n} is read-only") });
     }
-    let bad = || EngineError::BadParams { cmd: "setvar".into(), msg: format!("invalid value for {n}") };
+    let bad = || EngineError::BadParams { cmd: "variable.set".into(), msg: format!("invalid value for {n}") };
     // SETVAR DIMSCALE sets the drawing's (shared) DIMSCALE, which the person then draws with
     // again: their own scale from making a style current gives way (`Drawing::my_dim_var`).
     if n == "DIMSCALE" {

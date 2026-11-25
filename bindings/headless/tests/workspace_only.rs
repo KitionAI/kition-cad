@@ -5,7 +5,7 @@
 //! and no connection is made. A workspace escape audit
 //! found by reading code that the command line ran file commands written with a prefix
 //! (`_RECOVER /x` read a whole file anywhere and told whether it was there), and that
-//! `stylesmanager` read and wrote plot style tables by path inside `model.batch`.
+//! `plot.styleManager` read and wrote plot style tables by path inside `model.batch`.
 //!
 //! The test runs itself again as a child process whose current folder, `HOME` and `TMPDIR` are
 //! empty scratch folders, beside a planted `outside/` folder of sentinel files: the agent names
@@ -227,7 +227,7 @@ impl Agent {
     fn type_lines(&mut self, id: &str, lines: &[String]) -> Vec<String> {
         let mut answers = Vec::new();
         for line in lines {
-            answers.push(self.run(id, "commandLine", json!({ "text": line })));
+            answers.push(self.run(id, "command.runLine", json!({ "text": line })));
         }
         self.run(id, "edit.redo", json!({}));
         answers
@@ -279,8 +279,8 @@ impl Sandbox {
         let mut maker = CadDocument::create("secret.dxf", 0, 0).unwrap();
         maker.execute("text", json!({ "at": [10, 10], "height": 5, "text": SECRET })).unwrap();
         std::fs::write(outside.join("secret.dxf"), maker.save(Some("secret.dxf")).unwrap()).unwrap();
-        maker.execute("stylesmanager", json!({ "action": "new", "name": "secret.ctb", "description": SECRET })).unwrap();
-        let table = maker.execute("stylesmanager", json!({ "action": "save", "name": "secret.ctb" })).unwrap();
+        maker.execute("plot.styleManager", json!({ "action": "new", "name": "secret.ctb", "description": SECRET })).unwrap();
+        let table = maker.execute("plot.styleManager", json!({ "action": "save", "name": "secret.ctb" })).unwrap();
         std::fs::write(outside.join("secret.ctb"), table["text"].as_str().unwrap()).unwrap();
         std::fs::write(outside.join("secret.png"), png(OUTSIDE)).unwrap();
         std::fs::write(outside.join("secret.ttf"), SECRET).unwrap();
@@ -411,24 +411,24 @@ fn act_commands(root: &Path) {
     std::fs::write(workspace.join("basic.dxf"), CadDocument::create("basic.dxf", 0, 0).unwrap().save(Some("basic.dxf")).unwrap()).unwrap();
     let mut agent = Agent::new(&workspace);
     let id = agent.open("basic.dxf");
-    agent.run(&id, "stylesmanager", json!({ "action": "new", "name": "agent.ctb" }));
+    agent.run(&id, "plot.styleManager", json!({ "action": "new", "name": "agent.ctb" }));
 
     // The same probes against a file outside that is there and one that is not.
     let probes = |file: &str, made: &str| -> Vec<(&'static str, Value)> {
         let (file, made) = (at(&outside, file), at(&outside, made));
         vec![
-            ("stylesmanager", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })),
-            ("stylesmanager", json!({ "action": "save", "name": "agent.ctb", "path": made.replace(".dxf", ".ctb") })),
+            ("plot.styleManager", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })),
+            ("plot.styleManager", json!({ "action": "save", "name": "agent.ctb", "path": made.replace(".dxf", ".ctb") })),
             ("open", json!({ "path": file })),
             ("recover", json!({ "path": file })),
             ("insert", json!({ "name": "S", "file": file, "at": [0, 0] })),
-            ("qsave", json!({ "path": made })),
-            ("saveas", json!({ "path": made })),
-            ("wblock", json!({ "path": made, "handles": [] })),
+            ("file.save", json!({ "path": made })),
+            ("file.saveAs", json!({ "path": made })),
+            ("block.write", json!({ "path": made, "handles": [] })),
             ("plot", json!({ "path": made.replace(".dxf", ".pdf") })),
-            ("exportpdf", json!({ "path": made.replace(".dxf", ".pdf") })),
-            ("commandLine", json!({ "text": format!("stylesmanager {}", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })) })),
-            ("commandLine", json!({ "text": format!("recover {}", json!({ "path": file })) })),
+            ("file.exportPdf", json!({ "path": made.replace(".dxf", ".pdf") })),
+            ("command.runLine", json!({ "text": format!("stylesmanager {}", json!({ "action": "load", "path": file.replace(".dxf", ".ctb") })) })),
+            ("command.runLine", json!({ "text": format!("recover {}", json!({ "path": file })) })),
         ]
     };
     let lines = |file: &str| -> Vec<Vec<String>> {
@@ -476,7 +476,7 @@ fn act_commands(root: &Path) {
     let offered: Vec<String> = agent.kit.commands(Some(&id)).unwrap().into_iter().map(|command| command.id).collect();
     for command in offered {
         // These end or replace the drawing the rest of the sweep runs in.
-        if matches!(command.as_str(), "close" | "closeall" | "new" | "document.switch") {
+        if matches!(command.as_str(), "close" | "file.closeAll" | "new" | "file.switch") {
             continue;
         }
         agent.run(&id, &command, json!({}));

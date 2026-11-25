@@ -60,10 +60,10 @@ fn options_reach_every_layer_property() {
 #[test]
 fn layer_commands_reject_unloaded_linetypes_and_duplicate_renames() {
     let mut s = Session::new();
-    assert!(s.execute("layer.new", &json!({ "name": "A", "linetype": "NOPE" })).is_err());
+    assert!(s.execute("layer.add", &json!({ "name": "A", "linetype": "NOPE" })).is_err());
     assert!(s.doc().unwrap().layer("A").is_none());
-    s.execute("layer.new", &json!({ "name": "A" })).unwrap();
-    s.execute("layer.new", &json!({ "name": "B" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "A" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "B" })).unwrap();
     assert!(s.execute("layer.set", &json!({ "name": "A", "linetype": "ByLayer" })).is_err());
     assert!(s.execute("layer.set", &json!({ "name": "A", "newName": "b" })).is_err());
     assert_eq!(s.doc().unwrap().layers.iter().filter(|l| l.name.eq_ignore_ascii_case("b")).count(), 1);

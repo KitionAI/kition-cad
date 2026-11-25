@@ -43,6 +43,6 @@ fn mleader_remembers_order_and_options() {
     s.cancel();
 
     // JSON calls keep their documented defaults (landing line drawn).
-    s.execute("mleader", &json!({"points": [[0, 0], [5, 5]], "text": "json"})).unwrap();
+    s.execute("multileader.add", &json!({"points": [[0, 0], [5, 5]], "text": "json"})).unwrap();
     assert!(last_mleader(&s).dogleg > 0.0);
 }

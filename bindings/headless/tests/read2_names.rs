@@ -7,7 +7,7 @@ use serde_json::json;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn named_creations_hold_the_case_folded_record_type() {
-    for command in ["block", "style", "dimstyle"] {
+    for command in ["block", "style", "dimensionStyle.open"] {
         check(
             |f| {
                 (
@@ -31,7 +31,7 @@ async fn named_creations_hold_the_case_folded_record_type() {
             },
             |f| {
                 let mut edits = vec![if command == "style" {
-                    ("layer.new", json!({"name":"free","color":3}))
+                    ("layer.add", json!({"name":"free","color":3}))
                 } else {
                     ("style", json!({"name":"free","current":false}))
                 }];

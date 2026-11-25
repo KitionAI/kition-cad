@@ -1,4 +1,4 @@
-//! `entities.measure` (task card C4/C5/C6-cad): what an agent that cannot see precisely needs
+//! `object.measure` (task card C4/C5/C6-cad): what an agent that cannot see precisely needs
 //! measured, in one read-only command that changes nothing and reads no editor state: each
 //! entity's bounding box, the minimum distance between two entities or points, the points where
 //! two entities cross, and the duplicate objects of a space (OVERKILL's report, nothing deleted).
@@ -36,7 +36,7 @@ fn fixture() -> Fixture {
 }
 
 fn measure(s: &mut Session, params: Value) -> Value {
-    s.execute("entities.measure", &params).unwrap_or_else(|e| panic!("{params}: {e}"))
+    s.execute("object.measure", &params).unwrap_or_else(|e| panic!("{params}: {e}"))
 }
 
 #[test]
@@ -98,11 +98,11 @@ fn what_cannot_be_measured_is_refused_by_name() {
         (json!({}), "one of"),
         (json!({ "bounds": ["FFFFFF"] }), "FFFFFF"),
         (json!({ "distance": [f.bottom] }), "two"),
-        (json!({ "intersections": [[0, 0], f.circle] }), "entities"),
+        (json!({ "intersections": [[0, 0], f.circle] }), "object.query"),
         (json!({ "overlaps": { "layout": "Nope" } }), "Nope"),
         (json!({ "bounds": [f.bottom], "distance": [f.bottom, f.circle] }), "one of"),
     ] {
-        let error = f.s.execute("entities.measure", &params).unwrap_err().to_string();
+        let error = f.s.execute("object.measure", &params).unwrap_err().to_string();
         assert!(error.contains(says), "{params}: {error}");
     }
 }

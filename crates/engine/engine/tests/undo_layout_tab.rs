@@ -13,7 +13,7 @@ fn paper(n: &str) -> Space {
 fn undo_and_redo_of_a_rename_follow_the_current_layout() {
     let mut s = Session::new();
     s.execute("layout.set", &json!({"name": "Layout1"})).unwrap();
-    s.execute("mview", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
+    s.execute("viewport.add", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
     let paper_view = s.state().unwrap().paper_view();
     s.execute("layout.rename", &json!({"to": "Sheet"})).unwrap();
     assert_eq!(s.layout_space(), paper("Sheet"));
@@ -31,15 +31,15 @@ fn undo_and_redo_of_a_rename_follow_the_current_layout() {
     s.undo().unwrap();
     s.undo().unwrap();
     assert_eq!(s.layout_space(), paper("Layout1"));
-    s.execute("mview", &json!({"p1": [6, 1], "p2": [8, 4]})).unwrap();
+    s.execute("viewport.add", &json!({"p1": [6, 1], "p2": [8, 4]})).unwrap();
 }
 
 #[test]
 fn undoing_the_current_layouts_creation_returns_to_model() {
     let mut s = Session::new();
-    s.execute("layout.new", &json!({"name": "New"})).unwrap();
+    s.execute("layout.add", &json!({"name": "New"})).unwrap();
     s.execute("layout.set", &json!({"name": "New"})).unwrap();
-    s.execute("mspace", &json!({})).unwrap();
+    s.execute("viewport.modelSpace", &json!({})).unwrap();
     s.execute("line", &json!({"points": [[1, 1], [5, 5]]})).unwrap();
     s.undo().unwrap();
     assert_eq!(s.layout_space(), paper("New"), "the layout still exists");

@@ -12,7 +12,7 @@ async fn following_write(geometry: bool) {
         let change = if geometry {
             ("move", json!({"handles":[f.text],"delta":[1,0]}))
         } else {
-            ("textedit", json!({"handle":f.text,"text":"Before colleague"}))
+            ("text.edit", json!({"handle":f.text,"text":"Before colleague"}))
         };
         if outside {
             f.colleague(&[change]);
@@ -30,8 +30,12 @@ async fn following_write(geometry: bool) {
             .unwrap();
         }
         let before = f.disk();
-        let step = if geometry { json!({"command":"move","params":{"delta":[0,5]}}) } else { json!({"command":"textedit","params":{"text":"Mine"}}) };
-        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"find","params":{"find":"Before"}},step]})).await;
+        let step = if geometry {
+            json!({"command":"object.move","params":{"delta":[0,5]}})
+        } else {
+            json!({"command":"text.edit","params":{"text":"Mine"}})
+        };
+        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"edit.find","params":{"find":"Before"}},step]})).await;
         if let Ok(out) = &answer {
             println!("unexpected applied follower, geometry={geometry}, outside={outside}: {}", out["completed"]);
             assert!(
@@ -59,7 +63,7 @@ async fn search_find_then_move_merges_an_unrelated_entity_edit() {
     check_program(
         |_| vec![("find", json!({"find":"Before"})), ("move", json!({"delta":[0,5]}))],
         |f| vec![("move", json!({"handles":[f.text],"delta":[1,0]}))],
-        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
 }

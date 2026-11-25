@@ -78,7 +78,8 @@ fn arc_and_ellipse_grips() {
 #[test]
 fn polyline_grips() {
     let mut s = Session::new();
-    let p = h(&s.execute("pline", &json!({"vertices": [[0, 0], {"p": [10, 0], "bulge": 0.0}, {"p": [10, 10], "bulge": 1.0}, [0, 10]]})).unwrap());
+    let p =
+        h(&s.execute("polyline.add", &json!({"vertices": [[0, 0], {"p": [10, 0], "bulge": 0.0}, {"p": [10, 10], "bulge": 1.0}, [0, 10]]})).unwrap());
     // Grips: v0, m0, v1, m1, v2, m2, v3.
     assert_eq!(s.grips_of(p).unwrap().len(), 7);
     s.grip_edit(p, 0, v(-1.0, -1.0), GripMode::Stretch).unwrap();
@@ -97,13 +98,13 @@ fn polyline_grips() {
     assert!(segs[2].mid().near(v(6.0, 12.0), 1e-6), "{:?}", segs[2].mid());
     assert!(s.grip_edit(p, 7, v(0.0, 0.0), GripMode::Stretch).is_err());
     // Closed polylines have a closing-segment midpoint grip.
-    let r = h(&s.execute("rectang", &json!({"p1": [20, 0], "p2": [24, 2]})).unwrap());
+    let r = h(&s.execute("rectangle.add", &json!({"p1": [20, 0], "p2": [24, 2]})).unwrap());
     assert_eq!(s.grips_of(r).unwrap().len(), 8);
     s.grip_edit(r, 7, v(19.0, 1.0), GripMode::Stretch).unwrap();
     let EntityKind::LwPolyline(pl) = kind(&s, r) else { panic!() };
     assert!(near(pl.vertices[3].p, 19.0, 2.0) && near(pl.vertices[0].p, 19.0, 0.0));
     // A zero-length segment keeps grip indices aligned with EntityKind::grips().
-    let d = h(&s.execute("pline", &json!({"vertices": [[0, 50], [0, 50], [5, 50]]})).unwrap());
+    let d = h(&s.execute("polyline.add", &json!({"vertices": [[0, 50], [0, 50], [5, 50]]})).unwrap());
     let g = s.grips_of(d).unwrap();
     assert_eq!(g.len(), 4);
     s.grip_edit(d, 3, v(5.0, 55.0), GripMode::Stretch).unwrap();
@@ -131,7 +132,7 @@ fn spline_text_insert_and_dimension_grips() {
     s.grip_edit(ins, 0, v(6.0, 7.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, ins), EntityKind::Insert(x) if near(x.insert.xy(), 6.0, 7.0)));
 
-    let d = h(&s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [10, 0], "at": [5, 2]})).unwrap());
+    let d = h(&s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [10, 0], "at": [5, 2]})).unwrap());
     let g = s.grips_of(d).unwrap();
     assert_eq!(g.len(), 4);
     s.grip_edit(d, 3, v(5.0, 6.0), GripMode::Stretch).unwrap();
@@ -143,10 +144,10 @@ fn spline_text_insert_and_dimension_grips() {
 #[test]
 fn other_entity_grips() {
     let mut s = Session::new();
-    let x = h(&s.execute("xline", &json!({"base": [0, 0], "angle": 0})).unwrap());
+    let x = h(&s.execute("constructionLine.add", &json!({"base": [0, 0], "angle": 0})).unwrap());
     s.grip_edit(x, 1, v(0.0, 3.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, x), EntityKind::XLine(r) if near(r.dir.xy(), 0.0, 1.0)));
-    let p3 = h(&s.execute("3dpoly", &json!({"points": [[0, 0, 4], [1, 0, 5]]})).unwrap());
+    let p3 = h(&s.execute("polyline.add3d", &json!({"points": [[0, 0, 4], [1, 0, 5]]})).unwrap());
     s.grip_edit(p3, 1, v(2.0, 2.0), GripMode::Stretch).unwrap();
     assert!(matches!(kind(&s, p3), EntityKind::Polyline3d(p) if near(p.points[1].xy(), 2.0, 2.0) && p.points[1].z == 5.0));
     let w = h(&s.execute("wipeout", &json!({"points": [[0, 0], [2, 0], [2, 2]]})).unwrap());
@@ -201,7 +202,7 @@ fn grips_on_locked_layers_and_hostile_values() {
         let _ = s.grip_edit(l, 0, v(0.0, 0.0), mode);
         let _ = s.grip_edit(l, 42, v(1e308, -1e308), mode);
     }
-    s.execute("layer.new", &json!({"name": "L"})).ok();
+    s.execute("layer.add", &json!({"name": "L"})).ok();
     s.doc_mut().unwrap().ensure_layer("LOCKED");
     s.doc_mut().unwrap().layer_mut("LOCKED").unwrap().locked = true;
     s.doc_mut().unwrap().modify_entity(l, |e| e.common.layer = "LOCKED".into()).unwrap();

@@ -152,7 +152,7 @@ fn dxf(d: &Drawing) -> Vec<u8> {
 
 fn edit() -> Value {
     json!({ "steps": [
-        { "command": "line", "params": { "points": [[20, 10], [80, 10]] } },
+        { "command": "line.add", "params": { "points": [[20, 10], [80, 10]] } },
     ] })
 }
 

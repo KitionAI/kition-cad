@@ -2,7 +2,7 @@ format: 1
 id: cad.agent.measure/report
 feature: cad.agent.measure
 intent: >-
-  An agent that cannot see precisely measures with one read-only command, `entities.measure`:
+  An agent that cannot see precisely measures with one read-only command, `object.measure`:
   each entity's bounding box, the minimum distance between two entities or points with the
   nearest points, the points where two entities cross, and the duplicate objects of a space
   (OVERKILL's report, nothing deleted); anything it cannot measure is refused by name, and it

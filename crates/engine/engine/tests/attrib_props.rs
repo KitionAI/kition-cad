@@ -10,8 +10,8 @@ use serde_json::json;
 /// Block B (attributes T and U on layer 0) inserted at 100,0; layer A exists.
 fn setup() -> (Session, Handle) {
     let mut s = Session::new();
-    s.execute("attdef", &json!({"tag": "T", "default": "one", "at": [0, 1]})).unwrap();
-    s.execute("attdef", &json!({"tag": "U", "default": "u", "at": [0, 2]})).unwrap();
+    s.execute("attribute.define", &json!({"tag": "T", "default": "one", "at": [0, 1]})).unwrap();
+    s.execute("attribute.define", &json!({"tag": "U", "default": "u", "at": [0, 2]})).unwrap();
     s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
     s.execute("block", &json!({"name": "B", "base": [0, 0], "handles": hs, "keep": "delete"})).unwrap();
@@ -35,7 +35,7 @@ fn dash_attedit_sets_layer_and_colour_of_one_attribute() {
     let (mut s, h) = setup();
     let blue = Rgb(0, 128, 255);
     assert!(!drawn_in(&s, blue));
-    for t in ["-attedit", "y", "", "T", "", "105,0", ""] {
+    for t in ["attribute.editGlobal", "y", "", "T", "", "105,0", ""] {
         s.cmdline(t).unwrap();
     }
     assert!(s.prompt_text().contains("[Value/Layer/Color/Next] <N>"), "{}", s.prompt_text());
@@ -61,7 +61,7 @@ fn dash_attedit_sets_layer_and_colour_of_one_attribute() {
     assert!(drawn_in(&s, blue), "the attribute's own colour is drawn");
 
     // ATTSYNC brings the attributes back to their definitions, as in AutoCAD.
-    s.execute("attsync", &json!({"name": "B"})).unwrap();
+    s.execute("attribute.sync", &json!({"name": "B"})).unwrap();
     assert!(props(&s, h, "T").is_empty());
     assert!(!drawn_in(&s, blue));
 }
@@ -69,7 +69,7 @@ fn dash_attedit_sets_layer_and_colour_of_one_attribute() {
 #[test]
 fn hostile_answers_do_not_panic() {
     let (mut s, h) = setup();
-    for t in ["-attedit", "y", "", "", "", "105,0", "", "c", "999", "co", "t", "1,2", "300,0,0", "", "l", "", "n", "n"] {
+    for t in ["attribute.editGlobal", "y", "", "", "", "105,0", "", "c", "999", "co", "t", "1,2", "300,0,0", "", "l", "", "n", "n"] {
         let _ = s.cmdline(t);
     }
     assert!(s.running.is_none(), "{}", s.prompt_text());

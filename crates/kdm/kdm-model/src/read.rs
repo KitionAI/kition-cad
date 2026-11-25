@@ -161,12 +161,12 @@ pub(crate) fn read_with<S: Source>(
     let layout_entries = entries(src, "layouts", "Layout")?;
     let mut layouts_listed = Vec::with_capacity(layout_entries.len());
     for entry in &layout_entries {
-        layouts_listed.push(r.listed(&entry.object, "entities")?);
+        layouts_listed.push(r.listed(&entry.object, "object.query")?);
     }
     let block_entries = entries(src, "blocks", "Block")?;
     let mut blocks_listed = Vec::with_capacity(block_entries.len());
     for entry in &block_entries {
-        blocks_listed.push(r.listed(&entry.object, "entities")?);
+        blocks_listed.push(r.listed(&entry.object, "object.query")?);
     }
 
     // Which cached entities still read the same: those whose object did not change, unless an

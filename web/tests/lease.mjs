@@ -56,12 +56,12 @@ function fakeTimers() {
 }
 
 // Which commands solve constraints, also typed on the command line.
-assert.ok(solvesConstraints('gccoincident') && solvesConstraints('dcaligned') && solvesConstraints('autoconstrain'))
-assert.ok(solvesConstraints('geomconstraint') && solvesConstraints('dimconstraint') && solvesConstraints('delconstraint') && solvesConstraints('parameters'))
-assert.ok(!solvesConstraints('line') && !solvesConstraints('dcdisplay') && !solvesConstraints('move'))
-assert.equal(constraintLeaseScope('gchorizontal', {}), CONSTRAINT_SCOPE)
-assert.equal(constraintLeaseScope('commandLine', { text: '  GCVERTICAL 1A2' }), CONSTRAINT_SCOPE)
-assert.equal(constraintLeaseScope('commandLine', { text: 'line 0,0 1,1' }), null)
+assert.ok(solvesConstraints('constraint.coincident') && solvesConstraints('constraint.dimensionAligned') && solvesConstraints('constraint.auto'))
+assert.ok(solvesConstraints('constraint.addGeometric') && solvesConstraints('constraint.addDimensional') && solvesConstraints('constraint.delete') && solvesConstraints('parameters'))
+assert.ok(!solvesConstraints('line') && !solvesConstraints('constraint.dynamicDimensions') && !solvesConstraints('move'))
+assert.equal(constraintLeaseScope('constraint.horizontal', {}), CONSTRAINT_SCOPE)
+assert.equal(constraintLeaseScope('command.runLine', { text: '  GCVERTICAL 1A2' }), CONSTRAINT_SCOPE)
+assert.equal(constraintLeaseScope('command.runLine', { text: 'line 0,0 1,1' }), null)
 assert.equal(constraintLeaseScope('circle', {}), null)
 
 // A constraint command takes the lease, runs, and lets it go a moment after.
@@ -75,8 +75,8 @@ assert.equal(constraintLeaseScope('circle', {}), null)
     ran.push(command)
     return '{}'
   }, lease)
-  assert.equal(await run('gccoincident', {}), '{}')
-  assert.deepEqual(ran, ['gccoincident'])
+  assert.equal(await run('constraint.coincident', {}), '{}')
+  assert.deepEqual(ran, ['constraint.coincident'])
   assert.deepEqual(leases.calls[0], ['acquire', CONSTRAINT_SCOPE, 15_000])
   assert.equal([...timers.pending.values()][0].ms, CONSTRAINT_IDLE_MS)
   timers.fire()
@@ -86,8 +86,8 @@ assert.equal(constraintLeaseScope('circle', {}), null)
   assert.equal(await run('line', { points: [[0, 0], [1, 1]] }), '{}')
   assert.equal(leases.calls.length, calls)
   // An interactive constraint command keeps the lease while it runs.
-  assert.equal(await run('gcparallel', {}), '{}')
-  running = 'gcparallel'
+  assert.equal(await run('constraint.parallel', {}), '{}')
+  running = 'constraint.parallel'
   lease.follow()
   timers.fire()
   assert.notDeepEqual(leases.calls.at(-1), ['release', CONSTRAINT_SCOPE], 'kept while the command runs')
@@ -107,7 +107,7 @@ assert.equal(constraintLeaseScope('circle', {}), null)
     ran.push(command)
     return '{}'
   }, lease)
-  assert.equal(await run('dimconstraint', {}), null)
+  assert.equal(await run('constraint.addDimensional', {}), null)
   assert.deepEqual(ran, [])
   assert.deepEqual(refused, ['Ada'])
   assert.equal(await run('line', {}), '{}', 'commands that solve nothing go ahead')
@@ -118,7 +118,7 @@ assert.equal(constraintLeaseScope('circle', {}), null)
   const leases = fakeLeases({ available: false })
   const lease = new ConstraintLease(leases, () => assert.fail('no refusal'), () => null, fakeTimers())
   const run = withConstraintLease(async () => '{}', lease)
-  assert.equal(await run('autoconstrain', {}), '{}')
+  assert.equal(await run('constraint.auto', {}), '{}')
   assert.deepEqual(leases.calls, [])
 }
 

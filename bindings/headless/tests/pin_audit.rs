@@ -8,9 +8,9 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn new_layers_hold_the_observed_name_gap() {
     check(
-        |_| ("layer.new", json!({"name":"Taken"})),
-        |_| vec![("layer.new", json!({"name":"Taken"}))],
-        |_| vec![("layer.new", json!({"name":"Other"}))],
+        |_| ("layer.add", json!({"name":"Taken"})),
+        |_| vec![("layer.add", json!({"name":"Taken"}))],
+        |_| vec![("layer.add", json!({"name":"Other"}))],
     )
     .await;
 }
@@ -19,7 +19,7 @@ async fn new_layers_hold_the_observed_name_gap() {
 async fn group_creation_and_rename_hold_the_destination_gap() {
     for rename in [false, true] {
         check(
-            |f| if rename { ("groupedit", json!({"name":"Group","rename":"Taken"})) } else { ("group", json!({"name":"Taken","handles":[f.line]})) },
+            |f| if rename { ("group.edit", json!({"name":"Group","rename":"Taken"})) } else { ("group", json!({"name":"Taken","handles":[f.line]})) },
             |f| vec![("group", json!({"name":"Taken","handles":[f.circle]}))],
             |f| vec![("group", json!({"name":"Other","handles":[f.circle]}))],
         )
@@ -29,7 +29,7 @@ async fn group_creation_and_rename_hold_the_destination_gap() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn record_renames_hold_destination_names_within_their_type() {
-    for command in ["layer.set", "layout.rename", "style.rename", "dimstyle.rename", "layerstate.rename"] {
+    for command in ["layer.set", "layout.rename", "textStyle.rename", "dimensionStyle.rename", "layerState.rename"] {
         check_with_setup(
             |_| match command {
                 "layer.set" => (command, json!({"name":"Editable","newName":"Taken"})),
@@ -38,18 +38,18 @@ async fn record_renames_hold_destination_names_within_their_type() {
             },
             |_| {
                 vec![match command {
-                    "layer.set" => ("layer.new", json!({"name":"Taken"})),
-                    "layout.rename" => ("layout.new", json!({"name":"Taken","viewport":false})),
-                    "style.rename" => ("style", json!({"name":"Taken","current":false})),
-                    "dimstyle.rename" => ("dimstyle", json!({"name":"Taken","current":false})),
-                    _ => ("layerstate.save", json!({"name":"Taken"})),
+                    "layer.set" => ("layer.add", json!({"name":"Taken"})),
+                    "layout.rename" => ("layout.add", json!({"name":"Taken","viewport":false})),
+                    "textStyle.rename" => ("style", json!({"name":"Taken","current":false})),
+                    "dimensionStyle.rename" => ("dimensionStyle.open", json!({"name":"Taken","current":false})),
+                    _ => ("layerState.save", json!({"name":"Taken"})),
                 }]
             },
-            |_| vec![("layer.new", json!({"name":"Other"}))],
+            |_| vec![("layer.add", json!({"name":"Other"}))],
             |_| match command {
-                "style.rename" => vec![("style", json!({"name":"Source","current":false}))],
-                "dimstyle.rename" => vec![("dimstyle", json!({"name":"Source","current":false}))],
-                "layerstate.rename" => vec![("layerstate.save", json!({"name":"Source"}))],
+                "textStyle.rename" => vec![("style", json!({"name":"Source","current":false}))],
+                "dimensionStyle.rename" => vec![("dimensionStyle.open", json!({"name":"Source","current":false}))],
+                "layerState.rename" => vec![("layerState.save", json!({"name":"Source"}))],
                 _ => vec![],
             },
         )
@@ -60,9 +60,9 @@ async fn record_renames_hold_destination_names_within_their_type() {
 #[tokio::test(flavor = "multi_thread")]
 async fn implicit_names_hold_the_first_free_candidate() {
     check(
-        |_| ("layout.new", json!({})),
+        |_| ("layout.add", json!({})),
         |_| vec![("layout.rename", json!({"from":"Layout1","to":"Renamed"}))],
-        |_| vec![("groupedit", json!({"name":"Group","rename":"Other"}))],
+        |_| vec![("group.edit", json!({"name":"Group","rename":"Other"}))],
     )
     .await;
     check(
@@ -76,7 +76,12 @@ async fn implicit_names_hold_the_first_free_candidate() {
 #[tokio::test(flavor = "multi_thread")]
 async fn command_line_assignments_hold_the_same_field() {
     for text in ["ltscale {\"scale\":2}", "LTS {\"scale\":2}"] {
-        check(|_| ("commandLine", json!({"text":text})), |_| vec![("ltscale", json!({"scale":3}))], |_| vec![("units", json!({"insunits":1}))]).await;
+        check(
+            |_| ("command.runLine", json!({"text":text})),
+            |_| vec![("property.linetypeScale", json!({"scale":3}))],
+            |_| vec![("units", json!({"insunits":1}))],
+        )
+        .await;
     }
 }
 
@@ -86,7 +91,7 @@ async fn an_empty_clipboard_does_not_consume_drawing_defaults() {
     let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
     f.colleague(&[("color", json!({"color":"red"}))]);
     let saved = f.disk();
-    let error = f.call("run", json!({"basis":basis,"steps":[{"command":"pasteblock","params":{"at":[0,0]}}]})).await.unwrap_err();
+    let error = f.call("run", json!({"basis":basis,"steps":[{"command":"edit.pasteAsBlock","params":{"at":[0,0]}}]})).await.unwrap_err();
     assert_eq!(error["error"]["code"], "command-failed", "{error}");
     assert!(error["error"]["message"].as_str().unwrap().contains("clipboard is empty"), "{error}");
     assert_eq!(saved, f.disk());
@@ -108,8 +113,8 @@ async fn radius_is_assigned_even_by_a_transform_with_unit_scale() {
                     },
                 )
             },
-            |f| vec![("properties.set", json!({"handles":[f.circle],"radius":8}))],
-            |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+            |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":8}))],
+            |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
         )
         .await;
     }
@@ -117,7 +122,7 @@ async fn radius_is_assigned_even_by_a_transform_with_unit_scale() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn unavailable_layer_histories_do_not_consume_layer_values() {
-    for command in ["layerp", "layuniso"] {
+    for command in ["layer.previous", "layer.unisolate"] {
         let f = Fixture::new();
         let mut native = kition_cad_kit::CadDocument::open(FILE, &f.disk()).unwrap();
         use kition_kit::KitDocument;
@@ -135,16 +140,16 @@ async fn unavailable_layer_histories_do_not_consume_layer_values() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_single_circle_cannot_infer_a_constraint() {
     check(
-        |f| ("autoconstrain", json!({"handles":[f.circle]})),
+        |f| ("constraint.auto", json!({"handles":[f.circle]})),
         |f| vec![("erase", json!({"handles":[f.circle]}))],
-        |f| vec![("properties.set", json!({"handles":[f.circle],"radius":8}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":8}))],
     )
     .await;
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn display_exception_handles_are_opaque_membership_ids() {
-    for command in ["constraintbar", "dcdisplay"] {
+    for command in ["constraint.bars", "constraint.dynamicDimensions"] {
         check(
             |f| (command, json!({"mode":"show","handles":[f.circle]})),
             |f| vec![(command, json!({"mode":"hide","handles":[f.circle]}))],
@@ -157,7 +162,7 @@ async fn display_exception_handles_are_opaque_membership_ids() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_command_line_without_parameters_holds_its_native_snapshot() {
     check(
-        |_| ("commandLine", json!({"text":"layon"})),
+        |_| ("command.runLine", json!({"text":"layer.allOn"})),
         |_| vec![("layer.set", json!({"name":"Editable","color":"blue"}))],
         |f| vec![("move", json!({"handles":[f.circle],"delta":[1,0]}))],
     )
@@ -173,12 +178,12 @@ async fn find_then_first_recipient_edit_holds_match_order() {
             let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
             let params = json!({"handles":[if relevant { &f.text } else { &f.circle }]});
             if outside {
-                f.colleague(&[("draworder.front", params)]);
+                f.colleague(&[("arrange.bringToFront", params)]);
             } else {
                 kition_kits::tools::call_as(
                     &f.kits,
                     "cad_run",
-                    &json!({"path":FILE,"steps":[{"command":"draworder.front","params":params}]}),
+                    &json!({"path":FILE,"steps":[{"command":"arrange.bringToFront","params":params}]}),
                     kition_kits::tools::CallOptions::default(),
                     "colleague",
                 )
@@ -190,7 +195,7 @@ async fn find_then_first_recipient_edit_holds_match_order() {
             let answer = f
                 .call(
                     "run",
-                    json!({"basis":basis,"steps":[{"command":"find","params":{"find":"Before"}},{"command":"textedit","params":{"text":"Mine"}}]}),
+                    json!({"basis":basis,"steps":[{"command":"edit.find","params":{"find":"Before"}},{"command":"text.edit","params":{"text":"Mine"}}]}),
                 )
                 .await;
             if relevant {
@@ -212,7 +217,7 @@ async fn find_then_first_recipient_edit_holds_match_order() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn terminal_close_has_no_document_or_save_and_stops_the_run() {
-    for command in ["close", "closeall"] {
+    for command in ["close", "file.closeAll"] {
         for guard in ["premise", "off"] {
             let f = Fixture::new();
             let before = f.disk();
@@ -221,7 +226,7 @@ async fn terminal_close_has_no_document_or_save_and_stops_the_run() {
             // The guarded suffix is covered separately below.
             let mut steps = vec![json!({"command":command,"params":{}})];
             if guard == "off" {
-                steps.push(json!({"command":"color","params":{"color":"red"}}));
+                steps.push(json!({"command":"property.color","params":{"color":"red"}}));
             }
             let result = kition_kits::tools::call_as(
                 &f.kits,
@@ -249,12 +254,12 @@ async fn terminal_close_has_no_document_or_save_and_stops_the_run() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn guarded_planning_stops_after_terminal_close() {
-    for command in ["close", "closeall"] {
+    for command in ["close", "file.closeAll"] {
         let f = Fixture::new();
         let before = f.disk();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
         let result = f
-            .call("run", json!({"basis":basis,"steps":[{"command":command,"params":{}},{"command":"color","params":{"color":"red"}}]}))
+            .call("run", json!({"basis":basis,"steps":[{"command":command,"params":{}},{"command":"property.color","params":{"color":"red"}}]}))
             .await
             .unwrap();
         assert_eq!(result["closed"], true, "{result}");
@@ -270,11 +275,11 @@ async fn guarded_planning_stops_after_terminal_close() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_new_display_exception_holds_its_live_recipient() {
-    for command in ["constraintbar", "dcdisplay"] {
+    for command in ["constraint.bars", "constraint.dynamicDimensions"] {
         check(
             |f| (command, json!({"mode":"hide","handles":[f.circle]})),
             |f| vec![("erase", json!({"handles":[f.circle]}))],
-            |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+            |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
         )
         .await;
     }

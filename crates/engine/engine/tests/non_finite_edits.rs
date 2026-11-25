@@ -9,9 +9,9 @@ fn circle(s: &mut Session) -> String {
 }
 
 fn snapshot(s: &mut Session) -> (Value, usize) {
-    let i = s.execute("drawing.inspect", &json!({})).unwrap();
+    let i = s.execute("file.inspect", &json!({})).unwrap();
     let undo = i["undo"].as_array().map_or(0, Vec::len);
-    (i["entities"].clone(), undo)
+    (i["object.query"].clone(), undo)
 }
 
 #[test]
@@ -23,7 +23,7 @@ fn json_transforms_that_overflow_are_refused() {
         ("scale", json!({"base": [0, 0], "factor": 1e308})),
         ("rotate", json!({"base": [-1e308, -1e308], "angle": 180})),
         ("mirror", json!({"p1": [-1e308, -1e308], "p2": [-1e308, 0]})),
-        ("arrayrect", json!({"rows": 3, "cols": 1, "rowSpacing": 1e308, "colSpacing": 1})),
+        ("object.arrayRectangular", json!({"rows": 3, "cols": 1, "rowSpacing": 1e308, "colSpacing": 1})),
         ("stretch", json!({"window": [[-2, -2], [1.7e308, 1.7e308]], "delta": huge})),
         ("offset", json!({"distance": 1e308, "side": [1.7e308, 1.7e308]})),
     ];

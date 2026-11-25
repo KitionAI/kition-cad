@@ -21,9 +21,9 @@ export function SelectionProperties({ info }: { info: CadInfo }) {
   const handles = objects.map((object) => object.handle)
   const layer = objects.length && objects.every((object) => object.layer === objects[0].layer) ? objects[0].layer : ''
   const type = objects.length && objects.every((object) => object.type === objects[0].type) ? objects[0].type : 'Multiple types'
-  const editable = enabled('properties.set') && !objects.some((object) => object.locked)
+  const editable = enabled('object.setProperties') && !objects.some((object) => object.locked)
   const one = objects.length === 1 ? objects[0] : null
-  const apply = (params: Record<string, unknown>) => { void run('properties.set', { handles, ...params }) }
+  const apply = (params: Record<string, unknown>) => { void run('object.setProperties', { handles, ...params }) }
   return <div className="cad-properties" data-testid="cad-selection-properties">
     <span>{info.selection ? t('selected', { count: info.selection }) : t('nothingSelected')}</span>
     {!objects.length ? <span className="kui-muted">{t('layer', { name: info.currentLayer })}</span> : <>

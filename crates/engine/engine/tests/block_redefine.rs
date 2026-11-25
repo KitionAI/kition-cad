@@ -49,7 +49,7 @@ fn redefining_with_a_different_case_replaces_the_block() {
     s.execute("block", &json!({ "name": "Door", "base": [0, 0], "handles": [l] })).unwrap();
     let l = line(&mut s, [0.0, 0.0], [0.0, 10.0]);
     s.execute("block", &json!({ "name": "DOOR", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
-    let list = s.execute("blocks.list", &json!({})).unwrap();
+    let list = s.execute("block.list", &json!({})).unwrap();
     let names: Vec<&str> = list["blocks"].as_array().unwrap().iter().filter_map(|b| b["name"].as_str()).collect();
     assert_eq!(names, ["Door"]);
     assert_eq!(s.doc().unwrap().blocks.values().map(|b| b.entities.len()).collect::<Vec<_>>(), [1]);

@@ -9,10 +9,10 @@ use serde_json::json;
 
 /// Commands whose top level takes keys a schema cannot list, with why.
 const OPEN: &[(&str, &str)] = &[
-    ("dimstyle", "takes any dimension style field or DIM* variable as a key, as DIMSTYLE does"),
-    ("dimstyle.dimension", "takes any dimension style field or DIM* variable as a key, as DIMSTYLE does"),
-    ("dimstyle.override", "takes any dimension style field or DIM* variable as a key (per-dimension overrides), as DIMOVERRIDE does"),
-    ("dimoverride", "takes any dimension style field or DIM* variable as a key (per-dimension overrides), as DIMOVERRIDE does"),
+    ("dimensionStyle.open", "takes any dimension style field or DIM* variable as a key, as DIMSTYLE does"),
+    ("dimensionStyle.openManager", "takes any dimension style field or DIM* variable as a key, as DIMSTYLE does"),
+    ("dimensionStyle.override", "takes any dimension style field or DIM* variable as a key (per-dimension overrides), as DIMOVERRIDE does"),
+    ("dimension.override", "takes any dimension style field or DIM* variable as a key (per-dimension overrides), as DIMOVERRIDE does"),
 ];
 
 fn doc() -> CadDocument {
@@ -28,20 +28,20 @@ fn every_command_refuses_an_unknown_parameter() {
 
 #[test]
 fn a_misspelled_parameter_names_the_one_it_resembles() {
-    let error = doc().execute("commandLine", json!({ "txt": "LINE" })).unwrap_err();
+    let error = doc().execute("command.runLine", json!({ "txt": "LINE" })).unwrap_err();
     assert!(error.contains("`txt`") && error.contains("did you mean `text`"), "{error}");
 }
 
 #[test]
 fn properties_set_declares_every_field_it_reads() {
-    // The keys `properties.set` reads (crates/engine/engine/src/cmd/props.rs, run_set).
+    // The keys `object.setProperties` reads (crates/engine/engine/src/cmd/props.rs, run_set).
     let read = [
         "handles",
         "layer",
         "color",
         "linetype",
         "lineweight",
-        "ltscale",
+        "property.linetypeScale",
         "transparency",
         "visible",
         "dimStyle",
@@ -68,17 +68,17 @@ fn properties_set_declares_every_field_it_reads() {
         "pattern",
     ];
     let commands = doc().commands();
-    let schema = commands.iter().find(|command| command.id == "properties.set").and_then(|command| command.schema.clone()).unwrap();
+    let schema = commands.iter().find(|command| command.id == "object.setProperties").and_then(|command| command.schema.clone()).unwrap();
     let missing: Vec<_> = read.iter().filter(|key| schema.get(**key).is_none()).collect();
-    assert!(missing.is_empty(), "properties.set reads keys its schema does not name: {missing:?}");
+    assert!(missing.is_empty(), "object.setProperties reads keys its schema does not name: {missing:?}");
 }
 
 #[test]
 fn measuregeom_takes_the_keys_of_the_measure_it_runs() {
     let mut drawing = doc();
-    let answer = drawing.execute("measuregeom", json!({ "mode": "distance", "p1": [0, 0], "p2": [3, 4] })).unwrap();
+    let answer = drawing.execute("measure.geometry", json!({ "mode": "distance", "p1": [0, 0], "p2": [3, 4] })).unwrap();
     assert_eq!(answer["distance"], json!(5.0), "{answer}");
-    let error = drawing.execute("measuregeom", json!({ "mode": "distance", "p1": [0, 0], "p3": [3, 4] })).unwrap_err();
+    let error = drawing.execute("measure.geometry", json!({ "mode": "distance", "p1": [0, 0], "p3": [3, 4] })).unwrap_err();
     assert!(error.contains("`p3`"), "{error}");
 }
 
@@ -86,7 +86,7 @@ fn measuregeom_takes_the_keys_of_the_measure_it_runs() {
 fn keys_written_one_or_another_are_parameters() {
     // `move {to | delta}` and `rectang {p2 | dimensions}`: agent/guide.md's examples use them.
     let mut drawing = doc();
-    let rectangle = drawing.execute("rectang", json!({ "p1": [10, 10], "p2": [40, 30] })).unwrap();
+    let rectangle = drawing.execute("rectangle.add", json!({ "p1": [10, 10], "p2": [40, 30] })).unwrap();
     let handle = rectangle["handle"].clone();
     drawing.execute("move", json!({ "handles": [handle], "delta": [5, 5] })).unwrap();
     let error = drawing.execute("move", json!({ "handles": [rectangle["handle"].clone()], "deltta": [5, 5] })).unwrap_err();

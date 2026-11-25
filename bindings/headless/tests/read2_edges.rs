@@ -30,7 +30,7 @@ async fn an_explicit_edge_relocated_without_geometry_changes_conflicts() {
         });
         let before = f.disk();
         let params = json!({"handle":f.line,"pick":[75,0],"edges":[f.joined],"mode":"quick"});
-        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"trim","params":params}]})).await;
+        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"object.trim","params":params}]})).await;
         if relevant {
             let error = answer.expect_err("the cutting edge left the scan space");
             assert_eq!(error["error"]["code"], "conflict", "{error}");

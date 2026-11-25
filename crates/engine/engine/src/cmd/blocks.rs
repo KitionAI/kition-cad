@@ -25,7 +25,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .params("{name, base: [x,y], handles?, keep?: \"convert\"|\"retain\"|\"delete\" (default \"convert\"), description?}")
             .interactive(|_| Ok(Box::new(BlockM::default()))),
         // -BLOCK erases the selected objects once the block is defined.
-        CommandSpec::new("-block", "Create Block", run_dash_block)
+        CommandSpec::new("block.add", "Create Block", run_dash_block)
             .alias(&["-b"])
             .params("{name, base: [x,y], handles?, keep?: \"delete\"|\"retain\"|\"convert\" (default \"delete\"), description?}")
             .interactive(|_| Ok(Box::new(BlockM { dash: true, ..BlockM::default() }))),
@@ -34,21 +34,21 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["i", "-insert", "ddinsert"])
             .params("{name (\"*NAME\": exploded), file?: DXF/DWG path (defines or redefines block `name`, default the file name, from its model space; base point $INSBASE), at: [x,y], scale?: number | [x, y], rotation? (degrees), basePoint?: [x,y] (block coordinates), attribs?: {TAG: value}, explode?: bool}")
             .interactive(|_| Ok(Box::new(InsertM::default()))),
-        CommandSpec::new("attdef", "Define Attributes...", run_attdef)
+        CommandSpec::new("attribute.define", "Define Attributes...", run_attdef)
             .menu(&["Draw", "Block", "Define Attributes..."])
             .alias(&["att", "-attdef"])
             .params("{tag, prompt?, default?, at, height?, invisible?}")
             .interactive(|_| Ok(Box::new(AttdefM::default()))),
         attedit::attedit_spec(),
         attedit::dash_attedit_spec(),
-        CommandSpec::new("wblock", "Write Block", run_wblock).alias(&["w"]).params("{path, name?: string (a block to write), handles? (objects to write instead of a block), base?}"),
+        CommandSpec::new("block.write", "Write Block", run_wblock).alias(&["w"]).params("{path, name?: string (a block to write), handles? (objects to write instead of a block), base?}"),
         CommandSpec::new("base", "Base", run_base).menu(&["Draw", "Block", "Base"]).params("{at: [x,y]}"),
         CommandSpec::new("purge", "Purge", purge::run)
             .alias(&["pu", "-purge"])
             .params("{type?: all|blocks|dimstyles|groups|layers|linetypes|mleaderstyles|tablestyles|textstyles|zerolength|emptytext (default all: every named type), names?: \"A*,B\" (default *)} → purged")
             .interactive(|_| Ok(Box::new(purge::PurgeM::default()))),
-        CommandSpec::new("blocks.list", "List Blocks", run_list).enabled(has_doc).noundo(),
-        CommandSpec::new("battman", "Block Attribute Manager...", run_battman)
+        CommandSpec::new("block.list", "List Blocks", run_list).enabled(has_doc).noundo(),
+        CommandSpec::new("attribute.manage", "Block Attribute Manager...", run_battman)
             .menu(&["Modify", "Object", "Attribute", "Block Attribute Manager..."])
             .params("{name}")
             .noundo(),
@@ -242,19 +242,19 @@ fn attdef_kind(s: &Session, tag: &str, prompt: &str, default: &str, at: Vec2, he
 }
 
 fn run_attdef(s: &mut Session, p: &Value) -> Result<Value> {
-    let tag = str_param(p, "tag").ok_or_else(|| bad("attdef", "`tag` is required"))?;
+    let tag = str_param(p, "tag").ok_or_else(|| bad("attribute.define", "`tag` is required"))?;
     if tag.contains(' ') || tag.is_empty() {
-        return Err(bad("attdef", "tag must be non-empty without spaces"));
+        return Err(bad("attribute.define", "tag must be non-empty without spaces"));
     }
-    let at = point_req("attdef", p, "at")?;
+    let at = point_req("attribute.define", p, "at")?;
     let h = f64_or(p, "height", s.doc()?.header.f64("TEXTSIZE", 0.2));
     let k = attdef_kind(s, tag, str_param(p, "prompt").unwrap_or(tag), str_param(p, "default").unwrap_or(""), at, h, bool_or(p, "invisible", false));
     Ok(json!({ "handle": s.add_entity(k)?.hex() }))
 }
 
 fn run_wblock(s: &mut Session, p: &Value) -> Result<Value> {
-    let path = str_param(p, "path").ok_or_else(|| bad("wblock", "`path` is required"))?.to_string();
-    s.files_by_path("wblock")?;
+    let path = str_param(p, "path").ok_or_else(|| bad("block.write", "`path` is required"))?.to_string();
+    s.files_by_path("block.write")?;
     let src = s.doc()?;
     let mut d = kition_cad_doc::Drawing::new_imperial();
     d.layers = src.layers.clone();
@@ -268,7 +268,7 @@ fn run_wblock(s: &mut Session, p: &Value) -> Result<Value> {
     d.header.set("INSBASE", kition_cad_doc::HVal::Point(Vec3::ZERO));
     let m = Mat3::translate(-base.unwrap_or(Vec2::ZERO));
     let ents: Vec<Entity> = if let Some(name) = str_param(p, "name") {
-        let b = src.block(name).ok_or_else(|| bad("wblock", format!("no block `{name}`")))?;
+        let b = src.block(name).ok_or_else(|| bad("block.write", format!("no block `{name}`")))?;
         let m = Mat3::translate(-base.unwrap_or(b.base.xy()));
         b.entities
             .iter()
@@ -293,11 +293,11 @@ fn run_wblock(s: &mut Session, p: &Value) -> Result<Value> {
         e.handle = d.new_handle();
         d.model.push(e);
     }
-    let hooks = super::file::io().ok_or_else(|| bad("wblock", "file formats are not available in this build"))?;
-    let bytes = (hooks.write)(&d, &path).map_err(|e| bad("wblock", e))?;
+    let hooks = super::file::io().ok_or_else(|| bad("block.write", "file formats are not available in this build"))?;
+    let bytes = (hooks.write)(&d, &path).map_err(|e| bad("block.write", e))?;
     #[cfg(not(target_arch = "wasm32"))]
-    std::fs::write(&path, &bytes).map_err(|e| bad("wblock", format!("{path}: {e}")))?;
-    Ok(json!({ "path": path, "entities": d.model.len(), "bytes": bytes.len() }))
+    std::fs::write(&path, &bytes).map_err(|e| bad("block.write", format!("{path}: {e}")))?;
+    Ok(json!({ "path": path, "object.query": d.model.len(), "bytes": bytes.len() }))
 }
 
 fn run_base(s: &mut Session, p: &Value) -> Result<Value> {
@@ -309,13 +309,13 @@ fn run_base(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_list(s: &mut Session, _p: &Value) -> Result<Value> {
     let d = s.doc()?;
     Ok(
-        json!({ "blocks": d.blocks.values().filter(|b| !b.anonymous).map(|b| json!({"name": b.name, "entities": b.entities.len(), "base": [b.base.x, b.base.y], "description": b.description})).collect::<Vec<_>>() }),
+        json!({ "blocks": d.blocks.values().filter(|b| !b.anonymous).map(|b| json!({"name": b.name, "object.query": b.entities.len(), "base": [b.base.x, b.base.y], "description": b.description})).collect::<Vec<_>>() }),
     )
 }
 
 fn run_battman(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("battman", "`name` is required"))?;
-    let b = s.doc()?.block(name).cloned().ok_or_else(|| bad("battman", "no such block"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("attribute.manage", "`name` is required"))?;
+    let b = s.doc()?.block(name).cloned().ok_or_else(|| bad("attribute.manage", "no such block"))?;
     let atts: Vec<Value> = b
         .entities
         .iter()

@@ -17,13 +17,13 @@ pub fn specs() -> Vec<CommandSpec> {
             .noundo()
             .transparent(),
         CommandSpec::new("find", "Find...", run_find).menu(&["Edit", "Find..."]).params("{find, replace?, matchCase?: bool, wholeWord?: bool}"),
-        CommandSpec::new("massprop", "Region/Mass Properties", run_massprop)
+        CommandSpec::new("measure.massProperties", "Region/Mass Properties", run_massprop)
             .menu(&["Tools", "Inquiry", "Region/Mass Properties"])
             .params("{handles?}")
             .noundo(),
-        CommandSpec::new("measuregeom", "Measure Geometry", run_measuregeom).params("{mode: distance|radius|angle|area, p1?: [x,y], p2?: [x,y] (distance, angle), vertex?: [x,y] (angle), handle?, handles? (radius, area), points?: [[x,y],...] (area)}").noundo(),
-        CommandSpec::new("radius.measure", "Radius", run_radius).menu(&["Tools", "Inquiry", "Radius"]).params("{handle}").noundo(),
-        CommandSpec::new("angle.measure", "Angle", run_angle).menu(&["Tools", "Inquiry", "Angle"]).params("{vertex, p1, p2} | {h1, h2}").noundo(),
+        CommandSpec::new("measure.geometry", "Measure Geometry", run_measuregeom).params("{mode: distance|radius|angle|area, p1?: [x,y], p2?: [x,y] (distance, angle), vertex?: [x,y] (angle), handle?, handles? (radius, area), points?: [[x,y],...] (area)}").noundo(),
+        CommandSpec::new("measure.radius", "Radius", run_radius).menu(&["Tools", "Inquiry", "Radius"]).params("{handle}").noundo(),
+        CommandSpec::new("measure.angle", "Angle", run_angle).menu(&["Tools", "Inquiry", "Angle"]).params("{vertex, p1, p2} | {h1, h2}").noundo(),
     ]
 }
 
@@ -374,11 +374,11 @@ fn run_massprop(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_radius(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("radius.measure", "`handle` is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("measure.radius", "`handle` is required"))?;
     let r = match s.doc()?.entity(h).map(|e| e.kind.clone()) {
         Some(EntityKind::Circle(c)) => c.radius,
         Some(EntityKind::Arc(a)) => a.radius,
-        _ => return Err(bad("radius.measure", "select an arc or circle")),
+        _ => return Err(bad("measure.radius", "select an arc or circle")),
     };
     Ok(json!({ "radius": r, "diameter": 2.0 * r, "message": format!("Radius = {r:.4}\nDiameter = {:.4}", 2.0 * r) }))
 }
@@ -388,15 +388,15 @@ fn run_angle(s: &mut Session, p: &Value) -> Result<Value> {
         (v, a, b)
     } else {
         let hp = |k: &str| p.get(k).and_then(Value::as_str).and_then(Handle::parse_hex);
-        let (Some(h1), Some(h2)) = (hp("h1"), hp("h2")) else { return Err(bad("angle.measure", "give {vertex,p1,p2} or {h1,h2}")) };
+        let (Some(h1), Some(h2)) = (hp("h1"), hp("h2")) else { return Err(bad("measure.angle", "give {vertex,p1,p2} or {h1,h2}")) };
         let d = s.doc()?;
         let line = |h: Handle| match d.entity(h).map(|e| e.kind.clone()) {
             Some(EntityKind::Line(l)) => Some((l.a.xy(), l.b.xy())),
             _ => None,
         };
         let ((a1, a2), (b1, b2)) =
-            (line(h1).ok_or_else(|| bad("angle.measure", "h1 is not a line"))?, line(h2).ok_or_else(|| bad("angle.measure", "h2 is not a line"))?);
-        let (x, _, _) = kition_cad_geom::line_line_infinite(a1, a2, b1, b2).ok_or_else(|| bad("angle.measure", "lines are parallel"))?;
+            (line(h1).ok_or_else(|| bad("measure.angle", "h1 is not a line"))?, line(h2).ok_or_else(|| bad("measure.angle", "h2 is not a line"))?);
+        let (x, _, _) = kition_cad_geom::line_line_infinite(a1, a2, b1, b2).ok_or_else(|| bad("measure.angle", "lines are parallel"))?;
         let far = |p: Vec2, q: Vec2| if p.dist(x) > q.dist(x) { p } else { q };
         (x, far(a1, a2), far(b1, b2))
     };
@@ -413,7 +413,7 @@ fn run_measuregeom(s: &mut Session, p: &Value) -> Result<Value> {
         "radius" | "r" => run_radius(s, p),
         "angle" | "a" => run_angle(s, p),
         "area" | "ar" => s.execute("area", p),
-        _ => Err(bad("measuregeom", "mode must be distance, radius, angle or area")),
+        _ => Err(bad("measure.geometry", "mode must be distance, radius, angle or area")),
     }
 }
 

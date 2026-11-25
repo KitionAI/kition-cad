@@ -300,8 +300,8 @@ impl Writer<'_, '_> {
             }
             let (owner, field) = match &pair.owner {
                 Owner::Model => (root_id(), "model"),
-                Owner::Layout(name) => (self.slot_object(self.ids.layouts.get(name))?, "entities"),
-                Owner::Block(name) => (self.slot_object(self.ids.blocks.get(name))?, "entities"),
+                Owner::Layout(name) => (self.slot_object(self.ids.layouts.get(name))?, "object.query"),
+                Owner::Block(name) => (self.slot_object(self.ids.blocks.get(name))?, "object.query"),
             };
             let target: Vec<ObjectId> = a.iter().filter_map(|e| self.ids.entities.object(e.handle).cloned()).collect();
             self.wrote |= sync_list(self.tx, &owner, field, &target)? > 0;

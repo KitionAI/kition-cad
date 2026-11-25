@@ -18,18 +18,18 @@ async fn setter_viewport_scale_preserves_frozen_layers() {
 #[tokio::test(flavor = "multi_thread")]
 async fn setter_table_style_preserves_margin() {
     check(
-        |_| ("tablestyle", json!({"name":"Standard","textHeight":3,"current":false})),
-        |_| vec![("tablestyle", json!({"name":"Standard","textHeight":9,"current":false}))],
-        |_| vec![("tablestyle", json!({"name":"Standard","margin":9,"current":false}))],
+        |_| ("tableStyle.open", json!({"name":"Standard","textHeight":3,"current":false})),
+        |_| vec![("tableStyle.open", json!({"name":"Standard","textHeight":9,"current":false}))],
+        |_| vec![("tableStyle.open", json!({"name":"Standard","margin":9,"current":false}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn setter_mleader_style_preserves_text_height() {
     check(
-        |_| ("mleaderstyle", json!({"name":"Standard","arrowSize":3,"current":false})),
-        |_| vec![("mleaderstyle", json!({"name":"Standard","arrowSize":9,"current":false}))],
-        |_| vec![("mleaderstyle", json!({"name":"Standard","textHeight":9,"current":false}))],
+        |_| ("multileaderStyle.open", json!({"name":"Standard","arrowSize":3,"current":false})),
+        |_| vec![("multileaderStyle.open", json!({"name":"Standard","arrowSize":9,"current":false}))],
+        |_| vec![("multileaderStyle.open", json!({"name":"Standard","textHeight":9,"current":false}))],
     )
     .await;
 }
@@ -45,9 +45,9 @@ async fn setter_rename_layer_preserves_color() {
 #[tokio::test(flavor = "multi_thread")]
 async fn setter_draw_order_preserves_color() {
     check(
-        |f| ("draworder.front", json!({"handles":[f.circle]})),
-        |f| vec![("draworder.back", json!({"handles":[f.circle]}))],
-        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+        |f| ("arrange.bringToFront", json!({"handles":[f.circle]})),
+        |f| vec![("arrange.sendToBack", json!({"handles":[f.circle]}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
 }
@@ -55,18 +55,18 @@ async fn setter_draw_order_preserves_color() {
 #[tokio::test(flavor = "multi_thread")]
 async fn setter_hatch_pattern_preserves_color() {
     check(
-        |f| ("hatchedit", json!({"handles":[f.hatch],"pattern":"ANSI31"})),
-        |f| vec![("hatchedit", json!({"handles":[f.hatch],"pattern":"ANSI37"}))],
-        |f| vec![("properties.set", json!({"handles":[f.hatch],"color":"blue"}))],
+        |f| ("hatch.edit", json!({"handles":[f.hatch],"pattern":"ANSI31"})),
+        |f| vec![("hatch.edit", json!({"handles":[f.hatch],"pattern":"ANSI37"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.hatch],"color":"blue"}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn setter_group_rename_preserves_members() {
     check(
-        |_| ("groupedit", json!({"name":"Group","rename":"Mine"})),
-        |_| vec![("groupedit", json!({"name":"Group","rename":"Theirs"}))],
-        |f| vec![("groupedit", json!({"name":"Group","add":[f.circle]}))],
+        |_| ("group.edit", json!({"name":"Group","rename":"Mine"})),
+        |_| vec![("group.edit", json!({"name":"Group","rename":"Theirs"}))],
+        |f| vec![("group.edit", json!({"name":"Group","add":[f.circle]}))],
     )
     .await;
 }

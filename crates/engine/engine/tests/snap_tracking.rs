@@ -17,7 +17,7 @@ fn v(x: f64, y: f64) -> Vec2 {
 
 fn session(osmode: u32) -> Session {
     let mut s = Session::new();
-    s.execute("setvar", &json!({ "name": "OSMODE", "value": osmode })).unwrap();
+    s.execute("variable.set", &json!({ "name": "OSMODE", "value": osmode })).unwrap();
     s
 }
 
@@ -26,7 +26,7 @@ fn line(s: &mut Session, a: (f64, f64), b: (f64, f64)) {
 }
 
 fn setvar(s: &mut Session, name: &str, value: serde_json::Value) {
-    s.execute("setvar", &json!({ "name": name, "value": value })).unwrap();
+    s.execute("variable.set", &json!({ "name": name, "value": value })).unwrap();
 }
 
 fn query(base: Option<Vec2>, now: f64) -> CursorQuery {
@@ -65,7 +65,7 @@ fn two_acquired_points_snap_where_their_paths_cross() {
     // Too far from every path: nothing.
     assert!(at(&mut s, v(13.0, 2.0), None).track.is_none());
     // OTRACK off (F11): the acquired points send no paths.
-    s.execute("otrack", &json!({ "on": false })).unwrap();
+    s.execute("drafting.objectSnapTracking", &json!({ "on": false })).unwrap();
     assert!(at(&mut s, v(10.05, 4.97), None).track.is_none());
 }
 
@@ -127,7 +127,7 @@ fn polar_angles_increment_additional_and_tracking() {
 fn extension_runs_on_from_a_line_end_and_round_an_arc() {
     // Extension alone, tracking off: resting on the end acquires its extension.
     let mut s = session(mode::EXT);
-    s.execute("otrack", &json!({ "on": false })).unwrap();
+    s.execute("drafting.objectSnapTracking", &json!({ "on": false })).unwrap();
     line(&mut s, (0.0, 0.0), (10.0, 0.0));
     rest(&mut s, v(10.02, 0.02), None);
     assert_eq!(s.tracking.acquired.len(), 1);
@@ -250,7 +250,7 @@ fn sysvars_polarmode_polaraddang_autosnap() {
     setvar(&mut s, "POLARADDANG", json!("15;22.5"));
     assert_eq!(get(&s, "POLARADDANG"), json!("15;22.5"));
     assert_eq!(get(&s, "AUTOSNAP"), json!(61));
-    s.execute("otrack", &json!({})).unwrap();
+    s.execute("drafting.objectSnapTracking", &json!({})).unwrap();
     assert!(!s.settings.otrack, "F11 toggles tracking");
     assert_eq!(get(&s, "AUTOSNAP"), json!(45));
     setvar(&mut s, "AUTOSNAP", json!(63));
@@ -262,7 +262,7 @@ fn sysvars_polarmode_polaraddang_autosnap() {
         ("POLARADDANG", json!("1;2;3;4;5;6;7;8;9;10;11")),
         ("AUTOSNAP", json!(99)),
     ] {
-        assert!(s.execute("setvar", &json!({ "name": n, "value": bad })).is_err(), "{n} = {bad}");
+        assert!(s.execute("variable.set", &json!({ "name": n, "value": bad })).is_err(), "{n} = {bad}");
     }
 }
 

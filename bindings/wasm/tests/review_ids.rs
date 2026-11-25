@@ -11,9 +11,9 @@ fn load(d: &mut CadDocument, id: &str) -> Value {
 #[test]
 fn rename_away_and_recreate_does_not_reuse_the_old_identity() {
     let mut d = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+    d.execute("layer.add", json!({"name":"Walls"})).unwrap();
     d.execute("layer.set", json!({"name":"Walls","newName":"Partitions"})).unwrap();
-    d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+    d.execute("layer.add", json!({"name":"Walls"})).unwrap();
     for reopen in [false, true] {
         if reopen {
             d = CadDocument::open("Plan.dxf", &d.save(Some("Plan.dxf")).unwrap()).unwrap();

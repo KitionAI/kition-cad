@@ -35,7 +35,7 @@ fn observe_read_commands() {
         CadDocument::open("basic.dxf", &bytes).unwrap().commands().into_iter().filter(|c| c.schema.is_some() && !c.mutates).map(|c| c.id).collect();
     for id in reads {
         let mut doc = CadDocument::open("basic.dxf", &bytes).unwrap();
-        let _ = doc.execute("selectall", serde_json::json!({}));
+        let _ = doc.execute("edit.selectAll", serde_json::json!({}));
         let answer = match doc.execute(&id, serde_json::json!({})) {
             Ok(value) => value,
             Err(error) => serde_json::json!({ "__error": error }),
@@ -90,7 +90,7 @@ fn read_commands_answer_what_their_output_schemas_say() {
     for command in CadDocument::open("basic.dxf", &bytes).unwrap().commands() {
         let (Some(output), true) = (command.output_schema.as_ref(), command.schema.is_some() && !command.mutates) else { continue };
         let mut doc = CadDocument::open("basic.dxf", &bytes).unwrap();
-        let _ = doc.execute("selectall", serde_json::json!({}));
+        let _ = doc.execute("edit.selectAll", serde_json::json!({}));
         if let Ok(answer) = doc.execute(&command.id, serde_json::json!({}))
             && let Err(error) = fits(&answer, output, &command.id)
         {
@@ -154,15 +154,15 @@ fn a_layer_parameter_is_a_layer_name() {
     assert!(wrong.is_empty(), "layer is not a string in: {wrong:#?}");
 }
 
-/// `properties.set {layer}` moves the objects onto the named layer.
+/// `object.setProperties {layer}` moves the objects onto the named layer.
 #[test]
 fn properties_set_moves_objects_to_a_named_layer() {
     let mut doc = doc();
     doc.execute("line", serde_json::json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-    let handle = doc.execute("entities", serde_json::json!({})).unwrap()["entities"][0]["handle"].clone();
-    doc.execute("layer.new", serde_json::json!({ "name": "Walls" })).unwrap();
-    doc.execute("properties.set", serde_json::json!({ "handles": [handle], "layer": "Walls" })).unwrap();
-    assert_eq!(doc.execute("entities", serde_json::json!({ "layer": "Walls" })).unwrap()["count"], 1);
+    let handle = doc.execute("object.query", serde_json::json!({})).unwrap()["object.query"][0]["handle"].clone();
+    doc.execute("layer.add", serde_json::json!({ "name": "Walls" })).unwrap();
+    doc.execute("object.setProperties", serde_json::json!({ "handles": [handle], "layer": "Walls" })).unwrap();
+    assert_eq!(doc.execute("object.query", serde_json::json!({ "layer": "Walls" })).unwrap()["count"], 1);
 }
 
 /// At least 95% of the parameter keys agents are offered say their type (kit requirement AX14): an
@@ -203,6 +203,6 @@ fn handle_parameters_are_not_colours() {
         }
     }
     assert!(problems.is_empty(), "{problems:#?}");
-    let dimspace = doc().commands().into_iter().find(|c| c.id == "dimspace").unwrap().schema.unwrap();
+    let dimspace = doc().commands().into_iter().find(|c| c.id == "dimension.space").unwrap().schema.unwrap();
     assert_eq!(dimspace["base"]["description"], "a handle");
 }

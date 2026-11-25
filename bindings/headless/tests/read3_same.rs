@@ -10,28 +10,28 @@ use serde_json::json;
 async fn written_field(command: &'static str) {
     check(
         |f| match command {
-            "textedit" => (command, json!({"handle":f.text,"text":"Mine"})),
-            "attedit" => (command, json!({"handle":f.insert,"values":{"CODE":"Mine"}})),
-            "plotstyle" => (command, json!({"handles":[f.circle],"name":"ByLayer"})),
-            "laycur" => (command, json!({"handles":[f.circle]})),
-            "matchprop" => (command, json!({"source":f.line,"targets":[f.circle]})),
+            "text.edit" => (command, json!({"handle":f.text,"text":"Mine"})),
+            "attribute.edit" => (command, json!({"handle":f.insert,"values":{"CODE":"Mine"}})),
+            "plot.style" => (command, json!({"handles":[f.circle],"name":"ByLayer"})),
+            "layer.changeToCurrent" => (command, json!({"handles":[f.circle]})),
+            "object.matchProperties" => (command, json!({"source":f.line,"targets":[f.circle]})),
             "table.set" => (command, json!({"handle":f.table,"row":1,"col":1,"text":"Mine"})),
             _ => panic!("command"),
         },
         |f| match command {
-            "textedit" => vec![(command, json!({"handle":f.text,"text":"Colleague"}))],
-            "attedit" => vec![(command, json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
-            "plotstyle" => vec![(command, json!({"handles":[f.circle],"name":"Normal"}))],
-            "laycur" => vec![("properties.set", json!({"handles":[f.circle],"layer":"Secondary"}))],
-            "matchprop" => vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+            "text.edit" => vec![(command, json!({"handle":f.text,"text":"Colleague"}))],
+            "attribute.edit" => vec![(command, json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
+            "plot.style" => vec![(command, json!({"handles":[f.circle],"name":"Normal"}))],
+            "layer.changeToCurrent" => vec![("object.setProperties", json!({"handles":[f.circle],"layer":"Secondary"}))],
+            "object.matchProperties" => vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
             "table.set" => vec![(command, json!({"handle":f.table,"row":1,"col":1,"text":"Colleague"}))],
             _ => panic!("command"),
         },
         |f| match command {
-            "textedit" => vec![("properties.set", json!({"handles":[f.text],"height":6}))],
-            "attedit" => vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
+            "text.edit" => vec![("object.setProperties", json!({"handles":[f.text],"height":6}))],
+            "attribute.edit" => vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
             "table.set" => vec![(command, json!({"handle":f.table,"row":2,"col":2,"text":"Kept"}))],
-            _ => vec![("properties.set", json!({"handles":[f.circle],"radius":7}))],
+            _ => vec![("object.setProperties", json!({"handles":[f.circle],"radius":7}))],
         },
     )
     .await;
@@ -45,25 +45,25 @@ macro_rules! probe {
         }
     };
 }
-probe!(textedit_same_field, "textedit");
-probe!(attribute_same_field, "attedit");
-probe!(plotstyle_same_field, "plotstyle");
-probe!(layer_assignment_same_field, "laycur");
-probe!(matchprop_same_field, "matchprop");
+probe!(textedit_same_field, "text.edit");
+probe!(attribute_same_field, "attribute.edit");
+probe!(plotstyle_same_field, "plot.style");
+probe!(layer_assignment_same_field, "layer.changeToCurrent");
+probe!(matchprop_same_field, "object.matchProperties");
 probe!(table_text_same_field, "table.set");
 
 async fn current_setting(command: &'static str) {
     check(
         |f| match command {
-            "attdisp" => (command, json!({"mode":"on"})),
-            "layer.current" => (command, json!({"name":"Editable"})),
+            "attribute.display" => (command, json!({"mode":"on"})),
+            "layer.setCurrent" => (command, json!({"name":"Editable"})),
             _ => (command, json!({"handles":[f.line]})),
         },
         |_| match command {
-            "attdisp" => vec![("attdisp", json!({"mode":"off"}))],
-            _ => vec![("layer.current", json!({"name":"Secondary"}))],
+            "attribute.display" => vec![("attribute.display", json!({"mode":"off"}))],
+            _ => vec![("layer.setCurrent", json!({"name":"Secondary"}))],
         },
-        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
 }
@@ -75,7 +75,7 @@ macro_rules! current_probe {
         }
     };
 }
-current_probe!(attribute_display_same_setting, "attdisp");
+current_probe!(attribute_display_same_setting, "attribute.display");
 
 /// The current layer is each person's own: after a colleague made Secondary their current layer
 /// (or made an unrelated change), my command setting my current layer applies, and the saved file
@@ -85,14 +85,14 @@ async fn my_current_layer(command: &'static str) {
         let f = Fixture::new();
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
         let colleague = if colleague_current {
-            vec![("layer.current", json!({"name":"Secondary"}))]
+            vec![("layer.setCurrent", json!({"name":"Secondary"}))]
         } else {
-            vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))]
+            vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))]
         };
         f.colleague(&colleague);
         let before = f.disk();
         let params = match command {
-            "layer.current" => json!({"name":"Editable"}),
+            "layer.setCurrent" => json!({"name":"Editable"}),
             _ => json!({"handles":[f.line]}),
         };
         let mut oracle = CadDocument::open(FILE, &before).unwrap();
@@ -115,9 +115,9 @@ macro_rules! my_current_layer_probe {
         }
     };
 }
-my_current_layer_probe!(current_layer_is_my_own_setting, "layer.current");
-my_current_layer_probe!(make_layer_current_is_my_own_setting, "laymcur");
-my_current_layer_probe!(isolation_current_layer_is_my_own_setting, "layiso");
+my_current_layer_probe!(current_layer_is_my_own_setting, "layer.setCurrent");
+my_current_layer_probe!(make_layer_current_is_my_own_setting, "layer.makeObjectCurrent");
+my_current_layer_probe!(isolation_current_layer_is_my_own_setting, "layer.isolate");
 
 /// `own`: the variable is each person's own (kdm_model::is_current_var), so a colleague's value is
 /// theirs and my write applies; otherwise it is the drawing's, and replacing it holds the value I
@@ -140,7 +140,7 @@ async fn injected_header(command: &str, variable: &str, code: &str, value: &str,
             let d = kition_cad_io::read(&f.disk(), FILE).unwrap();
             assert!(d.header.get(variable).is_some(), "{variable} is a real saved colleague change");
         } else {
-            f.colleague(&[("properties.set", json!({"handles":[f.circle],"color":"blue"}))]);
+            f.colleague(&[("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))]);
         }
         let before = f.disk();
         let answer = f.call("run", json!({"basis":basis,"steps":[{"command":command,"params":params}]})).await;
@@ -164,7 +164,7 @@ async fn injected_header(command: &str, variable: &str, code: &str, value: &str,
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn injected_circle_radius_is_my_own_setting() {
-    injected_header("circle.cd", "CIRCLERAD", "40", "6", json!({"center":[750,0],"diameter":10}), true).await;
+    injected_header("circle.addCenterDiameter", "CIRCLERAD", "40", "6", json!({"center":[750,0],"diameter":10}), true).await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn injected_wipeout_frame_same_setting() {

@@ -9,7 +9,7 @@ async fn layout_set_wrapper_preserves_independent_page_settings() {
     check(
         |_| ("layout", json!({"option":"set","name":"Layout1"})),
         |_| vec![("layout.delete", json!({"name":"Layout1"}))],
-        |_| vec![("pagesetup", json!({"layout":"Layout1","width":300,"height":200}))],
+        |_| vec![("plot.pageSetup", json!({"layout":"Layout1","width":300,"height":200}))],
     )
     .await;
 }
@@ -36,8 +36,8 @@ async fn layout_set_wrapper_uses_case_insensitive_address_identity() {
 async fn layout_set_model_forms_do_not_query_paper_names() {
     for params in [json!({"option":"set"}), json!({"option":"set","name":"Model"})] {
         check_program(
-            |f| vec![("layout", params.clone()), ("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
-            |f| vec![("properties.set", json!({"handles":[f.circle],"color":"red"}))],
+            |f| vec![("layout", params.clone()), ("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
+            |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"red"}))],
             |_| vec![("layout.delete", json!({"name":"Layout2"}))],
         )
         .await;

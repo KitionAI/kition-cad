@@ -69,12 +69,12 @@ fn justified_text_snaps_and_grips_at_its_alignment_point() {
 #[test]
 fn hatches_snap_only_with_osnaphatch() {
     let mut s = Session::new();
-    let r = handle(&mut s, "rectang", json!({ "p1": [0, 0], "p2": [10, 5] }));
+    let r = handle(&mut s, "rectangle.add", json!({ "p1": [0, 0], "p2": [10, 5] }));
     s.execute("hatch", &json!({ "handles": [r] })).unwrap();
     s.execute("erase", &json!({ "handles": [r] })).unwrap();
     assert!(matches!(s.doc().unwrap().model.iter().last().map(|e| &e.kind), Some(EntityKind::Hatch(_))));
     assert_eq!(snap_at(&s, Vec2::new(10.0, 5.0), mode::END), None);
-    assert_eq!(s.execute("getvar", &json!({ "name": "OSNAPHATCH" })).unwrap()["value"], json!(0));
+    assert_eq!(s.execute("variable.get", &json!({ "name": "OSNAPHATCH" })).unwrap()["value"], json!(0));
     s.cmdline("setvar osnaphatch 1").unwrap();
     assert!(s.settings.osnaphatch);
     let modes = mode::END | mode::HATCH;

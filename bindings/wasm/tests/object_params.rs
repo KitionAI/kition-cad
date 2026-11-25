@@ -17,9 +17,9 @@ fn id_parameters_are_marked_and_typed() {
     for c in &commands {
         for key in c.schema.as_ref().and_then(|s| s.as_object()).into_iter().flatten().map(|(k, _)| k.as_str()) {
             // All of these are entity handles in their implementations; no coordinates.
-            let opaque = (c.id == "delconstraint" || c.id.starts_with("constraintbar") || c.id.starts_with("dcdisplay"))
+            let opaque = (c.id == "constraint.delete" || c.id.starts_with("constraint.bars") || c.id.starts_with("constraint.dynamicDimensions"))
                 && matches!(key, "handle" | "handles")
-                || c.id == "groupedit" && key == "remove";
+                || c.id == "group.edit" && key == "remove";
             if opaque {
                 assert_ne!(c.targets, Some(key), "{} {key} is membership data", c.id);
                 assert!(!c.objects.contains(&key), "{} {key} must remain opaque", c.id);
@@ -29,15 +29,15 @@ fn id_parameters_are_marked_and_typed() {
                 && (matches!(key, "handle" | "handles" | "h1" | "h2" | "h3" | "baseHandle" | "handles2")
                     || matches!(
                         (c.id.as_str(), key),
-                        ("matchprop", "source" | "targets")
-                            | ("arraypath", "path")
-                            | ("chspace", "viewport")
+                        ("object.matchProperties", "source" | "targets")
+                            | ("object.arrayPath", "path")
+                            | ("object.changeSpace", "viewport")
                             | ("trim" | "extend", "edges")
-                            | ("groupedit", "add")
-                            | ("dim" | "dimlinear" | "spline", "object")
-                            | ("dimangular", "lines" | "arc")
-                            | ("dimspace", "base")
-                            | ("entities.measure", "bounds" | "intersections")
+                            | ("group.edit", "add")
+                            | ("dim" | "dimension.addLinear" | "spline", "object")
+                            | ("dimension.addAngular", "lines" | "arc")
+                            | ("dimension.space", "base")
+                            | ("object.measure", "bounds" | "intersections")
                     ));
             if entity {
                 count += 1;
@@ -59,32 +59,32 @@ fn name_gaps(commands: &[KitCommand]) -> Vec<String> {
     // system variables, attribute tags, or enum words.
     let wanted = [
         ("layer.set", "name", "Layer"),
-        ("layer.current", "name", "Layer"),
+        ("layer.setCurrent", "name", "Layer"),
         ("layer.delete", "name", "Layer"),
-        ("laymch", "layer", "Layer"),
-        ("properties.set", "dimStyle", "DimStyle"),
-        ("style.current", "name", "TextStyle"),
-        ("style.delete", "name", "TextStyle"),
-        ("style.rename", "from", "TextStyle"),
-        ("dimstyle.current", "name", "DimStyle"),
-        ("dimstyle.delete", "name", "DimStyle"),
-        ("dimstyle.rename", "from", "DimStyle"),
+        ("layer.match", "layer", "Layer"),
+        ("object.setProperties", "dimStyle", "DimStyle"),
+        ("textStyle.setCurrent", "name", "TextStyle"),
+        ("textStyle.delete", "name", "TextStyle"),
+        ("textStyle.rename", "from", "TextStyle"),
+        ("dimensionStyle.setCurrent", "name", "DimStyle"),
+        ("dimensionStyle.delete", "name", "DimStyle"),
+        ("dimensionStyle.rename", "from", "DimStyle"),
         ("insert", "name", "Block"),
-        ("battman", "name", "Block"),
-        ("attsync", "name", "Block"),
+        ("attribute.manage", "name", "Block"),
+        ("attribute.sync", "name", "Block"),
         ("divide", "block", "Block"),
         ("measure", "block", "Block"),
-        ("groupedit", "name", "Group"),
+        ("group.edit", "name", "Group"),
         ("ungroup", "name", "Group"),
         ("layout.set", "name", "Layout"),
         ("layout.delete", "name", "Layout"),
         ("layout.rename", "from", "Layout"),
-        ("layout.copy", "from", "Layout"),
-        ("layerstate.restore", "name", "LayerState"),
-        ("layerstate.delete", "name", "LayerState"),
-        ("layerstate.rename", "from", "LayerState"),
-        ("mtext", "style", "TextStyle"),
-        ("mleaderstyle", "textStyle", "TextStyle"),
+        ("layout.duplicate", "from", "Layout"),
+        ("layerState.restore", "name", "LayerState"),
+        ("layerState.delete", "name", "LayerState"),
+        ("layerState.rename", "from", "LayerState"),
+        ("multilineText.add", "style", "TextStyle"),
+        ("multileaderStyle.open", "textStyle", "TextStyle"),
     ];
     let mut gaps = Vec::new();
     for (id, key, ty) in wanted {
@@ -151,7 +151,7 @@ fn every_named_table_has_a_tool_id_that_survives_a_reopen() {
     use serde_json::json;
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
     let line = doc.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
-    doc.execute("gchorizontal", json!({"h1":line})).unwrap();
+    doc.execute("constraint.horizontal", json!({"h1":line})).unwrap();
     let ids = ["linetype:Continuous", "textstyle:Standard", "dimstyle:Standard", "mleaderstyle:Standard", "tablestyle:Standard", "constraint:1"];
     for saved in [false, true] {
         if saved {

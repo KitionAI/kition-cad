@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 /// A session with a drawing: two lines, a circle, a layer `Walls`.
 fn new_session() -> Session {
     let mut s = Session::new();
-    s.execute("layer.new", &json!({"name": "Walls"})).unwrap();
+    s.execute("layer.add", &json!({"name": "Walls"})).unwrap();
     s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap();
     s.execute("line", &json!({"points": [[0, 5], [8, 9]]})).unwrap();
     s.execute("circle", &json!({"center": [20, 10], "radius": 3})).unwrap();
@@ -122,20 +122,20 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
             // The line goes onto Walls by LAYMCH: making Walls current writes nothing to the
             // replica (the current layer and the LAYERP snapshot are each person's own).
             let h = handle(&s.execute("line", &json!({"points": [[0, 20], [5, 20]]})).unwrap());
-            s.execute("laymch", &json!({"handles": [h], "layer": "Walls"})).unwrap();
+            s.execute("layer.match", &json!({"handles": [h], "layer": "Walls"})).unwrap();
             s.execute("rename", &json!({"table": "layer", "from": "Walls", "to": "Partitions"})).unwrap();
         }),
         ("bring to front", |s| {
             let h = model(s)[0].clone();
-            s.execute("draworder.front", &json!({"handles": [h]})).unwrap();
+            s.execute("arrange.bringToFront", &json!({"handles": [h]})).unwrap();
         }),
         ("a constraint, solved in the same transaction", |s| {
             let h = model(s)[1].clone();
-            s.execute("geomconstraint", &json!({"type": "horizontal", "h1": h})).unwrap();
+            s.execute("constraint.addGeometric", &json!({"type": "horizontal", "h1": h})).unwrap();
         }),
         ("an associative dimension follows its line", |s| {
             let h = first_line(s);
-            s.execute("dimlinear", &json!({"object": h, "at": [5, -4]})).unwrap();
+            s.execute("dimension.addLinear", &json!({"object": h, "at": [5, -4]})).unwrap();
             s.execute("move", &json!({"handles": [h], "delta": [0, 2]})).unwrap();
         }),
         ("a block from model space objects", |s| {
@@ -227,7 +227,7 @@ fn selection_only_changes_write_nothing() {
     let version = a.version().unwrap();
     let hs = model(&a);
     a.execute("select", &json!({"handles": hs})).unwrap();
-    a.execute("selectall", &json!({})).unwrap();
+    a.execute("edit.selectAll", &json!({})).unwrap();
     a.execute("zoom", &json!({"mode": "extents"})).unwrap();
     a.idle_click(kition_cad_engine::geom::Vec2::new(500.0, 500.0), false).unwrap();
     assert_eq!(a.version().unwrap(), version, "no transaction");
@@ -256,11 +256,11 @@ fn a_remote_deletion_of_a_selected_entity_fixes_the_selection() {
 #[test]
 fn each_person_draws_on_their_own_current_layer() {
     let mut a = new_session();
-    a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
+    a.execute("layer.add", &json!({"name": "Doors"})).unwrap();
     let mut b = peer(&mut a);
-    a.execute("layer.current", &json!({"name": "Walls"})).unwrap();
+    a.execute("layer.setCurrent", &json!({"name": "Walls"})).unwrap();
     sync(&mut a, &mut b);
-    b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
+    b.execute("layer.setCurrent", &json!({"name": "Doors"})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both made a layer current");
     assert_eq!(doc(&a).header.str("CLAYER", "?"), "Walls", "a's current layer survives b's");
@@ -287,19 +287,19 @@ fn each_person_draws_on_their_own_current_layer() {
 #[test]
 fn each_person_dimensions_with_their_own_current_dimension_style() {
     let mut a = new_session();
-    a.execute("dimstyle", &json!({"name": "Arch", "current": false})).unwrap();
-    a.execute("dimstyle", &json!({"name": "Mech", "current": false})).unwrap();
+    a.execute("dimensionStyle.open", &json!({"name": "Arch", "current": false})).unwrap();
+    a.execute("dimensionStyle.open", &json!({"name": "Mech", "current": false})).unwrap();
     let mut b = peer(&mut a);
-    a.execute("dimstyle.current", &json!({"name": "Arch"})).unwrap();
+    a.execute("dimensionStyle.setCurrent", &json!({"name": "Arch"})).unwrap();
     sync(&mut a, &mut b);
-    b.execute("dimstyle.current", &json!({"name": "Mech"})).unwrap();
+    b.execute("dimensionStyle.setCurrent", &json!({"name": "Mech"})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both made a dimension style current");
     assert_eq!(doc(&a).header.str("DIMSTYLE", "?"), "Arch", "a's current dimension style survives b's");
     assert_eq!(doc(&b).header.str("DIMSTYLE", "?"), "Mech", "b's current dimension style survives a's");
-    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    let x = handle(&a.execute("dimension.addLinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
     sync(&mut a, &mut b);
-    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    let y = handle(&b.execute("dimension.addLinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both dimensions");
     for s in [&a, &b] {
@@ -327,18 +327,18 @@ fn each_person_dimensions_with_their_own_current_dimension_style() {
 fn each_person_dimensions_with_their_own_dimension_settings() {
     let mut a = new_session();
     let mut b = peer(&mut a);
-    a.execute("setvar", &json!({"name": "DIMASZ", "value": 0.5})).unwrap();
-    a.execute("setvar", &json!({"name": "DIMTXT", "value": 0.3})).unwrap();
+    a.execute("variable.set", &json!({"name": "DIMASZ", "value": 0.5})).unwrap();
+    a.execute("variable.set", &json!({"name": "DIMTXT", "value": 0.3})).unwrap();
     sync(&mut a, &mut b);
-    b.execute("setvar", &json!({"name": "DIMASZ", "value": 1.5})).unwrap();
-    b.execute("setvar", &json!({"name": "DIMTXT", "value": 0.7})).unwrap();
+    b.execute("variable.set", &json!({"name": "DIMASZ", "value": 1.5})).unwrap();
+    b.execute("variable.set", &json!({"name": "DIMTXT", "value": 0.7})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after both set their dimension settings");
     assert_eq!(doc(&a).header.f64("DIMASZ", 0.0), 0.5, "a's arrow size survives b's");
     assert_eq!(doc(&b).header.f64("DIMASZ", 0.0), 1.5, "b's arrow size survives a's");
-    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    let x = handle(&a.execute("dimension.addLinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
     sync(&mut a, &mut b);
-    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    let y = handle(&b.execute("dimension.addLinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "both dimensions");
     for s in [&a, &b] {
@@ -352,7 +352,7 @@ fn each_person_dimensions_with_their_own_dimension_settings() {
         assert_eq!(overrides(&y).get("textHeight"), Some(&json!(0.7)), "b's dimension takes b's text height");
     }
     // b makes the current style current again: that resets b's settings, not a's.
-    b.execute("dimstyle.current", &json!({"name": "Standard"})).unwrap();
+    b.execute("dimensionStyle.setCurrent", &json!({"name": "Standard"})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after b reset their settings");
     let standard = doc(&b).dim_style("Standard").unwrap().arrow_size;
@@ -380,10 +380,10 @@ fn each_person_dimensions_with_their_own_dimension_settings() {
 #[test]
 fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size() {
     let mut a = new_session();
-    a.execute("setvar", &json!({"name": "DIMSCALE", "value": 2})).unwrap();
-    a.execute("dimstyle", &json!({"name": "Fit", "DIMSCALE": 0})).unwrap();
-    a.execute("dimstyle", &json!({"name": "Big", "DIMSCALE": 5, "current": false})).unwrap();
-    let x = handle(&a.execute("dimlinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
+    a.execute("variable.set", &json!({"name": "DIMSCALE", "value": 2})).unwrap();
+    a.execute("dimensionStyle.open", &json!({"name": "Fit", "DIMSCALE": 0})).unwrap();
+    a.execute("dimensionStyle.open", &json!({"name": "Big", "DIMSCALE": 5, "current": false})).unwrap();
+    let x = handle(&a.execute("dimension.addLinear", &json!({"p1": [0, 90], "p2": [10, 90], "at": [5, 95]})).unwrap());
     let mut b = peer(&mut a);
     let dimension = |s: &Session, h: &str| match &doc(s).entity(Handle::parse_hex(h).unwrap()).unwrap().kind {
         EntityKind::Dimension(d) => d.clone(),
@@ -396,8 +396,8 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
     let drawn = size(&a, &x);
     assert!((drawn - fit.text_height * 2.0).abs() < 1e-9, "{drawn}");
     // b makes another style current and edits it: b's own scale, not the drawing's.
-    b.execute("dimstyle.current", &json!({"name": "Big"})).unwrap();
-    b.execute("dimstyle", &json!({"name": "Big", "DIMTXT": 0.25})).unwrap();
+    b.execute("dimensionStyle.setCurrent", &json!({"name": "Big"})).unwrap();
+    b.execute("dimensionStyle.open", &json!({"name": "Big", "DIMTXT": 0.25})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after b made a style current");
     for s in [&a, &b] {
@@ -406,7 +406,7 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
     }
     assert_eq!(doc(&b).my_dimscale(), 5.0, "b draws at Big's scale");
     assert_eq!(doc(&a).my_dimscale(), 0.0, "a still draws at Fit's");
-    let y = handle(&b.execute("dimlinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
+    let y = handle(&b.execute("dimension.addLinear", &json!({"p1": [0, 100], "p2": [10, 100], "at": [5, 105]})).unwrap());
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "b's dimension");
     for s in [&a, &b] {
@@ -418,7 +418,7 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
         assert!(!held.iter().any(|(key, _)| key == kition_cad_engine::doc::OWN_DIMSCALE), "the replica holds nobody's own scale");
     }
     // SETVAR DIMSCALE is the drawing's: it changes the shared value, and b draws at it again.
-    b.execute("setvar", &json!({"name": "DIMSCALE", "value": 3})).unwrap();
+    b.execute("variable.set", &json!({"name": "DIMSCALE", "value": 3})).unwrap();
     assert_eq!(doc(&b).my_dimscale(), 3.0);
     sync(&mut a, &mut b);
     assert_eq!(doc(&a).header.f64("DIMSCALE", 0.0), 3.0, "a colleague's SETVAR DIMSCALE is the drawing's");
@@ -437,13 +437,13 @@ fn making_my_dimension_style_current_leaves_a_colleagues_dimensions_their_size()
 #[test]
 fn each_person_keeps_their_own_layer_snapshots() {
     let mut a = new_session();
-    a.execute("layer.new", &json!({"name": "Doors"})).unwrap();
+    a.execute("layer.add", &json!({"name": "Doors"})).unwrap();
     let x = handle(&a.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap());
-    a.execute("laymch", &json!({"handles": [x], "layer": "Walls"})).unwrap();
+    a.execute("layer.match", &json!({"handles": [x], "layer": "Walls"})).unwrap();
     let mut b = peer(&mut a);
-    b.execute("layer.current", &json!({"name": "Doors"})).unwrap();
+    b.execute("layer.setCurrent", &json!({"name": "Doors"})).unwrap();
     sync(&mut a, &mut b);
-    a.execute("layiso", &json!({"handles": [x]})).unwrap();
+    a.execute("layer.isolate", &json!({"handles": [x]})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after a isolated Walls");
     let on = |s: &Session, name: &str| doc(s).layer(name).unwrap().on;
@@ -452,8 +452,8 @@ fn each_person_keeps_their_own_layer_snapshots() {
     }
     assert!(doc(&a).header.get("KITION_CAD_LAYISO").is_some() && doc(&a).header.get("KITION_CAD_LAYERP").is_some());
     assert_eq!(doc(&b).header.get("KITION_CAD_LAYISO"), None, "b has no isolation snapshot");
-    assert!(b.execute("layuniso", &json!({})).is_err(), "b has no isolation of a's to undo");
-    a.execute("layuniso", &json!({})).unwrap();
+    assert!(b.execute("layer.unisolate", &json!({})).is_err(), "b has no isolation of a's to undo");
+    a.execute("layer.unisolate", &json!({})).unwrap();
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "after a unisolated");
     for s in [&a, &b] {
@@ -480,11 +480,11 @@ fn each_person_works_in_their_own_ucs() {
     let mut a = new_session();
     let snapshot = a.snapshot().unwrap();
     let mut b = peer(&mut a);
-    a.execute("setvar", &json!({"name": "UCSORG", "value": [1, 2]})).unwrap();
-    a.execute("setvar", &json!({"name": "UCSXDIR", "value": [0, 1]})).unwrap();
-    a.execute("setvar", &json!({"name": "UCSNAME", "value": "Gone"})).unwrap();
+    a.execute("variable.set", &json!({"name": "UCSORG", "value": [1, 2]})).unwrap();
+    a.execute("variable.set", &json!({"name": "UCSXDIR", "value": [0, 1]})).unwrap();
+    a.execute("variable.set", &json!({"name": "UCSNAME", "value": "Gone"})).unwrap();
     sync(&mut a, &mut b);
-    b.execute("setvar", &json!({"name": "UCSORG", "value": [5, 5]})).unwrap();
+    b.execute("variable.set", &json!({"name": "UCSORG", "value": [5, 5]})).unwrap();
     sync(&mut a, &mut b);
     a.execute("line", &json!({"points": [[0, 50], [5, 50]]})).unwrap();
     sync(&mut a, &mut b);
@@ -567,7 +567,7 @@ fn a_file_saved_with_its_replica_reopens_as_that_replica() {
 fn erasing_the_object_of_a_dimension_inside_a_block_drops_its_attachment() {
     let mut a = new_session();
     let line = first_line(&a);
-    let dim = handle(&a.execute("dimlinear", &json!({"object": line, "at": [5, -4]})).unwrap());
+    let dim = handle(&a.execute("dimension.addLinear", &json!({"object": line, "at": [5, -4]})).unwrap());
     a.execute("block", &json!({"name": "D", "base": [0, 0], "handles": [dim]})).unwrap();
     let in_block = |a: &Session| -> Vec<usize> {
         doc(a).blocks["D"].entities.iter().filter_map(|e| if let EntityKind::Dimension(d) = &e.kind { Some(d.assoc.len()) } else { None }).collect()
@@ -584,8 +584,8 @@ fn erasing_the_object_of_a_dimension_inside_a_block_drops_its_attachment() {
 /// Adds an associative dimension and a constraint, so a file holds more than plain geometry.
 fn s_dim(s: &mut Session) {
     let h = first_line(s);
-    s.execute("dimlinear", &json!({"object": h, "at": [5, -4]})).unwrap();
-    s.execute("geomconstraint", &json!({"type": "horizontal", "h1": h})).unwrap();
+    s.execute("dimension.addLinear", &json!({"object": h, "at": [5, -4]})).unwrap();
+    s.execute("constraint.addGeometric", &json!({"type": "horizontal", "h1": h})).unwrap();
 }
 
 #[test]
@@ -647,18 +647,18 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
             None => ("circle", json!({"center": [3, 3], "radius": 1})),
         },
         8 => match pick(rng) {
-            Some(h) => (if rng.below(2) == 0 { "draworder.front" } else { "draworder.back" }, json!({"handles": [h]})),
+            Some(h) => (if rng.below(2) == 0 { "arrange.bringToFront" } else { "arrange.sendToBack" }, json!({"handles": [h]})),
             None => ("line", json!({"points": [[2, 0], [3, 1]]})),
         },
-        9 => ("layer.new", json!({"name": format!("L{}", rng.below(5)), "current": rng.below(2) == 0})),
-        10 => ("layer.current", json!({"name": "0"})),
+        9 => ("layer.add", json!({"name": format!("L{}", rng.below(5)), "current": rng.below(2) == 0})),
+        10 => ("layer.setCurrent", json!({"name": "0"})),
         11 => ("rename", json!({"table": "layer", "from": format!("L{}", rng.below(5)), "to": format!("R{}", rng.below(50))})),
         12 => match lines.get(rng.below(lines.len() as u64) as usize) {
-            Some(h) => ("geomconstraint", json!({"type": if rng.below(2) == 0 { "horizontal" } else { "fix" }, "h1": h})),
+            Some(h) => ("constraint.addGeometric", json!({"type": if rng.below(2) == 0 { "horizontal" } else { "fix" }, "h1": h})),
             None => ("line", json!({"points": [[4, 0], [9, 1]]})),
         },
         13 => match lines.get(rng.below(lines.len() as u64) as usize) {
-            Some(h) => ("dimlinear", json!({"object": h, "at": [rng.coord(), rng.coord() - 60]})),
+            Some(h) => ("dimension.addLinear", json!({"object": h, "at": [rng.coord(), rng.coord() - 60]})),
             None => ("line", json!({"points": [[5, 0], [7, 1]]})),
         },
         14 => match (pick(rng), pick(rng)) {
@@ -931,7 +931,7 @@ fn an_edit_after_an_unnamed_group_and_a_drafts_unnamed_group_keeps_both_records(
 #[test]
 fn a_draft_deleting_my_current_layer_sends_me_back_to_layer_0() {
     let mut a = new_session();
-    a.execute("layer.current", &json!({"name": "Walls"})).unwrap();
+    a.execute("layer.setCurrent", &json!({"name": "Walls"})).unwrap();
     let base = a.version().unwrap();
     let mut draft = peer(&mut a);
     draft.execute("layer.delete", &json!({"name": "Walls"})).unwrap();
@@ -963,8 +963,8 @@ fn walls(s: &Session) -> Vec<String> {
 #[test]
 fn adding_layer_walls_when_walls_exists_is_one_layer() {
     let mut a = Session::new();
-    a.execute("layer.new", &json!({"name": "WALLS"})).unwrap();
-    assert!(a.execute("layer.new", &json!({"name": "Walls"})).is_err(), "the command refuses the name");
+    a.execute("layer.add", &json!({"name": "WALLS"})).unwrap();
+    assert!(a.execute("layer.add", &json!({"name": "Walls"})).is_err(), "the command refuses the name");
     assert_eq!(walls(&a), ["WALLS"]);
     assert_eq!(walls_keys(&a), ["walls"]);
     assert_holds(&a, "by command");
@@ -972,9 +972,9 @@ fn adding_layer_walls_when_walls_exists_is_one_layer() {
     let mut b = Session::new();
     let base = b.version().unwrap();
     let mut draft = peer(&mut b);
-    draft.execute("layer.new", &json!({"name": "walls"})).unwrap();
+    draft.execute("layer.add", &json!({"name": "walls"})).unwrap();
     let changes = draft.export_changes(&base).unwrap();
-    b.execute("layer.new", &json!({"name": "Walls"})).unwrap();
+    b.execute("layer.add", &json!({"name": "Walls"})).unwrap();
     let at = b.version().unwrap();
     assert!(b.merge_changes(&changes, &Origin::agent("agent:drafter")).is_err(), "the merge is refused");
     assert_eq!(b.version().unwrap(), at, "and changes nothing");
@@ -983,7 +983,7 @@ fn adding_layer_walls_when_walls_exists_is_one_layer() {
     assert_holds(&b, "by a draft merge");
 
     let mut c = Session::new();
-    c.execute("layer.new", &json!({"name": "WALLS"})).unwrap();
+    c.execute("layer.add", &json!({"name": "WALLS"})).unwrap();
     let snapshot = c.snapshot().unwrap();
     let mut outside = doc(&c).clone();
     outside.layers.push(kition_cad_engine::doc::Layer::new("Xalls"));

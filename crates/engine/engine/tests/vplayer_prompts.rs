@@ -24,11 +24,11 @@ fn typed_vplayer_changes_layers_in_chosen_viewports() {
     let mut s = Session::new();
     s.cmdline("line 0,0 100,0").unwrap();
     s.cmdline("").unwrap();
-    s.execute("layer.new", &json!({ "name": "Walls" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Walls" })).unwrap();
     s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
-    let r = s.execute("mview", &json!({ "count": 2, "p1": [20, 20], "p2": [220, 120] })).unwrap();
+    let r = s.execute("viewport.add", &json!({ "count": 2, "p1": [20, 20], "p2": [220, 120] })).unwrap();
     let (a, b) = (r["viewports"][0].as_str().unwrap().to_string(), r["viewports"][1].as_str().unwrap().to_string());
-    s.execute("mspace", &json!({ "handle": a })).unwrap();
+    s.execute("viewport.modelSpace", &json!({ "handle": a })).unwrap();
     let undo_depth = s.state().unwrap().undo.len();
 
     // Freeze in the current viewport (the default inside a viewport).

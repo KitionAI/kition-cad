@@ -12,12 +12,12 @@ use super::*;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("plotstyle", "Plot Style...", run_plotstyle)
+        CommandSpec::new("plot.style", "Plot Style...", run_plotstyle)
             .menu(&["Format", "Plot Style..."])
             .params(
                 "{name?: \"ByLayer\"|\"ByBlock\"|style name, handles?|handle? (default: the selection; nothing selected sets the current plot style for new objects, CPLOTSTYLE)} (no name: reports the current style and the named styles)",
             ),
-        CommandSpec::new("stylesmanager", "Plot Style Manager...", run_stylesmanager)
+        CommandSpec::new("plot.styleManager", "Plot Style Manager...", run_stylesmanager)
             .menu(&["File", "Plot Styles..."])
             .params(
                 "{action?: list (default)|get|new|set|delete|load|save, name?: table (\"x.ctb\"/\"x.stb\"), kind?: colorDependent|named (new), from?: table to copy (new), description?, style?: {name, color?: \"#rrggbb\"|null, grayscale?, screening?: 0-100, linetype?: name|null, lineweight?: mm|null, end?, join?, fill?, description?} (set), removeStyle?: name (set, named tables), path? (load/save; save without one returns `text`), text? (load)}",
@@ -64,7 +64,7 @@ fn style_value(cmd: &str, v: &str) -> Result<String> {
 }
 
 fn run_plotstyle(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "plotstyle";
+    let cmd = "plot.style";
     let Some(name) = p.get("name") else {
         let d = s.doc()?;
         return Ok(json!({ "current": d.header.str("CPLOTSTYLE", "ByLayer"), "styles": named_styles(d) }));
@@ -187,7 +187,7 @@ fn edit_style(cmd: &str, st: &mut PlotStyle, v: &Value) -> Result<()> {
 }
 
 fn run_stylesmanager(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "stylesmanager";
+    let cmd = "plot.styleManager";
     let action = str_param(p, "action").unwrap_or("list").to_ascii_lowercase();
     match action.as_str() {
         "list" => {

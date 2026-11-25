@@ -20,7 +20,7 @@ fn logged(s: &Session, text: &str) -> bool {
 /// A session with block "TAG": a 2 x 2 square around its base point (0, 0).
 fn with_block() -> Session {
     let mut s = Session::new();
-    let sq = s.execute("pline", &json!({"vertices": [[-1, -1], [1, -1], [1, 1], [-1, 1]], "closed": true})).unwrap()["handle"].clone();
+    let sq = s.execute("polyline.add", &json!({"vertices": [[-1, -1], [1, -1], [1, 1], [-1, 1]], "closed": true})).unwrap()["handle"].clone();
     s.execute("block", &json!({"name": "TAG", "base": [-1, -1], "handles": [sq], "keep": "delete"})).unwrap();
     s
 }
@@ -91,7 +91,8 @@ fn block_content_inserts_the_block_at_the_landing() {
 #[test]
 fn block_content_keeps_the_block_alive() {
     let mut s = with_block();
-    let h = s.execute("mleader", &json!({"points": [[0, 0], [10, 5]], "block": "tag", "blockAttach": "insertion"})).unwrap()["handle"].clone();
+    let h =
+        s.execute("multileader.add", &json!({"points": [[0, 0], [10, 5]], "block": "tag", "blockAttach": "insertion"})).unwrap()["handle"].clone();
     // PURGE keeps a block used only as multileader content.
     s.execute("purge", &json!({"type": "blocks"})).ok();
     assert!(s.doc().unwrap().block("TAG").is_some(), "purged a block in use");
@@ -107,9 +108,9 @@ fn block_content_keeps_the_block_alive() {
 #[test]
 fn json_form_takes_leader_type_and_block() {
     let mut s = with_block();
-    s.execute("mleader", &json!({"points": [[0, 0], [5, 5], [10, 0]], "text": "s", "leaderType": "spline"})).unwrap();
+    s.execute("multileader.add", &json!({"points": [[0, 0], [5, 5], [10, 0]], "text": "s", "leaderType": "spline"})).unwrap();
     assert!(last_mleader(&s).spline);
-    s.execute("mleader", &json!({"points": [[7, 7]], "text": "alone", "leaderType": "none"})).unwrap();
+    s.execute("multileader.add", &json!({"points": [[7, 7]], "text": "alone", "leaderType": "none"})).unwrap();
     let m = last_mleader(&s);
     assert!(m.leaders.is_empty() && m.text.unwrap().insert.xy().near(Vec2::new(7.0, 7.0), 1e-9));
     for bad in [
@@ -118,6 +119,6 @@ fn json_form_takes_leader_type_and_block() {
         json!({"points": [[0, 0], [5, 5]], "block": "tag", "blockAttach": "corner"}),
         json!({"points": [[0, 0]]}),
     ] {
-        assert!(s.execute("mleader", &bad).is_err(), "{bad}");
+        assert!(s.execute("multileader.add", &bad).is_err(), "{bad}");
     }
 }

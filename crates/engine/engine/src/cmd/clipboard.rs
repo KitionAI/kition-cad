@@ -99,7 +99,7 @@ pub(crate) fn paste(s: &mut Session, m: &Mat3) -> Result<Vec<Handle>> {
 pub(crate) fn paste_block(s: &mut Session, at: Vec2) -> Result<Handle> {
     let ents = s.clipboard.clone();
     if ents.is_empty() {
-        return Err(bad("pasteblock", "the clipboard is empty"));
+        return Err(bad("edit.pasteAsBlock", "the clipboard is empty"));
     }
     let defs = s.clipboard_source.as_ref().map(|c| c.defs.clone());
     let base = s.clipboard_base;
@@ -109,7 +109,7 @@ pub(crate) fn paste_block(s: &mut Session, at: Vec2) -> Result<Handle> {
     let name = (0..1_000_000u64)
         .map(|i| format!("A$C{:08X}", seed.wrapping_add(i) & 0xFFFF_FFFF))
         .find(|n| d.block(n).is_none())
-        .ok_or_else(|| bad("pasteblock", "no free block name"))?;
+        .ok_or_else(|| bad("edit.pasteAsBlock", "no free block name"))?;
     let mut b = Block::new(&name);
     b.base = base.to3(0.0);
     for e in &ents {

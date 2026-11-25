@@ -21,45 +21,45 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["lo"])
             .params("{option: new|copy|delete|rename|set|list, name?, to?} (typed LAYOUT / -LAYOUT: option prompts)")
             .interactive(|_| Ok(Box::new(prompts::LayoutM::default()))),
-        CommandSpec::new("layout.new", "New Layout", run_new)
+        CommandSpec::new("layout.add", "New Layout", run_new)
             .menu(&["Insert", "Layout", "New Layout"])
             .params("{name?, viewport?: bool (default true)} → {name, viewport}")
             .interactive(|_| Ok(Box::new(NewLayoutM))),
         CommandSpec::new("layout.delete", "Delete Layout", run_delete).params("{name}"),
         CommandSpec::new("layout.rename", "Rename Layout", run_rename).params("{from?: current layout, to}"),
-        CommandSpec::new("layout.copy", "Copy Layout", run_copy).params("{from, to?}"),
+        CommandSpec::new("layout.duplicate", "Copy Layout", run_copy).params("{from, to?}"),
         CommandSpec::new("layout.list", "List Layouts", run_list).params("{} → [{name, tabOrder, page, viewports}]").noundo(),
-        CommandSpec::new("mview", "Viewports", run_mview)
+        CommandSpec::new("viewport.add", "Viewports", run_mview)
             .alias(&["mv"])
             .params("{p1?, p2? (default: printable area), count?: 1-4, arrangement?: vertical|horizontal|left|right|above|below, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(1, true)))),
-        CommandSpec::new("vports", "New Viewports...", run_mview)
+        CommandSpec::new("viewport.new", "New Viewports...", run_mview)
             .menu(&["View", "Viewports", "New Viewports..."])
             .params("{count?: 1-4, arrangement?, p1?, p2?, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(1, true)))),
-        CommandSpec::new("vports.1", "1 Viewport", |s, p| run_mview_n(s, p, 1))
+        CommandSpec::new("viewport.one", "1 Viewport", |s, p| run_mview_n(s, p, 1))
             .menu(&["View", "Viewports", "1 Viewport"])
             .params("{p1?, p2?, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(1, false)))),
-        CommandSpec::new("vports.2", "2 Viewports", |s, p| run_mview_n(s, p, 2))
+        CommandSpec::new("viewport.two", "2 Viewports", |s, p| run_mview_n(s, p, 2))
             .menu(&["View", "Viewports", "2 Viewports"])
             .params("{p1?, p2?, arrangement?: vertical|horizontal, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(2, false)))),
-        CommandSpec::new("vports.3", "3 Viewports", |s, p| run_mview_n(s, p, 3))
+        CommandSpec::new("viewport.three", "3 Viewports", |s, p| run_mview_n(s, p, 3))
             .menu(&["View", "Viewports", "3 Viewports"])
             .params("{p1?, p2?, arrangement?: right|left|above|below|vertical|horizontal, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(3, false)))),
-        CommandSpec::new("vports.4", "4 Viewports", |s, p| run_mview_n(s, p, 4))
+        CommandSpec::new("viewport.four", "4 Viewports", |s, p| run_mview_n(s, p, 4))
             .menu(&["View", "Viewports", "4 Viewports"])
             .params("{p1?, p2?, layout?}")
             .interactive(|_| Ok(Box::new(MviewM::new(4, false)))),
         CommandSpec::new("viewport.set", "Viewport Properties", run_viewport_set).params(
             "{handle? (default: selected viewports), handles?, scale?: paper units per model unit | \"1:50\", viewHeight?, center?: [x,y], locked?, freeze?: [layer], thaw?: [layer], colors?: {layer: color | null}}",
         ),
-        CommandSpec::new("vplayer", "Viewport Layer Freeze", run_viewport_set)
+        CommandSpec::new("viewport.freezeLayer", "Viewport Layer Freeze", run_viewport_set)
             .params("{handle?, handles?, scale?: paper units per model unit | \"1:50\", viewHeight?, center?: [x,y], locked?: bool, freeze?: [layer], thaw?: [layer], colors?: {layer: color (\"red\" | 1..255 | \"r,g,b\") | null to clear}} (typed: option prompts)")
             .interactive(|_| Ok(Box::new(vplayer::VplayerM::default()))),
-        CommandSpec::new("pagesetup", "Page Setup Manager...", run_pagesetup)
+        CommandSpec::new("plot.pageSetup", "Page Setup Manager...", run_pagesetup)
             .menu(&["File", "Page Setup Manager..."])
             .params(
                 "{layout?: current, paper?: \"A4\"|\"A3\"|\"Letter\"|\"ANSI B\"|…, width?, height? (mm), landscape?, margins?: [l,b,r,t] mm, lineweights?, plotArea?, scale?, scaleToFit?, center?, plotStyleTable?: \"monochrome.ctb\"|\"grayscale.ctb\"|\"default.ctb\"|\"None\"|…, displayPlotStyles?: bool}",
@@ -70,15 +70,15 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["print"])
             .params("{path? (else returns base64 `data`), layout?: current|\"Model\", paper?, landscape?, fit?: bool, scale?, lineweights?: bool}")
             .noundo(),
-        CommandSpec::new("exportpdf", "Export to PDF...", |s, p| run_plot(s, p, "exportpdf"))
+        CommandSpec::new("file.exportPdf", "Export to PDF...", |s, p| run_plot(s, p, "file.exportPdf"))
             .menu(&["File", "Export to PDF..."])
             .params("{path? (else returns base64 `data`), layout?, paper?, landscape?, fit?, lineweights?}")
             .noundo(),
-        CommandSpec::new("mspace", "Model Space (in viewport)", run_mspace)
+        CommandSpec::new("viewport.modelSpace", "Model Space (in viewport)", run_mspace)
             .alias(&["ms"])
             .params("{handle?: viewport, at?: [x,y] paper point inside a viewport} (default: the last active or first viewport)")
             .noundo(),
-        CommandSpec::new("pspace", "Paper Space", run_pspace).alias(&["ps"]).noundo(),
+        CommandSpec::new("viewport.paperSpace", "Paper Space", run_pspace).alias(&["ps"]).noundo(),
     ]
     .into_iter()
     .chain(plotstyle::specs())
@@ -90,7 +90,7 @@ pub fn specs() -> Vec<CommandSpec> {
 fn layout_viewports(s: &Session) -> Result<Vec<(Handle, Viewport)>> {
     let sp = s.layout_space();
     if sp == Space::Model {
-        return Err(bad("mspace", "** Command not allowed in Model Tab **"));
+        return Err(bad("viewport.modelSpace", "** Command not allowed in Model Tab **"));
     }
     let d = s.doc()?;
     Ok(d.space(&sp)
@@ -110,18 +110,18 @@ fn run_mspace(s: &mut Session, p: &Value) -> Result<Value> {
     let at = p.get("at").and_then(|v| Some(Vec2::new(v.get(0)?.as_f64()?, v.get(1)?.as_f64()?)));
     let want = p.get("handle").and_then(|v| v.as_str().and_then(Handle::parse_hex).or_else(|| v.as_u64().map(Handle)));
     let pick = if let Some(h) = want {
-        vps.iter().find(|(x, _)| *x == h).map(|(h, _)| *h).ok_or_else(|| bad("mspace", "`handle` is not a viewport in this layout"))?
+        vps.iter().find(|(x, _)| *x == h).map(|(h, _)| *h).ok_or_else(|| bad("viewport.modelSpace", "`handle` is not a viewport in this layout"))?
     } else if let Some(a) = at {
         vps.iter()
             .rev()
             .find(|(_, v)| (a.x - v.center.x).abs() <= v.width / 2.0 && (a.y - v.center.y).abs() <= v.height / 2.0)
             .map(|(h, _)| *h)
-            .ok_or_else(|| bad("mspace", "no viewport at that point"))?
+            .ok_or_else(|| bad("viewport.modelSpace", "no viewport at that point"))?
     } else {
         let last = s.state()?.mspace;
         match last.filter(|h| vps.iter().any(|(x, _)| x == h)).or_else(|| vps.first().map(|(h, _)| *h)) {
             Some(h) => h,
-            None => return Err(bad("mspace", "There are no active model space viewports.")),
+            None => return Err(bad("viewport.modelSpace", "There are no active model space viewports.")),
         }
     };
     let st = s.state_mut()?;
@@ -133,7 +133,7 @@ fn run_mspace(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_pspace(s: &mut Session, _p: &Value) -> Result<Value> {
     if s.layout_space() == Space::Model {
-        return Err(bad("pspace", "** Command not allowed in Model Tab **"));
+        return Err(bad("viewport.paperSpace", "** Command not allowed in Model Tab **"));
     }
     let st = s.state_mut()?;
     st.mspace = None;
@@ -213,7 +213,7 @@ impl Interactive for NewLayoutM {
 fn run_new(s: &mut Session, p: &Value) -> Result<Value> {
     let d = s.doc()?;
     let name = match str_param(p, "name") {
-        Some(n) => check_name("layout.new", d, n, None)?,
+        Some(n) => check_name("layout.add", d, n, None)?,
         None => next_layout_name(d),
     };
     let page = default_page(d);
@@ -278,17 +278,17 @@ fn run_rename(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_copy(s: &mut Session, p: &Value) -> Result<Value> {
-    let from = str_param(p, "from").ok_or_else(|| bad("layout.copy", "`from` is required"))?;
-    let from = layout_name("layout.copy", s.doc()?, from)?;
+    let from = str_param(p, "from").ok_or_else(|| bad("layout.duplicate", "`from` is required"))?;
+    let from = layout_name("layout.duplicate", s.doc()?, from)?;
     let to = match str_param(p, "to") {
-        Some(t) => check_name("layout.copy", s.doc()?, t, None)?,
+        Some(t) => check_name("layout.duplicate", s.doc()?, t, None)?,
         None => {
             let d = s.doc()?;
-            (2..=10_000).map(|i| format!("{from} ({i})")).find(|n| d.layout(n).is_none()).ok_or_else(|| bad("layout.copy", "no free name"))?
+            (2..=10_000).map(|i| format!("{from} ({i})")).find(|n| d.layout(n).is_none()).ok_or_else(|| bad("layout.duplicate", "no free name"))?
         }
     };
     let d = s.doc_mut()?;
-    let Some(src) = d.layouts.iter().find(|l| l.name == from).cloned() else { return Err(bad("layout.copy", "no such layout")) };
+    let Some(src) = d.layouts.iter().find(|l| l.name == from).cloned() else { return Err(bad("layout.duplicate", "no such layout")) };
     let order = d.layouts.iter().map(|l| l.tab_order).max().unwrap_or(0).saturating_add(1);
     let mut store = EntityStore::new();
     for e in src.entities.iter() {
@@ -323,8 +323,8 @@ fn run_list(s: &mut Session, _p: &Value) -> Result<Value> {
 pub fn layout_operation(p: &Value) -> Result<(&'static str, Value)> {
     let opt = str_param(p, "option").unwrap_or("list").to_ascii_lowercase();
     let command = match opt.as_str() {
-        "new" | "n" => "layout.new",
-        "copy" | "c" => "layout.copy",
+        "new" | "n" => "layout.add",
+        "copy" | "c" => "layout.duplicate",
         "delete" | "d" => "layout.delete",
         "rename" | "r" => "layout.rename",
         "set" | "s" => "layout.set",
@@ -332,7 +332,7 @@ pub fn layout_operation(p: &Value) -> Result<(&'static str, Value)> {
         _ => return Err(bad("layout", "option must be new, copy, delete, rename, set or list")),
     };
     let mut q = p.clone();
-    if matches!(command, "layout.copy" | "layout.rename")
+    if matches!(command, "layout.duplicate" | "layout.rename")
         && q.get("from").is_none()
         && let (Some(n), Some(o)) = (p.get("name").cloned(), q.as_object_mut())
     {
@@ -345,8 +345,8 @@ pub fn layout_operation(p: &Value) -> Result<(&'static str, Value)> {
 fn run_layout(s: &mut Session, p: &Value) -> Result<Value> {
     let (command, p) = layout_operation(p)?;
     match command {
-        "layout.new" => run_new(s, &p),
-        "layout.copy" => run_copy(s, &p),
+        "layout.add" => run_new(s, &p),
+        "layout.duplicate" => run_copy(s, &p),
         "layout.delete" => run_delete(s, &p),
         "layout.rename" => run_rename(s, &p),
         "layout.set" => {
@@ -362,7 +362,7 @@ fn run_layout(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// The printable area of a layout, in paper units.
 fn printable(s: &Session, layout: &str) -> Result<Bounds2> {
-    kition_cad_render::sheet(s.doc()?, layout).map(|sh| sh.printable).ok_or_else(|| bad("mview", format!("no layout `{layout}`")))
+    kition_cad_render::sheet(s.doc()?, layout).map(|sh| sh.printable).ok_or_else(|| bad("viewport.add", format!("no layout `{layout}`")))
 }
 
 /// The layout a viewport command acts on: `layout` param or the current layout.
@@ -421,13 +421,13 @@ fn fit_view(d: &Drawing, w: f64, h: f64) -> (Vec2, f64) {
 /// Add `count` viewports tiling `rect` in a layout, each zoomed to the model extents.
 fn add_viewports(s: &mut Session, space: &Space, rect: Bounds2, count: usize, arrangement: &str) -> Result<Vec<Handle>> {
     if !(1..=4).contains(&count) {
-        return Err(bad("mview", "count must be 1, 2, 3 or 4"));
+        return Err(bad("viewport.add", "count must be 1, 2, 3 or 4"));
     }
     if rect.is_empty() || !rect.min.is_finite() || !rect.max.is_finite() || rect.width() < 1e-6 || rect.height() < 1e-6 {
-        return Err(bad("mview", "the viewport has no area"));
+        return Err(bad("viewport.add", "the viewport has no area"));
     }
     if rect.width() > 1e7 || rect.height() > 1e7 {
-        return Err(bad("mview", "the viewport is too large"));
+        return Err(bad("viewport.add", "the viewport is too large"));
     }
     let common = s.current_common();
     let d = s.doc_mut()?;
@@ -476,13 +476,13 @@ fn mview(s: &mut Session, p: &Value, count: usize, cmd: &str) -> Result<Value> {
 fn run_mview(s: &mut Session, p: &Value) -> Result<Value> {
     let count = match p.get("count") {
         None | Some(Value::Null) => 1,
-        Some(v) => v.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| bad("mview", "count must be 1, 2, 3 or 4"))?,
+        Some(v) => v.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| bad("viewport.add", "count must be 1, 2, 3 or 4"))?,
     };
-    mview(s, p, count, "mview")
+    mview(s, p, count, "viewport.add")
 }
 
 fn run_mview_n(s: &mut Session, p: &Value, n: usize) -> Result<Value> {
-    mview(s, p, n, "vports")
+    mview(s, p, n, "viewport.new")
 }
 
 /// MVIEW / VPORTS prompts: first corner (or Fit, or a viewport count), opposite corner.
@@ -503,7 +503,7 @@ impl MviewM {
             o.insert("p1".into(), json!([r.min.x, r.min.y]));
             o.insert("p2".into(), json!([r.max.x, r.max.y]));
         }
-        let r = mview(s, &p, self.count, "mview")?;
+        let r = mview(s, &p, self.count, "viewport.add")?;
         let n = r.get("viewports").and_then(Value::as_array).map(Vec::len).unwrap_or(0);
         s.echo(format!("{n} viewport(s) created, zoomed to the model extents."));
         Ok(Step::Done)
@@ -713,7 +713,7 @@ fn run_viewport_set(s: &mut Session, p: &Value) -> Result<Value> {
 // ---------- page setup ----------
 
 fn run_pagesetup(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "pagesetup";
+    let cmd = "plot.pageSetup";
     let keys = [
         "paper",
         "width",
@@ -870,7 +870,7 @@ mod tests {
     #[test]
     fn new_layout_gets_viewport_zoomed_to_extents() {
         let mut s = session_with_model();
-        let r = s.execute("layout.new", &json!({})).unwrap();
+        let r = s.execute("layout.add", &json!({})).unwrap();
         assert_eq!(r["name"], "Layout3");
         let vps = viewports(&s, "Layout3");
         assert_eq!(vps.len(), 1);
@@ -903,8 +903,8 @@ mod tests {
         assert!(s.execute("layout.rename", &json!({"from": "Sheet A", "to": "Layout2"})).is_err(), "duplicate");
         assert!(s.execute("layout.rename", &json!({"from": "Sheet A", "to": "a/b"})).is_err(), "bad char");
         assert!(s.execute("layout.rename", &json!({"from": "Sheet A", "to": "model"})).is_err(), "reserved");
-        s.execute("mview", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
-        let r = s.execute("layout.copy", &json!({"from": "Sheet A"})).unwrap();
+        s.execute("viewport.add", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
+        let r = s.execute("layout.duplicate", &json!({"from": "Sheet A"})).unwrap();
         assert_eq!(r["name"], "Sheet A (2)");
         let a = viewports(&s, "Sheet A");
         let b = viewports(&s, "Sheet A (2)");
@@ -923,13 +923,13 @@ mod tests {
     #[test]
     fn new_layout_from_the_menu_asks_for_a_name() {
         let mut s = session_with_model();
-        s.start("layout.new").unwrap();
+        s.start("layout.add").unwrap();
         assert_eq!(s.current_prompt().map(|p| p.display()).as_deref(), Some("Enter name of new layout <Layout3>:"));
         s.cmdline("Layout1").unwrap();
         assert!(s.running.is_some(), "a taken name asks again");
         s.cmdline("Sheet A").unwrap();
         assert!(s.running.is_none());
-        s.start("layout.new").unwrap();
+        s.start("layout.add").unwrap();
         s.cmdline("").unwrap();
         let d = s.doc().unwrap();
         assert!(d.layout("Sheet A").is_some() && d.layout("Layout3").is_some(), "Enter takes the default name");
@@ -938,10 +938,10 @@ mod tests {
     #[test]
     fn mview_arrangements_and_interactive() {
         let mut s = session_with_model();
-        assert!(s.execute("mview", &json!({"p1": [0, 0], "p2": [1, 1]})).is_err(), "not in model space");
-        s.execute("mview", &json!({"layout": "Layout2", "count": 4})).unwrap();
+        assert!(s.execute("viewport.add", &json!({"p1": [0, 0], "p2": [1, 1]})).is_err(), "not in model space");
+        s.execute("viewport.add", &json!({"layout": "Layout2", "count": 4})).unwrap();
         assert_eq!(viewports(&s, "Layout2").len(), 4);
-        s.execute("vports.3", &json!({"layout": "Layout2", "p1": [0, 0], "p2": [9, 6]})).unwrap();
+        s.execute("viewport.three", &json!({"layout": "Layout2", "p1": [0, 0], "p2": [9, 6]})).unwrap();
         let v = viewports(&s, "Layout2");
         assert_eq!(v.len(), 7);
         let total: f64 = v[4..].iter().map(|(_, v)| v.width * v.height).sum();
@@ -974,7 +974,7 @@ mod tests {
     fn viewport_scale_lock_and_layers() {
         let mut s = session_with_model();
         s.execute("layout.set", &json!({"name": "Layout1"})).unwrap();
-        let r = s.execute("mview", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
+        let r = s.execute("viewport.add", &json!({"p1": [1, 1], "p2": [5, 4]})).unwrap();
         let h = r["viewports"][0].as_str().unwrap().to_string();
         let out = s.execute("viewport.set", &json!({"handle": h, "scale": "1:20", "center": [50, 20]})).unwrap();
         assert!((out[0]["viewHeight"].as_f64().unwrap() - 60.0).abs() < 1e-9);
@@ -982,16 +982,16 @@ mod tests {
         s.execute("viewport.set", &json!({"handle": h, "locked": true})).unwrap();
         assert!(s.execute("viewport.set", &json!({"handle": h, "scale": 0.1})).is_err(), "locked");
         s.execute("viewport.set", &json!({"handle": h, "scale": 0.1, "locked": false})).unwrap();
-        s.execute("vplayer", &json!({"handle": h, "freeze": ["0", "Walls"]})).unwrap();
-        s.execute("vplayer", &json!({"handle": h, "thaw": "walls"})).unwrap();
+        s.execute("viewport.freezeLayer", &json!({"handle": h, "freeze": ["0", "Walls"]})).unwrap();
+        s.execute("viewport.freezeLayer", &json!({"handle": h, "thaw": "walls"})).unwrap();
         let v = viewports(&s, "Layout1");
         assert_eq!(v[0].1.frozen_layers, vec!["0".to_string()]);
-        s.execute("vplayer", &json!({"handle": h, "colors": {"Walls": "red"}})).unwrap();
-        assert!(s.execute("vplayer", &json!({"handle": h, "colors": {"Walls": "bylayer"}})).is_err());
-        assert!(s.execute("vplayer", &json!({"handle": h, "colors": {"Walls": [1]}})).is_err());
+        s.execute("viewport.freezeLayer", &json!({"handle": h, "colors": {"Walls": "red"}})).unwrap();
+        assert!(s.execute("viewport.freezeLayer", &json!({"handle": h, "colors": {"Walls": "bylayer"}})).is_err());
+        assert!(s.execute("viewport.freezeLayer", &json!({"handle": h, "colors": {"Walls": [1]}})).is_err());
         let vv = viewports(&s, "Layout1");
         assert_eq!(vv[0].1.layer_colors, vec![("Walls".to_string(), kition_cad_color::Color::Index(1))]);
-        s.execute("vplayer", &json!({"handle": h, "colors": {"walls": null}})).unwrap();
+        s.execute("viewport.freezeLayer", &json!({"handle": h, "colors": {"walls": null}})).unwrap();
         assert!(viewports(&s, "Layout1")[0].1.layer_colors.is_empty());
         assert!((v[0].1.view_height - 30.0).abs() < 1e-9);
         // Layer 0 frozen in the viewport: nothing of the model shows.
@@ -1010,18 +1010,18 @@ mod tests {
     #[test]
     fn pagesetup_paper_table() {
         let mut s = Session::new();
-        let r = s.execute("pagesetup", &json!({"layout": "Layout1", "paper": "A3", "landscape": true, "margins": [5, 5, 5, 5]})).unwrap();
+        let r = s.execute("plot.pageSetup", &json!({"layout": "Layout1", "paper": "A3", "landscape": true, "margins": [5, 5, 5, 5]})).unwrap();
         assert_eq!(r["page"]["widthMm"], 297.0);
         let sheet = kition_cad_render::sheet(s.doc().unwrap(), "Layout1").unwrap();
         // Imperial drawing: paper units are inches.
         assert!((sheet.size.x - 420.0 / 25.4).abs() < 1e-9 && (sheet.size.y - 297.0 / 25.4).abs() < 1e-9);
-        assert!(s.execute("pagesetup", &json!({"layout": "Layout1", "paper": "Z12"})).is_err());
-        assert!(s.execute("pagesetup", &json!({"layout": "Layout1", "margins": [1, 2]})).is_err());
-        assert!(s.execute("pagesetup", &json!({"layout": "Layout1", "width": 1e308, "height": 5})).is_err());
-        assert!(s.execute("pagesetup", &json!({"paper": "A4"})).is_err(), "model tab needs a layout");
-        let report = s.execute("pagesetup", &Value::Null).unwrap();
+        assert!(s.execute("plot.pageSetup", &json!({"layout": "Layout1", "paper": "Z12"})).is_err());
+        assert!(s.execute("plot.pageSetup", &json!({"layout": "Layout1", "margins": [1, 2]})).is_err());
+        assert!(s.execute("plot.pageSetup", &json!({"layout": "Layout1", "width": 1e308, "height": 5})).is_err());
+        assert!(s.execute("plot.pageSetup", &json!({"paper": "A4"})).is_err(), "model tab needs a layout");
+        let report = s.execute("plot.pageSetup", &Value::Null).unwrap();
         assert!(report["papers"].as_array().unwrap().len() >= 10);
-        s.execute("pagesetup", &json!({"layout": "Layout2", "width": 500, "height": 300})).unwrap();
+        s.execute("plot.pageSetup", &json!({"layout": "Layout2", "width": 500, "height": 300})).unwrap();
         let p = &s.doc().unwrap().layout("Layout2").unwrap().page;
         assert_eq!((p.width_mm, p.height_mm), (300.0, 500.0));
     }
@@ -1046,7 +1046,7 @@ mod tests {
         let data = super::super::file::base64_decode(r["data"].as_str().unwrap()).unwrap();
         let text = String::from_utf8(data).unwrap();
         assert!(text.starts_with("%PDF") && text.contains("Paper(\"Layout1\")") && text.contains("A4"));
-        let r = s.execute("exportpdf", &json!({})).unwrap();
+        let r = s.execute("file.exportPdf", &json!({})).unwrap();
         assert_eq!(r["layout"], "Model");
         assert!(s.execute("plot", &json!({"layout": "Nope"})).is_err());
         #[cfg(not(target_arch = "wasm32"))]
@@ -1065,16 +1065,16 @@ mod tests {
         let mut s = session_with_model();
         let long = "x".repeat(300);
         for (c, p) in [
-            ("layout.new", json!({"name": ""})),
-            ("layout.new", json!({"name": long})),
-            ("layout.new", json!({"name": "a\u{0}b"})),
-            ("layout.new", json!({"name": "Layout1"})),
-            ("mview", json!({"layout": "Layout1", "p1": [1e308, -1e308], "p2": [-1e308, 1e308]})),
-            ("mview", json!({"layout": "Layout1", "p1": [1, 1], "p2": [1, 1]})),
-            ("mview", json!({"layout": "Layout1", "count": 99})),
-            ("mview", json!({"layout": "Layout1", "count": -1})),
+            ("layout.add", json!({"name": ""})),
+            ("layout.add", json!({"name": long})),
+            ("layout.add", json!({"name": "a\u{0}b"})),
+            ("layout.add", json!({"name": "Layout1"})),
+            ("viewport.add", json!({"layout": "Layout1", "p1": [1e308, -1e308], "p2": [-1e308, 1e308]})),
+            ("viewport.add", json!({"layout": "Layout1", "p1": [1, 1], "p2": [1, 1]})),
+            ("viewport.add", json!({"layout": "Layout1", "count": 99})),
+            ("viewport.add", json!({"layout": "Layout1", "count": -1})),
             ("layout.rename", json!({"from": "Layout1"})),
-            ("layout.copy", json!({"from": "nope"})),
+            ("layout.duplicate", json!({"from": "nope"})),
             ("viewport.set", json!({"handles": ["zz"]})),
         ] {
             assert!(s.execute(c, &p).is_err(), "{c} {p}");
@@ -1085,12 +1085,12 @@ mod tests {
     fn mspace_edits_model_through_viewport() {
         let mut s = session_with_model();
         let before = s.doc().unwrap().model.len();
-        s.execute("layout.new", &json!({"name": "L"})).unwrap();
+        s.execute("layout.add", &json!({"name": "L"})).unwrap();
         s.execute("layout.set", &json!({"name": "L"})).unwrap();
-        assert!(s.execute("mspace", &json!({"at": [-1000, -1000]})).is_err());
+        assert!(s.execute("viewport.modelSpace", &json!({"at": [-1000, -1000]})).is_err());
         let vps = viewports(&s, "L");
         let (h, vp) = vps.iter().find(|(_, v)| v.id != 1).cloned().unwrap();
-        s.execute("mspace", &json!({"at": [vp.center.x, vp.center.y]})).unwrap();
+        s.execute("viewport.modelSpace", &json!({"at": [vp.center.x, vp.center.y]})).unwrap();
         assert_eq!(s.space(), Space::Model);
         assert_eq!(s.layout_space(), Space::Paper("L".into()));
         // The screen view in MSPACE maps the viewport centre to its model view centre.
@@ -1106,9 +1106,9 @@ mod tests {
         let vp2 = viewports(&s, "L").into_iter().find(|(x, _)| *x == h).unwrap().1;
         assert!((vp2.view_height - vp.view_height / 2.0).abs() < 1e-9);
         assert_eq!(s.state().unwrap().paper_view(), pv);
-        s.execute("pspace", &json!({})).unwrap();
+        s.execute("viewport.paperSpace", &json!({})).unwrap();
         assert_eq!(s.space(), Space::Paper("L".into()));
-        s.execute("mspace", &json!({})).unwrap();
+        s.execute("viewport.modelSpace", &json!({})).unwrap();
         s.execute("layout.set", &json!({"name": "Model"})).unwrap();
         assert!(s.state().unwrap().mspace.is_none());
     }

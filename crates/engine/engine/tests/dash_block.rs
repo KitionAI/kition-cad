@@ -55,10 +55,10 @@ fn block_and_the_json_forms_keep_their_defaults() {
     let r = s.execute("block", &json!({ "name": "C", "base": [0, 0], "handles": [h] })).unwrap();
     assert!(r["insert"].is_string());
     let h = l(&mut s);
-    let r = s.execute("-block", &json!({ "name": "D", "base": [0, 0], "handles": [h] })).unwrap();
+    let r = s.execute("block.add", &json!({ "name": "D", "base": [0, 0], "handles": [h] })).unwrap();
     assert!(r["insert"].is_null());
     let h = l(&mut s);
-    s.execute("-block", &json!({ "name": "E", "base": [0, 0], "handles": [h], "keep": "retain" })).unwrap();
+    s.execute("block.add", &json!({ "name": "E", "base": [0, 0], "handles": [h], "keep": "retain" })).unwrap();
     assert_eq!(references(&s), 2);
     assert_eq!(s.doc().unwrap().model.len(), 3, "A and C references, E's retained line");
 }

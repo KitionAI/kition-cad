@@ -158,9 +158,9 @@ impl Drawing {
         table!("layer", self.layers);
         table!("linetype", self.linetypes);
         table!("textstyle", self.text_styles);
-        table!("dimstyle", self.dim_styles);
-        table!("mleaderstyle", self.mleader_styles);
-        table!("tablestyle", self.table_styles);
+        table!("dimensionStyle.open", self.dim_styles);
+        table!("multileaderStyle.open", self.mleader_styles);
+        table!("tableStyle.open", self.table_styles);
         table!("view", self.views);
         table!("ucs", self.ucss);
         table!("layerstate", self.layer_states);

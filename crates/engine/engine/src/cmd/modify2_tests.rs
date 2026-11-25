@@ -21,7 +21,7 @@ fn near(a: Vec2, x: f64, y: f64) -> bool {
 }
 
 fn pline(s: &mut Session, pts: Value, closed: bool) -> String {
-    h(&s.execute("pline", &json!({"vertices": pts, "closed": closed})).unwrap())
+    h(&s.execute("polyline.add", &json!({"vertices": pts, "closed": closed})).unwrap())
 }
 
 fn poly(k: &EntityKind) -> kition_cad_doc::LwPolyline {
@@ -44,13 +44,13 @@ fn arc_of(k: &EntityKind) -> Arc {
 fn pedit_json_options() {
     let mut s = Session::new();
     let p = pline(&mut s, json!([[0, 0], [10, 0], [10, 10], [0, 10]]), false);
-    s.execute("pedit", &json!({"handle": p, "option": "close"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": p, "option": "close"})).unwrap();
     assert!(poly(&kind(&s, &p)).closed);
-    s.execute("pedit", &json!({"handle": p, "option": "open"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": p, "option": "open"})).unwrap();
     assert!(!poly(&kind(&s, &p)).closed);
-    s.execute("pedit", &json!({"handle": p, "option": "width", "width": 0.5})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": p, "option": "width", "width": 0.5})).unwrap();
     assert_eq!(poly(&kind(&s, &p)).const_width, 0.5);
-    s.execute("pedit", &json!({"handle": p, "option": "fit"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": p, "option": "fit"})).unwrap();
     let f = poly(&kind(&s, &p));
     assert_eq!(f.vertices.len(), 7);
     assert!(f.vertices.iter().take(6).all(|v| v.bulge.abs() > 1e-6), "fit curve is all arcs");
@@ -58,40 +58,40 @@ fn pedit_json_options() {
     let segs = Polyline { vertices: f.vertices.clone(), closed: false }.segments();
     assert!(segs[1].tangent(1.0).near(segs[2].tangent(0.0), 1e-6));
     assert!(near(f.vertices[2].p, 10.0, 0.0), "original vertices are kept");
-    s.execute("pedit", &json!({"handle": p, "option": "decurve"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": p, "option": "decurve"})).unwrap();
     assert!(poly(&kind(&s, &p)).vertices.iter().all(|v| v.bulge == 0.0));
     let q = pline(&mut s, json!([[0, 20], [10, 20], [10, 30], [0, 30]]), false);
-    s.execute("pedit", &json!({"handle": q, "option": "spline"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": q, "option": "spline"})).unwrap();
     let sp = poly(&kind(&s, &q));
     assert_eq!(sp.vertices.len(), 25);
     assert!(near(sp.vertices[0].p, 0.0, 20.0) && near(sp.vertices[24].p, 0.0, 30.0));
-    s.execute("pedit", &json!({"handle": q, "option": "reverse"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": q, "option": "reverse"})).unwrap();
     assert!(near(poly(&kind(&s, &q)).vertices[0].p, 0.0, 30.0));
-    s.execute("pedit", &json!({"handle": q, "option": "ltypegen"})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": q, "option": "ltypegen"})).unwrap();
     assert!(poly(&kind(&s, &q)).plinegen);
     // Vertex editing.
     let r = pline(&mut s, json!([[0, 50], [5, 50], [10, 50]]), false);
-    s.execute("pedit", &json!({"handle": r, "option": "vertex", "action": "move", "index": 1, "to": [5, 55]})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": r, "option": "vertex", "action": "move", "index": 1, "to": [5, 55]})).unwrap();
     assert!(near(poly(&kind(&s, &r)).vertices[1].p, 5.0, 55.0));
-    s.execute("pedit", &json!({"handle": r, "option": "vertex", "action": "insert", "index": 0, "to": [2, 52]})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": r, "option": "vertex", "action": "insert", "index": 0, "to": [2, 52]})).unwrap();
     assert_eq!(poly(&kind(&s, &r)).vertices.len(), 4);
-    s.execute("pedit", &json!({"handle": r, "option": "vertex", "action": "width", "index": 0, "startWidth": 1, "endWidth": 0})).unwrap();
+    s.execute("polyline.edit", &json!({"handle": r, "option": "vertex", "action": "width", "index": 0, "startWidth": 1, "endWidth": 0})).unwrap();
     assert_eq!(poly(&kind(&s, &r)).vertices[0].start_width, 1.0);
-    assert!(s.execute("pedit", &json!({"handle": r, "option": "vertex", "index": 99, "to": [0, 0]})).is_err());
-    assert!(s.execute("pedit", &json!({"handle": r, "option": "bogus"})).is_err());
+    assert!(s.execute("polyline.edit", &json!({"handle": r, "option": "vertex", "index": 99, "to": [0, 0]})).is_err());
+    assert!(s.execute("polyline.edit", &json!({"handle": r, "option": "bogus"})).is_err());
     // A line is converted, then joined with a touching arc and polyline.
     let l = h(&s.execute("line", &json!({"points": [[0, 100], [10, 100]]})).unwrap());
     let a = h(&s.execute("arc", &json!({"center": [10, 105], "radius": 5, "start": -90, "end": 90})).unwrap());
     let far = h(&s.execute("line", &json!({"points": [[50, 50], [60, 60]]})).unwrap());
     let tail = pline(&mut s, json!([[10, 110], [0, 110]]), false);
-    let r = s.execute("pedit", &json!({"handle": l, "option": "join", "handles2": [a, tail, far]})).unwrap();
+    let r = s.execute("polyline.edit", &json!({"handle": l, "option": "join", "handles2": [a, tail, far]})).unwrap();
     assert_eq!(r["joined"], 2);
     let j = poly(&kind(&s, &l));
     assert_eq!(j.vertices.len(), 4);
     assert!(j.vertices[1].bulge > 0.9);
     assert!(s.doc().unwrap().entity(Handle::parse_hex(&far).unwrap()).is_some(), "unconnected objects stay");
     let c = h(&s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap());
-    assert!(s.execute("pedit", &json!({"handle": c, "option": "close"})).is_err());
+    assert!(s.execute("polyline.edit", &json!({"handle": c, "option": "close"})).is_err());
 }
 
 #[test]
@@ -150,23 +150,23 @@ fn pedit_command_line() {
 fn splinedit_json_and_command_line() {
     let mut s = Session::new();
     let sp = h(&s.execute("spline", &json!({"fit": [[0, 0], [2, 2], [4, 0], [6, 2]]})).unwrap());
-    s.execute("splinedit", &json!({"handle": sp, "option": "close"})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "close"})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if x.closed && x.is_periodic() && x.fit.len() == 4));
-    s.execute("splinedit", &json!({"handle": sp, "option": "open"})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "open"})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if !x.closed && x.fit.len() == 4));
-    s.execute("splinedit", &json!({"handle": sp, "option": "reverse"})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "reverse"})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if near(x.fit[0], 6.0, 2.0)));
-    s.execute("splinedit", &json!({"handle": sp, "option": "move", "index": 0, "to": [7, 3]})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "move", "index": 0, "to": [7, 3]})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if near(x.fit[0], 7.0, 3.0)));
-    s.execute("splinedit", &json!({"handle": sp, "option": "refit", "fit": [[0, 0], [1, 1], [2, 0]]})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "refit", "fit": [[0, 0], [1, 1], [2, 0]]})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if x.fit.len() == 3));
-    s.execute("splinedit", &json!({"handle": sp, "option": "purge"})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "purge"})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::Spline(x) if x.fit.is_empty()));
-    assert!(s.execute("splinedit", &json!({"handle": sp, "option": "refit"})).is_err());
-    s.execute("splinedit", &json!({"handle": sp, "option": "move", "index": 1, "to": [1, 5]})).unwrap();
-    s.execute("splinedit", &json!({"handle": sp, "option": "polyline", "precision": 4})).unwrap();
+    assert!(s.execute("spline.edit", &json!({"handle": sp, "option": "refit"})).is_err());
+    s.execute("spline.edit", &json!({"handle": sp, "option": "move", "index": 1, "to": [1, 5]})).unwrap();
+    s.execute("spline.edit", &json!({"handle": sp, "option": "polyline", "precision": 4})).unwrap();
     assert!(matches!(kind(&s, &sp), EntityKind::LwPolyline(p) if p.vertices.len() > 4));
-    assert!(s.execute("splinedit", &json!({"handle": sp, "option": "close"})).is_err());
+    assert!(s.execute("spline.edit", &json!({"handle": sp, "option": "close"})).is_err());
 
     let mut s = Session::new();
     s.execute("spline", &json!({"control": [[0, 0], [2, 3], [4, 0], [6, 3]]})).unwrap();
@@ -185,32 +185,32 @@ fn splinedit_json_and_command_line() {
 fn lengthen_json() {
     let mut s = Session::new();
     let l = h(&s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
-    assert_eq!(s.execute("lengthen", &json!({"handle": l})).unwrap()["length"], 10.0);
-    s.execute("lengthen", &json!({"handle": l, "delta": 2})).unwrap();
+    assert_eq!(s.execute("object.lengthen", &json!({"handle": l})).unwrap()["length"], 10.0);
+    s.execute("object.lengthen", &json!({"handle": l, "delta": 2})).unwrap();
     assert!(matches!(kind(&s, &l), EntityKind::Line(x) if (x.b.x - 12.0).abs() < 1e-9));
-    s.execute("lengthen", &json!({"handle": l, "delta": -2, "pick": [0, 0]})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": l, "delta": -2, "pick": [0, 0]})).unwrap();
     assert!(matches!(kind(&s, &l), EntityKind::Line(x) if (x.a.x - 2.0).abs() < 1e-9));
-    s.execute("lengthen", &json!({"handle": l, "percent": 50})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": l, "percent": 50})).unwrap();
     assert!(matches!(kind(&s, &l), EntityKind::Line(x) if (x.b.x - 7.0).abs() < 1e-9));
-    s.execute("lengthen", &json!({"handle": l, "total": 3})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": l, "total": 3})).unwrap();
     assert!(matches!(kind(&s, &l), EntityKind::Line(x) if (x.b.x - 5.0).abs() < 1e-9));
-    s.execute("lengthen", &json!({"handle": l, "to": [9, 4]})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": l, "to": [9, 4]})).unwrap();
     assert!(matches!(kind(&s, &l), EntityKind::Line(x) if (x.b.x - 9.0).abs() < 1e-9 && x.b.y == 0.0));
-    assert!(s.execute("lengthen", &json!({"handle": l, "delta": -100})).is_err());
-    assert!(s.execute("lengthen", &json!({"handle": l, "deltaAngle": 10})).is_err());
+    assert!(s.execute("object.lengthen", &json!({"handle": l, "delta": -100})).is_err());
+    assert!(s.execute("object.lengthen", &json!({"handle": l, "deltaAngle": 10})).is_err());
     let a = h(&s.execute("arc", &json!({"center": [0, 0], "radius": 1, "start": 0, "end": 90})).unwrap());
-    s.execute("lengthen", &json!({"handle": a, "deltaAngle": 90})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": a, "deltaAngle": 90})).unwrap();
     assert!((arc_of(&kind(&s, &a)).sweep() - std::f64::consts::PI).abs() < 1e-9);
-    s.execute("lengthen", &json!({"handle": a, "totalAngle": 45, "pick": [1, 0]})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": a, "totalAngle": 45, "pick": [1, 0]})).unwrap();
     let g = arc_of(&kind(&s, &a));
     assert!((g.sweep() - std::f64::consts::FRAC_PI_4).abs() < 1e-9 && near(g.end_point(), -1.0, 0.0));
-    s.execute("lengthen", &json!({"handle": a, "total": std::f64::consts::FRAC_PI_2})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": a, "total": std::f64::consts::FRAC_PI_2})).unwrap();
     assert!((arc_of(&kind(&s, &a)).sweep() - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
-    assert!(s.execute("lengthen", &json!({"handle": a, "percent": 1000})).is_err());
+    assert!(s.execute("object.lengthen", &json!({"handle": a, "percent": 1000})).is_err());
     let p = pline(&mut s, json!([[0, 10], [5, 10], [5, 15]]), false);
-    s.execute("lengthen", &json!({"handle": p, "delta": 5})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": p, "delta": 5})).unwrap();
     assert!(near(poly(&kind(&s, &p)).vertices[2].p, 5.0, 20.0));
-    s.execute("lengthen", &json!({"handle": p, "total": 20, "pick": [0, 10]})).unwrap();
+    s.execute("object.lengthen", &json!({"handle": p, "total": 20, "pick": [0, 10]})).unwrap();
     assert!(near(poly(&kind(&s, &p)).vertices[0].p, -5.0, 10.0));
 }
 
@@ -302,7 +302,7 @@ fn reverse_json_and_command_line() {
     let l = h(&s.execute("line", &json!({"points": [[0, 0], [5, 0]]})).unwrap());
     let p = pline(&mut s, json!([{"p": [0, 5], "bulge": 1}, [2, 5], [4, 6]]), false);
     let sp = h(&s.execute("spline", &json!({"control": [[0, 10], [1, 12], [3, 12], [4, 10]]})).unwrap());
-    let p3 = h(&s.execute("3dpoly", &json!({"points": [[0, 20, 0], [1, 20, 1]]})).unwrap());
+    let p3 = h(&s.execute("polyline.add3d", &json!({"points": [[0, 20, 0], [1, 20, 1]]})).unwrap());
     let c = h(&s.execute("circle", &json!({"center": [0, 30], "radius": 1})).unwrap());
     let before = Polyline { vertices: poly(&kind(&s, &p)).vertices, closed: false }.tessellate(1e-3);
     let r = s.execute("reverse", &json!({"handles": [l, p, sp, p3, c]})).unwrap();
@@ -336,14 +336,14 @@ fn make_block(s: &mut Session) -> String {
 fn ncopy_json_and_command_line() {
     let mut s = Session::new();
     let ins = make_block(&mut s);
-    let r = s.execute("ncopy", &json!({"handle": ins, "pick": [10, 13]})).unwrap();
+    let r = s.execute("object.copyNested", &json!({"handle": ins, "pick": [10, 13]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 1);
     assert!(matches!(last(&s), EntityKind::Circle(c) if near(c.center.xy(), 10.0, 13.0)));
-    let r = s.execute("ncopy", &json!({"handle": ins, "delta": [5, 0]})).unwrap();
+    let r = s.execute("object.copyNested", &json!({"handle": ins, "delta": [5, 0]})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 2);
     assert!(matches!(last(&s), EntityKind::Circle(c) if near(c.center.xy(), 15.0, 13.0)));
     let line = h(&s.execute("line", &json!({"points": [[50, 50], [51, 50]]})).unwrap());
-    assert!(s.execute("ncopy", &json!({"handle": line})).is_err());
+    assert!(s.execute("object.copyNested", &json!({"handle": line})).is_err());
 
     let mut s = Session::new();
     make_block(&mut s);
@@ -371,7 +371,7 @@ fn chspace_json_and_command_line() {
         layer_colors: Vec::new(),
     };
     s.doc_mut().unwrap().add(&Space::Paper("Layout1".into()), Default::default(), EntityKind::Viewport(vp)).unwrap();
-    let r = s.execute("chspace", &json!({"handles": [l]})).unwrap();
+    let r = s.execute("object.changeSpace", &json!({"handles": [l]})).unwrap();
     assert_eq!(r["moved"], 1);
     assert_eq!(r["to"], "Layout1");
     let hh = Handle::parse_hex(&l).unwrap();
@@ -380,12 +380,12 @@ fn chspace_json_and_command_line() {
     assert!(matches!(&d.entity(hh).unwrap().kind, EntityKind::Line(x) if near(x.a.xy(), 5.0, 5.0) && near(x.b.xy(), 10.0, 5.0)));
     // Back to model space from the layout.
     s.state_mut().unwrap().space = Space::Paper("Layout1".into());
-    s.execute("chspace", &json!({"handles": [l]})).unwrap();
+    s.execute("object.changeSpace", &json!({"handles": [l]})).unwrap();
     let d = s.doc().unwrap();
     assert_eq!(d.space_of(hh), Some(Space::Model));
     assert!(matches!(&d.entity(hh).unwrap().kind, EntityKind::Line(x) if near(x.b.xy(), 10.0, 0.0)));
     s.state_mut().unwrap().space = Space::Model;
-    assert!(s.execute("chspace", &json!({"handles": [l], "to": "Nope"})).is_err());
+    assert!(s.execute("object.changeSpace", &json!({"handles": [l], "to": "Nope"})).is_err());
 
     s.cmdline("chspace 5,0").unwrap();
     s.cmdline("").unwrap();
@@ -397,7 +397,7 @@ fn chspace_json_and_command_line() {
 #[test]
 fn flatten_json_and_command_line() {
     let mut s = Session::new();
-    let p3 = h(&s.execute("3dpoly", &json!({"points": [[0, 0, 5], [1, 0, 6], [1, 1, 7]]})).unwrap());
+    let p3 = h(&s.execute("polyline.add3d", &json!({"points": [[0, 0, 5], [1, 0, 6], [1, 1, 7]]})).unwrap());
     let l = h(&s.execute("line", &json!({"points": [[0, 5], [3, 5]]})).unwrap());
     s.doc_mut()
         .unwrap()
@@ -415,7 +415,7 @@ fn flatten_json_and_command_line() {
     assert_eq!(s.doc().unwrap().entity(Handle::parse_hex(&l).unwrap()).unwrap().common.thickness, 0.0);
 
     let mut s = Session::new();
-    s.execute("3dpoly", &json!({"points": [[0, 0, 5], [4, 0, 6]]})).unwrap();
+    s.execute("polyline.add3d", &json!({"points": [[0, 0, 5], [4, 0, 6]]})).unwrap();
     s.cmdline("flatten 2,0").unwrap();
     s.cmdline("").unwrap();
     assert!(s.running.is_none());
@@ -549,7 +549,20 @@ fn trim_and_extend_ellipse_and_spline() {
 
 #[test]
 fn new_modify_commands_survive_garbage_input() {
-    let ids = ["pedit", "splinedit", "lengthen", "align", "blend", "reverse", "ncopy", "chspace", "flatten", "fillet", "trim", "extend"];
+    let ids = [
+        "polyline.edit",
+        "spline.edit",
+        "object.lengthen",
+        "align",
+        "blend",
+        "reverse",
+        "object.copyNested",
+        "object.changeSpace",
+        "flatten",
+        "fillet",
+        "trim",
+        "extend",
+    ];
     let mut s = Session::new();
     let l = h(&s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
     let sp = h(&s.execute("spline", &json!({"control": [[0, 1], [1, 2], [2, 1]]})).unwrap());
@@ -584,17 +597,17 @@ fn arraypath_json_and_command_line() {
     let mut s = Session::new();
     let dot = h(&s.execute("circle", &json!({"center": [0, 1], "radius": 0.25})).unwrap());
     let path = h(&s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
-    let r = s.execute("arraypath", &json!({"handles": [dot], "path": path, "count": 6})).unwrap();
+    let r = s.execute("object.arrayPath", &json!({"handles": [dot], "path": path, "count": 6})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 5);
     assert!(matches!(last(&s), EntityKind::Circle(c) if near(c.center.xy(), 10.0, 1.0)));
-    let r = s.execute("arraypath", &json!({"handles": [dot], "path": path, "spacing": 4})).unwrap();
+    let r = s.execute("object.arrayPath", &json!({"handles": [dot], "path": path, "spacing": 4})).unwrap();
     assert_eq!(r["handles"].as_array().unwrap().len(), 2);
     // Aligned along an arc: the copy turns with the tangent.
     let arc = h(&s.execute("arc", &json!({"center": [0, 20], "radius": 5, "start": 0, "end": 180})).unwrap());
     let tick = h(&s.execute("line", &json!({"points": [[5, 20], [6, 20]]})).unwrap());
-    s.execute("arraypath", &json!({"handles": [tick], "path": arc, "count": 2})).unwrap();
+    s.execute("object.arrayPath", &json!({"handles": [tick], "path": arc, "count": 2})).unwrap();
     assert!(matches!(last(&s), EntityKind::Line(l) if near(l.a.xy(), -5.0, 20.0) && near(l.b.xy(), -6.0, 20.0)));
-    assert!(s.execute("arraypath", &json!({"handles": [dot], "path": dot})).is_err());
+    assert!(s.execute("object.arrayPath", &json!({"handles": [dot], "path": dot})).is_err());
 
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 1], "radius": 0.25})).unwrap();
@@ -610,13 +623,13 @@ fn arraypath_json_and_command_line() {
 fn textedit_json_and_command_line() {
     let mut s = Session::new();
     let t = h(&s.execute("text", &json!({"at": [0, 0], "text": "old"})).unwrap());
-    s.execute("textedit", &json!({"handle": t, "text": "new"})).unwrap();
+    s.execute("text.edit", &json!({"handle": t, "text": "new"})).unwrap();
     assert!(matches!(kind(&s, &t), EntityKind::Text(x) if x.value == "new"));
-    let m = h(&s.execute("mtext", &json!({"at": [0, 5], "text": "a"})).unwrap());
-    s.execute("textedit", &json!({"handle": m, "text": "x\ny"})).unwrap();
+    let m = h(&s.execute("multilineText.add", &json!({"at": [0, 5], "text": "a"})).unwrap());
+    s.execute("text.edit", &json!({"handle": m, "text": "x\ny"})).unwrap();
     assert!(matches!(kind(&s, &m), EntityKind::MText(x) if x.contents == "x\\Py"));
     let l = h(&s.execute("line", &json!({"points": [[0, 10], [1, 10]]})).unwrap());
-    assert!(s.execute("textedit", &json!({"handle": l, "text": "x"})).is_err());
+    assert!(s.execute("text.edit", &json!({"handle": l, "text": "x"})).is_err());
     s.cmdline("textedit 0,0").unwrap();
     s.cmdline("hello world").unwrap();
     s.cmdline("").unwrap();
@@ -627,7 +640,7 @@ fn textedit_json_and_command_line() {
 #[test]
 fn explode_polyline3d_keeps_elevations() {
     let mut s = Session::new();
-    let p = h(&s.execute("3dpoly", &json!({"points": [[0, 0, 5], [1, 0, 6], [1, 1, 7]]})).unwrap());
+    let p = h(&s.execute("polyline.add3d", &json!({"points": [[0, 0, 5], [1, 0, 6], [1, 1, 7]]})).unwrap());
     s.execute("explode", &json!({"handles": [p]})).unwrap();
     let lines: Vec<(f64, f64)> = s
         .doc()
@@ -654,7 +667,7 @@ fn editing_commands_leave_locked_layer_objects_alone() {
     let b = h(&s.execute("line", &json!({"points": [[5, -5], [5, 5]]})).unwrap());
     let c = h(&s.execute("line", &json!({"points": [[0, 0], [0, 10]]})).unwrap());
     let e = h(&s.execute("line", &json!({"points": [[0, 10], [3, 10]]})).unwrap());
-    let r = h(&s.execute("rectang", &json!({"p1": [20, 0], "p2": [25, 5]})).unwrap());
+    let r = h(&s.execute("rectangle.add", &json!({"p1": [20, 0], "p2": [25, 5]})).unwrap());
     let sp = h(&s.execute("spline", &json!({"control": [[0, 20], [2, 23], [4, 23], [6, 20]], "degree": 3})).unwrap());
     s.execute("layer.set", &json!({"name": "0", "locked": true})).unwrap();
     let before = model_dump(&s);
@@ -662,11 +675,11 @@ fn editing_commands_leave_locked_layer_objects_alone() {
     assert!(s.execute("trim", &json!({"handle": a, "pick": [2, 0], "edges": [b]})).is_err());
     assert!(s.execute("extend", &json!({"handle": e, "pick": [3, 10], "edges": [b]})).is_err());
     assert!(s.execute("fillet", &json!({"h1": a, "p1": [8, 0], "h2": c, "p2": [0, 8], "radius": 2})).is_err());
-    assert!(s.execute("splinedit", &json!({"handle": sp, "option": "move", "index": 1, "to": [2, 29]})).is_err());
+    assert!(s.execute("spline.edit", &json!({"handle": sp, "option": "move", "index": 1, "to": [2, 29]})).is_err());
     // Commands that skip the locked objects.
     s.execute("select", &json!({"handles": [a, r]})).unwrap();
-    assert_eq!(s.execute("erase.selection", &json!({})).unwrap()["erased"], 0);
-    assert_eq!(s.execute("cutclip", &json!({"handles": [a]})).unwrap()["cut"], 0);
+    assert_eq!(s.execute("edit.delete", &json!({})).unwrap()["erased"], 0);
+    assert_eq!(s.execute("edit.cut", &json!({"handles": [a]})).unwrap()["cut"], 0);
     assert_eq!(s.execute("stretch", &json!({"window": [[-1, -1], [11, 1]], "delta": [10, 0]})).unwrap()["stretched"], 0);
     s.execute("explode", &json!({"handles": [r]})).unwrap();
     // The interactive STRETCH (crossing window, base point, second point) too.

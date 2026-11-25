@@ -44,7 +44,7 @@ try {
   step('the sample has a Furniture layer that is on', (await furniture())?.on === true)
 
   // An edit, saved: the host keeps the file and the replica beside it.
-  const run = await page.evaluate(async () => window.devHost.connection().ai.run([{ command: 'circle', params: { center: [60, 250], radius: 10 } }], false))
+  const run = await page.evaluate(async () => window.devHost.connection().ai.run([{ command: 'circle.add', params: { center: [60, 250], radius: 10 } }], false))
   step('edits the drawing', run.completed[0].changed)
   await page.frameLocator('#kit').getByTestId('cad-save').click()
   const saved = () => page.evaluate((path) => window.devHost.files.get(path).version > 1 && window.devHost.history.replica(path) != null, PATH)

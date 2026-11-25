@@ -7,7 +7,7 @@
 //! is `layout:<name>`), or `{"layout": "Model"}` for model space. It becomes the tab shown, in
 //! paper space (an MSPACE viewport ends).
 //!
-//! A call's **`on`** is entities by their handles (hex strings, `"1A2"`), as inspect, `entities`
+//! A call's **`on`** is entities by their handles (hex strings, `"1A2"`), as inspect, `object.query`
 //! and receipts list them. They become the selection, which lives in one space: the call's part
 //! when it has one, else the space the entities are in, which their handles name (no part is
 //! needed). Entities of two spaces in one step are refused, as is an entity inside a block
@@ -55,8 +55,20 @@ fn fingerprint(state: &EditorState) -> String {
 /// Commands whose work is moving the editor (the view, the tab shown, MSPACE, the selection):
 /// they keep their effect for an agent too, for the rest of its call.
 pub(crate) fn moves_the_editor(command: &str) -> bool {
-    matches!(command, "zoom" | "pan" | "view.set" | "layout.set" | "mspace" | "pspace" | "select" | "qselect" | "selectall" | "find" | "ai_deselect")
-        || command.starts_with("zoom.")
+    matches!(
+        command,
+        "zoom"
+            | "pan"
+            | "view.set"
+            | "layout.set"
+            | "viewport.modelSpace"
+            | "viewport.paperSpace"
+            | "select"
+            | "select.quick"
+            | "edit.selectAll"
+            | "find"
+            | "edit.deselectAll"
+    ) || command.starts_with("zoom.")
         || command.starts_with("pan.")
 }
 
@@ -68,7 +80,7 @@ fn changes_a_view(command: &str) -> bool {
 
 /// Where the inspect tool lists what a call may name.
 const LISTED: &str =
-    "spaces are cad_inspect's `layouts` (`{\"layout\": \"Model\"}` or a layout's name), entities' handles are listed by the `entities` command";
+    "spaces are cad_inspect's `layouts` (`{\"layout\": \"Model\"}` or a layout's name), entities' handles are listed by the `object.query` command";
 
 /// The space named `name`: `Model` (any case) or a layout's name.
 pub(crate) fn space_named(doc: &Drawing, name: &str) -> Result<Space, String> {
@@ -113,7 +125,7 @@ pub(crate) fn space_name(space: &Space) -> &str {
 /// The entity an `on` item names, and its space.
 fn on_item(doc: &Drawing, item: &Value) -> Result<(Handle, Space), String> {
     let handle = item.as_str().and_then(Handle::parse_hex).ok_or_else(|| {
-        format!("`on` holds {item}, which is not an entity handle: a handle is a hex string (\"1A2\"), as `entities` lists it; {LISTED}")
+        format!("`on` holds {item}, which is not an entity handle: a handle is a hex string (\"1A2\"), as `object.query` lists it; {LISTED}")
     })?;
     if let Some(space) = doc.space_of(handle) {
         return Ok((handle, space));
@@ -271,7 +283,7 @@ impl CadDocument {
         let viewport = self.session.state().ok().and_then(|st| st.zoom_viewport().and(st.mspace));
         match viewport {
             Some(handle) => Err(format!(
-                "`{command}` inside the layout viewport {} (MSPACE) would change the viewport's view, which the drawing saves: run `pspace` first to navigate the sheet, set the viewport's view with `viewport.set`, or look at any area with `file.render` and a `window`",
+                "`{command}` inside the layout viewport {} (MSPACE) would change the viewport's view, which the drawing saves: run `viewport.paperSpace` first to navigate the sheet, set the viewport's view with `viewport.set`, or look at any area with `file.render` and a `window`",
                 handle.hex()
             )),
             None => Ok(()),
@@ -295,7 +307,7 @@ impl CadDocument {
                 let name = value.as_str().ok_or_else(|| format!("`layer` is {value}: it is a layer's name (a string)"))?;
                 let found = doc.layer(name).ok_or_else(|| {
                     let names: Vec<&str> = doc.layers.iter().map(|l| l.name.as_str()).take(20).collect();
-                    format!("the drawing has no layer `{name}` (its layers: {}): make it with `layer.new` earlier in the run", names.join(", "))
+                    format!("the drawing has no layer `{name}` (its layers: {}): make it with `layer.add` earlier in the run", names.join(", "))
                 })?;
                 Some(found.name.clone())
             }

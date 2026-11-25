@@ -27,8 +27,8 @@ fn chains_attach_like_dimreassociate_and_long_chains_are_capped() {
         s.execute("point", &json!({"at": [x, 0]})).unwrap();
         s.execute("circle", &json!({"center": [x + 0.5, 0], "radius": 0.1})).unwrap();
     }
-    for (cmd, at) in [("dimcontinue", 2), ("dimbaseline", 5)] {
-        s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [1, 0], "at": [0, at]})).unwrap();
+    for (cmd, at) in [("dimension.addContinue", 2), ("dimension.addBaseline", 5)] {
+        s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [1, 0], "at": [0, at]})).unwrap();
         let pts: Vec<[f64; 2]> = (3..80).map(|i| [f64::from(i) * 0.5, 0.0]).collect();
         let r = s.execute(cmd, &json!({"points": pts})).unwrap();
         let hs = r["handles"].as_array().unwrap().clone();
@@ -36,19 +36,19 @@ fn chains_attach_like_dimreassociate_and_long_chains_are_capped() {
         let chained = assoc_of(&s, &hs);
         assert!(chained.iter().all(|a| a.len() == 2), "{cmd}: every point is on an object");
         // DIMREASSOCIATE scans the drawing per point; the indexed chain must agree with it.
-        s.execute("dimreassociate", &json!({"handles": hs})).unwrap();
+        s.execute("dimension.reassociate", &json!({"handles": hs})).unwrap();
         assert_eq!(assoc_of(&s, &hs), chained, "{cmd}");
     }
 
     // A long chain finishes (this was quadratic in the number of points); more than the cap is
     // refused with nothing created.
     let mut s = Session::new();
-    s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [1, 0], "at": [0, 2]})).unwrap();
+    s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [1, 0], "at": [0, 2]})).unwrap();
     let pts: Vec<[f64; 2]> = (2..20_002).map(|i| [f64::from(i), 0.0]).collect();
-    assert_eq!(s.execute("dimcontinue", &json!({"points": pts})).unwrap()["handles"].as_array().unwrap().len(), 20_000);
+    assert_eq!(s.execute("dimension.addContinue", &json!({"points": pts})).unwrap()["handles"].as_array().unwrap().len(), 20_000);
     let n = s.doc().unwrap().model.iter().count();
     let too_many: Vec<[f64; 2]> = (0..100_001).map(|i| [f64::from(i), 1.0]).collect();
-    let e = s.execute("dimbaseline", &json!({"points": too_many})).unwrap_err();
+    let e = s.execute("dimension.addBaseline", &json!({"points": too_many})).unwrap_err();
     assert!(e.to_string().contains("100000"), "{e}");
     assert_eq!(s.doc().unwrap().model.iter().count(), n);
 }

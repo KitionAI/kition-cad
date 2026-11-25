@@ -44,7 +44,7 @@ fn offset_erase_source() {
 #[test]
 fn offset_layer_current() {
     let mut s = one_line();
-    s.execute("layer.new", &json!({ "name": "Other", "current": true })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Other", "current": true })).unwrap();
     s.script("OFFSET L C 2 5,0 5,1\n\n").unwrap();
     assert!(s.running.is_none(), "{}", s.prompt_text());
     assert_eq!(lines(&s), vec![l((0.0, 0.0), (10.0, 0.0), "0"), l((0.0, 2.0), (10.0, 2.0), "Other")]);
@@ -65,7 +65,7 @@ fn offset_multiple_and_undo() {
 #[test]
 fn offset_json_erase_and_layer() {
     let mut s = one_line();
-    s.execute("layer.new", &json!({ "name": "Other", "current": true })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Other", "current": true })).unwrap();
     let h = s.doc().unwrap().model.iter().next().unwrap().handle.hex();
     s.execute("offset", &json!({ "handle": h, "distance": 2, "side": [5, 1], "erase": true, "layer": "current" })).unwrap();
     assert_eq!(lines(&s), vec![l((0.0, 2.0), (10.0, 2.0), "Other")]);

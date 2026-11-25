@@ -122,15 +122,15 @@ fn lower_set(names: &[String]) -> HashSet<String> {
 /// `laymrg {from: [names] | name, to}`: move every object on the `from` layers to `to`, then
 /// delete the `from` layers. Merging away the current layer makes the target current.
 pub(super) fn run_laymrg(s: &mut Session, p: &Value) -> Result<Value> {
-    let to = str_param(p, "to").map(str::trim).ok_or_else(|| bad("laymrg", "`to` is required"))?;
+    let to = str_param(p, "to").map(str::trim).ok_or_else(|| bad("layer.merge", "`to` is required"))?;
     let d = s.doc()?;
-    let target = d.layer(to).ok_or_else(|| bad("laymrg", format!("no layer `{to}`")))?.name.clone();
+    let target = d.layer(to).ok_or_else(|| bad("layer.merge", format!("no layer `{to}`")))?.name.clone();
     if xref_layer(&target) {
-        return Err(bad("laymrg", format!("cannot merge into xref-dependent layer \"{target}\"")));
+        return Err(bad("layer.merge", format!("cannot merge into xref-dependent layer \"{target}\"")));
     }
-    let sources = resolve_sources(d, "laymrg", &names_param(p, "from"), false)?;
+    let sources = resolve_sources(d, "layer.merge", &names_param(p, "from"), false)?;
     if sources.iter().any(|n| n.eq_ignore_ascii_case(&target)) {
-        return Err(bad("laymrg", format!("cannot merge layer \"{target}\" into itself")));
+        return Err(bad("layer.merge", format!("cannot merge layer \"{target}\" into itself")));
     }
     let set = lower_set(&sources);
     let d = s.doc_mut()?;
@@ -158,7 +158,7 @@ pub(super) fn run_laymrg(s: &mut Session, p: &Value) -> Result<Value> {
 pub(super) fn run_laydel(s: &mut Session, p: &Value) -> Result<Value> {
     let mut names = names_param(p, "names");
     names.extend(names_param(p, "name"));
-    let sources = resolve_sources(s.doc()?, "laydel", &names, true)?;
+    let sources = resolve_sources(s.doc()?, "layer.deleteWithObjects", &names, true)?;
     let set = lower_set(&sources);
     let d = s.doc_mut()?;
     let erased = for_each_store(d, &set, |store| {
@@ -214,7 +214,7 @@ impl LayerRemove {
     }
 
     fn id(&self) -> &'static str {
-        if self.delete { "laydel" } else { "laymrg" }
+        if self.delete { "layer.deleteWithObjects" } else { "layer.merge" }
     }
 
     fn add_source(&mut self, s: &mut Session, name: &str) {

@@ -51,10 +51,10 @@ fn an_outside_save_preserves_agent_undo_and_the_colleagues_edit() {
 fn a_premise_fork_keeps_an_existing_clipboard_without_editing_the_live_document() {
     let mut live = CadDocument::create(FILE, 420, 297).unwrap();
     let h = live.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
-    live.execute("copybase", json!({"handles":[h],"base":[2,0]})).unwrap();
+    live.execute("edit.copyWithBasePoint", json!({"handles":[h],"base":[2,0]})).unwrap();
     let before = live.save(Some(FILE)).unwrap();
     let mut planned = live.fork_for_premises().unwrap();
-    let result = planned.execute("pasteblock", json!({"at":[50,50]})).unwrap();
+    let result = planned.execute("edit.pasteAsBlock", json!({"at":[50,50]})).unwrap();
     assert!(result["handle"].is_string(), "{result}");
     assert_ne!(before, planned.save(Some(FILE)).unwrap());
     assert_eq!(before, live.save(Some(FILE)).unwrap());

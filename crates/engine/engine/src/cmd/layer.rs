@@ -17,51 +17,51 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["la", "layers", "-layer"])
             .params("{} → layers, states (typed -LAYER: option prompts)")
             .interactive(|_| Ok(Box::new(prompts::LayerM::default()))),
-        CommandSpec::new("layer.new", "New Layer", run_new).params("{name, color?, linetype?, lineweight? (mm), current?: bool}"),
+        CommandSpec::new("layer.add", "New Layer", run_new).params("{name, color?, linetype?, lineweight? (mm), current?: bool}"),
         CommandSpec::new("layer.set", "Set Layer Properties", run_set)
             .params("{name, on?, frozen?, locked?, plot?, color?, linetype?, lineweight?, transparency?, description?, newVpFreeze?, plotStyle? (named plot style), newName?}"),
-        CommandSpec::new("layer.current", "Make Current", run_current)
+        CommandSpec::new("layer.setCurrent", "Make Current", run_current)
             .menu(&["Format", "Layer Tools", "Make Current"])
             .alias(&["clayer"])
             .params("{name}"),
         CommandSpec::new("layer.delete", "Delete Layer", run_delete).params("{name}"),
-        CommandSpec::new("laymcur", "Make Object's Layer Current", run_laymcur).params("{handles?}"),
-        CommandSpec::new("laymch", "Layer Match", run_laymch).menu(&["Format", "Layer Tools", "Layer Match"]).params("{handles?, layer: string (the target layer's name)}"),
-        CommandSpec::new("laycur", "Change to Current Layer", run_laycur)
+        CommandSpec::new("layer.makeObjectCurrent", "Make Object's Layer Current", run_laymcur).params("{handles?}"),
+        CommandSpec::new("layer.match", "Layer Match", run_laymch).menu(&["Format", "Layer Tools", "Layer Match"]).params("{handles?, layer: string (the target layer's name)}"),
+        CommandSpec::new("layer.changeToCurrent", "Change to Current Layer", run_laycur)
             .menu(&["Format", "Layer Tools", "Change to Current Layer"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("laycur", "LAYCUR")))),
-        CommandSpec::new("layiso", "Isolate Layer", run_layiso).menu(&["Format", "Layer Tools", "Isolate Layer"]).params("{handles?}"),
-        CommandSpec::new("layuniso", "Unisolate Layer", run_layuniso).menu(&["Format", "Layer Tools", "Unisolate Layer"]),
-        CommandSpec::new("layfrz", "Freeze Layer", |s, p| set_obj_layers(s, p, |l| l.frozen = true))
+            .interactive(|_| Ok(Box::new(SelectRun::new("layer.changeToCurrent", "LAYCUR")))),
+        CommandSpec::new("layer.isolate", "Isolate Layer", run_layiso).menu(&["Format", "Layer Tools", "Isolate Layer"]).params("{handles?}"),
+        CommandSpec::new("layer.unisolate", "Unisolate Layer", run_layuniso).menu(&["Format", "Layer Tools", "Unisolate Layer"]),
+        CommandSpec::new("layer.freeze", "Freeze Layer", |s, p| set_obj_layers(s, p, |l| l.frozen = true))
             .menu(&["Format", "Layer Tools", "Freeze Layer"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::single("layfrz", "LAYFRZ", "Select an object on the layer to be frozen")))),
-        CommandSpec::new("layoff", "Layer Off", |s, p| set_obj_layers(s, p, |l| l.on = false))
+            .interactive(|_| Ok(Box::new(SelectRun::single("layer.freeze", "LAYFRZ", "Select an object on the layer to be frozen")))),
+        CommandSpec::new("layer.off", "Layer Off", |s, p| set_obj_layers(s, p, |l| l.on = false))
             .menu(&["Format", "Layer Tools", "Layer Off"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::single("layoff", "LAYOFF", "Select an object on the layer to be turned off")))),
-        CommandSpec::new("laylck", "Lock Layer", |s, p| set_obj_layers(s, p, |l| l.locked = true))
+            .interactive(|_| Ok(Box::new(SelectRun::single("layer.off", "LAYOFF", "Select an object on the layer to be turned off")))),
+        CommandSpec::new("layer.lock", "Lock Layer", |s, p| set_obj_layers(s, p, |l| l.locked = true))
             .menu(&["Format", "Layer Tools", "Lock Layer"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::single("laylck", "LAYLCK", "Select an object on the layer to be locked")))),
-        CommandSpec::new("layulk", "Unlock Layer", |s, p| set_obj_layers(s, p, |l| l.locked = false))
+            .interactive(|_| Ok(Box::new(SelectRun::single("layer.lock", "LAYLCK", "Select an object on the layer to be locked")))),
+        CommandSpec::new("layer.unlock", "Unlock Layer", |s, p| set_obj_layers(s, p, |l| l.locked = false))
             .menu(&["Format", "Layer Tools", "Unlock Layer"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::single("layulk", "LAYULK", "Select an object on the layer to be unlocked")))),
-        CommandSpec::new("layon", "Turn All Layers On", |s, _| all_layers(s, |l| l.on = true)),
-        CommandSpec::new("laythw", "Thaw All Layers", |s, _| all_layers(s, |l| l.frozen = false)),
-        CommandSpec::new("layerp", "Previous Layer", run_layerp).menu(&["Format", "Layer Tools", "Previous Layer"]),
-        CommandSpec::new("layerstate.save", "Save Layer State", run_state_save).menu(&["Format", "Layer States Manager..."]).params("{name}"),
-        CommandSpec::new("layerstate.restore", "Restore Layer State", run_state_restore).params("{name}"),
-        CommandSpec::new("layerstate.list", "List Layer States", run_state_list).params("{} → states").noundo(),
-        CommandSpec::new("layerstate.delete", "Delete Layer State", run_state_delete).params("{name}"),
-        CommandSpec::new("layerstate.rename", "Rename Layer State", run_state_rename).params("{from, to}"),
-        CommandSpec::new("laymrg", "Layer Merge", merge::run_laymrg)
+            .interactive(|_| Ok(Box::new(SelectRun::single("layer.unlock", "LAYULK", "Select an object on the layer to be unlocked")))),
+        CommandSpec::new("layer.allOn", "Turn All Layers On", |s, _| all_layers(s, |l| l.on = true)),
+        CommandSpec::new("layer.thawAll", "Thaw All Layers", |s, _| all_layers(s, |l| l.frozen = false)),
+        CommandSpec::new("layer.previous", "Previous Layer", run_layerp).menu(&["Format", "Layer Tools", "Previous Layer"]),
+        CommandSpec::new("layerState.save", "Save Layer State", run_state_save).menu(&["Format", "Layer States Manager..."]).params("{name}"),
+        CommandSpec::new("layerState.restore", "Restore Layer State", run_state_restore).params("{name}"),
+        CommandSpec::new("layerState.list", "List Layer States", run_state_list).params("{} → states").noundo(),
+        CommandSpec::new("layerState.delete", "Delete Layer State", run_state_delete).params("{name}"),
+        CommandSpec::new("layerState.rename", "Rename Layer State", run_state_rename).params("{from, to}"),
+        CommandSpec::new("layer.merge", "Layer Merge", merge::run_laymrg)
             .menu(&["Format", "Layer Tools", "Layer Merge"])
             .params("{from: [names], to} (the from layers' objects move to `to`, then the from layers are deleted)")
             .interactive(|_| Ok(Box::new(merge::LayerRemove::merge()))),
-        CommandSpec::new("laydel", "Layer Delete", merge::run_laydel)
+        CommandSpec::new("layer.deleteWithObjects", "Layer Delete", merge::run_laydel)
             .menu(&["Format", "Layer Tools", "Layer Delete"])
             .params("{names: [...]} (deletes the layers and every object on them)")
             .interactive(|_| Ok(Box::new(merge::LayerRemove::delete()))),
@@ -183,15 +183,15 @@ fn valid_name(n: &str) -> bool {
 }
 
 fn run_new(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("layer.new", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("layer.add", "`name` is required"))?.to_string();
     if !valid_name(&name) {
-        return Err(bad("layer.new", "invalid layer name"));
+        return Err(bad("layer.add", "invalid layer name"));
     }
     let d = s.doc_mut()?;
     if d.layer(&name).is_some() {
-        return Err(bad("layer.new", format!("layer `{name}` already exists")));
+        return Err(bad("layer.add", format!("layer `{name}` already exists")));
     }
-    let lt = loaded_linetype(d, "layer.new", p)?;
+    let lt = loaded_linetype(d, "layer.add", p)?;
     let mut l = Layer::new(&name);
     apply(&mut l, p)?;
     if let Some(lt) = lt {
@@ -263,9 +263,9 @@ fn repoint(store: &mut kition_cad_doc::EntityStore, old: &str, new: &str) {
 }
 
 fn run_current(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("layer.current", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("layer.setCurrent", "`name` is required"))?.to_string();
     let d = s.doc_mut()?;
-    let l = d.layer_mut(&name).ok_or_else(|| bad("layer.current", format!("no layer `{name}`")))?;
+    let l = d.layer_mut(&name).ok_or_else(|| bad("layer.setCurrent", format!("no layer `{name}`")))?;
     l.frozen = false;
     let n = l.name.clone();
     prev_push(d);
@@ -281,7 +281,7 @@ fn prev_push(d: &mut kition_cad_doc::Drawing) {
 fn run_layerp(s: &mut Session, _p: &Value) -> Result<Value> {
     let d = s.doc_mut()?;
     let snap = d.header.str("KITION_CAD_LAYERP", "");
-    let layers: Vec<Layer> = serde_json::from_str(&snap).map_err(|_| bad("layerp", "No previous layer state."))?;
+    let layers: Vec<Layer> = serde_json::from_str(&snap).map_err(|_| bad("layer.previous", "No previous layer state."))?;
     d.layers = layers;
     Ok(json!({"message": "Restored previous layer states."}))
 }
@@ -316,14 +316,14 @@ fn obj_layers(s: &Session, p: &Value) -> Result<Vec<String>> {
 
 fn run_laymcur(s: &mut Session, p: &Value) -> Result<Value> {
     let ls = obj_layers(s, p)?;
-    let l = ls.first().cloned().ok_or_else(|| bad("laymcur", "select an object"))?;
+    let l = ls.first().cloned().ok_or_else(|| bad("layer.makeObjectCurrent", "select an object"))?;
     s.doc_mut()?.header.set_str("CLAYER", &l);
     Ok(json!({ "message": format!("{l} is now the current layer.") }))
 }
 
 fn run_laymch(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let layer = str_param(p, "layer").ok_or_else(|| bad("laymch", "`layer` is required"))?.to_string();
+    let layer = str_param(p, "layer").ok_or_else(|| bad("layer.match", "`layer` is required"))?.to_string();
     let d = s.doc_mut()?;
     d.ensure_layer(&layer);
     for h in &hs {
@@ -345,7 +345,7 @@ fn run_laycur(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_layiso(s: &mut Session, p: &Value) -> Result<Value> {
     let keep = obj_layers(s, p)?;
     if keep.is_empty() {
-        return Err(bad("layiso", "select objects on the layers to isolate"));
+        return Err(bad("layer.isolate", "select objects on the layers to isolate"));
     }
     let d = s.doc_mut()?;
     prev_push(d);
@@ -364,7 +364,7 @@ fn run_layiso(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_layuniso(s: &mut Session, _p: &Value) -> Result<Value> {
     let d = s.doc_mut()?;
     let snap = d.header.str("KITION_CAD_LAYISO", "");
-    let layers: Vec<Layer> = serde_json::from_str(&snap).map_err(|_| bad("layuniso", "No isolated layers."))?;
+    let layers: Vec<Layer> = serde_json::from_str(&snap).map_err(|_| bad("layer.unisolate", "No isolated layers."))?;
     d.layers = layers;
     ok()
 }
@@ -395,7 +395,7 @@ fn all_layers(s: &mut Session, f: fn(&mut Layer)) -> Result<Value> {
 }
 
 fn run_state_save(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("layerstate.save", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("layerState.save", "`name` is required"))?.to_string();
     let d = s.doc_mut()?;
     let layers = d.layers.clone();
     d.layer_states.retain(|st| st.name != name);
@@ -404,9 +404,9 @@ fn run_state_save(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_state_restore(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("layerstate.restore", "`name` is required"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("layerState.restore", "`name` is required"))?;
     let d = s.doc_mut()?;
-    let st = d.layer_states.iter().find(|st| st.name == name).cloned().ok_or_else(|| bad("layerstate.restore", "no such layer state"))?;
+    let st = d.layer_states.iter().find(|st| st.name == name).cloned().ok_or_else(|| bad("layerState.restore", "no such layer state"))?;
     for saved in st.layers {
         if let Some(l) = d.layer_mut(&saved.name) {
             *l = saved;
@@ -427,26 +427,26 @@ fn run_state_list(s: &mut Session, _p: &Value) -> Result<Value> {
 }
 
 fn run_state_delete(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("layerstate.delete", "`name` is required"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("layerState.delete", "`name` is required"))?;
     let d = s.doc_mut()?;
     if !d.layer_states.iter().any(|st| st.name == name) {
-        return Err(bad("layerstate.delete", "no such layer state"));
+        return Err(bad("layerState.delete", "no such layer state"));
     }
     d.layer_states.retain(|st| st.name != name);
     ok()
 }
 
 fn run_state_rename(s: &mut Session, p: &Value) -> Result<Value> {
-    let from = str_param(p, "from").ok_or_else(|| bad("layerstate.rename", "`from` is required"))?;
-    let to = str_param(p, "to").map(str::trim).ok_or_else(|| bad("layerstate.rename", "`to` is required"))?.to_string();
+    let from = str_param(p, "from").ok_or_else(|| bad("layerState.rename", "`from` is required"))?;
+    let to = str_param(p, "to").map(str::trim).ok_or_else(|| bad("layerState.rename", "`to` is required"))?.to_string();
     if !valid_name(&to) {
-        return Err(bad("layerstate.rename", "invalid name"));
+        return Err(bad("layerState.rename", "invalid name"));
     }
     let d = s.doc_mut()?;
     if d.layer_states.iter().any(|st| st.name == to) {
-        return Err(bad("layerstate.rename", format!("layer state `{to}` already exists")));
+        return Err(bad("layerState.rename", format!("layer state `{to}` already exists")));
     }
-    let st = d.layer_states.iter_mut().find(|st| st.name == from).ok_or_else(|| bad("layerstate.rename", "no such layer state"))?;
+    let st = d.layer_states.iter_mut().find(|st| st.name == from).ok_or_else(|| bad("layerState.rename", "no such layer state"))?;
     st.name = to.clone();
     d.rename_record_id("layerstate", from, &to);
     ok()
@@ -464,19 +464,19 @@ mod tests {
     #[test]
     fn layer_states_save_list_restore_delete() {
         let mut s = Session::new();
-        s.execute("layer.new", &json!({ "name": "A", "color": 1 })).unwrap();
-        s.execute("layerstate.save", &json!({ "name": "base" })).unwrap();
+        s.execute("layer.add", &json!({ "name": "A", "color": 1 })).unwrap();
+        s.execute("layerState.save", &json!({ "name": "base" })).unwrap();
         s.execute("layer.set", &json!({ "name": "A", "on": false, "color": 3 })).unwrap();
-        let l = s.execute("layerstate.list", &json!({})).unwrap();
+        let l = s.execute("layerState.list", &json!({})).unwrap();
         assert_eq!(l["states"][0]["name"], "base");
-        s.execute("layerstate.restore", &json!({ "name": "base" })).unwrap();
+        s.execute("layerState.restore", &json!({ "name": "base" })).unwrap();
         let a = s.doc().unwrap().layer("A").unwrap().clone();
         assert!(a.on);
         assert_eq!(a.color, kition_cad_color::Color::Index(1));
-        s.execute("layerstate.rename", &json!({ "from": "base", "to": "start" })).unwrap();
-        assert!(s.execute("layerstate.delete", &json!({ "name": "base" })).is_err());
-        s.execute("layerstate.delete", &json!({ "name": "start" })).unwrap();
-        assert!(s.execute("layerstate.list", &json!({})).unwrap()["states"].as_array().unwrap().is_empty());
+        s.execute("layerState.rename", &json!({ "from": "base", "to": "start" })).unwrap();
+        assert!(s.execute("layerState.delete", &json!({ "name": "base" })).is_err());
+        s.execute("layerState.delete", &json!({ "name": "start" })).unwrap();
+        assert!(s.execute("layerState.list", &json!({})).unwrap()["states"].as_array().unwrap().is_empty());
         // `used` flags in the layer list.
         s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
         let v = s.execute("layer", &json!({})).unwrap();
@@ -505,11 +505,11 @@ mod tests {
     #[test]
     fn delete_and_purge_keep_layers_used_by_block_definitions() {
         let mut s = Session::new();
-        s.execute("layer.new", &json!({ "name": "A", "color": 1 })).unwrap();
-        s.execute("layer.current", &json!({ "name": "A" })).unwrap();
+        s.execute("layer.add", &json!({ "name": "A", "color": 1 })).unwrap();
+        s.execute("layer.setCurrent", &json!({ "name": "A" })).unwrap();
         let l = s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap()["handles"][0].as_str().unwrap().to_string();
         s.execute("block", &json!({ "name": "B", "base": [0, 0], "handles": [l], "keep": "delete" })).unwrap();
-        s.execute("layer.current", &json!({ "name": "0" })).unwrap();
+        s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
         s.execute("insert", &json!({ "name": "B", "at": [5, 5] })).unwrap();
         assert!(s.execute("layer.delete", &json!({ "name": "A" })).is_err());
         s.execute("purge", &json!({})).unwrap();
@@ -519,9 +519,9 @@ mod tests {
     #[test]
     fn rename_repoints_paper_space_and_block_entities() {
         let mut s = Session::new();
-        s.execute("layer.new", &json!({ "name": "A", "color": "red", "current": true })).unwrap();
+        s.execute("layer.add", &json!({ "name": "A", "color": "red", "current": true })).unwrap();
         s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();
-        s.execute("selectall", &json!({})).unwrap();
+        s.execute("edit.selectAll", &json!({})).unwrap();
         s.execute("block", &json!({ "name": "Part", "base": [0, 0], "keep": "delete" })).unwrap();
         s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
         s.execute("line", &json!({ "points": [[0, 0], [1, 1]] })).unwrap();

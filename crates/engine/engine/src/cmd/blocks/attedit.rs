@@ -16,7 +16,7 @@ use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, St
 const MAX_VALUE: usize = 65_536;
 
 pub(super) fn attedit_spec() -> CommandSpec {
-    CommandSpec::new("attedit", "Single...", run)
+    CommandSpec::new("attribute.edit", "Single...", run)
         .menu(&["Modify", "Object", "Attribute", "Single..."])
         .alias(&["ate", "eattedit"])
         .params("{handle, values: {TAG: value} (tags in any case)} → {changed, unknownTags?}")
@@ -24,7 +24,7 @@ pub(super) fn attedit_spec() -> CommandSpec {
 }
 
 pub(super) fn dash_attedit_spec() -> CommandSpec {
-    CommandSpec::new("-attedit", "Global", run_global)
+    CommandSpec::new("attribute.editGlobal", "Global", run_global)
         .menu(&["Modify", "Object", "Attribute", "Global"])
         .alias(&["-ate", "atte"])
         .params("{find, replace?, block?, tag?, value? (wildcard specifications, default *), handle? (one block reference), handles? (default: every block reference in the current space)} → {changed}")
@@ -60,7 +60,7 @@ pub(super) fn with_unknown_tags(s: &Session, h: Handle, values: &Map<String, Val
 }
 
 fn run(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("attedit", "`handle` is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("attribute.edit", "`handle` is required"))?;
     let vals = p.get("values").and_then(Value::as_object).cloned().unwrap_or_default();
     let mut n = 0;
     s.doc_mut()?.modify_entity(h, |e| {
@@ -188,7 +188,8 @@ fn replace_all(s: &mut Session, items: &[(Handle, usize)], find: &str, with: &st
 }
 
 fn run_global(s: &mut Session, p: &Value) -> Result<Value> {
-    let find = str_param(p, "find").filter(|f| !f.is_empty()).ok_or_else(|| bad("-attedit", "`find` (a non-empty string) is required"))?;
+    let find =
+        str_param(p, "find").filter(|f| !f.is_empty()).ok_or_else(|| bad("attribute.editGlobal", "`find` (a non-empty string) is required"))?;
     let with = str_param(p, "replace").unwrap_or("");
     let spec = |k| str_param(p, k).unwrap_or("*").to_string();
     let specs = Specs { block: spec("block"), tag: spec("tag"), value: spec("value") };

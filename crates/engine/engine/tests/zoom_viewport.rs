@@ -22,10 +22,10 @@ fn session() -> (Session, String) {
     s.execute("line", &json!({"points": [[0, 0], [1000, 0]]})).unwrap();
     s.execute("line", &json!({"points": [[0, 0], [0, 500]]})).unwrap();
     s.execute("layout.set", &json!({"name": "Layout1"})).unwrap();
-    let r = s.execute("mview", &json!({"p1": [20, 20], "p2": [120, 100]})).unwrap();
+    let r = s.execute("viewport.add", &json!({"p1": [20, 20], "p2": [120, 100]})).unwrap();
     let h = r["viewports"][0].as_str().unwrap().to_string();
     s.execute("viewport.set", &json!({"handle": h, "scale": 1, "center": [0, 0]})).unwrap();
-    s.execute("mspace", &json!({"handle": h})).unwrap();
+    s.execute("viewport.modelSpace", &json!({"handle": h})).unwrap();
     (s, h)
 }
 

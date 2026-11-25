@@ -13,96 +13,96 @@ use crate::{Accept, EngineError, Input, Interactive, LeaderOrder, MLeaderOptions
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("dimlinear", "Linear", run_linear)
+        CommandSpec::new("dimension.addLinear", "Linear", run_linear)
             .menu(&["Dimension", "Linear"])
             .alias(&["dli", "dimlin"])
             .params("{p1, p2, at, rotation? (degrees; default: horizontal/vertical from `at`), text?} | {object: str (a handle), at} (associative)")
             .interactive(|_| Ok(Box::new(LinearM::new(false)))),
-        CommandSpec::new("dimaligned", "Aligned", run_aligned)
+        CommandSpec::new("dimension.addAligned", "Aligned", run_aligned)
             .menu(&["Dimension", "Aligned"])
             .alias(&["dal", "dimali"])
             .params("{p1, p2, at, text?}")
             .interactive(|_| Ok(Box::new(LinearM::new(true)))),
-        CommandSpec::new("dimradius", "Radius", run_radius)
+        CommandSpec::new("dimension.addRadius", "Radius", run_radius)
             .menu(&["Dimension", "Radius"])
             .alias(&["dra", "dimrad"])
             .params("{handle, at? (where the text goes; default: beyond the arrowhead)} | {center, point, at?}")
             .interactive(|_| Ok(Box::new(RadialM::new(false)))),
-        CommandSpec::new("dimdiameter", "Diameter", run_diameter)
+        CommandSpec::new("dimension.addDiameter", "Diameter", run_diameter)
             .menu(&["Dimension", "Diameter"])
             .alias(&["ddi", "dimdia"])
             .params("{handle, at? (where the text goes; default: beyond the arrowhead)} | {center, point, at?}")
             .interactive(|_| Ok(Box::new(RadialM::new(true)))),
-        CommandSpec::new("dimangular", "Angular", run_angular)
+        CommandSpec::new("dimension.addAngular", "Angular", run_angular)
             .menu(&["Dimension", "Angular"])
             .alias(&["dan", "dimang"])
             .params("{vertex, p1, p2, at} | {lines: [str, str] (two handles), at} | {arc: str (a handle), at} (associative)")
             .interactive(|_| Ok(Box::new(AngularM::default()))),
-        CommandSpec::new("dimarc", "Arc Length", run_arclen)
+        CommandSpec::new("dimension.addArcLength", "Arc Length", run_arclen)
             .menu(&["Dimension", "Arc Length"])
             .alias(&["dar"])
             .params("{handle, at}")
             .interactive(|_| Ok(Box::new(ArcLenM::default()))),
-        CommandSpec::new("dimordinate", "Ordinate", run_ordinate)
+        CommandSpec::new("dimension.addOrdinate", "Ordinate", run_ordinate)
             .menu(&["Dimension", "Ordinate"])
             .alias(&["dor", "dimord"])
             .params("{feature, leader, xtype?: bool}")
             .interactive(|_| Ok(Box::new(OrdinateM::default()))),
-        CommandSpec::new("dimcontinue", "Continue", run_continue)
+        CommandSpec::new("dimension.addContinue", "Continue", run_continue)
             .menu(&["Dimension", "Continue"])
             .alias(&["dco", "dimcont"])
             .params("{points: [[x,y]...]} (continues the last linear dimension)")
             .interactive(|s| Ok(Box::new(ChainM::new(s, false)))),
-        CommandSpec::new("dimbaseline", "Baseline", run_baseline)
+        CommandSpec::new("dimension.addBaseline", "Baseline", run_baseline)
             .menu(&["Dimension", "Baseline"])
             .alias(&["dba", "dimbase"])
             .params("{points: [[x,y]...]} (baseline from the last linear dimension)")
             .interactive(|s| Ok(Box::new(ChainM::new(s, true)))),
-        CommandSpec::new("qdim", "Quick Dimension", run_qdim)
+        CommandSpec::new("dimension.addQuick", "Quick Dimension", run_qdim)
             .menu(&["Dimension", "Quick Dimension"])
             .params("{handles?, at: [x,y], vertical?: bool}"),
         CommandSpec::new("dim", "Dimension", run_linear)
             .menu(&["Dimension", "Dimension"])
             .params("{p1, p2, at, rotation? (degrees; default: horizontal/vertical from `at`), text?} | {object: str (a handle), at} (associative)")
             .interactive(|_| Ok(Box::new(LinearM::new(false)))),
-        CommandSpec::new("mleader", "Multileader", run_mleader)
+        CommandSpec::new("multileader.add", "Multileader", run_mleader)
             .menu(&["Dimension", "Multileader"])
             .alias(&["mld"])
             .params("{points: [[arrow], ..., [landing]] ([location] with leaderType none), text?, leaderType?: straight|spline|none, block?: name, blockAttach?: center|insertion}")
             .interactive(|s| Ok(Box::new(MLeaderM::new(s)))),
         CommandSpec::new("leader", "Leader", run_leader).alias(&["lead"]).params("{points: [[x,y]...], text?}"),
-        CommandSpec::new("dimstyle.update", "Update", run_update)
+        CommandSpec::new("dimension.updateStyle", "Update", run_update)
             .menu(&["Dimension", "Update"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("dimstyle.update", "DIMSTYLE")))),
-        CommandSpec::new("dimoverride", "Override", run_override)
+            .interactive(|_| Ok(Box::new(SelectRun::new("dimension.updateStyle", "DIMSTYLE")))),
+        CommandSpec::new("dimension.override", "Override", run_override)
             .menu(&["Dimension", "Override"])
             .alias(&["dov", "dimover"])
             .params("{handles?, …any dimension style field or DIM* variable as its own key with its value, clear?: bool, text?: override text}")
             .interactive(|s| Ok(Box::new(OverrideM::new(s)))),
-        CommandSpec::new("dimreassociate", "Reassociate Dimensions", run_reassociate)
+        CommandSpec::new("dimension.reassociate", "Reassociate Dimensions", run_reassociate)
             .menu(&["Dimension", "Reassociate Dimensions"])
             .alias(&["dre"])
             .params("{handles?} (dimensions; attaches their definition points to the objects under them)")
-            .interactive(|_| Ok(Box::new(SelectRun::new("dimreassociate", "DIMREASSOCIATE")))),
-        CommandSpec::new("dimdisassociate", "Disassociate Dimensions", run_disassociate)
+            .interactive(|_| Ok(Box::new(SelectRun::new("dimension.reassociate", "DIMREASSOCIATE")))),
+        CommandSpec::new("dimension.disassociate", "Disassociate Dimensions", run_disassociate)
             .alias(&["dda"])
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("dimdisassociate", "DIMDISASSOCIATE")))),
-        CommandSpec::new("dimtedit.home", "Home", |s, p| run_tedit(s, p, "home")).menu(&["Dimension", "Align Text", "Home"]).params("{handles?}"),
-        CommandSpec::new("dimtedit.angle", "Angle", |s, p| run_tedit(s, p, "angle"))
+            .interactive(|_| Ok(Box::new(SelectRun::new("dimension.disassociate", "DIMDISASSOCIATE")))),
+        CommandSpec::new("dimension.textHome", "Home", |s, p| run_tedit(s, p, "home")).menu(&["Dimension", "Align Text", "Home"]).params("{handles?}"),
+        CommandSpec::new("dimension.textAngle", "Angle", |s, p| run_tedit(s, p, "angle"))
             .menu(&["Dimension", "Align Text", "Angle"])
             .params("{handles?, angle: degrees}"),
-        CommandSpec::new("dimtedit.left", "Left", |s, p| run_tedit(s, p, "left")).menu(&["Dimension", "Align Text", "Left"]).params("{handles?}"),
-        CommandSpec::new("dimtedit.center", "Center", |s, p| run_tedit(s, p, "center"))
+        CommandSpec::new("dimension.textLeft", "Left", |s, p| run_tedit(s, p, "left")).menu(&["Dimension", "Align Text", "Left"]).params("{handles?}"),
+        CommandSpec::new("dimension.textCenter", "Center", |s, p| run_tedit(s, p, "center"))
             .menu(&["Dimension", "Align Text", "Center"])
             .params("{handles?}"),
-        CommandSpec::new("dimtedit.right", "Right", |s, p| run_tedit(s, p, "right")).menu(&["Dimension", "Align Text", "Right"]).params("{handles?}"),
-        CommandSpec::new("dimtedit", "Dimension Text Edit", run_dimtedit)
+        CommandSpec::new("dimension.textRight", "Right", |s, p| run_tedit(s, p, "right")).menu(&["Dimension", "Align Text", "Right"]).params("{handles?}"),
+        CommandSpec::new("dimension.editText", "Dimension Text Edit", run_dimtedit)
             .alias(&["dimted"])
             .params("{handles?, at?: [x,y], mode?: home|angle|left|center|right, angle?}")
             .interactive(|_| Ok(Box::new(tedit::TEditM::default()))),
-        CommandSpec::new("dimspace", "Dimension Space", run_dimspace)
+        CommandSpec::new("dimension.space", "Dimension Space", run_dimspace)
             .menu(&["Dimension", "Dimension Space"])
             .params("{base: str (a handle), handles: [str] (handles), spacing?: number (default DIMDLI)}"),
     ]
@@ -235,19 +235,19 @@ fn angular_from_lines(s: &Session, h1: Handle, h2: Handle, at: Vec2) -> Option<E
 fn run_linear(s: &mut Session, p: &Value) -> Result<Value> {
     let source = hex_param(p, "object");
     let (a, b) = match source {
-        Some(h) => object_extent(s, h).ok_or_else(|| bad("dimlinear", "`object` must be a line, arc, circle or polyline segment"))?,
-        None => (point_req("dimlinear", p, "p1")?, point_req("dimlinear", p, "p2")?),
+        Some(h) => object_extent(s, h).ok_or_else(|| bad("dimension.addLinear", "`object` must be a line, arc, circle or polyline segment"))?,
+        None => (point_req("dimension.addLinear", p, "p1")?, point_req("dimension.addLinear", p, "p2")?),
     };
-    let at = point_req("dimlinear", p, "at")?;
+    let at = point_req("dimension.addLinear", p, "at")?;
     let rot = p.get("rotation").and_then(Value::as_f64).map(f64::to_radians);
     let k = dim(s, linear_kind(a, b, at, rot, false), at, a, b, Vec2::ZERO, Vec2::ZERO, str_param(p, "text").unwrap_or(""));
     Ok(json!({ "handle": add_dim(s, k, source)?.hex() }))
 }
 
 fn run_aligned(s: &mut Session, p: &Value) -> Result<Value> {
-    let a = point_req("dimaligned", p, "p1")?;
-    let b = point_req("dimaligned", p, "p2")?;
-    let at = point_req("dimaligned", p, "at")?;
+    let a = point_req("dimension.addAligned", p, "p1")?;
+    let b = point_req("dimension.addAligned", p, "p2")?;
+    let at = point_req("dimension.addAligned", p, "at")?;
     let k = dim(s, DimKind::Aligned, at, a, b, Vec2::ZERO, Vec2::ZERO, str_param(p, "text").unwrap_or(""));
     Ok(json!({ "handle": add_dim(s, k, None)?.hex() }))
 }
@@ -262,7 +262,7 @@ fn circle_of(s: &Session, h: Handle) -> Option<(Vec2, f64)> {
 }
 
 fn radial(s: &mut Session, p: &Value, diameter: bool) -> Result<Value> {
-    let id = if diameter { "dimdiameter" } else { "dimradius" };
+    let id = if diameter { "dimension.addDiameter" } else { "dimension.addRadius" };
     let (c, pt, at, source) = if let (Some(c), Some(pt)) = (point_param(p, "center"), point_param(p, "point")) {
         // A location turns the dimension towards it (the radius stays the point's) and places
         // its text, as for an object.
@@ -319,38 +319,38 @@ fn hex_param(p: &Value, key: &str) -> Option<Handle> {
 fn run_angular(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(ls) = p.get("lines").and_then(Value::as_array) {
         let hs: Vec<Handle> = ls.iter().filter_map(|v| v.as_str().and_then(Handle::parse_hex).or_else(|| v.as_u64().map(Handle))).collect();
-        let (Some(h1), Some(h2)) = (hs.first(), hs.get(1)) else { return Err(bad("dimangular", "`lines` needs two line handles")) };
-        let at = point_req("dimangular", p, "at")?;
-        let k = angular_from_lines(s, *h1, *h2, at).ok_or_else(|| bad("dimangular", "objects must be two non-parallel lines"))?;
+        let (Some(h1), Some(h2)) = (hs.first(), hs.get(1)) else { return Err(bad("dimension.addAngular", "`lines` needs two line handles")) };
+        let at = point_req("dimension.addAngular", p, "at")?;
+        let k = angular_from_lines(s, *h1, *h2, at).ok_or_else(|| bad("dimension.addAngular", "objects must be two non-parallel lines"))?;
         return Ok(json!({ "handle": add_dim(s, k, None)?.hex() }));
     }
     if let Some(h) = hex_param(p, "arc") {
-        let at = point_req("dimangular", p, "at")?;
+        let at = point_req("dimension.addAngular", p, "at")?;
         let a = match s.doc()?.entity(h).map(|e| e.kind.clone()) {
             Some(EntityKind::Arc(a)) => a,
-            _ => return Err(bad("dimangular", "object is not an arc")),
+            _ => return Err(bad("dimension.addAngular", "object is not an arc")),
         };
         let g = kition_cad_geom::Arc::new(a.center.xy(), a.radius, a.start, a.end);
         let k = dim(s, DimKind::Angular3P, at, g.start_point(), g.end_point(), g.center, Vec2::ZERO, "");
         return Ok(json!({ "handle": add_dim(s, k, Some(h))?.hex() }));
     }
-    let v = point_req("dimangular", p, "vertex")?;
-    let a = point_req("dimangular", p, "p1")?;
-    let b = point_req("dimangular", p, "p2")?;
-    let at = point_req("dimangular", p, "at")?;
+    let v = point_req("dimension.addAngular", p, "vertex")?;
+    let a = point_req("dimension.addAngular", p, "p1")?;
+    let b = point_req("dimension.addAngular", p, "p2")?;
+    let at = point_req("dimension.addAngular", p, "at")?;
     if v.near(a, 1e-12) || v.near(b, 1e-12) {
-        return Err(bad("dimangular", "`p1` and `p2` must differ from `vertex`"));
+        return Err(bad("dimension.addAngular", "`p1` and `p2` must differ from `vertex`"));
     }
     let k = dim(s, DimKind::Angular3P, at, a, b, v, Vec2::ZERO, "");
     Ok(json!({ "handle": add_dim(s, k, None)?.hex() }))
 }
 
 fn run_arclen(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("dimarc", "`handle` of an arc is required"))?;
-    let at = point_req("dimarc", p, "at")?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("dimension.addArcLength", "`handle` of an arc is required"))?;
+    let at = point_req("dimension.addArcLength", p, "at")?;
     let a = match s.doc()?.entity(h).map(|e| e.kind.clone()) {
         Some(EntityKind::Arc(a)) => a,
-        _ => return Err(bad("dimarc", "object is not an arc")),
+        _ => return Err(bad("dimension.addArcLength", "object is not an arc")),
     };
     let ga = kition_cad_geom::Arc::new(a.center.xy(), a.radius, a.start, a.end);
     let k = dim(s, DimKind::ArcLength, at, ga.start_point(), ga.end_point(), ga.center, Vec2::ZERO, "");
@@ -358,8 +358,8 @@ fn run_arclen(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_ordinate(s: &mut Session, p: &Value) -> Result<Value> {
-    let f = point_req("dimordinate", p, "feature")?;
-    let l = point_req("dimordinate", p, "leader")?;
+    let f = point_req("dimension.addOrdinate", p, "feature")?;
+    let l = point_req("dimension.addOrdinate", p, "leader")?;
     let xtype = p.get("xtype").and_then(Value::as_bool).unwrap_or((l - f).y.abs() > (l - f).x.abs());
     let k = dim(s, DimKind::Ordinate { x_type: xtype }, Vec2::ZERO, f, l, Vec2::ZERO, Vec2::ZERO, "");
     Ok(json!({ "handle": add_dim(s, k, None)?.hex() }))
@@ -415,7 +415,7 @@ fn chained(s: &Session, prev: &Dimension, next: Vec2, baseline: bool) -> EntityK
 const MAX_CHAIN: usize = 100_000;
 
 fn chain_run(s: &mut Session, p: &Value, baseline: bool) -> Result<Value> {
-    let id = if baseline { "dimbaseline" } else { "dimcontinue" };
+    let id = if baseline { "dimension.addBaseline" } else { "dimension.addContinue" };
     let pts = p.get("points").and_then(Value::as_array).ok_or_else(|| bad(id, "`points` is required"))?;
     if pts.len() > MAX_CHAIN {
         return Err(bad(id, format!("at most {MAX_CHAIN} `points` per call")));
@@ -449,9 +449,9 @@ fn run_baseline(s: &mut Session, p: &Value) -> Result<Value> {
 fn run_qdim(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.len() > MAX_CHAIN {
-        return Err(bad("qdim", format!("at most {MAX_CHAIN} objects per call")));
+        return Err(bad("dimension.addQuick", format!("at most {MAX_CHAIN} objects per call")));
     }
-    let at = point_req("qdim", p, "at")?;
+    let at = point_req("dimension.addQuick", p, "at")?;
     let vertical = bool_or(p, "vertical", false);
     let d = s.doc()?;
     let mut pts: Vec<Vec2> = Vec::new();
@@ -471,10 +471,10 @@ fn run_qdim(s: &mut Session, p: &Value) -> Result<Value> {
     pts.sort_by(|a, b| key(a).total_cmp(&key(b)));
     pts.dedup_by(|a, b| (key(a) - key(b)).abs() < 1e-9);
     if pts.len() < 2 {
-        return Err(bad("qdim", "select objects with at least two distinct points"));
+        return Err(bad("dimension.addQuick", "select objects with at least two distinct points"));
     }
     if pts.len() > MAX_CHAIN {
-        return Err(bad("qdim", format!("at most {MAX_CHAIN} distinct points per call")));
+        return Err(bad("dimension.addQuick", format!("at most {MAX_CHAIN} distinct points per call")));
     }
     let rot = if vertical { std::f64::consts::FRAC_PI_2 } else { 0.0 };
     // One snap index for all the dimensions, as DIMCONTINUE does: looking up each dimension's
@@ -531,13 +531,13 @@ fn mleader_kind(s: &Session, pts: &[Vec2], text: &str, landing: bool) -> Option<
 }
 
 fn run_mleader(s: &mut Session, p: &Value) -> Result<Value> {
-    let pts = points_param(p, "points").ok_or_else(|| bad("mleader", "`points` (arrow … landing) is required"))?;
+    let pts = points_param(p, "points").ok_or_else(|| bad("multileader.add", "`points` (arrow … landing) is required"))?;
     let content = super::mleader_content::json_content(s, p)?;
     // Leader type None places the content at the one point given.
     if pts.len() < 2 && !(content.leader == crate::LeaderType::None && pts.len() == 1) {
-        return Err(bad("mleader", "need an arrowhead and a landing point"));
+        return Err(bad("multileader.add", "need an arrowhead and a landing point"));
     }
-    let k = mleader_kind(s, &pts, str_param(p, "text").unwrap_or(""), true).ok_or_else(|| bad("mleader", "bad points"))?;
+    let k = mleader_kind(s, &pts, str_param(p, "text").unwrap_or(""), true).ok_or_else(|| bad("multileader.add", "bad points"))?;
     let k = super::mleader_content::apply(s, k, &content)?;
     Ok(json!({ "handle": s.add_entity(k)?.hex() }))
 }
@@ -699,13 +699,13 @@ fn run_tedit(s: &mut Session, p: &Value, mode: &str) -> Result<Value> {
 fn run_dimtedit(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = dims_of(s, &targets(s, p)?);
     if hs.is_empty() {
-        return Err(bad("dimtedit", "select dimensions"));
+        return Err(bad("dimension.editText", "select dimensions"));
     }
     let mode = str_param(p, "mode").unwrap_or("").to_ascii_lowercase();
     let at = point_param(p, "at");
     let angle = p.get("angle").and_then(Value::as_f64).filter(|a| a.is_finite()).map(f64::to_radians);
     if mode == "angle" && angle.is_none() {
-        return Err(bad("dimtedit", "`angle` (degrees) is required"));
+        return Err(bad("dimension.editText", "`angle` (degrees) is required"));
     }
     let d = s.doc_mut()?;
     for h in &hs {
@@ -741,10 +741,12 @@ fn run_dimtedit(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// DIMSPACE: equal spacing of parallel linear dimensions from a base dimension.
 fn run_dimspace(s: &mut Session, p: &Value) -> Result<Value> {
-    let base = hex_param(p, "base").ok_or_else(|| bad("dimspace", "`base` dimension is required"))?;
+    let base = hex_param(p, "base").ok_or_else(|| bad("dimension.space", "`base` dimension is required"))?;
     let hs: Vec<Handle> = dims_of(s, &targets(s, p)?).into_iter().filter(|h| *h != base).collect();
     let d = s.doc()?;
-    let Some(EntityKind::Dimension(b)) = d.entity(base).map(|e| e.kind.clone()) else { return Err(bad("dimspace", "`base` is not a dimension")) };
+    let Some(EntityKind::Dimension(b)) = d.entity(base).map(|e| e.kind.clone()) else {
+        return Err(bad("dimension.space", "`base` is not a dimension"));
+    };
     let st = d.dim_style(&b.style).cloned().unwrap_or_default().with_overrides(&b.overrides);
     let spacing = p
         .get("spacing")
@@ -754,7 +756,7 @@ fn run_dimspace(s: &mut Session, p: &Value) -> Result<Value> {
     let dir = match b.kind {
         DimKind::Linear { rotation } => Vec2::from_angle(rotation),
         DimKind::Aligned => (b.p14.xy() - b.p13.xy()).normalized(),
-        _ => return Err(bad("dimspace", "base must be a linear or aligned dimension")),
+        _ => return Err(bad("dimension.space", "base must be a linear or aligned dimension")),
     };
     let n = dir.perp();
     let base_off = (b.defpt.xy() - b.p13.xy()).dot(n);

@@ -37,8 +37,8 @@ pub fn specs() -> Vec<CommandSpec> {
             .interactive(|_| Ok(Box::new(AreaM::default()))),
         CommandSpec::new("time", "Time", run_time).menu(&["Tools", "Inquiry", "Time"]).noundo(),
         CommandSpec::new("status", "Status", run_status).menu(&["Tools", "Inquiry", "Status"]).noundo(),
-        CommandSpec::new("drawing.inspect", "Inspect Drawing", run_inspect).params("{entities?: bool, limit?: n}").noundo(),
-        CommandSpec::new("entities", "Query Entities", run_entities)
+        CommandSpec::new("file.inspect", "Inspect Drawing", run_inspect).params("{entities?: bool, limit?: n}").noundo(),
+        CommandSpec::new("object.query", "Query Entities", run_entities)
             .params("{layout?: string (\"Model\" or a layout's name; default the space shown), type?, layer?: string (a layer name), window?: [[x,y],[x,y]], crossing?: bool (default true; false = entirely inside), limit?, offset?} → {count (all matches), returned, offset, entities}")
             .noundo(),
         CommandSpec::new("count", "Count", run_count)
@@ -283,16 +283,16 @@ fn run_inspect(s: &mut Session, p: &Value) -> Result<Value> {
         "undo": st.undo.iter().rev().take(20).map(|u| u.label.clone()).collect::<Vec<_>>(),
         "view": { "center": [st.view().center.x, st.view().center.y], "height": st.view().height },
     });
-    if bool_or(p, "entities", true)
+    if bool_or(p, "object.query", true)
         && let (Some(o), Some(store)) = (out.as_object_mut(), d.space(&space))
     {
-        o.insert("entities".into(), Value::Array(store.iter().take(limit).map(|e| entity_summary(e)).collect()));
+        o.insert("object.query".into(), Value::Array(store.iter().take(limit).map(|e| entity_summary(e)).collect()));
     }
     Ok(out)
 }
 
 fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
-    const CMD: &str = "entities";
+    const CMD: &str = "object.query";
     let given = |k: &str| p.get(k).filter(|v| !v.is_null());
     let text = |k: &str| -> Result<Option<String>> {
         given(k).map(|v| v.as_str().map(str::to_ascii_lowercase).ok_or_else(|| bad(CMD, format!("`{k}` must be a string")))).transpose()
@@ -332,7 +332,7 @@ fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
             )
         })?),
     };
-    let Some(store) = d.space(&space) else { return Ok(json!({ "count": 0, "returned": 0, "entities": [] })) };
+    let Some(store) = d.space(&space) else { return Ok(json!({ "count": 0, "returned": 0, "object.query": [] })) };
     let tol = window.as_ref().map(crate::select::window_tol).unwrap_or(0.0);
     let matches: Vec<&std::sync::Arc<kition_cad_doc::Entity>> = store
         .iter()
@@ -342,7 +342,7 @@ fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
         .collect();
     let page: Vec<Value> = matches.iter().skip(offset).take(limit).map(|e| entity_summary(e)).collect();
     // `count` is every match; `returned` is this page of them (`offset`, `limit`).
-    Ok(json!({ "count": matches.len(), "returned": page.len(), "offset": offset, "entities": page }))
+    Ok(json!({ "count": matches.len(), "returned": page.len(), "offset": offset, "object.query": page }))
 }
 
 fn run_count(s: &mut Session, p: &Value) -> Result<Value> {

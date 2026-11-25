@@ -29,7 +29,7 @@ const CHANGES: &[&str] = &[
     "source",
     "ucs",
     "units",
-    "dimstyle",
+    "dimensionStyle.open",
     "order",
     "unrelated",
 ];
@@ -104,7 +104,7 @@ fn h(v: &Value) -> Handle {
     Handle::parse_hex(v.as_str().unwrap()).unwrap()
 }
 fn shape(d: &mut CadDocument, y: i32, layer: &str) -> Value {
-    run(d, "rectang", json!({"p1":[0,y],"p2":[10,y+10],"layer":layer}))["handle"].clone()
+    run(d, "rectangle.add", json!({"p1":[0,y],"p2":[10,y+10],"layer":layer}))["handle"].clone()
 }
 fn line(d: &mut CadDocument, a: [i32; 2], b: [i32; 2], layer: &str) -> Value {
     run(d, "line", json!({"points":[a,b],"layer":layer}))["handles"][0].clone()
@@ -120,8 +120,8 @@ struct DrawingIds {
 }
 fn drawing(change: &str) -> (CadDocument, DrawingIds) {
     let mut d = CadDocument::create(FILE, 420, 297).unwrap();
-    run(&mut d, "layer.new", json!({"name":"Walls"}));
-    run(&mut d, "layer.new", json!({"name":"Far"}));
+    run(&mut d, "layer.add", json!({"name":"Walls"}));
+    run(&mut d, "layer.add", json!({"name":"Far"}));
     let a = shape(&mut d, 0, "Walls");
     let b = shape(&mut d, if matches!(change, "leave" | "order") { 0 } else { 40 }, "Far");
     let original = line(&mut d, [0, 80], [10, 80], "0");
@@ -132,7 +132,7 @@ fn drawing(change: &str) -> (CadDocument, DrawingIds) {
     run(&mut d, "style", json!({"name":"S","height":2,"current":false}));
     let table = run(&mut d, "table", json!({"at":[150,0],"rows":2,"cols":2}))["handle"].clone();
     let source = line(&mut d, [30, 0], [40, 0], "0");
-    let dim = run(&mut d, "dimlinear", json!({"object":source,"at":[30,5]}))["handle"].clone();
+    let dim = run(&mut d, "dimension.addLinear", json!({"object":source,"at":[30,5]}))["handle"].clone();
     raw(&mut d, |d| {
         d.views.push(serde_json::from_value(json!({"name":"N","center":{"x":0,"y":0},"height":10,"width":10})).unwrap());
         d.ucss.push(
@@ -144,27 +144,27 @@ fn drawing(change: &str) -> (CadDocument, DrawingIds) {
 fn address_steps(row: &str, ids: &DrawingIds) -> Value {
     let p = match row {
         "handle-color" => json!({"handles":[ids.a],"color":"red"}),
-        "handle-move" => return json!([{"command":"move","params":{"handles":[ids.a],"delta":[2,0]}}]),
+        "handle-move" => return json!([{"command":"object.move","params":{"handles":[ids.a],"delta":[2,0]}}]),
         "point" => json!({"pick":[5,0],"aperture":0.1,"color":"red"}),
         "window" | "crossing" | "fence" => {
             return json!([
-                {"command":"select","params": if row == "fence" {json!({"fence":[[5,-1],[5,11]]})}
+                {"command":"select.set","params": if row == "fence" {json!({"fence":[[5,-1],[5,11]]})}
                     else {json!({"window":[[-1,-1],[11,11]],"crossing":row == "crossing"})}},
-                {"command":"properties.set","params":{"color":"red"}}
+                {"command":"object.setProperties","params":{"color":"red"}}
             ]);
         }
         "layer-name" => return json!([{"command":"layer.set","params":{"name":"Walls","color":"red"}}]),
-        "style-name" => return json!([{"command":"style","params":{"name":"S","height":4,"current":false}}]),
-        "block-name" => return json!([{"command":"insert","params":{"name":"B","at":[120,0]}}]),
+        "style-name" => return json!([{"command":"textStyle.open","params":{"name":"S","height":4,"current":false}}]),
+        "block-name" => return json!([{"command":"block.insert","params":{"name":"B","at":[120,0]}}]),
         "table-index" => return json!([{"command":"table.set","params":{"handle":ids.table,"row":0,"col":0,"text":"Mine"}}]),
-        "snap" => return json!([{"command":"dimlinear","params":{"object":ids.source,"at":[30,10]}}]),
+        "snap" => return json!([{"command":"dimension.addLinear","params":{"object":ids.source,"at":[30,10]}}]),
         "dimension" => json!({"handles":[ids.dim],"color":"red"}),
         "view-name" | "ucs-name" => {
-            return json!([{"command":"rename","params":{"table":if row == "view-name" {"view"} else {"ucs"},"from":"N","to":"Mine"}}]);
+            return json!([{"command":"namedObject.rename","params":{"table":if row == "view-name" {"view"} else {"ucs"},"from":"N","to":"Mine"}}]);
         }
         _ => panic!("unknown row {row}"),
     };
-    json!([{"command":"properties.set","params":p}])
+    json!([{"command":"object.setProperties","params":p}])
 }
 fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) {
     let target = if row == "table-index" {
@@ -197,7 +197,7 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
         "same" | "other" | "delete" if row == "style-name" => {
             run(
                 d,
-                if change == "delete" { "style.delete" } else { "style" },
+                if change == "delete" { "textStyle.delete" } else { "style" },
                 match change {
                     "delete" => json!({"name":"S"}),
                     "same" => json!({"name":"S","height":3,"current":false}),
@@ -207,7 +207,7 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
         }
         "same" | "other" | "delete" if row == "layer-name" => {
             if change == "delete" {
-                run(d, "laydel", json!({"names":["Walls"]}));
+                run(d, "layer.deleteWithObjects", json!({"names":["Walls"]}));
             } else {
                 run(
                     d,
@@ -236,10 +236,10 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
             run(d, "table.set", json!({"handle":ids.table,"row":1,"col":1,"text":"Theirs"}));
         }
         "same" => {
-            run(d, "properties.set", json!({"handles":[target],"color":"blue"}));
+            run(d, "object.setProperties", json!({"handles":[target],"color":"blue"}));
         }
         "other" => {
-            run(d, "properties.set", json!({"handles":[target],"lineweight":30}));
+            run(d, "object.setProperties", json!({"handles":[target],"lineweight":30}));
         }
         "delete" => {
             run(d, "erase", json!({"handles":[target]}));
@@ -292,14 +292,14 @@ fn edit_address(d: &mut CadDocument, row: &str, change: &str, ids: &DrawingIds) 
         "units" => {
             run(d, "units", json!({"insunits":1}));
         }
-        "dimstyle" => {
-            run(d, "dimstyle", json!({"name":"ISO-25","textHeight":4}));
+        "dimensionStyle.open" => {
+            run(d, "dimensionStyle.open", json!({"name":"ISO-25","textHeight":4}));
         }
         "order" => {
-            run(d, "draworder.front", json!({"handles":[ids.a]}));
+            run(d, "arrange.bringToFront", json!({"handles":[ids.a]}));
         }
         "unrelated" => {
-            run(d, "layer.new", json!({"name":"Unrelated"}));
+            run(d, "layer.add", json!({"name":"Unrelated"}));
         }
         _ => panic!("unknown change {change}"),
     }
@@ -378,7 +378,7 @@ fn content(d: &Drawing) -> Value {
     entities.sort();
     let header: std::collections::BTreeMap<_, _> =
         d.header.vars.iter().filter(|(k, _)| !matches!(k.as_str(), "EXTMIN" | "EXTMAX" | "HANDSEED")).collect();
-    json!({"entities":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"header":header,"views":d.views,"ucss":d.ucss})
+    json!({"object.query":entities,"layers":d.layers,"linetypes":d.linetypes,"styles":d.text_styles,"dimstyles":d.dim_styles,"header":header,"views":d.views,"ucss":d.ucss})
 }
 
 async fn address_cells(selection_consumers: bool) {
@@ -436,14 +436,14 @@ const DERIVED: &[(&str, &str)] = &[
     ("hatch-point", "CDCRAA"),
     ("dimension-object", "CDCAAA"),
     ("dimension-snap", "RDCAAA"),
-    ("arraypath", "CDCAAA"),
+    ("object.arrayPath", "CDCAAA"),
     ("array-dispatch", "CDCAAA"),
     ("join", "CDCACA"),
     ("pedit-join", "CDCACA"),
 ];
 fn derived(row: &str) -> (CadDocument, Value, Value, Value) {
     let mut d = CadDocument::create(FILE, 420, 297).unwrap();
-    run(&mut d, "layer.new", json!({"name":"Source"}));
+    run(&mut d, "layer.add", json!({"name":"Source"}));
     let far = line(&mut d, [0, 100], [10, 100], "0");
     let a = line(&mut d, [0, 0], [10, 0], "0");
     let source = match row {
@@ -461,12 +461,12 @@ fn derived(row: &str) -> (CadDocument, Value, Value, Value) {
         "offset" => (row, json!({"handle":source,"distance":2,"side":[35,5]})),
         "hatch-handles" => ("hatch", json!({"handles":[source],"pattern":"SOLID"})),
         "hatch-point" => ("hatch", json!({"points":[[5,25]],"pattern":"SOLID"})),
-        "dimension-object" => ("dimlinear", json!({"object":source,"at":[35,5]})),
-        "dimension-snap" => ("dimlinear", json!({"p1":[30,0],"p2":[40,0],"at":[35,5]})),
-        "arraypath" => (row, json!({"handles":[a],"path":source,"count":3})),
+        "dimension-object" => ("dimension.addLinear", json!({"object":source,"at":[35,5]})),
+        "dimension-snap" => ("dimension.addLinear", json!({"p1":[30,0],"p2":[40,0],"at":[35,5]})),
+        "object.arrayPath" => (row, json!({"handles":[a],"path":source,"count":3})),
         "array-dispatch" => ("array", json!({"type":"path","handles":[a],"path":source,"count":3})),
         "join" => (row, json!({"handles":[a,source]})),
-        "pedit-join" => ("pedit", json!({"handle":a,"option":"join","handles2":[source]})),
+        "pedit-join" => ("polyline.edit", json!({"handle":a,"option":"join","handles2":[source]})),
         _ => panic!("unknown derived row"),
     };
     (d, json!([{"command":command,"params":params}]), source, far)
@@ -516,12 +516,12 @@ async fn stored_settings_family_matrix() {
     // holds the value I observed.
     let rows = [
         ("color", json!({"color":"red"}), json!({"color":"blue"}), true),
-        ("lweight", json!({"lineweight":"ByLayer"}), json!({"lineweight":"ByBlock"}), true),
-        ("ltscale", json!({"scale":2}), json!({"scale":3}), false),
+        ("property.lineweight", json!({"lineweight":"ByLayer"}), json!({"lineweight":"ByBlock"}), true),
+        ("property.linetypeScale", json!({"scale":2}), json!({"scale":3}), false),
         ("units", json!({"luprec":2}), json!({"luprec":3}), false),
         ("limits", json!({"min":[0,0],"max":[100,100]}), json!({"min":[0,0],"max":[200,200]}), false),
-        ("ddptype", json!({"pdmode":2}), json!({"pdmode":3}), false),
-        ("style.current", json!({"name":"S"}), json!({"name":"T"}), true),
+        ("point.style", json!({"pdmode":2}), json!({"pdmode":3}), false),
+        ("textStyle.setCurrent", json!({"name":"S"}), json!({"name":"T"}), true),
         ("linetype", json!({"current":"ByBlock"}), json!({"current":"Continuous"}), true),
     ];
     let mut counts = Counts::default();
@@ -561,11 +561,11 @@ async fn current_style_family_matrix() {
     // own, kdm_model::is_current_var): my STYLE or DIMSTYLE, which makes the style my current one
     // and sets my DIM* variables to it, applies, and the saved file carries mine.
     let rows = [
-        ("style", json!({"name":"S"}), "style.current", json!({"name":"T"}), true),
-        ("dimstyle", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
-        ("dimstyle.dimension", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "dimstyle.current", json!({"name":"Standard"}), true),
-        ("dimstyle.current", json!({"name":"ISO-25"}), "setvar", json!({"name":"DIMASZ","value":3}), true),
+        ("style", json!({"name":"S"}), "textStyle.setCurrent", json!({"name":"T"}), true),
+        ("dimensionStyle.open", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
+        ("dimensionStyle.openManager", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
+        ("dimensionStyle.setCurrent", json!({"name":"ISO-25"}), "dimensionStyle.setCurrent", json!({"name":"Standard"}), true),
+        ("dimensionStyle.setCurrent", json!({"name":"ISO-25"}), "variable.set", json!({"name":"DIMASZ","value":3}), true),
     ];
     let mut counts = Counts::default();
     for (command, mine, other_command, theirs, own) in rows {
@@ -620,7 +620,7 @@ async fn library_and_base_family_matrix() {
                             run(d, "base", json!({"at":[2,2]}));
                         }
                         "linetype-units" => {
-                            run(d, "setvar", json!({"name":"MEASUREMENT","value":0}));
+                            run(d, "variable.set", json!({"name":"MEASUREMENT","value":0}));
                         }
                         "linetype-loaded" => {
                             run(d, "linetype", json!({"load":"DASHED"}));

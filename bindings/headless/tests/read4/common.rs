@@ -24,12 +24,12 @@ impl std::ops::Deref for Fixture {
 impl Fixture {
     pub fn new() -> Self {
         let core = earlier::Fixture::new();
-        core.colleague(&[("rectang", json!({"p1":[500,0],"p2":[510,10]}))]);
+        core.colleague(&[("rectangle.add", json!({"p1":[500,0],"p2":[510,10]}))]);
         core.colleague(&[
-            ("mview", json!({"layout":"Layout1","p1":[0,0],"p2":[20,20]})),
+            ("viewport.add", json!({"layout":"Layout1","p1":[0,0],"p2":[20,20]})),
             ("hatch", json!({"handles":[core.circle],"pattern":"SOLID"})),
             ("group", json!({"name":"Group","handles":[core.line]})),
-            ("dimlinear", json!({"object":core.line,"at":[50,-10]})),
+            ("dimension.addLinear", json!({"object":core.line,"at":[50,-10]})),
         ]);
         core.rewrite(|d| {
             let mut member = d.block("Marker").unwrap().entities.iter().next().unwrap().as_ref().clone();

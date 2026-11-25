@@ -1,4 +1,4 @@
-//! `entities.measure`: what an agent that cannot see precisely needs measured, in one read-only
+//! `object.measure`: what an agent that cannot see precisely needs measured, in one read-only
 //! command (task card C4/C5/C6-cad). It changes nothing and reads no editor state: entities are
 //! named by handle, a space by name.
 //!
@@ -24,7 +24,7 @@ use serde_json::{Value, json};
 use super::{CommandSpec, bad, point_value};
 use crate::{Result, Session};
 
-const CMD: &str = "entities.measure";
+const CMD: &str = "object.measure";
 
 /// The most curve pieces one object is flattened into for a distance.
 const MAX_PIECES: usize = 20_000;
@@ -33,7 +33,7 @@ const MAX_OVERLAP_OBJECTS: usize = 200_000;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("entities.measure", "Measure Entities", run)
+        CommandSpec::new("object.measure", "Measure Entities", run)
             .params("{bounds?: [handles], distance?: [a, b] (a handle or [x, y] each), intersections?: [a, b] (handles), overlaps?: {layout?: string}} → bounds | {distance, from, to} | {points} | {pairs}")
             .noundo(),
     ]

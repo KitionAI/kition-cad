@@ -28,10 +28,10 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Tools", "Ungroup"])
             .params("{name?: \"G1\" | \"G1,G2\" | [names]} | {handles?} (default the selection: every group holding one of the objects) → {ungrouped: [names]}")
             .interactive(|_| Ok(Box::new(UngroupM::default()))),
-        CommandSpec::new("groupedit", "Group Edit", run_groupedit)
+        CommandSpec::new("group.edit", "Group Edit", run_groupedit)
             .params("{name, add?: [handles], remove?: [handles], rename?: new name} → {name, members}. Removing every member deletes the group.")
             .interactive(|_| Ok(Box::new(GroupEditM::default()))),
-        CommandSpec::new("groups.list", "List Groups", run_list)
+        CommandSpec::new("group.list", "List Groups", run_list)
             .params("{} → {groups: [{name, description, selectable, unnamed, members: [handles]}]}")
             .noundo(),
     ]
@@ -111,7 +111,7 @@ pub(crate) fn ungroup(s: &mut Session, idx: &[usize]) -> Result<Vec<String>> {
 pub(crate) fn add_members(s: &mut Session, i: usize, hs: &[Handle]) -> Result<usize> {
     let add: Vec<Handle> = {
         let d = s.doc()?;
-        let g = d.groups.get(i).ok_or_else(|| bad("groupedit", "no such group"))?;
+        let g = d.groups.get(i).ok_or_else(|| bad("group.edit", "no such group"))?;
         existing(d, hs).into_iter().filter(|h| !g.members.contains(h)).collect()
     };
     if !add.is_empty()
@@ -125,7 +125,7 @@ pub(crate) fn add_members(s: &mut Session, i: usize, hs: &[Handle]) -> Result<us
 /// Remove `hs` from the group at `i`; a group left with no members is deleted. Returns how many
 /// left and whether the group was deleted.
 pub(crate) fn remove_members(s: &mut Session, i: usize, hs: &[Handle]) -> Result<(usize, bool)> {
-    let g = s.doc()?.groups.get(i).ok_or_else(|| bad("groupedit", "no such group"))?;
+    let g = s.doc()?.groups.get(i).ok_or_else(|| bad("group.edit", "no such group"))?;
     let n = g.members.iter().filter(|h| hs.contains(h)).count();
     if n == 0 {
         return Ok((0, false));
@@ -148,11 +148,11 @@ pub(crate) fn remove_members(s: &mut Session, i: usize, hs: &[Handle]) -> Result
 pub(crate) fn rename(s: &mut Session, i: usize, new: &str) -> Result<()> {
     let new = new.trim();
     if !valid_name(new) {
-        return Err(bad("groupedit", format!("\"{new}\" is not a valid group name")));
+        return Err(bad("group.edit", format!("\"{new}\" is not a valid group name")));
     }
     let d = s.doc()?;
     if find(d, new).is_some_and(|j| j != i) {
-        return Err(bad("groupedit", format!("a group named \"{new}\" already exists")));
+        return Err(bad("group.edit", format!("a group named \"{new}\" already exists")));
     }
     let d = s.doc_mut()?;
     if let Some(g) = d.groups.get_mut(i) {
@@ -272,19 +272,19 @@ fn run_ungroup(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_groupedit(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("groupedit", "`name` is required"))?;
-    let i = find(s.doc()?, name).ok_or_else(|| bad("groupedit", format!("no group named \"{name}\"")))?;
-    let add = handles_at("groupedit", p, "add")?;
-    let remove = handles_at("groupedit", p, "remove")?;
+    let name = str_param(p, "name").ok_or_else(|| bad("group.edit", "`name` is required"))?;
+    let i = find(s.doc()?, name).ok_or_else(|| bad("group.edit", format!("no group named \"{name}\"")))?;
+    let add = handles_at("group.edit", p, "add")?;
+    let remove = handles_at("group.edit", p, "remove")?;
     if let Some(h) = add.iter().find(|h| s.doc().is_ok_and(|d| d.entity(**h).is_none())) {
-        return Err(bad("groupedit", format!("`add`: no object with handle {}", h.hex())));
+        return Err(bad("group.edit", format!("`add`: no object with handle {}", h.hex())));
     }
     let new_name = str_param(p, "rename");
     // Check the new name before changing anything.
     if let Some(n) = new_name {
         let n = n.trim();
         if !valid_name(n) || find(s.doc()?, n).is_some_and(|j| j != i) {
-            return Err(bad("groupedit", format!("\"{n}\" is not a valid new group name, or a group of that name exists")));
+            return Err(bad("group.edit", format!("\"{n}\" is not a valid new group name, or a group of that name exists")));
         }
     }
     add_members(s, i, &add)?;
@@ -295,7 +295,7 @@ fn run_groupedit(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(n) = new_name {
         rename(s, i, n)?;
     }
-    let g = s.doc()?.groups.get(i).ok_or_else(|| bad("groupedit", "no such group"))?;
+    let g = s.doc()?.groups.get(i).ok_or_else(|| bad("group.edit", "no such group"))?;
     Ok(json!({ "name": g.name, "members": g.members.len() }))
 }
 
@@ -527,7 +527,7 @@ struct GroupEditM {
 
 impl GroupEditM {
     fn index(&self, s: &Session) -> Result<usize> {
-        find(s.doc()?, &self.group).ok_or_else(|| bad("groupedit", format!("no group named \"{}\"", self.group)))
+        find(s.doc()?, &self.group).ok_or_else(|| bad("group.edit", format!("no group named \"{}\"", self.group)))
     }
     fn chosen(&mut self, s: &Session, i: usize) -> Result<()> {
         self.group = s.doc()?.groups.get(i).map(|g| g.name.clone()).unwrap_or_default();

@@ -271,9 +271,9 @@ impl LayerM {
                 let Some(n) = text else { return Ok(Step::Continue) };
                 let exists = s.doc()?.layer(&n).is_some();
                 let r = if exists {
-                    call(s, "layer.current", &json!({ "name": n }))
+                    call(s, "layer.setCurrent", &json!({ "name": n }))
                 } else {
-                    call(s, "layer.new", &json!({ "name": n, "current": true }))
+                    call(s, "layer.add", &json!({ "name": n, "current": true }))
                 };
                 if let Err(e) = r {
                     s.echo(message(&e));
@@ -284,14 +284,14 @@ impl LayerM {
                 let Some(n) = text else { return Ok(Step::Continue) };
                 if s.doc()?.layer(&n).is_none() {
                     s.echo(format!("Cannot find layer \"{n}\"."));
-                } else if let Err(e) = call(s, "layer.current", &json!({ "name": n })) {
+                } else if let Err(e) = call(s, "layer.setCurrent", &json!({ "name": n })) {
                     s.echo(message(&e));
                 }
                 Ok(Step::Continue)
             }
             Stage::New => {
                 for n in text.as_deref().unwrap_or("").split(',').map(str::trim).filter(|n| !n.is_empty()).take(1000) {
-                    if let Err(e) = call(s, "layer.new", &json!({ "name": n })) {
+                    if let Err(e) = call(s, "layer.add", &json!({ "name": n })) {
                         s.echo(message(&e));
                     }
                 }

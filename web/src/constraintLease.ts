@@ -20,21 +20,21 @@ export const CONSTRAINT_LEASE_TTL = 15_000
 /** Whether an engine command solves the drawing's constraints: adds, changes, removes or infers them. */
 export function solvesConstraints(command: string): boolean {
   const id = command.toLowerCase()
-  if (id.startsWith('dcdisplay')) return false
+  if (id.startsWith('constraint.dynamicDimensions')) return false
   return (
     id.startsWith('gc') ||
     id.startsWith('dc') ||
     id.startsWith('parameters') ||
-    id === 'geomconstraint' ||
-    id === 'dimconstraint' ||
-    id === 'autoconstrain' ||
-    id === 'delconstraint'
+    id === 'constraint.addGeometric' ||
+    id === 'constraint.addDimensional' ||
+    id === 'constraint.auto' ||
+    id === 'constraint.delete'
   )
 }
 
 /** The engine command a call runs: the command itself, or the first word typed on the command line. */
 export function commandOf(command: string, params: Record<string, unknown> = {}): string {
-  if (command !== 'commandLine') return command
+  if (command !== 'command.runLine') return command
   const text = typeof params.text === 'string' ? params.text.trim() : ''
   return (text.split(/\s+/)[0] ?? '').replace(/^[-_.']+/, '').toLowerCase()
 }

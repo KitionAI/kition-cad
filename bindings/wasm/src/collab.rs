@@ -340,7 +340,7 @@ mod tests {
     }
 
     fn entities(doc: &CadDocument) -> u64 {
-        doc.inspect().unwrap()["entities"].as_u64().unwrap()
+        doc.inspect().unwrap()["object.query"].as_u64().unwrap()
     }
 
     #[test]
@@ -491,7 +491,7 @@ mod tests {
         draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         // Meanwhile, here, an edit of another field (a merge refuses a field both sides changed).
-        doc.execute("setvar", json!({ "name": "DIMSCALE", "value": 3 })).unwrap();
+        doc.execute("variable.set", json!({ "name": "DIMSCALE", "value": 3 })).unwrap();
         let before = entities(&doc);
         let origin = Origin::person("person:local");
         let answer = doc.merge_changes(&changes, &origin).unwrap();

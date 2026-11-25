@@ -22,9 +22,9 @@ async fn session_orthomode_does_not_assign_the_imported_header() {
         let before = f.disk();
         assert!(before != observed);
         let mut oracle = CadDocument::open(FILE, &before).unwrap();
-        oracle.execute("setvar", json!({"name":"ORTHOMODE","value":0})).unwrap();
+        oracle.execute("variable.set", json!({"name":"ORTHOMODE","value":0})).unwrap();
         let expected = kition_cad_io::read(&oracle.save(Some(FILE)).unwrap(), FILE).unwrap();
-        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"setvar","params":{"name":"ORTHOMODE","value":0}}]})).await;
+        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"variable.set","params":{"name":"ORTHOMODE","value":0}}]})).await;
         answer.unwrap_or_else(|e| panic!("unused imported header must apply, outside={outside}: {e}"));
         let actual = kition_cad_io::read(&f.disk(), FILE).unwrap();
         assert_eq!(actual.header.i64("ORTHOMODE", 0), 1, "the colleague's header is preserved");

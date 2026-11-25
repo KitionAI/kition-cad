@@ -42,7 +42,7 @@ fn spatial(command: &str, p: &Value) -> bool {
 }
 
 fn continuation(command: &str, p: &Value) -> bool {
-    command == "arc.continue" && (p.get("start").is_none() || p.get("direction").is_none())
+    command == "arc.addContinue" && (p.get("start").is_none() || p.get("direction").is_none())
 }
 
 fn implicit(command: &str, p: &Value) -> bool {
@@ -50,17 +50,17 @@ fn implicit(command: &str, p: &Value) -> bool {
         || matches!(
             command,
             "dim"
-                | "dimlinear"
-                | "dimaligned"
-                | "dimradius"
-                | "dimdiameter"
-                | "dimangular"
-                | "dimarc"
-                | "dimordinate"
-                | "dimcontinue"
-                | "dimbaseline"
-                | "qdim"
-                | "dimreassociate"
+                | "dimension.addLinear"
+                | "dimension.addAligned"
+                | "dimension.addRadius"
+                | "dimension.addDiameter"
+                | "dimension.addAngular"
+                | "dimension.addArcLength"
+                | "dimension.addOrdinate"
+                | "dimension.addContinue"
+                | "dimension.addBaseline"
+                | "dimension.addQuick"
+                | "dimension.reassociate"
         )
 }
 
@@ -86,7 +86,7 @@ fn dependencies(s: &Session, d: &Drawing, command: &str, p: &Value) -> Vec<Handl
     }
     let result = probe.execute(command, p);
     let mut hs = Vec::new();
-    if matches!(command, "dimcontinue" | "dimbaseline") {
+    if matches!(command, "dimension.addContinue" | "dimension.addBaseline") {
         hs.extend(s.last_dim);
     }
     if result.is_ok()
@@ -113,20 +113,20 @@ fn destroys(command: &str, p: &Value, h: Handle, hs: &[Handle]) -> bool {
     let primary = p.get("handle").and_then(handle).or_else(|| hs.first().copied());
     match command {
         "join" => true,
-        "pedit" => {
+        "polyline.edit" => {
             primary != Some(h) && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j"))
         }
         "offset" => p.get("erase") == Some(&Value::Bool(true)),
         // TRIM's targets (not its edges): picked, fenced or named, each is replaced by its pieces.
         "trim" => !crate::params::values(p, "edges").iter().filter_map(|v| v.as_array()).flatten().filter_map(handle).any(|e| e == h),
         // ARRAYPATH copies its sources whole; the path is read for its geometry.
-        "arraypath" => p.get("path").and_then(handle) != Some(h),
+        "object.arrayPath" => p.get("path").and_then(handle) != Some(h),
         _ => false,
     }
 }
 
 fn generic_pick(command: &str) -> bool {
-    !matches!(command, "trim" | "extend" | "lengthen" | "ncopy")
+    !matches!(command, "trim" | "extend" | "object.lengthen" | "object.copyNested")
 }
 
 fn picked(d: &Drawing, space: &Space, command: &str, p: &Value) -> Vec<Handle> {
@@ -176,19 +176,19 @@ pub fn declare(c: &mut KitCommand) {
     }
     // A creation/update by a record name is a typed place, including an absent
     // name. Replay the map rather than relying on case-sensitive SDK spelling.
-    if matches!(c.id.as_str(), "style" | "dimstyle" | "dimstyle.dimension" | "insert" | "layerstate.save") {
+    if matches!(c.id.as_str(), "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "insert" | "layerState.save") {
         c.places = &["name"];
     }
-    if matches!(c.id.as_str(), "layout.new" | "layout.copy" | "layout") {
+    if matches!(c.id.as_str(), "layout.add" | "layout.duplicate" | "layout") {
         c.places = &["name", "to"];
     }
-    if c.id == "qselect" {
+    if c.id == "select.quick" {
         c.places = &["type", "layer", "color", "property", "operator", "value", "mode", "applyTo"];
     }
     if c.id == "find" {
         c.places = &["find"];
     }
-    if c.id == "arc.continue" {
+    if c.id == "arc.addContinue" {
         c.places = &["end"];
     }
     if matches!(
@@ -197,17 +197,17 @@ pub fn declare(c: &mut KitCommand) {
             | "gradient"
             | "boundary"
             | "dim"
-            | "dimlinear"
-            | "dimaligned"
-            | "dimradius"
-            | "dimdiameter"
-            | "dimangular"
-            | "dimarc"
-            | "dimordinate"
-            | "dimcontinue"
-            | "dimbaseline"
-            | "qdim"
-            | "dimreassociate"
+            | "dimension.addLinear"
+            | "dimension.addAligned"
+            | "dimension.addRadius"
+            | "dimension.addDiameter"
+            | "dimension.addAngular"
+            | "dimension.addArcLength"
+            | "dimension.addOrdinate"
+            | "dimension.addContinue"
+            | "dimension.addBaseline"
+            | "dimension.addQuick"
+            | "dimension.reassociate"
     ) {
         c.places = &["points", "p1", "p2", "center", "point", "vertex", "feature"];
     }
@@ -240,7 +240,7 @@ pub fn declare(c: &mut KitCommand) {
     if matches!(c.id.as_str(), "trim" | "extend") {
         c.places = &["fence", "crossing"];
     }
-    if matches!(c.id.as_str(), "block" | "-block") {
+    if matches!(c.id.as_str(), "block" | "block.add") {
         c.places = &["name", "pick"];
     }
 }
@@ -269,16 +269,20 @@ pub fn resolve(s: &Session, command: &str, mut p: Value) -> Result<Value, String
 
 fn record_address<'a>(command: &str, p: &'a Value) -> Option<(&'static str, &'a str)> {
     let ty = match command {
-        "layout.new" | "layout.copy" | "layout.set" => "layout",
-        "block" | "-block" | "insert" => "block",
+        "layout.add" | "layout.duplicate" | "layout.set" => "layout",
+        "block" | "block.add" | "insert" => "block",
         "style" => "textstyle",
-        "layerstate.save" => "layerstate",
-        "dimstyle" | "dimstyle.dimension" => "dimstyle",
+        "layerState.save" => "layerstate",
+        "dimensionStyle.open" | "dimensionStyle.openManager" => "dimensionStyle.open",
         _ => return None,
     };
-    let name = p.get(if command == "layout.copy" { "to" } else { "name" }).and_then(Value::as_str)?;
+    let name = p.get(if command == "layout.duplicate" { "to" } else { "name" }).and_then(Value::as_str)?;
     // Text/dimension style handlers trim names. BLOCK and INSERT preserve spaces.
-    let name = if matches!(command, "style" | "dimstyle" | "dimstyle.dimension" | "layout.new" | "layout.copy") { name.trim() } else { name };
+    let name = if matches!(command, "style" | "dimensionStyle.open" | "dimensionStyle.openManager" | "layout.add" | "layout.duplicate") {
+        name.trim()
+    } else {
+        name
+    };
     let name = if command == "insert" { name.strip_prefix('*').unwrap_or(name) } else { name };
     Some((ty, name))
 }
@@ -322,12 +326,12 @@ fn rename_type(p: &Value) -> &'static str {
         "layer" => "Layer",
         "linetype" | "ltype" => "Linetype",
         "style" | "textstyle" => "TextStyle",
-        "dimstyle" => "DimStyle",
+        "dimensionStyle.open" => "DimStyle",
         "block" => "Block",
         "view" => "View",
         "ucs" => "Ucs",
-        "mleaderstyle" | "multileaderstyle" => "MLeaderStyle",
-        "tablestyle" => "TableStyle",
+        "multileaderStyle.open" | "multileaderstyle" => "MLeaderStyle",
+        "tableStyle.open" => "TableStyle",
         _ => "",
     }
 }
@@ -441,7 +445,7 @@ fn property_fields(e: &Entity, p: &Value) -> Vec<String> {
         ("layer", "layer"),
         ("linetype", "linetype"),
         ("lineweight", "lineweight"),
-        ("ltscale", "ltscale"),
+        ("property.linetypeScale", "property.linetypeScale"),
         ("transparency", "transparency"),
         ("visible", "visible"),
     ] {
@@ -550,23 +554,23 @@ fn merge_premises(premises: Vec<Premise>) -> BTreeMap<String, Premise> {
 fn destination_names(command: &str, p: &Value, d: &Drawing) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let target = match command {
-        "layer.new" => Some(("Layer", "name")),
+        "layer.add" => Some(("Layer", "name")),
         "layer.set" => Some(("Layer", "newName")),
         "group" => Some(("Group", "name")),
-        "groupedit" => Some(("Group", "rename")),
+        "group.edit" => Some(("Group", "rename")),
         "layout.rename" => Some(("Layout", "to")),
-        "style.rename" => Some(("TextStyle", "to")),
-        "dimstyle.rename" => Some(("DimStyle", "to")),
-        "layerstate.rename" => Some(("LayerState", "to")),
+        "textStyle.rename" => Some(("TextStyle", "to")),
+        "dimensionStyle.rename" => Some(("DimStyle", "to")),
+        "layerState.rename" => Some(("LayerState", "to")),
         "rename" => Some((rename_type(p), "to")),
         _ => None,
     };
     if let Some((ty, key)) = target
         && let Some(name) = p.get(key).and_then(Value::as_str).filter(|n| !n.trim().is_empty())
     {
-        out.push((ty.into(), if command == "layer.new" || command == "layer.set" { name.into() } else { name.trim().into() }));
+        out.push((ty.into(), if command == "layer.add" || command == "layer.set" { name.into() } else { name.trim().into() }));
     }
-    if command == "stylesmanager" {
+    if command == "plot.styleManager" {
         let action = p.get("action").and_then(Value::as_str).unwrap_or("list").to_ascii_lowercase();
         if let Some(source) = p.get(if action == "new" { "from" } else { "name" }).and_then(Value::as_str) {
             out.push(("PlotStyleTable".into(), source.trim().into()));
@@ -620,10 +624,10 @@ pub fn under(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) -> 
 }
 
 fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) -> Result<Option<Under>, String> {
-    if command == "pasteblock" && s.clipboard.is_empty() {
+    if command == "edit.pasteAsBlock" && s.clipboard.is_empty() {
         return Ok(Some(Under::default()));
     }
-    if command == "commandLine" {
+    if command == "command.runLine" {
         let text = p.get("text").and_then(Value::as_str).unwrap_or("").trim();
         if s.current_prompt().is_none() {
             if let Some((name, params)) = text.split_once(' ')
@@ -631,7 +635,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 && let Ok(params) = serde_json::from_str::<Value>(params.trim())
             {
                 let id = kition_cad_engine::cmd::resolve_alias(&name.to_ascii_lowercase());
-                if id != "commandLine" {
+                if id != "command.runLine" {
                     return under(s, &id, &params, commands);
                 }
             }
@@ -640,7 +644,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             {
                 // LTSCALE has no interactive machine: scalar text runs it with
                 // missing parameters and errors before reading the drawing.
-                if spec.id == "ltscale" {
+                if spec.id == "property.linetypeScale" {
                     return Ok(Some(Under::default()));
                 }
                 return under(s, spec.id, &json!({}), commands);
@@ -649,7 +653,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         // Other interactive text may consume the running prompt and drawing state.
         return Ok(Some(Under { premises: vec![need("drawing", vec!["~history".into()])], ..Default::default() }));
     }
-    if command == "erase.selection" {
+    if command == "edit.delete" {
         return under(s, "erase", p, commands);
     }
     if command == "array" {
@@ -682,8 +686,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         return under(s, command, &p, commands);
     }
     let d = s.doc().map_err(|e| e.to_string())?;
-    if matches!(command, "layerp" | "layuniso") {
-        let key = if command == "layerp" { "KITION_CAD_LAYERP" } else { "KITION_CAD_LAYISO" };
+    if matches!(command, "layer.previous" | "layer.unisolate") {
+        let key = if command == "layer.previous" { "KITION_CAD_LAYERP" } else { "KITION_CAD_LAYISO" };
         if serde_json::from_str::<Vec<kition_cad_doc::Layer>>(&d.header.str(key, "")).is_err() {
             return Ok(Some(Under { premises: vec![need("drawing", vec![format!("header.{key}")])], ..Default::default() }));
         }
@@ -739,7 +743,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         let orders = if ids.len() > 1 {
             let (parent, field) = match s.space() {
                 Space::Model => (json!("drawing"), "model"),
-                Space::Paper(name) => (json!(format!("layout:{}", d.record_id("layout", &name, 0).ok_or("unknown layout identity")?)), "entities"),
+                Space::Paper(name) => {
+                    (json!(format!("layout:{}", d.record_id("layout", &name, 0).ok_or("unknown layout identity")?)), "object.query")
+                }
             };
             vec![RelativeOrder { parent, field: field.into(), objects: ids.clone() }]
         } else {
@@ -756,7 +762,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     let by_place = spatial(command, p);
     // Target selection is independent of auxiliary object parameters (path, base, edges).
     let mut targets = if by_place { picked(d, &s.space(), command, p) } else { Vec::new() };
-    if !by_place || command == "dimreassociate" {
+    if !by_place || command == "dimension.reassociate" {
         if let Some(key) = c.targets {
             for v in crate::params::values(p, key) {
                 match v {
@@ -779,15 +785,15 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         let explicit = ["handle", "handles"].iter().any(|key| p.get(*key).is_some_and(|v| !v.is_null()));
         let uses_selection = c.targets.is_some()
             || command.starts_with("table.")
-            || command == "delconstraint"
-            || command.starts_with("constraintbar")
-            || command.starts_with("dcdisplay");
-        let names_source = (command.starts_with("constraintbar") || command.starts_with("dcdisplay"))
+            || command == "constraint.delete"
+            || command.starts_with("constraint.bars")
+            || command.starts_with("constraint.dynamicDimensions");
+        let names_source = (command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions"))
             && (command.ends_with("all") || p.get("mode").and_then(Value::as_str).is_some_and(|mode| matches!(mode, "showall" | "hideall")))
-            || matches!(command, "wblock" | "attsync") && p.get("name").is_some()
+            || matches!(command, "block.write" | "attribute.sync") && p.get("name").is_some()
             || command == "spline" && p.get("object") != Some(&Value::Bool(true))
-            || command == "delconstraint" && p.get("ids").is_some()
-            || command == "-attedit" && p.get("handle").is_none() && p.get("handles").is_none();
+            || command == "constraint.delete" && p.get("ids").is_some()
+            || command == "attribute.editGlobal" && p.get("handle").is_none() && p.get("handles").is_none();
         if targets.is_empty() && !explicit && uses_selection && !names_source && c.reads.contains(&kition_kit::EditorState::Selection) {
             targets = s.selection();
         }
@@ -811,15 +817,17 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     hs.retain(|h| seen.insert(*h));
     // A single circle supplies one curve and no points/lines to inference. With
     // no curve pair it cannot produce a constraint, for any radius or options.
-    if command == "autoconstrain" && hs.len() == 1 && hs.first().and_then(|h| entity(d, *h)).is_some_and(|e| matches!(e.kind, EntityKind::Circle(_)))
+    if command == "constraint.auto"
+        && hs.len() == 1
+        && hs.first().and_then(|h| entity(d, *h)).is_some_and(|e| matches!(e.kind, EntityKind::Circle(_)))
     {
         return Ok(Some(Under { premises: hs.iter().map(|h| need(h.hex(), vec!["kind.type".into()])).collect(), ..Default::default() }));
     }
     let mut premises = Vec::new();
-    if matches!(command, "constraintbar" | "dcdisplay") {
+    if matches!(command, "constraint.bars" | "constraint.dynamicDimensions") {
         let mode = p.get("mode").and_then(Value::as_str).unwrap_or("show").to_ascii_lowercase();
         let settings = &d.parametric.settings;
-        let visible = if command == "dcdisplay" { settings.dims_visible } else { settings.bars_visible };
+        let visible = if command == "constraint.dynamicDimensions" { settings.dims_visible } else { settings.bars_visible };
         if matches!(mode.as_str(), "show" | "hide") && (mode == "hide") == visible {
             // An added exception must survive drawing repair: missing recipients
             // are pruned. Removing a raw membership id never resolves its entity.
@@ -828,14 +836,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     }
     // These explicit no-op targets cannot consume the current style or scan sources.
     // run_update still replaces the entity Arc, so its lock gate remains necessary.
-    if matches!(command, "dimreassociate" | "dimdisassociate" | "dimstyle.update")
+    if matches!(command, "dimension.reassociate" | "dimension.disassociate" | "dimension.updateStyle")
         && ["handle", "handles"].iter().any(|key| p.get(*key).is_some_and(|v| !v.is_null()))
         && targets.iter().filter_map(|h| entity(d, *h)).all(|e| !matches!(e.kind, EntityKind::Dimension(_)))
     {
         premises.extend(hs.iter().map(|h| {
-            need(h.hex(), if command == "dimstyle.update" { vec!["kind.type".into(), "~locked".into()] } else { vec!["kind.type".into()] })
+            need(h.hex(), if command == "dimension.updateStyle" { vec!["kind.type".into(), "~locked".into()] } else { vec!["kind.type".into()] })
         }));
-        if command == "dimstyle.update" {
+        if command == "dimension.updateStyle" {
             for e in hs.iter().filter_map(|h| entity(d, *h)) {
                 // The pinned same-server layer receipt does not refresh this entity's
                 // effective-lock witness. Hold the layer scalar directly as well.
@@ -844,7 +852,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
         return Ok(Some(Under { premises, ..Default::default() }));
     }
-    if command == "dimspace" {
+    if command == "dimension.space" {
         let base = p.get("base").and_then(handle);
         let writes = targets
             .iter()
@@ -868,8 +876,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
     }
     let eligibility = match command {
-        "style.delete" => Some(("TextStyle", "~canDelete")),
-        "dimstyle.delete" => Some(("DimStyle", "~canDelete")),
+        "textStyle.delete" => Some(("TextStyle", "~canDelete")),
+        "dimensionStyle.delete" => Some(("DimStyle", "~canDelete")),
         "layer.set" if p.get("frozen").and_then(Value::as_bool) == Some(true) => Some(("Layer", "~canFreeze")),
         _ => None,
     };
@@ -886,52 +894,60 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     // same-field decision: hold every replaced setting.
     let setting_fields: &[(&str, &str)] = match command {
         "color" => &[("color", "CECOLOR"), ("color", "CECOLOR_RGB")],
-        "attdisp" => &[("mode", "ATTMODE")],
+        "attribute.display" => &[("mode", "ATTMODE")],
         "wipeout" => &[("frames", "WIPEOUTFRAME")],
-        "lweight" => &[("lineweight", "CELWEIGHT")],
-        "ltscale" => &[("scale", "LTSCALE")],
+        "property.lineweight" => &[("lineweight", "CELWEIGHT")],
+        "property.linetypeScale" => &[("scale", "LTSCALE")],
         "linetype" => &[("current", "CELTYPE")],
         "units" => &[("lunits", "LUNITS"), ("luprec", "LUPREC"), ("aunits", "AUNITS"), ("auprec", "AUPREC"), ("insunits", "INSUNITS")],
         "limits" => &[("min", "LIMMIN"), ("max", "LIMMAX")],
-        "ddptype" => &[("pdmode", "PDMODE"), ("pdsize", "PDSIZE")],
+        "point.style" => &[("pdmode", "PDMODE"), ("pdsize", "PDSIZE")],
         "base" => &[("at", "INSBASE")],
-        "plotstyle" if hs.is_empty() => &[("name", "CPLOTSTYLE")],
+        "plot.style" if hs.is_empty() => &[("name", "CPLOTSTYLE")],
         _ => &[],
     };
     let mut settings: Vec<_> = setting_fields.iter().filter(|(param, _)| p.get(*param).is_some()).map(|(_, var)| format!("header.{var}")).collect();
-    if command == "style.current" || command == "style" && p.get("current") != Some(&Value::Bool(false)) {
+    if command == "textStyle.setCurrent" || command == "style" && p.get("current") != Some(&Value::Bool(false)) {
         settings.push("header.TEXTSTYLE".into());
     }
     // same-field decision: these handlers also replace stored defaults
     // or layer snapshots even when their main result is a drawing/record change.
-    if matches!(command, "layer.current" | "laymcur" | "layiso") || command == "layer.new" && p.get("current") == Some(&Value::Bool(true)) {
+    if matches!(command, "layer.setCurrent" | "layer.makeObjectCurrent" | "layer.isolate")
+        || command == "layer.add" && p.get("current") == Some(&Value::Bool(true))
+    {
         settings.push("header.CLAYER".into());
     }
-    if matches!(command, "layer.current" | "layiso" | "layoff" | "layfrz" | "laylck" | "layulk" | "layon" | "laythw") {
+    if matches!(
+        command,
+        "layer.setCurrent" | "layer.isolate" | "layer.off" | "layer.freeze" | "layer.lock" | "layer.unlock" | "layer.allOn" | "layer.thawAll"
+    ) {
         settings.push("header.KITION_CAD_LAYERP".into());
     }
-    if command == "layiso" {
+    if command == "layer.isolate" {
         settings.push("header.KITION_CAD_LAYISO".into());
     }
-    if matches!(command, "circle.cd" | "circle.2p" | "circle.3p" | "circle.ttr" | "circle.ttt") {
+    if matches!(
+        command,
+        "circle.addCenterDiameter" | "circle.addTwoPoints" | "circle.addThreePoints" | "circle.addTanTanRadius" | "circle.addTanTanTan"
+    ) {
         settings.push("header.CIRCLERAD".into());
     }
     if p.get("name").is_some() && p.get("current") != Some(&Value::Bool(false)) {
         match command {
-            "mleaderstyle" => settings.push("header.CMLEADERSTYLE".into()),
-            "tablestyle" => settings.push("header.CTABLESTYLE".into()),
+            "multileaderStyle.open" => settings.push("header.CMLEADERSTYLE".into()),
+            "tableStyle.open" => settings.push("header.CTABLESTYLE".into()),
             _ => {}
         }
     }
-    let dimension_style = matches!(command, "dimstyle" | "dimstyle.dimension" | "dimstyle.current");
+    let dimension_style = matches!(command, "dimensionStyle.open" | "dimensionStyle.openManager" | "dimensionStyle.setCurrent");
     if dimension_style {
-        if matches!(command, "dimstyle" | "dimstyle.dimension")
+        if matches!(command, "dimensionStyle.open" | "dimensionStyle.openManager")
             && p.get("name").and_then(Value::as_str).is_some_and(|name| d.dim_style(name).is_none())
         {
             named_need(d, "DimStyle", &d.header.str("DIMSTYLE", "Standard"), &["name", "data"], &mut premises);
         }
         settings.push("header.DIMSTYLE".into());
-        if command == "dimstyle.current"
+        if command == "dimensionStyle.setCurrent"
             || p.get("current") != Some(&Value::Bool(false))
             || p.get("name").and_then(Value::as_str).is_some_and(|n| n.eq_ignore_ascii_case(&d.header.str("DIMSTYLE", "Standard")))
         {
@@ -954,7 +970,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             premises.push(need("drawing", fields));
         }
     }
-    if matches!(command, "copyclip" | "copybase" | "cutclip") {
+    if matches!(command, "edit.copy" | "edit.copyWithBasePoint" | "edit.cut") {
         let ents: Vec<_> = hs.iter().filter_map(|h| entity(d, *h).cloned()).collect();
         let defs = kition_cad_engine::cmd::clipboard::definitions(d, &ents);
         for (ty, name) in defs.record_names() {
@@ -962,9 +978,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 "layer" => "Layer",
                 "linetype" => "Linetype",
                 "textstyle" => "TextStyle",
-                "dimstyle" => "DimStyle",
-                "mleaderstyle" => "MLeaderStyle",
-                "tablestyle" => "TableStyle",
+                "dimensionStyle.open" => "DimStyle",
+                "multileaderStyle.open" => "MLeaderStyle",
+                "tableStyle.open" => "TableStyle",
                 "block" => "Block",
                 _ => continue,
             };
@@ -977,10 +993,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     if matches!(command, "edit.undo" | "edit.redo" | "u" | "undo" | "redo") {
         premises.push(need("drawing", vec!["~history".into()]));
     }
-    if matches!(command, "laymrg" | "laydel" | "layer.delete") {
+    if matches!(command, "layer.merge" | "layer.deleteWithObjects" | "layer.delete") {
         premises.push(need("drawing", vec!["header.CLAYER".into()]));
         let members = crate::scan::layer_members(d);
-        let keys = if command == "laymrg" { &["from"][..] } else { &["name", "names"][..] };
+        let keys = if command == "layer.merge" { &["from"][..] } else { &["name", "names"][..] };
         for key in keys {
             let values: Vec<_> = match p.get(*key) {
                 Some(Value::Array(a)) => a.iter().collect(),
@@ -991,8 +1007,12 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 let key = crate::scan::key(name.trim());
                 premises.push(need("drawing", vec![format!("~layerMembers.{key}")]));
                 if let Some(m) = members.get(&key) {
-                    for id in m.get("entities").and_then(Value::as_array).into_iter().flatten() {
-                        premises.push(if command == "laydel" { Premise::on(id.clone()) } else { need(id.clone(), vec!["common.layer".into()]) });
+                    for id in m.get("object.query").and_then(Value::as_array).into_iter().flatten() {
+                        premises.push(if command == "layer.deleteWithObjects" {
+                            Premise::on(id.clone())
+                        } else {
+                            need(id.clone(), vec!["common.layer".into()])
+                        });
                     }
                     for id in m.get("viewports").and_then(Value::as_array).into_iter().flatten() {
                         premises.push(need(id.clone(), vec!["kind.frozenLayers".into(), "kind.layerColors".into()]));
@@ -1008,10 +1028,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     if command == "audit" && p.get("fix") == Some(&Value::Bool(true)) {
         premises.push(need("drawing", vec!["~audit".into()]));
     }
-    if command == "overkill" && p.get("handles").is_none() {
+    if command == "object.deleteDuplicates" && p.get("handles").is_none() {
         premises.push(need("drawing", vec!["~overkill".into()]));
     }
-    if command == "layout.copy"
+    if command == "layout.duplicate"
         && let Some(from) = p.get("from").and_then(Value::as_str)
     {
         if let Some((id, _)) = named(d, "Layout", from) {
@@ -1027,7 +1047,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
         premises.push(need("drawing", vec!["~layoutSeed".into()]));
     }
-    if command == "attsync" {
+    if command == "attribute.sync" {
         let block = kition_cad_engine::cmd::attsync_block(s, p).map_err(|e| e.to_string())?;
         // attribs.rs::sync copies nonconstant attribute definitions, not ordinary members.
         named_need(d, "Block", &block, &["name", "~insertAttributes"], &mut premises);
@@ -1043,7 +1063,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             kition_cad_engine::cmd::attribute_references(d, &block).into_iter().map(|h| need(h.hex(), fields.iter().map(|f| (*f).into()).collect())),
         );
     }
-    if command == "pagesetup" {
+    if command == "plot.pageSetup" {
         let layout = p.get("layout").and_then(Value::as_str).map(str::to_owned).or_else(|| match s.layout_space() {
             Space::Paper(name) => Some(name),
             _ => None,
@@ -1052,14 +1072,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             named_need(d, "Layout", &name, &["name", "data.page"], &mut premises);
         }
     }
-    if matches!(command, "close" | "closeall" | "qsave" | "saveas") {
-        premises.push(if matches!(command, "close" | "closeall") {
+    if matches!(command, "close" | "file.closeAll" | "file.save" | "file.saveAs") {
+        premises.push(if matches!(command, "close" | "file.closeAll") {
             Premise::on("drawing").positions(Vec::<String>::new())
         } else {
             Premise::on("drawing")
         });
     }
-    if command == "wblock" {
+    if command == "block.write" {
         premises.push(need("drawing", ["layers", "linetypes", "textStyles", "dimStyles", "blocks"].map(String::from).to_vec()));
         if let Some(name) = p.get("name").and_then(Value::as_str)
             && let Some((id, _)) = named(d, "Block", name)
@@ -1067,7 +1087,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             premises.push(Premise::on(id));
         }
     }
-    if command == "stylesmanager" {
+    if command == "plot.styleManager" {
         let action = p.get("action").and_then(Value::as_str).unwrap_or("list");
         let source = match action {
             "set" | "delete" | "get" | "save" => p.get("name"),
@@ -1080,24 +1100,24 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             named_need(d, "PlotStyleTable", name, &["name", "data"], &mut premises);
         }
     }
-    if command == "dimstyle.update" {
+    if command == "dimension.updateStyle" {
         premises.push(need("drawing", vec!["header.DIMSTYLE".into()]));
         named_need(d, "DimStyle", &d.header.str("DIMSTYLE", "Standard"), &["name"], &mut premises);
     }
     if matches!(
         command,
-        "layon"
-            | "laythw"
-            | "layiso"
-            | "layer.current"
-            | "layerstate.save"
-            | "layerstate.restore"
-            | "layerp"
-            | "layuniso"
-            | "layoff"
-            | "layfrz"
-            | "laylck"
-            | "layulk"
+        "layer.allOn"
+            | "layer.thawAll"
+            | "layer.isolate"
+            | "layer.setCurrent"
+            | "layerState.save"
+            | "layerState.restore"
+            | "layer.previous"
+            | "layer.unisolate"
+            | "layer.off"
+            | "layer.freeze"
+            | "layer.lock"
+            | "layer.unlock"
     ) {
         // These bodies capture or replace complete layer records, including undo snapshots.
         premises.push(need("drawing", vec!["layers".into()]));
@@ -1105,21 +1125,21 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             named_need(d, "Layer", &layer.name, &["name", "data"], &mut premises);
         }
         let header = match command {
-            "layerp" => Some("header.KITION_CAD_LAYERP"),
-            "layuniso" => Some("header.KITION_CAD_LAYISO"),
+            "layer.previous" => Some("header.KITION_CAD_LAYERP"),
+            "layer.unisolate" => Some("header.KITION_CAD_LAYISO"),
             _ => None,
         };
         if let Some(header) = header {
             premises.push(need("drawing", vec![header.into()]));
         }
     }
-    if command == "laycur" {
+    if command == "layer.changeToCurrent" {
         premises.push(need("drawing", vec!["header.CLAYER".into()]));
-        if command == "laycur" {
+        if command == "layer.changeToCurrent" {
             named_need(d, "Layer", &d.header.str("CLAYER", "0"), &["name"], &mut premises);
         }
     }
-    if matches!(command, "setvar" | "getvar")
+    if matches!(command, "variable.set" | "variable.get")
         && let Some(var) = p.get("name").and_then(Value::as_str)
         && !kition_cad_engine::sysvars::is_session_var(var)
     {
@@ -1131,12 +1151,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             let name = p.get("value").and_then(Value::as_str).map(str::to_owned).unwrap_or_else(|| d.header.str(&var, ""));
             named_need(d, ty, &name, &["name"], &mut premises);
         }
-        if command == "getvar" && d.header.get(&var).is_none() && kition_cad_doc::DIMVARS.iter().any(|(name, _)| *name == var) {
+        if command == "variable.get" && d.header.get(&var).is_none() && kition_cad_doc::DIMVARS.iter().any(|(name, _)| *name == var) {
             premises.push(need("drawing", vec!["header.DIMSTYLE".into()]));
             dim_style(d, &d.header.str("DIMSTYLE", "Standard"), &mut premises);
         }
     }
-    if command == "pedit" && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "spline" | "s")) {
+    if command == "polyline.edit"
+        && p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "spline" | "s"))
+    {
         premises.push(need("drawing", vec!["header.SPLINESEGS".into()]));
     }
     if matches!(command, "trim" | "extend") && p.get("edges").and_then(Value::as_array).is_none() {
@@ -1155,12 +1177,12 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     {
         premises.push(need(h.hex(), vec!["~pick.space".into()]));
     }
-    if matches!(command, "viewport.set" | "vplayer" | "vports.set") {
+    if matches!(command, "viewport.set" | "viewport.freezeLayer" | "vports.set") {
         for name in kition_cad_engine::cmd::viewport_layer_names(p) {
             named_need(d, "Layer", &name, &["name"], &mut premises);
         }
     }
-    if command == "chspace" {
+    if command == "object.changeSpace" {
         let (target, vp) =
             kition_cad_engine::cmd::chspace_context(d, &s.space(), p.get("to").and_then(Value::as_str), p.get("viewport").and_then(handle))
                 .map_err(|e| e.to_string())?;
@@ -1189,10 +1211,10 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     // blocks::make_block, spline_opts::run_object, layout::run_new, draw2::run_wipeout).
     let current_properties = crate::acts::takes_place(command)
         && !(command == "spline" && p.get("object").is_some()
-            || matches!(command, "block" | "-block") && p.get("keep").and_then(Value::as_str).unwrap_or("convert") != "convert"
-            || command == "layout.new" && p.get("viewport") == Some(&Value::Bool(false))
+            || matches!(command, "block" | "block.add") && p.get("keep").and_then(Value::as_str).unwrap_or("convert") != "convert"
+            || command == "layout.add" && p.get("viewport") == Some(&Value::Bool(false))
             || command == "wipeout" && p.get("frames").is_some()
-            || command == "revcloud" && p.get("handle").is_some());
+            || command == "revisionCloud.add" && p.get("handle").is_some());
     if current_properties {
         // Session::current_common/add_entity copy these stored defaults, not editor state.
         let mut fields: Vec<_> =
@@ -1204,20 +1226,20 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         // The current linetype is copied by name; the record it names now decides what the new
         // objects draw with. CENTERMARK and CENTERLINE draw on CENTER instead, loading it when it
         // is missing (the drawing ends the same whether this write or another writer loaded it).
-        if matches!(command, "centermark" | "centerline") {
+        if matches!(command, "centerMark.add" | "centerLine.add") {
             fields.push("~centerLinetype".into());
             fields.retain(|f| f != "header.CELTYPE");
         } else {
             named_need(d, "Linetype", &d.header.str("CELTYPE", "ByLayer"), &["name"], &mut premises);
         }
-        if matches!(command, "layout.new" | "mview" | "vports" | "vports.1" | "vports.2" | "vports.3" | "vports.4") {
+        if matches!(command, "layout.add" | "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two" | "viewport.three" | "viewport.four") {
             fields.retain(|f| f != "header.CECOLOR_RGB");
         }
         if command == "spline" && p.get("knots").is_none() && (p.get("fit").is_some() || p.get("object").is_some()) {
             fields.push("header.SPLKNOTS".into());
         }
-        if matches!(command, "text" | "mtext" | "attdef") {
-            if command != "mtext" || p.get("style").is_none() {
+        if matches!(command, "text" | "multilineText.add" | "attribute.define") {
+            if command != "multilineText.add" || p.get("style").is_none() {
                 fields.push("header.TEXTSTYLE".into());
             }
             if p.get("height").is_none() {
@@ -1226,7 +1248,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             let style = p
                 .get("style")
                 .and_then(Value::as_str)
-                .filter(|_| command == "mtext")
+                .filter(|_| command == "multilineText.add")
                 .map(str::to_owned)
                 .unwrap_or_else(|| d.header.str("TEXTSTYLE", "Standard"));
             named_need(d, "TextStyle", &style, &["name"], &mut premises);
@@ -1234,16 +1256,16 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         if matches!(
             command,
             "dim"
-                | "dimlinear"
-                | "dimaligned"
-                | "dimradius"
-                | "dimdiameter"
-                | "dimangular"
-                | "dimarc"
-                | "dimordinate"
-                | "dimcontinue"
-                | "dimbaseline"
-                | "qdim"
+                | "dimension.addLinear"
+                | "dimension.addAligned"
+                | "dimension.addRadius"
+                | "dimension.addDiameter"
+                | "dimension.addAngular"
+                | "dimension.addArcLength"
+                | "dimension.addOrdinate"
+                | "dimension.addContinue"
+                | "dimension.addBaseline"
+                | "dimension.addQuick"
         ) {
             fields.extend(["header.DIMSTYLE".into(), "header.DIMASSOC".into()]);
             fields.extend(kition_cad_doc::DIMVARS.iter().map(|(var, _)| format!("header.{var}")));
@@ -1260,7 +1282,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 named_need(d, "TextStyle", "Standard", &["name"], &mut premises);
             }
         }
-        if command == "mleader" {
+        if command == "multileader.add" {
             fields.extend(["header.CMLEADERSTYLE".into(), "header.DIMSCALE".into()]);
             let cur = d.header.str("CMLEADERSTYLE", "Standard");
             if let Some(st) = d.mleader_styles.iter().find(|st| st.name.eq_ignore_ascii_case(&cur)).or(d.mleader_styles.first()) {
@@ -1309,7 +1331,9 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     if command == "spline" && p.get("object").is_some() && p.get("knots").is_none() {
         premises.push(need("drawing", vec!["header.SPLKNOTS".into()]));
     }
-    if matches!(command, "dimstyle" | "dimstyle.dimension") && p.get("name").and_then(Value::as_str).is_some_and(|name| d.dim_style(name).is_none()) {
+    if matches!(command, "dimensionStyle.open" | "dimensionStyle.openManager")
+        && p.get("name").and_then(Value::as_str).is_some_and(|name| d.dim_style(name).is_none())
+    {
         premises.push(need("drawing", vec!["header.DIMSTYLE".into()]));
         dim_style(d, &d.header.str("DIMSTYLE", "Standard"), &mut premises);
     }
@@ -1339,17 +1363,17 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             | "extend"
             | "fillet"
             | "chamfer"
-            | "lengthen"
-            | "pedit"
+            | "object.lengthen"
+            | "polyline.edit"
             | "break"
-            | "breakatpoint"
+            | "object.breakAtPoint"
             | "join"
-            | "splinedit"
+            | "spline.edit"
             | "reverse"
             | "flatten"
-            | "chspace"
+            | "object.changeSpace"
     ) || command.starts_with("grip.")
-        || command == "properties.set"
+        || command == "object.setProperties"
             && hs.iter().filter_map(|h| entity(d, *h)).any(|e| property_fields(e, p).iter().any(|f| f.starts_with("kind")));
     if reshapes && !(transform && copies) {
         for e in all(d) {
@@ -1369,13 +1393,13 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
     }
     // TEXTEDIT refuses an object on a locked layer.
-    if command == "textedit" {
+    if command == "text.edit" {
         for h in &hs {
             premises.push(need(h.hex(), vec!["~locked".into()]));
         }
     }
     // LAYFRZ leaves the current layer thawed and says it froze it.
-    if command == "layfrz" {
+    if command == "layer.freeze" {
         premises.push(need("drawing", vec!["header.CLAYER".into()]));
     }
     // INSERT "*NAME" inserts the definition exploded.
@@ -1387,11 +1411,11 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     }
     // A layer state saved over, or deleted, is discarded whole; so is a deleted layer.
     let discarded = match command {
-        "layerstate.save" | "layerstate.delete" => Some("LayerState"),
+        "layerState.save" | "layerState.delete" => Some("LayerState"),
         "layer.delete" => Some("Layer"),
         "layout.delete" => Some("Layout"),
-        "style.delete" => Some("TextStyle"),
-        "dimstyle.delete" => Some("DimStyle"),
+        "textStyle.delete" => Some("TextStyle"),
+        "dimensionStyle.delete" => Some("DimStyle"),
         _ => None,
     };
     if let Some(ty) = discarded
@@ -1401,7 +1425,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         premises.push(Premise::on(id).positions(Vec::<String>::new()));
     }
     // -ATTEDIT without handles edits the attributes of every matching reference it finds.
-    if command == "-attedit" && p.get("handle").is_none() && p.get("handles").is_none() {
+    if command == "attribute.editGlobal" && p.get("handle").is_none() && p.get("handles").is_none() {
         premises.push(need("drawing", vec!["~queries".into()]));
         for e in all(d).filter(|e| matches!(e.kind, EntityKind::Insert(_))) {
             premises.push(need(e.handle.hex(), vec!["kind.type".into(), "~attributes".into(), "kind.block".into(), "~locked".into()]));
@@ -1410,22 +1434,26 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     let defaults: &[(&str, &str)] = match command {
         "fillet" => &[("radius", "FILLETRAD")],
         "chamfer" if p.get("length").is_none() => &[("d1", "CHAMFERA")],
-        "mline" => &[("scale", "CMLSCALE"), ("justification", "CMLJUST")],
-        "revcloud" | "revcloud.polygonal" | "revcloud.freehand" => &[("arcLength", "REVCLOUDARCLEN")],
-        "centermark" | "centerline" => &[("extension", "CENTEREXE")],
+        "multiline.add" => &[("scale", "CMLSCALE"), ("justification", "CMLJUST")],
+        "revisionCloud.add" | "revisionCloud.addPolygonal" | "revisionCloud.addFreehand" => &[("arcLength", "REVCLOUDARCLEN")],
+        "centerMark.add" | "centerLine.add" => &[("extension", "CENTEREXE")],
         _ => &[],
     };
     let mut fields: Vec<_> = defaults.iter().filter(|(param, _)| p.get(*param).is_none()).map(|(_, var)| format!("header.{var}")).collect();
-    if matches!(command, "mline" | "revcloud" | "revcloud.polygonal" | "revcloud.freehand" | "centermark" | "centerline") && !fields.is_empty() {
+    if matches!(
+        command,
+        "multiline.add" | "revisionCloud.add" | "revisionCloud.addPolygonal" | "revisionCloud.addFreehand" | "centerMark.add" | "centerLine.add"
+    ) && !fields.is_empty()
+    {
         fields.push("header.MEASUREMENT".into());
     }
     if !fields.is_empty() {
         premises.push(need("drawing", fields));
     }
-    let new_layout = command == "layout.new"
+    let new_layout = command == "layout.add"
         || command == "layout" && matches!(p.get("option").and_then(Value::as_str).unwrap_or("list").to_ascii_lowercase().as_str(), "new" | "n");
     let new_viewport = new_layout && p.get("viewport").and_then(Value::as_bool) != Some(false)
-        || matches!(command, "mview" | "vports" | "vports.1" | "vports.2" | "vports.3" | "vports.4");
+        || matches!(command, "viewport.add" | "viewport.new" | "viewport.one" | "viewport.two" | "viewport.three" | "viewport.four");
     if new_viewport {
         premises.push(need("drawing", vec!["~modelBounds".into(), "~newVpLayers".into(), "~viewportSeed".into()]));
         // layout.rs::fit_view falls back to limits only for an empty model.
@@ -1462,7 +1490,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     for h in &hs {
         // DELCONSTRAINT compares these opaque handles only with constraint references.
         // Removed constraints and any remaining solver inputs are held separately below.
-        if command == "delconstraint" || command.starts_with("constraintbar") || command.starts_with("dcdisplay") {
+        if command == "constraint.delete" || command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions") {
             continue;
         }
         let Some(e) = entity(d, *h) else { continue };
@@ -1470,26 +1498,26 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             premises.push(need(h.hex(), vec!["~boundaryOutline".into()]));
         }
         if crate::read_fields::writes_existing(command, p, *h)
-            && !(command == "dimspace" && p.get("base").and_then(handle) == Some(*h))
-            && !(matches!(command, "dimreassociate" | "dimdisassociate") && !matches!(e.kind, EntityKind::Dimension(_)))
+            && !(command == "dimension.space" && p.get("base").and_then(handle) == Some(*h))
+            && !(matches!(command, "dimension.reassociate" | "dimension.disassociate") && !matches!(e.kind, EntityKind::Dimension(_)))
         {
             premises.push(need(h.hex(), vec!["~locked".into()]));
         }
-        if c.mutates && command != "dimdisassociate" && command != "select" {
+        if c.mutates && command != "dimension.disassociate" && command != "select" {
             dimension_sources(e, *h, &mut premises);
         }
         let fields = if command == "select" {
             // A spatial selector consumes the selected geometry even when a changed
             // outline still crosses the region. Common properties remain independent.
             Some(if by_place { vec!["kind".into()] } else { Vec::new() })
-        } else if command == "chspace" {
+        } else if command == "object.changeSpace" {
             let mut fields = if targets.contains(h) { geometry_fields(&e.kind) } else { Vec::new() };
             fields.push("~space".into());
             if targets.contains(h) {
                 fields.push("~locked".into());
             }
             Some(fields)
-        } else if command == "dimspace" {
+        } else if command == "dimension.space" {
             Some(if p.get("base").and_then(handle) == Some(*h) {
                 vec!["kind.type".into(), "kind.kind".into(), "kind.p13".into(), "kind.p14".into(), "kind.defpt".into()]
             } else if matches!(&e.kind, EntityKind::Dimension(dm) if matches!(dm.kind, DimKind::Linear { .. } | DimKind::Aligned)) {
@@ -1505,7 +1533,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             } else {
                 crate::read_fields::curve_fields(e)
             })
-        } else if command == "properties.set" {
+        } else if command == "object.setProperties" {
             let mut fields = property_fields(e, p);
             if by_place {
                 fields.extend(["kind".into(), "~pick".into()]);
@@ -1520,15 +1548,18 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         } else if destroys(command, p, *h, &hs) {
             // JOIN and PEDIT's joined-away objects ignore their layers' visibility/lock.
             // Hold every stored value they discard and their groups, without ~pick/~locked.
-            if matches!(command, "join" | "pedit") { Some(vec!["common".into(), "kind".into(), "~groups".into()]) } else { None }
-        } else if matches!(command, "trim" | "extend" | "fillet" | "chamfer" | "offset" | "hatch" | "gradient" | "arraypath" | "join" | "pedit") {
+            if matches!(command, "join" | "polyline.edit") { Some(vec!["common".into(), "kind".into(), "~groups".into()]) } else { None }
+        } else if matches!(
+            command,
+            "trim" | "extend" | "fillet" | "chamfer" | "offset" | "hatch" | "gradient" | "object.arrayPath" | "join" | "polyline.edit"
+        ) {
             let mut fields = vec!["kind".into(), "common".into()];
             let primary = p.get("handle").and_then(handle).or_else(|| hs.first().copied());
             if matches!(command, "trim" | "extend") && primary != Some(*h) {
                 fields = vec!["kind".into(), "~visible".into(), "~space".into()];
             }
             if matches!(command, "fillet" | "chamfer")
-                || matches!(command, "trim" | "extend" | "pedit") && primary == Some(*h)
+                || matches!(command, "trim" | "extend" | "polyline.edit") && primary == Some(*h)
                 || command == "offset" && p.get("erase") == Some(&Value::Bool(true))
             {
                 fields.push("~locked".into());
@@ -1552,7 +1583,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 fields.push("~pick".into());
             }
             let mut premise = need(h.hex(), fields);
-            if matches!(command, "draworder.front" | "draworder.back") {
+            if matches!(command, "arrange.bringToFront" | "arrange.sendToBack") {
                 premise.positions = None;
             }
             premises.push(premise);
@@ -1562,7 +1593,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             // names the object for less.
             premises.push(Premise::on(h.hex()));
         }
-        if command == "dimspace"
+        if command == "dimension.space"
             && p.get("base").and_then(handle) == Some(*h)
             && p.get("spacing").and_then(Value::as_f64).is_none_or(|v| !v.is_finite() || v < 0.0)
             && let EntityKind::Dimension(dm) = &e.kind
@@ -1574,19 +1605,20 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 premises.push(need("drawing", vec!["header.DIMSCALE".into()]));
             }
         }
-        if (matches!(command, "dimcontinue" | "dimbaseline" | "explode") || command == "dimspace" && p.get("base").and_then(handle) != Some(*h))
+        if (matches!(command, "dimension.addContinue" | "dimension.addBaseline" | "explode")
+            || command == "dimension.space" && p.get("base").and_then(handle) != Some(*h))
             && let EntityKind::Dimension(dim) = &e.kind
         {
             dim_style(d, &dim.style, &mut premises);
             let effective = d.dim_style(&dim.style).cloned().unwrap_or_default().with_overrides(&dim.overrides);
             dim_dependencies(d, &effective, true, &mut premises);
-            if matches!(command, "dimcontinue" | "dimbaseline") || effective.scale <= 0.0 || !effective.scale.is_finite() {
+            if matches!(command, "dimension.addContinue" | "dimension.addBaseline") || effective.scale <= 0.0 || !effective.scale.is_finite() {
                 premises.push(need("drawing", vec!["header.DIMSCALE".into()]));
             }
         }
         // array.rs::first_center uses referenced definition extents for the first
         // nonrotated polar source; stored insert fields alone do not determine it.
-        if command == "arraypolar"
+        if command == "object.arrayPolar"
             && p.get("rotate").and_then(Value::as_bool) == Some(false)
             && targets.first() == Some(h)
             && let EntityKind::Insert(i) = &e.kind
@@ -1603,7 +1635,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 }
             }
         }
-        if matches!(command, "ncopy" | "explode")
+        if matches!(command, "object.copyNested" | "explode")
             && let EntityKind::Insert(i) = &e.kind
         {
             definition(d, &i.block, &mut premises);
@@ -1626,23 +1658,23 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             if let Some(name) = value.as_str() {
                 let ty = c.object_types.iter().find(|(k, _)| k == key).and_then(|(_, types)| types.first()).copied().unwrap_or("");
                 if let Some((id, _)) = named(d, ty, name) {
-                    let identity_only_block = command == "mleader"
+                    let identity_only_block = command == "multileader.add"
                         && p.get("blockAttach").and_then(Value::as_str).is_some_and(|attach| attach.eq_ignore_ascii_case("insertion"));
-                    let centered_block = command == "mleader" && !identity_only_block;
-                    let attribute_block = matches!(command, "divide" | "measure" | "attsync");
+                    let centered_block = command == "multileader.add" && !identity_only_block;
+                    let attribute_block = matches!(command, "divide" | "measure" | "attribute.sync");
                     let fields = if ty == "Block" && attribute_block {
                         vec!["name".into(), "~insertAttributes".into()]
                     } else if ty == "Block" && centered_block {
                         vec!["name".into(), "~blockCenter".into()]
                     } else if ty == "Block" && identity_only_block {
                         vec!["name".into()]
-                    } else if ty == "Block" && !matches!(command, "block" | "-block" | "wblock") {
+                    } else if ty == "Block" && !matches!(command, "block" | "block.add" | "block.write") {
                         let mut fields = vec!["name".into(), "data.base".into(), "~memberOrder".into()];
                         if command == "insert" {
                             fields.push("data.xrefPath".into());
                         }
                         fields
-                    } else if command == "laymrg" && *key == "to" {
+                    } else if command == "layer.merge" && *key == "to" {
                         let current = d.header.str("CLAYER", "0");
                         let becomes_current = match p.get("from") {
                             Some(Value::String(n)) => n.trim().eq_ignore_ascii_case(&current),
@@ -1652,7 +1684,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                             _ => false,
                         };
                         if becomes_current { vec!["name".into(), "data.frozen".into()] } else { vec!["name".into()] }
-                    } else if command == "layout.copy" && *key == "from" {
+                    } else if command == "layout.duplicate" && *key == "from" {
                         vec!["name".into(), "data.page".into(), "data.view".into()]
                     } else if command == "layer.set" && *key == "name" {
                         let mut f = vec!["name".into()];
@@ -1679,8 +1711,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                             }
                         }
                         f
-                    } else if matches!(command, "mleaderstyle" | "tablestyle") && *key == "name" {
-                        let keys: &[&str] = if command == "tablestyle" {
+                    } else if matches!(command, "multileaderStyle.open" | "tableStyle.open") && *key == "name" {
+                        let keys: &[&str] = if command == "tableStyle.open" {
                             &["textHeight", "margin", "title", "header"]
                         } else {
                             &["arrowSize", "textHeight", "landingGap", "dogleg", "textStyle"]
@@ -1688,7 +1720,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                         let mut fields = vec!["name".into()];
                         fields.extend(keys.iter().filter(|key| p.get(**key).is_some()).map(|key| format!("data.{key}")));
                         fields
-                    } else if command == "groupedit" && *key == "name" {
+                    } else if command == "group.edit" && *key == "name" {
                         let mut fields = vec!["name".into()];
                         if p.get("add").is_some() || p.get("remove").is_some() {
                             fields.push("data.members".into());
@@ -1703,12 +1735,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                                 .map(|key| format!("data.{key}")),
                         );
                         fields
-                    } else if matches!(command, "style.rename" | "dimstyle.rename" | "layout.rename" | "layerstate.rename" | "style.current")
-                        || command == "linetype" && *key == "current"
-                        || matches!(command, "properties.set" | "laymch" | "mtext")
-                        || command == "mleaderstyle" && *key == "textStyle"
-                        || matches!(command, "viewport.set" | "vplayer") && matches!(*key, "freeze[]" | "thaw[]")
-                        || command == "chspace" && *key == "to"
+                    } else if matches!(
+                        command,
+                        "textStyle.rename" | "dimensionStyle.rename" | "layout.rename" | "layerState.rename" | "textStyle.setCurrent"
+                    ) || command == "linetype" && *key == "current"
+                        || matches!(command, "object.setProperties" | "layer.match" | "multilineText.add")
+                        || command == "multileaderStyle.open" && *key == "textStyle"
+                        || matches!(command, "viewport.set" | "viewport.freezeLayer") && matches!(*key, "freeze[]" | "thaw[]")
+                        || command == "object.changeSpace" && *key == "to"
                         || matches!(*key, "layout" | "layer" | "linetype")
                     {
                         vec!["name".into()]
@@ -1724,7 +1758,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     {
                         definition(d, &block.name, &mut premises);
                         if let Some((id, _)) = named(d, "Block", &block.name) {
-                            let data = if matches!(command, "block" | "-block" | "wblock") { "data" } else { "data.base" };
+                            let data = if matches!(command, "block" | "block.add" | "block.write") { "data" } else { "data.base" };
                             premises.push(need(id, vec!["name".into(), data.into(), "~memberOrder".into()]));
                         }
                         for e in block.entities.iter() {
@@ -1735,7 +1769,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             }
         }
     }
-    if command == "delconstraint" {
+    if command == "constraint.delete" {
         // Membership in the deleted set is an input even when that set is empty.
         premises.push(need("drawing", vec!["constraints".into()]));
         for constraint in &d.constraints {
@@ -1749,7 +1783,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
             }
         }
     }
-    if command == "delconstraint"
+    if command == "constraint.delete"
         && let Some(ids) = p.get("ids").and_then(Value::as_array)
     {
         for id in ids.iter().filter_map(|v| v.as_u64().map(|n| format!("constraint:{n}")).or_else(|| v.as_str().map(str::to_owned))) {
@@ -1761,7 +1795,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     let constraint_edit = crate::read_fields::constraint_command(command);
     if constraint_edit {
         let mut fields = Vec::new();
-        if command == "constraintsettings" {
+        if command == "constraint.settings" {
             fields.extend(
                 p.as_object()
                     .into_iter()
@@ -1775,12 +1809,12 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                     .map(|(key, _)| format!("parametric.settings.{key}")),
             );
         }
-        if command.starts_with("constraintbar") || command.starts_with("dcdisplay") {
+        if command.starts_with("constraint.bars") || command.starts_with("constraint.dynamicDimensions") {
             let (visible, exceptions) =
-                if command.starts_with("dcdisplay") { ("dimsVisible", "dimExceptions") } else { ("barsVisible", "barExceptions") };
+                if command.starts_with("constraint.dynamicDimensions") { ("dimsVisible", "dimExceptions") } else { ("barsVisible", "barExceptions") };
             fields.extend([format!("parametric.settings.{visible}"), format!("parametric.settings.{exceptions}")]);
         }
-        if command == "autoconstrain" {
+        if command == "constraint.auto" {
             for (param, key) in [("tolerance", "distanceTolerance"), ("angleTolerance", "angleTolerance"), ("types", "autoTypes")] {
                 if p.get(param).is_none() {
                     fields.push(format!("parametric.settings.{key}"));
@@ -1797,8 +1831,8 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         }
     }
     let scoped = reshapes && !(transform && copies)
-        || matches!(command, "cutclip" | "explode" | "chspace" | "region")
-        || matches!(command, "block" | "-block") && p.get("keep").and_then(Value::as_str) != Some("retain")
+        || matches!(command, "edit.cut" | "explode" | "object.changeSpace" | "region")
+        || matches!(command, "block" | "block.add") && p.get("keep").and_then(Value::as_str) != Some("retain")
         || command == "offset" && p.get("erase") == Some(&Value::Bool(true));
     // No-op display/settings paths do not invoke the global solver. Their assigned
     // values remain held above, so a changed setting cannot turn a stale no-op into a write.
@@ -1815,7 +1849,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
                 premises.push(need("drawing", vec!["~constraintProviders".into()]));
             }
         }
-        let dependencies = if command == "delconstraint" {
+        let dependencies = if command == "constraint.delete" {
             d.constraints
                 .iter()
                 .filter(|constraint| {
@@ -1853,13 +1887,14 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
     let mut merged = merge_premises(premises);
     // An entity named by handle is held wherever it is in its space's list: no write by handle
     // reads its draw order (C8-cad-read). A place keeps positions; `covers` replays them.
-    if !by_place && command != "delconstraint" && !command.starts_with("constraintbar") && !command.starts_with("dcdisplay") {
+    if !by_place && command != "constraint.delete" && !command.starts_with("constraint.bars") && !command.starts_with("constraint.dynamicDimensions")
+    {
         for h in &hs {
             merged.entry(json!(h.hex()).to_string()).or_insert_with(|| Premise::on(h.hex()));
         }
         for premise in merged.values_mut() {
             if premise.positions.is_none()
-                && !matches!(command, "draworder.front" | "draworder.back")
+                && !matches!(command, "arrange.bringToFront" | "arrange.sendToBack")
                 && premise.id.as_str().and_then(Handle::parse_hex).is_some_and(|h| hs.contains(&h))
             {
                 premise.positions = Some(Vec::new());
@@ -1881,7 +1916,7 @@ fn under_native(s: &Session, command: &str, p: &Value, commands: &[KitCommand]) 
         objects,
         premises: merged.into_values().collect(),
         covers: (!covers.is_empty()).then_some(Covers { fields: covers }),
-        content: if command == "attedit" {
+        content: if command == "attribute.edit" {
             hs.iter()
                 .filter(|h| entity(d, **h).is_some_and(|e| matches!(e.kind, EntityKind::Insert(_))))
                 .map(|h| kition_kit::ContentPremise {
@@ -1902,11 +1937,11 @@ fn named(d: &Drawing, ty: &str, name: &str) -> Option<(String, String)> {
         "Layer" => d.layers.iter().map(|x| ("layer", x.name.as_str())).collect(),
         "Linetype" => d.linetypes.iter().map(|x| ("linetype", x.name.as_str())).collect(),
         "TextStyle" => d.text_styles.iter().map(|x| ("textstyle", x.name.as_str())).collect(),
-        "DimStyle" => d.dim_styles.iter().map(|x| ("dimstyle", x.name.as_str())).collect(),
+        "DimStyle" => d.dim_styles.iter().map(|x| ("dimensionStyle.open", x.name.as_str())).collect(),
         "Block" => d.blocks.keys().map(|x| ("block", x.as_str())).collect(),
         "Layout" => d.layouts.iter().map(|x| ("layout", x.name.as_str())).collect(),
-        "TableStyle" => d.table_styles.iter().map(|x| ("tablestyle", x.name.as_str())).collect(),
-        "MLeaderStyle" => d.mleader_styles.iter().map(|x| ("mleaderstyle", x.name.as_str())).collect(),
+        "TableStyle" => d.table_styles.iter().map(|x| ("tableStyle.open", x.name.as_str())).collect(),
+        "MLeaderStyle" => d.mleader_styles.iter().map(|x| ("multileaderStyle.open", x.name.as_str())).collect(),
         "View" => d.views.iter().map(|x| ("view", x.name.as_str())).collect(),
         "Ucs" => d.ucss.iter().map(|x| ("ucs", x.name.as_str())).collect(),
         "LayerState" => d.layer_states.iter().map(|x| ("layerstate", x.name.as_str())).collect(),
@@ -2017,12 +2052,12 @@ pub fn derived(d: &Drawing, ids: &[Value], names: &[String]) -> Result<Vec<Deriv
         if wanted("audit") {
             values.insert("audit".into(), crate::scan::effects(d, Space::Model, vec![], "audit", &json!({"fix":true}))?);
         }
-        if wanted("overkill") {
+        if wanted("object.deleteDuplicates") {
             let facts = std::iter::once(Space::Model)
                 .chain(d.layouts.iter().map(|l| Space::Paper(l.name.clone())))
-                .map(|space| crate::scan::effects(d, space, vec![], "overkill", &json!({})))
+                .map(|space| crate::scan::effects(d, space, vec![], "object.deleteDuplicates", &json!({})))
                 .collect::<Result<Vec<_>, _>>()?;
-            values.insert("overkill".into(), json!(facts));
+            values.insert("object.deleteDuplicates".into(), json!(facts));
         }
         if wanted("texts") {
             values.insert("texts".into(), drawing_texts(d));
@@ -2358,20 +2393,20 @@ pub fn covered(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -> R
 }
 
 fn covered_native(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -> Result<Option<CoveredAt>, String> {
-    if command == "commandLine" && s.current_prompt().is_none() {
+    if command == "command.runLine" && s.current_prompt().is_none() {
         let text = p.get("text").and_then(Value::as_str).unwrap_or("").trim();
         if let Some((name, params)) = text.split_once(' ')
             && params.trim_start().starts_with('{')
             && let Ok(params) = serde_json::from_str::<Value>(params.trim())
         {
             let id = kition_cad_engine::cmd::resolve_alias(&name.to_ascii_lowercase());
-            if id != "commandLine" {
+            if id != "command.runLine" {
                 return covered(s, &id, &params, asked);
             }
         }
         if let Some(spec) = text.split_whitespace().next().and_then(kition_cad_engine::cmd::resolve_typed)
             && spec.interactive.is_none()
-            && spec.id != "ltscale"
+            && spec.id != "property.linetypeScale"
         {
             return covered(s, spec.id, &json!({}), asked);
         }
@@ -2380,7 +2415,7 @@ fn covered_native(s: &Session, command: &str, p: &Value, asked: &[CoveredAsk]) -
         let (command, p) = kition_cad_engine::cmd::layout_operation(p).map_err(|e| e.to_string())?;
         return covered(s, command, &p, asked);
     }
-    if matches!(command, "layout.new" | "layout.copy" | "layout.set")
+    if matches!(command, "layout.add" | "layout.duplicate" | "layout.set")
         && let Some((ty, name)) = record_address(command, p)
     {
         return name_history(s.doc().map_err(|e| e.to_string())?, ty, name, asked, false).map(Some);

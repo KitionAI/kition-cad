@@ -13,7 +13,7 @@ const FILE: &str = "Review.dxf";
 
 #[tokio::test(flavor = "multi_thread")]
 async fn named_style_writes_hold_the_record_the_engine_resolves() {
-    for family in ["mleaderstyle", "style"] {
+    for family in ["multileaderStyle.open", "style"] {
         for relevant in [false, true] {
             let mut d = drawing();
             d.execute(family, json!({"name":"A"})).unwrap();
@@ -22,7 +22,7 @@ async fn named_style_writes_hold_the_record_the_engine_resolves() {
             f.colleague(&[if relevant {
                 (family, if family == "style" { json!({"name":"A","height":8}) } else { json!({"name":"A","textHeight":8}) })
             } else {
-                ("layer.new", json!({"name":"Unrelated"}))
+                ("layer.add", json!({"name":"Unrelated"}))
             }]);
             f.write(basis, family, if family == "style" { json!({"name":" A ","height":4}) } else { json!({"name":"A","textHeight":4}) }, relevant)
                 .await;
@@ -35,7 +35,7 @@ async fn named_style_writes_hold_the_record_the_engine_resolves() {
 async fn selected_layer_tools_hold_the_snapshot_they_capture() {
     for relevant in [false, true] {
         let mut d = drawing();
-        d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls"})).unwrap();
         let h = d.execute("line", json!({"points":[[0,0],[10,0]],"layer":"Walls"})).unwrap()["handles"][0].clone();
         let other = d.execute("line", json!({"points":[[0,20],[10,20]]})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
@@ -45,7 +45,7 @@ async fn selected_layer_tools_hold_the_snapshot_they_capture() {
         } else {
             ("move", json!({"handles":[other],"delta":[1,0]}))
         }]);
-        f.write(basis, "layoff", json!({"handles":[h]}), relevant).await;
+        f.write(basis, "layer.off", json!({"handles":[h]}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -57,13 +57,13 @@ async fn selected_layer_tools_hold_the_snapshot_they_capture() {
 async fn laycur_assigns_my_current_layer_not_a_colleagues() {
     for colleague_current in [false, true] {
         let mut d = drawing();
-        d.execute("layer.new", json!({"name":"Walls"})).unwrap();
-        d.execute("layer.new", json!({"name":"Doors"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls"})).unwrap();
+        d.execute("layer.add", json!({"name":"Doors"})).unwrap();
         let h = d.execute("line", json!({"points":[[0,0],[10,0]],"layer":"Walls"})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if colleague_current { ("layer.current", json!({"name":"Doors"})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "laycur", json!({"handles":[h]}), false).await;
+        f.colleague(&[if colleague_current { ("layer.setCurrent", json!({"name":"Doors"})) } else { ("layer.add", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "layer.changeToCurrent", json!({"handles":[h]}), false).await;
         let saved = kition_cad_io::read(&std::fs::read(f.dir.path().join(FILE)).unwrap(), FILE).unwrap();
         let line = saved.entity(kition_cad_doc::Handle::parse_hex(h.as_str().unwrap()).unwrap()).unwrap();
         assert_eq!(line.common.layer, "0", "the line is on my current layer");
@@ -80,8 +80,8 @@ async fn stored_variable_writes_hold_the_value_they_replace() {
         let mut d = drawing();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("setvar", json!({"name":"DIMSCALE","value":3})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "setvar", json!({"name":"DIMSCALE","value":2}), relevant).await;
+        f.colleague(&[if relevant { ("variable.set", json!({"name":"DIMSCALE","value":3})) } else { ("layer.add", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "variable.set", json!({"name":"DIMSCALE","value":2}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -94,8 +94,8 @@ async fn my_dimension_variable_applies_over_a_colleagues() {
         let mut d = drawing();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if colleague_set { ("setvar", json!({"name":"DIMDEC","value":3})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "setvar", json!({"name":"DIMDEC","value":1}), false).await;
+        f.colleague(&[if colleague_set { ("variable.set", json!({"name":"DIMDEC","value":3})) } else { ("layer.add", json!({"name":"Unrelated"})) }]);
+        f.write(basis, "variable.set", json!({"name":"DIMDEC","value":1}), false).await;
         assert_eq!(f.saved().header.i64("DIMDEC", -1), 1, "the file carries my DIMDEC");
         f.kits.shutdown().await;
     }
@@ -108,11 +108,15 @@ async fn my_dimension_variable_applies_over_a_colleagues() {
 async fn pedit_uses_my_spline_segment_default_not_a_colleagues() {
     for colleague_set in [false, true] {
         let mut d = drawing();
-        let h = d.execute("pline", json!({"points":[[0,0],[10,10],[20,0],[30,10]]})).unwrap()["handle"].clone();
+        let h = d.execute("polyline.add", json!({"points":[[0,0],[10,10],[20,0],[30,10]]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if colleague_set { ("setvar", json!({"name":"SPLINESEGS","value":12})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "pedit", json!({"handles":[h],"option":"spline"}), false).await;
+        f.colleague(&[if colleague_set {
+            ("variable.set", json!({"name":"SPLINESEGS","value":12}))
+        } else {
+            ("layer.add", json!({"name":"Unrelated"}))
+        }]);
+        f.write(basis, "polyline.edit", json!({"handles":[h],"option":"spline"}), false).await;
         assert_eq!(f.saved().header.i64("SPLINESEGS", 8), 8, "the file carries my SPLINESEGS");
         f.kits.shutdown().await;
     }
@@ -126,7 +130,7 @@ async fn layout_dispatch_copy_holds_the_source() {
         let b = d.execute("text", json!({"at":[0,20],"text":"Window"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("textedit", json!({"handle":if relevant {a}else{b},"text":"Colleague"}))]);
+        f.colleague(&[("text.edit", json!({"handle":if relevant {a}else{b},"text":"Colleague"}))]);
         f.write(basis, "layout", json!({"option":"copy","name":"Layout1","to":"Copy"}), relevant).await;
         f.kits.shutdown().await;
     }
@@ -218,7 +222,7 @@ async fn styles_and_blocks_keep_identity_through_identical_swaps() {
                     ("rename", json!({"table":table,"from":"Tmp","to":"B"})),
                 ]);
             } else {
-                f.colleague(&[("layer.new", json!({"name":"Unrelated"}))]);
+                f.colleague(&[("layer.add", json!({"name":"Unrelated"}))]);
             }
             f.write(
                 basis,
@@ -239,11 +243,11 @@ async fn moving_text_holds_geometry_but_not_its_words() {
         let h = d.execute("text", json!({"at":[0,0],"text":"before","height":2})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if geometry { ("move", json!({"handles":[h],"delta":[1,0]})) } else { ("textedit", json!({"handle":h,"text":"colleague"})) }]);
+        f.colleague(&[if geometry { ("move", json!({"handles":[h],"delta":[1,0]})) } else { ("text.edit", json!({"handle":h,"text":"colleague"})) }]);
         f.write(basis, "move", json!({"handles":[h],"delta":[0,5]}), geometry).await;
         if !geometry {
             let mut reread = CadDocument::open(FILE, &std::fs::read(f.dir.path().join(FILE)).unwrap()).unwrap();
-            assert!(reread.execute("entities", json!({})).unwrap().to_string().contains("colleague"));
+            assert!(reread.execute("object.query", json!({})).unwrap().to_string().contains("colleague"));
         }
         f.kits.shutdown().await;
     }
@@ -257,7 +261,7 @@ async fn mirror_default_copy_holds_the_words_it_copies() {
         let b = d.execute("text", json!({"at":[10,20],"text":"Window"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("textedit", json!({"handle":if relevant {&a}else{&b},"text":"Colleague"}))]);
+        f.colleague(&[("text.edit", json!({"handle":if relevant {&a}else{&b},"text":"Colleague"}))]);
         f.write(basis, "mirror", json!({"handles":[a],"p1":[0,0],"p2":[0,10]}), relevant).await;
         f.kits.shutdown().await;
     }
@@ -270,7 +274,7 @@ async fn a_constraint_conflicts_only_in_the_edited_component() {
         let mut hs = Vec::new();
         for y in [0, 20] {
             let h = d.execute("line", json!({"points":[[0,y],[10,y]]})).unwrap()["handles"][0].clone();
-            d.execute("gchorizontal", json!({"h1":h})).unwrap();
+            d.execute("constraint.horizontal", json!({"h1":h})).unwrap();
             hs.push(h);
         }
         let f = Fixture::new(&mut d);
@@ -291,7 +295,7 @@ async fn a_new_constraint_holds_only_its_connected_component() {
         }
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("gchorizontal", json!({"h1":hs[usize::from(!relevant)]}))]);
+        f.colleague(&[("constraint.horizontal", json!({"h1":hs[usize::from(!relevant)]}))]);
         f.write(basis, "move", json!({"handles":[hs[0]],"delta":[0,5]}), relevant).await;
         f.kits.shutdown().await;
     }
@@ -310,7 +314,7 @@ async fn hosted_constraint_membership_is_refreshed_without_entity_motion() {
         tools::call_as(
             &f.kits,
             "cad_run",
-            &json!({"path":FILE,"steps":[{"command":"gchorizontal","params":{"h1":if relevant {&a}else{&b}}}]}),
+            &json!({"path":FILE,"steps":[{"command":"constraint.horizontal","params":{"h1":if relevant {&a}else{&b}}}]}),
             CallOptions::default(),
             "colleague",
         )
@@ -332,7 +336,7 @@ async fn point_or_handle_measurements_hold_handles_without_treating_coordinates_
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {&a}else{&b}],"delta":[1,0]}))]);
-        f.steps(basis,json!([{"command":"entities.measure","params":{"distance":[a,[0,5]]}},{"command":"properties.set","params":{"handles":[b],"color":"red"}}]),relevant).await;
+        f.steps(basis,json!([{"command":"object.measure","params":{"distance":[a,[0,5]]}},{"command":"object.setProperties","params":{"handles":[b],"color":"red"}}]),relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -341,7 +345,7 @@ async fn point_or_handle_measurements_hold_handles_without_treating_coordinates_
 async fn implicit_hatch_boundaries_are_premises() {
     for relevant in [false, true] {
         let mut d = drawing();
-        let boundary = d.execute("rectang", json!({"p1":[0,0],"p2":[10,10]})).unwrap()["handle"].clone();
+        let boundary = d.execute("rectangle.add", json!({"p1":[0,0],"p2":[10,10]})).unwrap()["handle"].clone();
         let far = d.execute("line", json!({"points":[[50,50],[60,50]]})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
@@ -374,7 +378,7 @@ async fn implicit_dimension_associations_are_premises() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {a}else{b}],"delta":[1,0]}))]);
-        f.write(basis, "dimlinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]}), relevant).await;
+        f.write(basis, "dimension.addLinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -390,15 +394,15 @@ async fn chspace_holds_the_destination_projection() {
         let mut vps = Vec::new();
         for name in ["Layout1", "Other"] {
             if name == "Other" {
-                d.execute("layout.new", json!({"name":name,"viewport":false})).unwrap();
+                d.execute("layout.add", json!({"name":name,"viewport":false})).unwrap();
             }
-            let r = d.execute("mview", json!({"layout":name,"p1":[0,0],"p2":[100,100]})).unwrap();
+            let r = d.execute("viewport.add", json!({"layout":name,"p1":[0,0],"p2":[100,100]})).unwrap();
             vps.push(r["viewports"][0].clone());
         }
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("viewport.set", json!({"handle":vps[usize::from(!relevant)],"viewHeight":500}))]);
-        f.write(basis, "chspace", json!({"handles":[h],"to":"Layout1"}), relevant).await;
+        f.write(basis, "object.changeSpace", json!({"handles":[h],"to":"Layout1"}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -406,19 +410,19 @@ async fn chspace_holds_the_destination_projection() {
 async fn definition_copying(family: &str) {
     for relevant in [false, true] {
         let mut d = drawing();
-        let dm = d.execute("dimlinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]})).unwrap()["handle"].clone();
+        let dm = d.execute("dimension.addLinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         let change = if !relevant {
-            ("layer.new", json!({"name":"Other"}))
+            ("layer.add", json!({"name":"Other"}))
         } else if family == "explode" {
-            ("dimstyle", json!({"name":"ISO-25","extExtend":9,"current":false}))
+            ("dimensionStyle.open", json!({"name":"ISO-25","extExtend":9,"current":false}))
         } else {
-            ("dimstyle", json!({"name":"ISO-25","textHeight":9,"current":false}))
+            ("dimensionStyle.open", json!({"name":"ISO-25","textHeight":9,"current":false}))
         };
         f.colleague(&[change]);
         let params = match family {
-            "dimstyle" | "dimstyle.dimension" => json!({"name":"Copy","current":false}),
+            "dimensionStyle.open" | "dimensionStyle.openManager" => json!({"name":"Copy","current":false}),
             _ => json!({"handles":[dm]}),
         };
         f.write(basis, family, params, relevant).await;
@@ -435,8 +439,8 @@ async fn attribute_definition_takes_my_text_height_not_a_colleagues() {
         let mut d = drawing();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if colleague_set { ("setvar", json!({"name":"TEXTSIZE","value":9})) } else { ("layer.new", json!({"name":"Other"})) }]);
-        f.write(basis, "attdef", json!({"tag":"ID","at":[20,20],"default":"Door"}), false).await;
+        f.colleague(&[if colleague_set { ("variable.set", json!({"name":"TEXTSIZE","value":9})) } else { ("layer.add", json!({"name":"Other"})) }]);
+        f.write(basis, "attribute.define", json!({"tag":"ID","at":[20,20],"default":"Door"}), false).await;
         let saved = f.saved();
         let heights: Vec<f64> =
             saved.model.iter().filter_map(|e| if let kition_cad_doc::EntityKind::AttDef(a) = &e.kind { Some(a.text.height) } else { None }).collect();
@@ -447,11 +451,11 @@ async fn attribute_definition_takes_my_text_height_not_a_colleagues() {
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_style_copying_holds_the_source() {
-    definition_copying("dimstyle").await;
+    definition_copying("dimensionStyle.open").await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_menu_style_copying_holds_the_source() {
-    definition_copying("dimstyle.dimension").await;
+    definition_copying("dimensionStyle.openManager").await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_explosion_holds_the_style() {
@@ -470,13 +474,17 @@ async fn stored_default(family: &str) {
         let (var, value, params) = match family {
             "fillet" => ("FILLETRAD", json!(3), json!({"h1":a,"h2":b,"p1":[10,0],"p2":[0,10]})),
             "chamfer" => ("CHAMFERA", json!(3), json!({"h1":a,"h2":b,"p1":[10,0],"p2":[0,10]})),
-            "mline" => ("CMLSCALE", json!(9), json!({"points":[[20,20],[40,20]]})),
-            "revcloud" => ("REVCLOUDARCLEN", json!(3), json!({"p1":[20,20],"p2":[40,40]})),
+            "multiline.add" => ("CMLSCALE", json!(9), json!({"points":[[20,20],[40,20]]})),
+            "revisionCloud.add" => ("REVCLOUDARCLEN", json!(3), json!({"p1":[20,20],"p2":[40,40]})),
             _ => ("CENTEREXE", json!(9), json!({"handles":[circle]})),
         };
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if colleague_set { ("setvar", json!({"name":var,"value":value.clone()})) } else { ("layer.new", json!({"name":"Other"})) }]);
+        f.colleague(&[if colleague_set {
+            ("variable.set", json!({"name":var,"value":value.clone()}))
+        } else {
+            ("layer.add", json!({"name":"Other"}))
+        }]);
         f.write(basis, family, params, false).await;
         let saved = f.saved().header.get(var).and_then(kition_cad_doc::HVal::as_f64);
         assert_ne!(saved, value.as_f64(), "{family}: the file carries my {var}, not the colleague's");
@@ -494,9 +502,9 @@ macro_rules! default_test {
 }
 default_test!(fillet_takes_my_radius_not_a_colleagues, "fillet");
 default_test!(chamfer_takes_my_distance_not_a_colleagues, "chamfer");
-default_test!(mline_takes_my_scale_not_a_colleagues, "mline");
-default_test!(revcloud_takes_my_arc_length_not_a_colleagues, "revcloud");
-default_test!(center_mark_takes_my_extension_not_a_colleagues, "centermark");
+default_test!(mline_takes_my_scale_not_a_colleagues, "multiline.add");
+default_test!(revcloud_takes_my_arc_length_not_a_colleagues, "revisionCloud.add");
+default_test!(center_mark_takes_my_extension_not_a_colleagues, "centerMark.add");
 
 #[tokio::test(flavor = "multi_thread")]
 async fn viewport_creation_holds_model_extents() {
@@ -505,8 +513,8 @@ async fn viewport_creation_holds_model_extents() {
         let h = d.execute("line", json!({"points":[[0,0],[20,20]]})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("move", json!({"handles":[h],"delta":[10,0]})) } else { ("layer.new", json!({"name":"Other"})) }]);
-        f.write(basis, "mview", json!({"layout":"Layout1","p1":[0,0],"p2":[100,100]}), relevant).await;
+        f.colleague(&[if relevant { ("move", json!({"handles":[h],"delta":[10,0]})) } else { ("layer.add", json!({"name":"Other"})) }]);
+        f.write(basis, "viewport.add", json!({"layout":"Layout1","p1":[0,0],"p2":[100,100]}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -519,7 +527,7 @@ async fn find_replacement_holds_the_words_it_scans() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[if relevant {
-            ("textedit", json!({"handle":h,"text":"Door colleague"}))
+            ("text.edit", json!({"handle":h,"text":"Door colleague"}))
         } else {
             ("move", json!({"handles":[h],"delta":[10,0]}))
         }]);
@@ -533,7 +541,7 @@ async fn identical_named_layer_swap_refuses_but_unrelated_layer_applies() {
     for swap in [true, false] {
         let mut d = drawing();
         for name in ["A", "B"] {
-            d.execute("layer.new", json!({"name":name})).unwrap();
+            d.execute("layer.add", json!({"name":name})).unwrap();
         }
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
@@ -557,8 +565,12 @@ async fn current_dimension_style_is_a_premise() {
         let mut d = drawing();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[if relevant { ("dimstyle", json!({"name":"ISO-25","DIMTXT":7})) } else { ("layer.new", json!({"name":"Unrelated"})) }]);
-        f.write(basis, "dimlinear", json!({"p1":[0,0],"p2":[100,0],"at":[0,10]}), relevant).await;
+        f.colleague(&[if relevant {
+            ("dimensionStyle.open", json!({"name":"ISO-25","DIMTXT":7}))
+        } else {
+            ("layer.add", json!({"name":"Unrelated"}))
+        }]);
+        f.write(basis, "dimension.addLinear", json!({"p1":[0,0],"p2":[100,0],"at":[0,10]}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -574,7 +586,7 @@ async fn dimension_override_swap(block: bool) {
                 d.execute("style", json!({"name":name,"current":false})).unwrap();
             }
         }
-        d.execute("setvar", json!({"name":if block {"DIMBLK"}else{"DIMTXSTY"},"value":"A"})).unwrap();
+        d.execute("variable.set", json!({"name":if block {"DIMBLK"}else{"DIMTXSTY"},"value":"A"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if relevant {
@@ -585,9 +597,9 @@ async fn dimension_override_swap(block: bool) {
                 ("rename", json!({"table":table,"from":"Tmp","to":"B"})),
             ]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
-        f.write(basis, "dimlinear", json!({"p1":[20,0],"p2":[30,0],"at":[20,5]}), relevant).await;
+        f.write(basis, "dimension.addLinear", json!({"p1":[20,0],"p2":[30,0],"at":[20,5]}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -607,7 +619,7 @@ async fn table_append_is_unrelated_but_inserting_before_the_cell_refuses() {
         let table = d.execute("table", json!({"at":[0,0],"rows":3,"cols":2,"cells":[["a","b"],["c","d"],["e","f"]]})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("table.insertrow", json!({"handle":table,"row":row}))]);
+        f.colleague(&[("table.insertRow", json!({"handle":table,"row":row}))]);
         f.write(basis, "table.set", json!({"handle":table,"row":1,"col":0,"text":"mine"}), row == 0).await;
         f.kits.shutdown().await;
     }
@@ -618,9 +630,9 @@ async fn viewport_color_keys_hold_layer_identity() {
     for relevant in [false, true] {
         let mut d = drawing();
         for name in ["A", "B"] {
-            d.execute("layer.new", json!({"name":name})).unwrap();
+            d.execute("layer.add", json!({"name":name})).unwrap();
         }
-        let vp = d.execute("mview", json!({"layout":"Layout1","p1":[0,0],"p2":[100,100]})).unwrap()["viewports"][0].clone();
+        let vp = d.execute("viewport.add", json!({"layout":"Layout1","p1":[0,0],"p2":[100,100]})).unwrap()["viewports"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if relevant {
@@ -650,9 +662,9 @@ async fn nonrotating_polar_array_holds_definition_extents() {
         if relevant {
             f.colleague(&[("block", json!({"name":"Door","base":[5,0],"handles":[replacement],"keep":"delete"}))]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
-        f.write(basis, "arraypolar", json!({"handles":[insert],"center":[0,0],"count":3,"rotate":false}), relevant).await;
+        f.write(basis, "object.arrayPolar", json!({"handles":[insert],"center":[0,0],"count":3,"rotate":false}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -668,7 +680,7 @@ async fn implicit_trim_edges_are_premises() {
         if relevant {
             f.colleague(&[("move", json!({"handles":[edge],"delta":[2,0]}))]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
         f.write(basis, "trim", json!({"handle":target,"pick":[2,0]}), relevant).await;
         f.kits.shutdown().await;
@@ -684,7 +696,7 @@ async fn a_constraint_write_holds_its_referenced_geometry() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {&a}else{&b}],"delta":[2,0]}))]);
-        f.write(basis, "gchorizontal", json!({"h1":a}), relevant).await;
+        f.write(basis, "constraint.horizontal", json!({"h1":a}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -694,7 +706,7 @@ async fn setting_a_layer_linetype_holds_the_resolved_record() {
     for relevant in [false, true] {
         let mut d = drawing();
         d.execute("linetype", json!({"load":"*"})).unwrap();
-        d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if relevant {
@@ -704,7 +716,7 @@ async fn setting_a_layer_linetype_holds_the_resolved_record() {
                 ("rename", json!({"table":"linetype","from":"Tmp","to":"CENTER"})),
             ]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
         f.write(basis, "layer.set", json!({"name":"Walls","linetype":"DASHED"}), relevant).await;
         f.kits.shutdown().await;
@@ -715,7 +727,7 @@ async fn setting_a_layer_linetype_holds_the_resolved_record() {
 async fn layer_bulk_write_holds_the_layer_values_it_captures() {
     for relevant in [false, true] {
         let mut d = drawing();
-        d.execute("layer.new", json!({"name":"Walls"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls"})).unwrap();
         let line = d.execute("line", json!({"points":[[0,0],[10,0]]})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
@@ -724,7 +736,7 @@ async fn layer_bulk_write_holds_the_layer_values_it_captures() {
         } else {
             f.colleague(&[("move", json!({"handles":[line],"delta":[1,0]}))]);
         }
-        f.write(basis, "layon", json!({}), relevant).await;
+        f.write(basis, "layer.allOn", json!({}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -736,9 +748,9 @@ async fn leader_defaults_hold_the_dimension_style() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if relevant {
-            f.colleague(&[("dimstyle", json!({"name":"ISO-25","textHeight":9,"current":false}))]);
+            f.colleague(&[("dimensionStyle.open", json!({"name":"ISO-25","textHeight":9,"current":false}))]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
         f.write(basis, "leader", json!({"points":[[0,0],[10,10]],"text":"Door"}), relevant).await;
         f.kits.shutdown().await;
@@ -752,11 +764,11 @@ async fn multileader_defaults_hold_the_current_style() {
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if relevant {
-            f.colleague(&[("mleaderstyle", json!({"name":"Standard","textHeight":9,"current":false}))]);
+            f.colleague(&[("multileaderStyle.open", json!({"name":"Standard","textHeight":9,"current":false}))]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
-        f.write(basis, "mleader", json!({"points":[[0,0],[10,10]],"text":"Door"}), relevant).await;
+        f.write(basis, "multileader.add", json!({"points":[[0,0],[10,10]],"text":"Door"}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -767,7 +779,7 @@ async fn default_named_records_hold_identity_when_header_names_do_not_change() {
         for relevant in [false, true] {
             let mut d = drawing();
             for name in ["A", "B"] {
-                d.execute(if ty == "layer" { "layer.new" } else { "style" }, json!({"name":name})).unwrap();
+                d.execute(if ty == "layer" { "layer.add" } else { "style" }, json!({"name":name})).unwrap();
             }
             if ty == "linetype" {
                 d.execute("linetype", json!({"load":"*"})).unwrap();
@@ -777,7 +789,7 @@ async fn default_named_records_hold_identity_when_header_names_do_not_change() {
                 "textstyle" => ("A", "B", "TEXTSTYLE"),
                 _ => ("DASHED", "CENTER", "CELTYPE"),
             };
-            d.execute("setvar", json!({"name":var,"value":a})).unwrap();
+            d.execute("variable.set", json!({"name":var,"value":a})).unwrap();
             let f = Fixture::new(&mut d);
             let basis = f.basis().await;
             if relevant {
@@ -812,7 +824,7 @@ async fn default_named_records_hold_identity_when_header_names_do_not_change() {
                     assert_eq!(d.header.str(var, ""), a);
                 });
             } else {
-                f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+                f.colleague(&[("layer.add", json!({"name":"Other"}))]);
             }
             f.write(
                 basis,
@@ -842,7 +854,7 @@ async fn xref_insert_holds_the_definition_path() {
                 std::sync::Arc::make_mut(d.blocks.get_mut("Site").unwrap()).xref_path = Some("other.dxf".into());
             });
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Other"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Other"}))]);
         }
         f.write(basis, "insert", json!({"name":"Site","at":[0,0]}), relevant).await;
         f.kits.shutdown().await;
@@ -857,8 +869,8 @@ async fn layout_copy_holds_the_entities_it_copies() {
         let model = d.execute("text", json!({"at":[0,0],"text":"Window"})).unwrap()["handle"].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
-        f.colleague(&[("textedit", json!({"handle":if relevant {&paper}else{&model},"text":"Colleague"}))]);
-        f.write(basis, "layout.copy", json!({"from":"Layout1","to":"Copy"}), relevant).await;
+        f.colleague(&[("text.edit", json!({"handle":if relevant {&paper}else{&model},"text":"Colleague"}))]);
+        f.write(basis, "layout.duplicate", json!({"from":"Layout1","to":"Copy"}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -867,14 +879,14 @@ async fn layout_copy_holds_the_entities_it_copies() {
 async fn attribute_sync_holds_every_reference_it_updates() {
     for relevant in [false, true] {
         let mut d = drawing();
-        let ad = d.execute("attdef", json!({"tag":"ID","at":[0,0],"default":"Door"})).unwrap()["handle"].clone();
+        let ad = d.execute("attribute.define", json!({"tag":"ID","at":[0,0],"default":"Door"})).unwrap()["handle"].clone();
         d.execute("block", json!({"name":"Door","base":[0,0],"handles":[ad],"keep":"delete"})).unwrap();
         let ins = d.execute("insert", json!({"name":"Door","at":[10,0]})).unwrap()["handle"].clone();
         let far = d.execute("line", json!({"points":[[0,20],[10,20]]})).unwrap()["handles"][0].clone();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[if relevant {&ins}else{&far}],"delta":[2,0]}))]);
-        f.write(basis, "attsync", json!({"name":"Door"}), relevant).await;
+        f.write(basis, "attribute.sync", json!({"name":"Door"}), relevant).await;
         f.kits.shutdown().await;
     }
 }
@@ -886,17 +898,17 @@ async fn attribute_sync_holds_every_reference_it_updates() {
 async fn dimension_style_update_assigns_my_current_style_not_a_colleagues() {
     for colleague_current in [false, true] {
         let mut d = drawing();
-        d.execute("dimstyle", json!({"name":"Other"})).unwrap();
-        let dim = d.execute("dimlinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]})).unwrap()["handle"].clone();
-        d.execute("dimstyle.current", json!({"name":"ISO-25"})).unwrap();
+        d.execute("dimensionStyle.open", json!({"name":"Other"})).unwrap();
+        let dim = d.execute("dimension.addLinear", json!({"p1":[0,0],"p2":[10,0],"at":[0,5]})).unwrap()["handle"].clone();
+        d.execute("dimensionStyle.setCurrent", json!({"name":"ISO-25"})).unwrap();
         let f = Fixture::new(&mut d);
         let basis = f.basis().await;
         if colleague_current {
-            f.colleague(&[("dimstyle.current", json!({"name":"Other"}))]);
+            f.colleague(&[("dimensionStyle.setCurrent", json!({"name":"Other"}))]);
         } else {
-            f.colleague(&[("layer.new", json!({"name":"Far"}))]);
+            f.colleague(&[("layer.add", json!({"name":"Far"}))]);
         }
-        f.write(basis, "dimstyle.update", json!({"handles":[dim]}), false).await;
+        f.write(basis, "dimension.updateStyle", json!({"handles":[dim]}), false).await;
         let saved = kition_cad_io::read(&std::fs::read(f.dir.path().join(FILE)).unwrap(), FILE).unwrap();
         let style = match &saved.entity(kition_cad_doc::Handle::parse_hex(dim.as_str().unwrap()).unwrap()).unwrap().kind {
             kition_cad_doc::EntityKind::Dimension(d) => d.style.clone(),

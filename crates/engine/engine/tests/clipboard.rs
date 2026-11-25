@@ -82,14 +82,14 @@ fn paste_into_another_drawing_brings_layers_and_blocks() {
     let a = s.open_drawing(drawing_a(), "A", None);
     let b = s.open_drawing(drawing_b(), "B", None);
     s.active = a;
-    s.execute("copyclip", &json!({ "handles": handles(&s) })).unwrap();
+    s.execute("edit.copy", &json!({ "handles": handles(&s) })).unwrap();
     assert_eq!(s.clipboard.len(), 2);
     // The base point is the lower-left corner of the copied objects (the wall starts at 10,20).
     assert_eq!(s.clipboard_base, Vec2::new(10.0, 20.0));
 
     s.active = b;
     let before: Vec<Handle> = s.doc().unwrap().model.iter().map(|e| e.handle).collect();
-    let r = s.execute("pasteclip", &json!({ "at": [110, 20] })).unwrap();
+    let r = s.execute("edit.paste", &json!({ "at": [110, 20] })).unwrap();
     assert_eq!(r["handles"].as_array().map(Vec::len), Some(2));
     let d = s.doc().unwrap();
     // HINGE comes from A; WALLS keeps B's definition.
@@ -123,26 +123,26 @@ fn pasteorig_pastes_only_into_another_drawing() {
     let a = s.open_drawing(drawing_a(), "A", None);
     let b = s.open_drawing(drawing_b(), "B", None);
     s.active = a;
-    s.execute("copyclip", &json!({ "handles": handles(&s) })).unwrap();
+    s.execute("edit.copy", &json!({ "handles": handles(&s) })).unwrap();
 
     // In the drawing it came from, PASTEORIG is unavailable (greyed in menus).
     assert!(clipboard::from_active(&s));
-    assert!(s.execute("pasteorig", &json!({})).is_err());
-    assert!(s.start("pasteorig").is_err());
+    assert!(s.execute("edit.pasteToOriginalCoordinates", &json!({})).is_err());
+    assert!(s.start("edit.pasteToOriginalCoordinates").is_err());
     assert_eq!(s.doc().unwrap().model.len(), 2);
-    let info = kition_cad_engine::find_command("pasteorig").unwrap().info(&s);
+    let info = kition_cad_engine::find_command("edit.pasteToOriginalCoordinates").unwrap().info(&s);
     assert!(!info.enabled);
 
     // In another drawing it pastes at the same coordinates without asking.
     s.active = b;
-    s.start("pasteorig").unwrap();
+    s.start("edit.pasteToOriginalCoordinates").unwrap();
     assert!(s.running.is_none());
     let pasted = model(&s);
     assert!(matches!(&pasted[0].kind, EntityKind::Line(l) if l.a.x == 10.0 && l.b.x == 30.0 && l.a.y == 20.0));
     assert!(s.doc().unwrap().block("DOOR").is_some());
 
     // PASTECLIP asks for the insertion point and places the base point there.
-    s.start("pasteclip").unwrap();
+    s.start("edit.paste").unwrap();
     assert!(s.prompt_text().contains("insertion point"), "{}", s.prompt_text());
     s.input(kition_cad_engine::Input::Point(Vec2::new(0.0, 0.0))).unwrap();
     assert!(s.running.is_none());
@@ -157,9 +157,9 @@ fn pasteblock_makes_a_block_of_the_clipboard() {
     let a = s.open_drawing(drawing_a(), "A", None);
     let b = s.open_drawing(drawing_b(), "B", None);
     s.active = a;
-    s.execute("copyclip", &json!({ "handles": handles(&s) })).unwrap();
+    s.execute("edit.copy", &json!({ "handles": handles(&s) })).unwrap();
     s.active = b;
-    let r = s.execute("pasteblock", &json!({ "at": [0, 0] })).unwrap();
+    let r = s.execute("edit.pasteAsBlock", &json!({ "at": [0, 0] })).unwrap();
     let name = r["block"].as_str().unwrap().to_string();
     assert!(name.starts_with("A$C"), "{name}");
     let d = s.doc().unwrap();
@@ -192,7 +192,7 @@ fn clipboard_travels_as_text() {
     });
     let mut s = Session::empty();
     let a = s.open_drawing(drawing_a(), "A", None);
-    s.execute("copybase", &json!({ "handles": handles(&s), "base": [10, 0] })).unwrap();
+    s.execute("edit.copyWithBasePoint", &json!({ "handles": handles(&s), "base": [10, 0] })).unwrap();
     let text = clipboard::system_text(&s).expect("DXF text");
     let written = WRITTEN.lock().unwrap().clone().unwrap();
     assert_eq!(written.model.len(), 2);
@@ -207,7 +207,7 @@ fn clipboard_travels_as_text() {
     assert!(clipboard::load_system_text(&mut t, &text));
     assert_eq!(t.clipboard.len(), 2);
     assert_eq!(t.clipboard_base, Vec2::new(10.0, 0.0));
-    t.execute("pasteorig", &json!({})).unwrap();
+    t.execute("edit.pasteToOriginalCoordinates", &json!({})).unwrap();
     assert_eq!(t.doc().unwrap().model.len(), 2);
     assert!(t.doc().unwrap().block("DOOR").is_some() && t.doc().unwrap().layer("HINGE").is_some());
     let _ = a;

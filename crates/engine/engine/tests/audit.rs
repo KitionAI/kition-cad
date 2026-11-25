@@ -98,7 +98,7 @@ fn corrupt(d: &mut Drawing) -> (Handle, Handle) {
 /// A session whose drawing has a dimension, then every error from [`corrupt`].
 fn corrupt_session() -> (Session, Handle, Handle) {
     let mut s = Session::new();
-    s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [4, 0], "at": [2, 2]})).unwrap();
+    s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [4, 0], "at": [2, 2]})).unwrap();
     let mut d = (*s.doc().unwrap()).clone();
     let (good, dim) = corrupt(&mut d);
     let st = s.state_mut().unwrap();
@@ -192,9 +192,9 @@ fn a_clean_drawing_is_left_alone() {
         let r = kition_cad_engine::audit::check(&d);
         assert!(r.issues.is_empty(), "{}", r.message());
     }
-    s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [4, 0], "at": [2, 2]})).unwrap();
+    s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [4, 0], "at": [2, 2]})).unwrap();
     s.execute(
-        "dimradius",
+        "dimension.addRadius",
         &json!({"handle": s.doc().unwrap().model.iter().find(|e| matches!(e.kind, EntityKind::Circle(_))).unwrap().handle.hex(), "at": [4, 4]}),
     )
     .ok();

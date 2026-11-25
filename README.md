@@ -144,21 +144,21 @@ A real session on a copy of the circuit diagram above, trimmed:
 ```text
 > cad_inspect {"path":"circuits.dxf"}
 Opened `circuits.dxf`: 1307 × 924
-{"details":{"blocks":[{"entities":3,"name":"BREAKER",…},{"entities":4,"name":"LAMP",…},{"entities":4,"name":"SOCKET",…},…],
-  "currentLayer":"Text","entities":68,"layers":[…,{"entities":27,"name":"Wires",…},{"entities":23,"name":"Symbols",…},…],…},
+{"details":{"blocks":[{"object.query":3,"name":"BREAKER",…},{"object.query":4,"name":"LAMP",…},{"object.query":4,"name":"SOCKET",…},…],
+  "currentLayer":"Text","object.query":68,"layers":[…,{"object.query":27,"name":"Wires",…},{"object.query":23,"name":"Symbols",…},…],…},
   "revision":"mdk0",…}
 
 > cad_run {"path":"circuits.dxf","basis":"mdk0","steps":[
-    {"command":"move","params":{"pick":[185,135],"delta":[24,0]}},
-    {"command":"line","params":{"points":[[172,135],[196,135]],"layer":"Wires"}},
-    {"command":"line","params":{"points":[[196,135],[196,127]],"layer":"Wires"}},
-    {"command":"insert","params":{"name":"LAMP","at":[196,123],"attribs":{"ID":"L6"},"layer":"Symbols"}},
-    {"command":"count","params":{"block":"LAMP"}}]}
+    {"command":"object.move","params":{"pick":[185,135],"delta":[24,0]}},
+    {"command":"line.add","params":{"points":[[172,135],[196,135]],"layer":"Wires"}},
+    {"command":"line.add","params":{"points":[[196,135],[196,127]],"layer":"Wires"}},
+    {"command":"block.insert","params":{"name":"LAMP","at":[196,123],"attribs":{"ID":"L6"},"layer":"Symbols"}},
+    {"command":"object.count","params":{"block":"LAMP"}}]}
 Ran 5 commands on `circuits.dxf` (saved): 1307 × 924 Changes: objects 3 created, 1 changed.
 {"changes":{"changed":[{"edits":[{"after":208,"before":184,"field":"kind.insert.x"}],…,"type":"Entity"}],
   "created":[…,{…,"description":"Block Reference on layer Symbols","kind":{"attribs":[{…,"tag":"ID","text":{…,"value":"L6",…}}],"block":"LAMP",…}}],…},
-  "completed":[{"command":"move","result":{"moved":1}},…,{"command":"insert","result":{"handle":"6217000000002"}},
-    {"changed":false,"command":"count","result":{"block":"LAMP","count":7,"message":"Block LAMP: 7 in model space."}}],
+  "completed":[{"command":"object.move","result":{"moved":1}},…,{"command":"block.insert","result":{"handle":"6217000000002"}},
+    {"changed":false,"command":"object.count","result":{"block":"LAMP","count":7,"message":"Block LAMP: 7 in model space."}}],
   "diagnostics":{"new":[],"resolved":[]},"revision":"mdk1","saved":true}
 
 > cad_check {"path":"circuits.dxf"}

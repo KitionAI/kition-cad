@@ -22,8 +22,8 @@ steps:
         (from (0, 0) to (100, 0)) in model space down by 10. Change nothing else, including the
         current layer.
       max_turns: 20
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layout: Layout1, type: Circle } }], as: paper }
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layout: Model } }], as: model }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query, params: { layout: Layout1, type: Circle } }], as: paper }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query, params: { layout: Model } }], as: model }
   - check: { path: plan.dxf, as: diagnostics }
 expected:
   - actual: out:paper
@@ -54,7 +54,7 @@ solution:
     args:
       path: plan.dxf
       steps:
-        - { command: circle, at: { part: { layout: Layout1 } }, params: { center: [50, 50], radius: 10, layer: Notes } }
-        - { command: move, on: ["100"], params: { delta: [0, -10] } }
+        - { command: circle.add, at: { part: { layout: Layout1 } }, params: { center: [50, 50], radius: 10, layer: Notes } }
+        - { command: object.move, on: ["100"], params: { delta: [0, -10] } }
 since: "2026-11-17"
 timeout_s: 600

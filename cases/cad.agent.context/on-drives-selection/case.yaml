@@ -2,7 +2,7 @@ format: 1
 id: cad.agent.context/on-drives-selection
 feature: cad.agent.context
 intent: >-
-  a selection-default command (move) driven by `on`, and erase and properties.set given handles, change exactly those entities and leave the person's selection, space and view as they were.
+  a selection-default command (move) driven by `on`, and erase and object.setProperties given handles, change exactly those entities and leave the person's selection, space and view as they were.
 layer: gate
 source:
   kind: synthetic

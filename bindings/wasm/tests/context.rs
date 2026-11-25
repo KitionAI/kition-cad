@@ -32,7 +32,7 @@ fn drawing() -> Drawing {
     doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
     let c = handle(&doc.execute("line", json!({ "points": [[10, 10], [60, 10]] })).unwrap());
     doc.execute("layout.set", json!({ "name": "Model" })).unwrap();
-    doc.execute("layer.new", json!({ "name": "Walls" })).unwrap();
+    doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
     doc.execute("select", json!({ "handles": [a] })).unwrap();
     doc.execute("view.set", json!({ "center": [50, 0], "height": 20 })).unwrap();
     Drawing { doc, a, b, c }
@@ -58,8 +58,8 @@ fn content(doc: &CadDocument) -> Value {
 
 /// Each entity of a space: handle → (layer, start x).
 fn space(doc: &mut CadDocument, layout: &str) -> Vec<(String, String)> {
-    let listed = doc.execute("entities", json!({ "layout": layout })).unwrap();
-    listed["entities"]
+    let listed = doc.execute("object.query", json!({ "layout": layout })).unwrap();
+    listed["object.query"]
         .as_array()
         .unwrap()
         .iter()
@@ -69,7 +69,7 @@ fn space(doc: &mut CadDocument, layout: &str) -> Vec<(String, String)> {
 
 fn start_x(doc: &mut CadDocument, h: &str) -> f64 {
     let listed = doc.execute("list", json!({ "handles": [h] })).unwrap().to_string();
-    let found = doc.execute("entities.measure", json!({ "bounds": [h] })).unwrap();
+    let found = doc.execute("object.measure", json!({ "bounds": [h] })).unwrap();
     found["bounds"][0]["min"][0].as_f64().unwrap_or_else(|| panic!("{listed}"))
 }
 
@@ -83,7 +83,7 @@ fn editor_state_changes_nothing_in_what_an_agent_reads() {
     d.doc.execute("ortho", json!({ "on": true })).unwrap();
     assert_eq!(content(&d.doc), before, "the space shown, the selection, the view and the drafting modes are editor state");
     let listed = content(&d.doc);
-    assert_eq!(listed["layouts"][0], json!({ "name": "Model", "part": { "layout": "Model" }, "entities": 2 }));
+    assert_eq!(listed["layouts"][0], json!({ "name": "Model", "part": { "layout": "Model" }, "object.query": 2 }));
     assert_eq!(listed["layouts"][1]["id"], "layout:Layout1");
     assert!(listed["layers"].as_array().unwrap().iter().any(|l| l["id"] == "layer:Walls"), "{listed}");
 }
@@ -108,7 +108,7 @@ fn c8_context_checks_the_full_editor_state_inventory() {
         let call = context(&[], Some(json!({"layout":part})));
         kition_kit::testing::check_context(&mut d.doc, &call, EDITOR_STATE).unwrap();
     }
-    let command = d.doc.commands().into_iter().find(|c| c.id == "properties.set").unwrap();
+    let command = d.doc.commands().into_iter().find(|c| c.id == "object.setProperties").unwrap();
     assert_eq!(command.reads, &[kition_kit::EditorState::Selection]);
     let command = d.doc.commands().into_iter().find(|c| c.id == "line").unwrap();
     assert_eq!(command.reads, &[kition_kit::EditorState::Active, kition_kit::EditorState::Part]);
@@ -162,7 +162,7 @@ fn a_selection_command_driven_by_on_changes_exactly_those_entities() {
     let mut d = drawing();
     let before = editor(&d.doc);
     let saved = d.doc.editor_state();
-    // What a host does for `{command: "move", on: [C]}` with C in Layout1 (`on` into the
+    // What a host does for `{command: "object.move", on: [C]}` with C in Layout1 (`on` into the
     // selection, as for a command without `handles`): the context, the command, the restore.
     d.doc.set_context(&context(&[&d.c], None)).unwrap();
     d.doc.execute_as("move", json!({ "delta": [5, 0] }), &agent()).unwrap();
@@ -172,7 +172,7 @@ fn a_selection_command_driven_by_on_changes_exactly_those_entities() {
     assert_eq!(editor(&d.doc), before, "the space shown, the view and the selection are the person's");
     // `on` into the command's `handles`, as hosts do for commands that declare them.
     d.doc.execute_as("erase", json!({ "handles": [d.b] }), &agent()).unwrap();
-    d.doc.execute_as("properties.set", json!({ "handles": [d.a], "layer": "Walls" }), &agent()).unwrap();
+    d.doc.execute_as("object.setProperties", json!({ "handles": [d.a], "layer": "Walls" }), &agent()).unwrap();
     assert_eq!(space(&mut d.doc, "Model"), [(d.a.clone(), "Walls".to_owned())]);
     assert_eq!(editor(&d.doc)[3], before[3], "the selection is still A");
 }
@@ -193,7 +193,7 @@ fn a_drawing_command_with_an_explicit_layer_and_layout_draws_there_and_moves_not
         assert_eq!(editor(&d.doc), before, "the space shown stays");
     }
     let error = d.doc.execute_as("line", json!({ "points": [[0, 0], [1, 1]], "layer": "Nope" }), &agent()).unwrap_err();
-    assert!(error.contains("no layer `Nope`") && error.contains("layer.new"), "{error}");
+    assert!(error.contains("no layer `Nope`") && error.contains("layer.add"), "{error}");
     let error = d.doc.execute_as("circle", json!({ "center": [0, 0], "radius": 1, "layout": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("no layout `Nope`"), "{error}");
 }
@@ -218,7 +218,7 @@ fn an_agents_failing_command_leaves_the_editor_and_the_drawing() {
     let person = d.doc.editor_state();
     d.doc.set_context(&context(&[], Some(json!({ "layout": "Layout1" })))).unwrap();
     let saved = d.doc.editor_state();
-    let error = d.doc.execute_as("properties.set", json!({ "handles": [d.c], "layer": "Fresh", "dimStyle": "Nope" }), &agent()).unwrap_err();
+    let error = d.doc.execute_as("object.setProperties", json!({ "handles": [d.c], "layer": "Fresh", "dimStyle": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("Nope"), "{error}");
     assert_eq!(d.doc.editor_state(), saved, "the failed command left the editor as the step's context set it");
     d.doc.restore_editor_state(&person).unwrap();
@@ -230,12 +230,12 @@ fn an_agents_failing_command_leaves_the_editor_and_the_drawing() {
 fn create_then_act_in_one_run() {
     let mut d = drawing();
     let saved = d.doc.editor_state();
-    let made = handle(&d.doc.execute_as("rectang", json!({ "p1": [200, 200], "p2": [220, 210] }), &agent()).unwrap());
+    let made = handle(&d.doc.execute_as("rectangle.add", json!({ "p1": [200, 200], "p2": [220, 210] }), &agent()).unwrap());
     // `select` keeps its effect for the rest of the call; `move` acts on it.
     d.doc.execute_as("select", json!({ "window": [[190, 190], [230, 230]] }), &agent()).unwrap();
     d.doc.execute_as("move", json!({ "delta": [0, 10] }), &agent()).unwrap();
     d.doc.restore_editor_state(&saved).unwrap();
-    let bounds = d.doc.execute("entities.measure", json!({ "bounds": [made] })).unwrap();
+    let bounds = d.doc.execute("object.measure", json!({ "bounds": [made] })).unwrap();
     assert_eq!(bounds["bounds"][0]["min"], json!([200.0, 210.0]));
 }
 
@@ -261,21 +261,21 @@ fn picking_by_a_point_with_an_explicit_tolerance_is_independent_of_zoom() {
 fn an_agents_zoom_inside_a_layout_viewport_is_refused_and_writes_nothing() {
     let mut d = drawing();
     d.doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
-    d.doc.execute("mview", json!({ "p1": [100, 100], "p2": [200, 180] })).unwrap();
-    d.doc.execute("mspace", json!({})).unwrap();
+    d.doc.execute("viewport.add", json!({ "p1": [100, 100], "p2": [200, 180] })).unwrap();
+    d.doc.execute("viewport.modelSpace", json!({})).unwrap();
     let saved = d.doc.save(None).unwrap();
     for (command, params) in [
         ("zoom", json!({ "mode": "extents" })),
-        ("zoom.in", json!({})),
+        ("view.zoomIn", json!({})),
         ("pan", json!({ "delta": [5, 5] })),
         ("view.set", json!({ "center": [0, 0], "height": 5 })),
     ] {
         let error = d.doc.execute_as(command, params, &agent()).unwrap_err();
-        assert!(error.contains("MSPACE") && error.contains("pspace"), "{command}: {error}");
+        assert!(error.contains("MSPACE") && error.contains("viewport.paperSpace"), "{command}: {error}");
     }
     assert_eq!(d.doc.save(None).unwrap(), saved, "the saved drawing is unchanged");
     // In paper space an agent navigates freely, and the drawing does not change.
-    d.doc.execute_as("pspace", json!({}), &agent()).unwrap();
+    d.doc.execute_as("viewport.paperSpace", json!({}), &agent()).unwrap();
     d.doc.execute_as("zoom", json!({ "mode": "extents" }), &agent()).unwrap();
     assert_eq!(d.doc.save(None).unwrap(), saved);
 }
@@ -284,11 +284,14 @@ fn an_agents_zoom_inside_a_layout_viewport_is_refused_and_writes_nothing() {
 fn entities_lists_any_space_by_name_with_paging_without_going_there() {
     let mut d = drawing();
     let before = editor(&d.doc);
-    let listed = d.doc.execute_as("entities", json!({ "layout": "Layout1" }), &agent()).unwrap();
-    assert_eq!((listed["count"].clone(), listed["entities"][0]["handle"].clone()), (json!(1), json!(d.c)));
-    let page = d.doc.execute_as("entities", json!({ "layout": "Model", "limit": 1, "offset": 1 }), &agent()).unwrap();
-    assert_eq!((page["count"].clone(), page["entities"].as_array().unwrap().len(), page["entities"][0]["handle"].clone()), (json!(2), 1, json!(d.b)));
+    let listed = d.doc.execute_as("object.query", json!({ "layout": "Layout1" }), &agent()).unwrap();
+    assert_eq!((listed["count"].clone(), listed["object.query"][0]["handle"].clone()), (json!(1), json!(d.c)));
+    let page = d.doc.execute_as("object.query", json!({ "layout": "Model", "limit": 1, "offset": 1 }), &agent()).unwrap();
+    assert_eq!(
+        (page["count"].clone(), page["object.query"].as_array().unwrap().len(), page["object.query"][0]["handle"].clone()),
+        (json!(2), 1, json!(d.b))
+    );
     assert_eq!(editor(&d.doc), before);
-    let error = d.doc.execute_as("entities", json!({ "layout": "Nope" }), &agent()).unwrap_err();
+    let error = d.doc.execute_as("object.query", json!({ "layout": "Nope" }), &agent()).unwrap_err();
     assert!(error.contains("no layout"), "{error}");
 }

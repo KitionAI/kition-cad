@@ -64,7 +64,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   useEffect(() => setHistory([]), [doc])
 
   const tabs: FrameTab[] = [
-    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('zoom.extents', {}) }} onLayers={() => setPanel((open) => !open)} /> : null },
+    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => setPanel((open) => !open)} /> : null },
     ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
@@ -72,7 +72,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   return (
     <KitEditorProvider editor={editor} tools={tools}>
       <div className="cad-editor-root" onKeyDownCapture={(event) => {
-        if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('commandLine')) return
+        if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('command.runLine')) return
         if (!(event.target instanceof Element) || !event.target.matches('.kui-app, canvas, .kui-text-sink')) return
         // In Focus the command line is not drawn (it is in FrameChrome), so its input is unmounted
         // and this capture is off: a letter then picks its tool, as everywhere else.
@@ -92,9 +92,9 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           canvas={canvas}
           zoom={zoom}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter' || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('commandLine')) return false
+            if (event.key !== 'Enter' || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('command.runLine')) return false
             if (!(event.target instanceof Element) || !event.target.matches('.kui-app, canvas, .kui-text-sink')) return false
-            void editor.run('commandLine', { text: '' }).then(() => tools.refresh())
+            void editor.run('command.runLine', { text: '' }).then(() => tools.refresh())
             return true
           }}
           status={

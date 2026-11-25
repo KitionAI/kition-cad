@@ -1,4 +1,4 @@
-//! The `entities` query (control channel `engine.execute`, MCP `query_entities`) rejects malformed
+//! The `object.query` query (control channel `engine.execute`, MCP `query_entities`) rejects malformed
 //! filters instead of ignoring them and returning everything.
 
 use kition_cad_engine::Session;
@@ -21,8 +21,8 @@ fn malformed_filters_are_errors() {
         json!({"offset": "1"}),
         json!({"crossing": "yes"}),
     ] {
-        assert!(s.execute("entities", &p).is_err(), "{p} must be rejected");
+        assert!(s.execute("object.query", &p).is_err(), "{p} must be rejected");
     }
-    let r = s.execute("entities", &json!({"window": [[-5, -5], [5, 5]]})).unwrap();
+    let r = s.execute("object.query", &json!({"window": [[-5, -5], [5, 5]]})).unwrap();
     assert_eq!(r["count"], 1, "{r}");
 }

@@ -13,7 +13,7 @@ fn explode_vertical(setup: &[(&str, Value)]) -> (f64, f64, MText) {
     for (cmd, p) in setup {
         s.execute(cmd, p).unwrap();
     }
-    let r = s.execute("dimlinear", &json!({"p1": [0, 0], "p2": [0, 30], "at": [5, 15]})).unwrap();
+    let r = s.execute("dimension.addLinear", &json!({"p1": [0, 0], "p2": [0, 30], "at": [5, 15]})).unwrap();
     let h = Handle::parse_hex(r["handle"].as_str().unwrap()).unwrap();
     let drawn = match &s.doc().unwrap().entity(h).unwrap().kind {
         EntityKind::Dimension(dm) => kition_cad_engine::render::dimension_in(s.doc().unwrap(), dm),
@@ -33,13 +33,13 @@ fn explode_vertical(setup: &[(&str, Value)]) -> (f64, f64, MText) {
 fn exploded_dimension_text_matches_the_drawn_text() {
     let near = |a: f64, b: f64| (a - b).abs() < 1e-9;
     // SETVAR DIMSCALE is an override on the dimension: 10 × DIMTXT 0.18.
-    let (h, _, m) = explode_vertical(&[("setvar", json!({"name": "DIMSCALE", "value": 10}))]);
+    let (h, _, m) = explode_vertical(&[("variable.set", json!({"name": "DIMSCALE", "value": 10}))]);
     assert!(near(h, 1.8) && near(m.height, h), "drawn {h}, exploded {}", m.height);
     // A style DIMSCALE of 0 draws at scale 1 in model space; the text must not shrink to ~0.
-    let (h, _, m) = explode_vertical(&[("dimstyle", json!({"name": "Standard", "DIMSCALE": 0}))]);
+    let (h, _, m) = explode_vertical(&[("dimensionStyle.open", json!({"name": "Standard", "DIMSCALE": 0}))]);
     assert!(near(h, 0.18) && near(m.height, h), "drawn {h}, exploded {}", m.height);
     // Aligned text (DIMTIH off) on a vertical dimension is drawn at 90° and stays there.
-    let (_, a, m) = explode_vertical(&[("dimstyle", json!({"name": "Standard", "DIMTIH": 0}))]);
+    let (_, a, m) = explode_vertical(&[("dimensionStyle.open", json!({"name": "Standard", "DIMTIH": 0}))]);
     assert!(near(a, std::f64::consts::FRAC_PI_2) && near(m.rotation, a), "drawn {a}, exploded {}", m.rotation);
     assert_eq!(m.contents, "30.0000");
 }

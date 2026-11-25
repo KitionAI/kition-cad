@@ -16,7 +16,7 @@ use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, St
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("pedit", "Polyline", run_pedit)
+        CommandSpec::new("polyline.edit", "Polyline", run_pedit)
             .menu(&["Modify", "Object", "Polyline"])
             .alias(&["pe"])
             .params(
@@ -24,12 +24,12 @@ pub fn specs() -> Vec<CommandSpec> {
                  action?: move|insert|straighten|width, index?, to?, startWidth?, endWidth?, convert?: bool}",
             )
             .interactive(|_| Ok(Box::new(PeditM::default()))),
-        CommandSpec::new("splinedit", "Spline", run_splinedit)
+        CommandSpec::new("spline.edit", "Spline", run_splinedit)
             .menu(&["Modify", "Object", "Spline"])
             .alias(&["spe"])
             .params("{handle, option: close|open|reverse|refit|purge|polyline|move, fit?, index?, to?, precision?}")
             .interactive(|_| Ok(Box::new(SplineditM::default()))),
-        CommandSpec::new("lengthen", "Lengthen", run_lengthen)
+        CommandSpec::new("object.lengthen", "Lengthen", run_lengthen)
             .menu(&["Modify", "Lengthen"])
             .alias(&["len"])
             .params("{handle, pick?: [x,y] (end), delta? | deltaAngle? (deg) | percent? | total? | totalAngle? (deg) | to?: [x,y]} ({handle} alone measures)")
@@ -47,11 +47,11 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("reverse", "Reverse", run_reverse)
             .params("{handles?} (lines, polylines, 3D polylines, splines)")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Reverse)))),
-        CommandSpec::new("ncopy", "Copy Nested Objects", run_ncopy)
+        CommandSpec::new("object.copyNested", "Copy Nested Objects", run_ncopy)
             .menu(&["Modify", "Copy Nested Objects"])
             .params("{handle (block reference), pick?: [x,y] (nearest nested object; default all), delta?: [dx,dy], from?: [x,y], to?: [x,y]} (delta, or from with to)")
             .interactive(|_| Ok(Box::new(NcopyM::default()))),
-        CommandSpec::new("chspace", "Change Space", run_chspace)
+        CommandSpec::new("object.changeSpace", "Change Space", run_chspace)
             .menu(&["Modify", "Change Space"])
             .params("{handles?, to?: \"model\" | layout name, viewport?: handle}")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Chspace)))),
@@ -59,11 +59,11 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Modify", "Flatten Objects"])
             .params("{handles?} (z = 0, 3D polylines become polylines)")
             .interactive(|_| Ok(Box::new(SelOp::new(SelKind::Flatten)))),
-        CommandSpec::new("arraypath", "Path Array", run_arraypath)
+        CommandSpec::new("object.arrayPath", "Path Array", run_arraypath)
             .menu(&["Modify", "Array", "Path Array"])
             .params("{handles?, path (handle), count? (default 6), spacing?: number (instead of count), align?: bool (default true)}")
             .interactive(|_| Ok(Box::new(PathArrayM::default()))),
-        CommandSpec::new("textedit", "Edit Text...", run_textedit)
+        CommandSpec::new("text.edit", "Edit Text...", run_textedit)
             .menu(&["Modify", "Object", "Edit Text..."])
             .alias(&["ed", "ddedit"])
             .params("{handle, text} (text, mtext, attribute definitions, dimension text override)")
@@ -275,9 +275,9 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
         "close" | "c" => pl.closed = pl.vertices.len() > 1,
         "open" | "o" => pl.closed = false,
         "width" | "w" => {
-            let w = f64_req("pedit", p, "width")?;
+            let w = f64_req("polyline.edit", p, "width")?;
             if w < 0.0 {
-                return Err(bad("pedit", "width must be non-negative"));
+                return Err(bad("polyline.edit", "width must be non-negative"));
             }
             pl.const_width = w;
             for v in &mut pl.vertices {
@@ -305,22 +305,22 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
             return Ok(json!({ "handle": h.hex(), "joined": n }));
         }
         "vertex" | "e" => {
-            let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("pedit", "`index` is required"))? as usize;
+            let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("polyline.edit", "`index` is required"))? as usize;
             let n = pl.vertices.len();
             if i >= n {
-                return Err(bad("pedit", "vertex index out of range"));
+                return Err(bad("polyline.edit", "vertex index out of range"));
             }
             match str_param(p, "action").unwrap_or("move") {
                 "move" => {
-                    let to = point_req("pedit", p, "to")?;
+                    let to = point_req("polyline.edit", p, "to")?;
                     if let Some(v) = pl.vertices.get_mut(i) {
                         v.p = to;
                     }
                 }
                 "insert" => {
-                    let to = point_req("pedit", p, "to")?;
+                    let to = point_req("polyline.edit", p, "to")?;
                     if n >= MAX_GEN {
-                        return Err(bad("pedit", "too many vertices"));
+                        return Err(bad("polyline.edit", "too many vertices"));
                     }
                     if let Some(v) = pl.vertices.get_mut(i) {
                         v.bulge = 0.0;
@@ -340,10 +340,10 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
                         v.end_width = ew;
                     }
                 }
-                _ => return Err(bad("pedit", "action must be move, insert, straighten or width")),
+                _ => return Err(bad("polyline.edit", "action must be move, insert, straighten or width")),
             }
         }
-        _ => return Err(bad("pedit", "unknown option")),
+        _ => return Err(bad("polyline.edit", "unknown option")),
     }
     set_kind(s, h, EntityKind::LwPolyline(pl))?;
     Ok(json!({ "handle": h.hex() }))
@@ -352,9 +352,9 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
 fn run_pedit(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.is_empty() {
-        return Err(bad("pedit", "`handle` is required"));
+        return Err(bad("polyline.edit", "`handle` is required"));
     }
-    let opt = str_param(p, "option").ok_or_else(|| bad("pedit", "`option` is required"))?.to_ascii_lowercase();
+    let opt = str_param(p, "option").ok_or_else(|| bad("polyline.edit", "`option` is required"))?.to_ascii_lowercase();
     let mut out = Vec::new();
     for h in hs {
         out.push(pedit_apply(s, h, &opt, p)?);
@@ -685,13 +685,13 @@ pub(crate) fn spline_to_poly(sp: &Spline, precision: usize) -> LwPolyline {
 }
 
 fn run_splinedit(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("splinedit", "`handle` is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("spline.edit", "`handle` is required"))?;
     let e = curves::entity(s, h)?;
     if curves::is_locked(s, h) {
         return Err(other("The object is on a locked layer."));
     }
     let EntityKind::Spline(sp) = &e.kind else { return Err(other("Object selected is not a spline.")) };
-    let opt = str_param(p, "option").ok_or_else(|| bad("splinedit", "`option` is required"))?.to_ascii_lowercase();
+    let opt = str_param(p, "option").ok_or_else(|| bad("spline.edit", "`option` is required"))?.to_ascii_lowercase();
     let k = match opt.as_str() {
         "close" => EntityKind::Spline(spline_close(sp)),
         "open" => EntityKind::Spline(spline_open(sp)),
@@ -706,20 +706,20 @@ fn run_splinedit(s: &mut Session, p: &Value) -> Result<Value> {
         }
         "polyline" => EntityKind::LwPolyline(spline_to_poly(sp, p.get("precision").and_then(Value::as_u64).unwrap_or(10) as usize)),
         "move" => {
-            let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("splinedit", "`index` is required"))? as usize;
-            let to = point_req("splinedit", p, "to")?;
+            let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("spline.edit", "`index` is required"))? as usize;
+            let to = point_req("spline.edit", p, "to")?;
             let mut n = sp.clone();
             if !n.fit.is_empty() {
-                let f = n.fit.get_mut(i).ok_or_else(|| bad("splinedit", "index out of range"))?;
+                let f = n.fit.get_mut(i).ok_or_else(|| bad("spline.edit", "index out of range"))?;
                 *f = to;
                 n = n.refit(&n.fit, n.closed);
             } else {
-                let c = n.control.get_mut(i).ok_or_else(|| bad("splinedit", "index out of range"))?;
+                let c = n.control.get_mut(i).ok_or_else(|| bad("spline.edit", "index out of range"))?;
                 *c = to;
             }
             EntityKind::Spline(n)
         }
-        _ => return Err(bad("splinedit", "unknown option")),
+        _ => return Err(bad("spline.edit", "unknown option")),
     };
     set_kind(s, h, k)?;
     Ok(json!({ "handle": h.hex() }))
@@ -945,7 +945,7 @@ fn len_mode(p: &Value) -> Option<LenMode> {
 }
 
 fn run_lengthen(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("lengthen", "`handle` is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("object.lengthen", "`handle` is required"))?;
     let e = curves::entity(s, h)?;
     let Some(mode) = len_mode(p) else {
         let (l, a) = measure_len(&e.kind).ok_or_else(|| other("Cannot measure that object."))?;
@@ -1679,7 +1679,7 @@ fn place_copies(s: &mut Session, items: &[(Common, EntityKind)], delta: Vec2) ->
 }
 
 fn run_ncopy(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("ncopy", "`handle` (block reference) is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("object.copyNested", "`handle` (block reference) is required"))?;
     let leaves = leaves_of(s, h)?;
     let items: Vec<(Common, EntityKind)> = match point_param(p, "pick") {
         Some(q) => nearest_leaf(leaves, q).into_iter().collect(),
@@ -2173,7 +2173,7 @@ pub(crate) fn arraypath(
 
 pub(super) fn run_arraypath(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let path = curves::handle_param(p, "path").ok_or_else(|| bad("arraypath", "`path` (handle) is required"))?;
+    let path = curves::handle_param(p, "path").ok_or_else(|| bad("object.arrayPath", "`path` (handle) is required"))?;
     let count = p.get("count").and_then(Value::as_u64).map(|n| usize::try_from(n).unwrap_or(usize::MAX));
     let spacing = p.get("spacing").and_then(Value::as_f64);
     let r = arraypath(s, &hs, path, count, spacing, bool_or(p, "align", true))?;
@@ -2281,10 +2281,10 @@ pub(crate) fn set_text(s: &mut Session, h: Handle, text: &str) -> Result<()> {
 }
 
 fn run_textedit(s: &mut Session, p: &Value) -> Result<Value> {
-    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("textedit", "`handle` is required"))?;
-    let text = str_param(p, "text").ok_or_else(|| bad("textedit", "`text` is required"))?;
+    let h = targets(s, p)?.first().copied().ok_or_else(|| bad("text.edit", "`handle` is required"))?;
+    let text = str_param(p, "text").ok_or_else(|| bad("text.edit", "`text` is required"))?;
     if text.len() > 1_000_000 {
-        return Err(bad("textedit", "text is too long"));
+        return Err(bad("text.edit", "text is too long"));
     }
     set_text(s, h, text)?;
     Ok(json!({ "handle": h.hex() }))

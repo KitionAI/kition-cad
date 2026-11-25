@@ -85,7 +85,7 @@ fn model_value(d: &Model) -> Value {
         .values()
         .map(|block| {
             let mut v = serde_json::to_value(block.as_ref()).unwrap_or(Value::Null);
-            v["entities"] = entities(&block.entities);
+            v["object.query"] = entities(&block.entities);
             v
         })
         .collect();
@@ -94,7 +94,7 @@ fn model_value(d: &Model) -> Value {
         .iter()
         .map(|layout| {
             let mut v = serde_json::to_value(layout).unwrap_or(Value::Null);
-            v["entities"] = entities(&layout.entities);
+            v["object.query"] = entities(&layout.entities);
             v
         })
         .collect();
@@ -156,7 +156,7 @@ fn classify(path: &str) -> &'static str {
             "spline" => "splines",
             "ray" | "xLine" => "rays and xlines",
             "text" => "text",
-            "mText" => "mtext",
+            "mText" => "multilineText.add",
             "attDef" => "attributes",
             "insert" if tail.starts_with("attribs") => "attributes",
             "insert" => "blocks and inserts",

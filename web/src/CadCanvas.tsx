@@ -64,14 +64,14 @@ export function CadCanvas({ canvas, viewMemory, info, history, onZoom }: { canva
     }}>
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} />
       <ContextMenu at={menu} onClose={() => setMenu(null)} label={editor.phrase('Drawing')} testId="cad-context-menu">
-        <MenuItem label={editor.phrase('Repeat last command')} disabled={!editor.enabled('commandLine')} onSelect={() => { void editor.run('commandLine', { text: '' }).then(() => tools?.refresh()) }} testId="cad-context-repeat" />
-        {history.slice(-5).reverse().map((text) => <MenuItem key={text} label={text} disabled={!editor.enabled('commandLine')} onSelect={() => { void editor.run('commandLine', { text }).then(() => tools?.refresh()) }} />)}
+        <MenuItem label={editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => { void editor.run('command.runLine', { text: '' }).then(() => tools?.refresh()) }} testId="cad-context-repeat" />
+        {history.slice(-5).reverse().map((text) => <MenuItem key={text} label={text} disabled={!editor.enabled('command.runLine')} onSelect={() => { void editor.run('command.runLine', { text }).then(() => tools?.refresh()) }} />)}
         <MenuSeparator />
         {command('edit.undo', 'Undo')}{command('edit.redo', 'Redo')}
-        {command('erase.selection', 'Erase')}{command('selectall', 'Select All')}
+        {command('edit.delete', 'Erase')}{command('edit.selectAll', 'Select All')}
         <MenuSeparator />
         <MenuItem label={editor.phrase('Pan')} onSelect={() => tools?.select('hand')} />
-        {command('zoom.extents', 'Zoom Extents')}{command('zoom.in', 'Zoom In')}{command('zoom.out', 'Zoom Out')}
+        {command('view.zoomToFit', 'Zoom Extents')}{command('view.zoomIn', 'Zoom In')}{command('view.zoomOut', 'Zoom Out')}
       </ContextMenu>
     </div>
   )

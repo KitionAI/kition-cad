@@ -11,7 +11,7 @@ fn make_block(s: &mut Session, name: &str) {
 }
 
 fn attdef(s: &mut Session, tag: &str, default: &str, y: f64, height: f64, invisible: bool) {
-    s.execute("attdef", &json!({"tag": tag, "default": default, "at": [0, y], "height": height, "invisible": invisible})).unwrap();
+    s.execute("attribute.define", &json!({"tag": tag, "default": default, "at": [0, y], "height": height, "invisible": invisible})).unwrap();
 }
 
 fn line(s: &mut Session) {
@@ -54,9 +54,9 @@ fn attdisp_sets_attmode_and_the_display_follows_it() {
     let off = segments(&s);
     assert!(off < normal && normal < on, "off {off}, normal {normal}, on {on}");
 
-    assert_eq!(s.execute("attdisp", &json!({"mode": "normal"})).unwrap(), json!({"attmode": 1}));
+    assert_eq!(s.execute("attribute.display", &json!({"mode": "normal"})).unwrap(), json!({"attmode": 1}));
     assert_eq!(segments(&s), normal);
-    assert!(s.execute("attdisp", &json!({"mode": "sometimes"})).is_err());
+    assert!(s.execute("attribute.display", &json!({"mode": "sometimes"})).is_err());
 }
 
 #[test]
@@ -102,13 +102,13 @@ fn attsync_brings_references_in_line_with_the_definitions() {
     assert_eq!(inner.iter().map(|a| (a.tag.as_str(), a.text.value.as_str())).collect::<Vec<_>>(), [("A", "inner"), ("NEW", "new")]);
 
     // Select option (the default), confirmed with Enter; one undo step per run.
-    s.execute("attedit", &json!({"handle": r2.hex(), "values": {"A": "changed"}})).unwrap();
-    for l in ["attsync", "", "205,0", ""] {
+    s.execute("attribute.edit", &json!({"handle": r2.hex(), "values": {"A": "changed"}})).unwrap();
+    for l in ["attribute.sync", "", "205,0", ""] {
         s.cmdline(l).unwrap();
     }
     assert!(s.running.is_none(), "{}", s.prompt_text());
     assert_eq!(attribs(&s, r2)[0].text.value, "changed");
 
     // The JSON form, by a reference's handle.
-    assert_eq!(s.execute("attsync", &json!({"handle": r1.hex()})).unwrap(), json!({"block": "B", "references": 3}));
+    assert_eq!(s.execute("attribute.sync", &json!({"handle": r1.hex()})).unwrap(), json!({"block": "B", "references": 3}));
 }

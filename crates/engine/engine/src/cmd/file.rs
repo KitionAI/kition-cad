@@ -61,15 +61,15 @@ pub fn specs() -> Vec<CommandSpec> {
             .enabled(always)
             .noundo(),
         CommandSpec::new("close", "Close", run_close).menu(&["File", "Close"]).key("Cmd+W").params("{index?}").noundo(),
-        CommandSpec::new("closeall", "Close All", run_closeall).menu(&["File", "Close All"]).enabled(always).noundo(),
-        CommandSpec::new("qsave", "Save", run_qsave_reporting).menu(&["File", "Save"]).key("Cmd+S").alias(&["save"]).params("{path?}").noundo(),
-        CommandSpec::new("saveas", "Save As...", run_saveas_reporting)
+        CommandSpec::new("file.closeAll", "Close All", run_closeall).menu(&["File", "Close All"]).enabled(always).noundo(),
+        CommandSpec::new("file.save", "Save", run_qsave_reporting).menu(&["File", "Save"]).key("Cmd+S").alias(&["save"]).params("{path?}").noundo(),
+        CommandSpec::new("file.saveAs", "Save As...", run_saveas_reporting)
             .menu(&["File", "Save As..."])
             .key("Cmd+Shift+S")
             .params("{path, format?: dxf|dwg}")
             .noundo(),
-        CommandSpec::new("document.switch", "Switch Drawing", run_switch).params("{index}").enabled(always).noundo(),
-        CommandSpec::new("document.bytes", "Drawing as bytes", run_bytes).params("{format?: dxf} → {data: base64}").noundo(),
+        CommandSpec::new("file.switch", "Switch Drawing", run_switch).params("{index}").enabled(always).noundo(),
+        CommandSpec::new("file.bytes", "Drawing as bytes", run_bytes).params("{format?: dxf} → {data: base64}").noundo(),
     ]
 }
 
@@ -98,7 +98,7 @@ fn run_open(s: &mut Session, p: &Value) -> Result<Value> {
         {
             let bytes = std::fs::read(path).map_err(|e| bad("open", format!("{path}: {e}")))?;
             let i = open_bytes(s, &bytes, path, Some(path.to_string()))?;
-            return Ok(json!({ "index": i, "entities": s.docs.get(i).map(|d| d.doc.entity_count()) }));
+            return Ok(json!({ "index": i, "object.query": s.docs.get(i).map(|d| d.doc.entity_count()) }));
         }
         #[cfg(target_arch = "wasm32")]
         return Err(bad("open", "paths are not available on the web; pass `data`"));
@@ -154,7 +154,7 @@ fn store(path: &str, bytes: &[u8]) -> Result<()> {
     #[cfg(target_arch = "wasm32")]
     {
         let name = file_name(path);
-        let deliver = deliver().ok_or_else(|| bad("save", "saving files is not available in this build; use document.bytes"))?;
+        let deliver = deliver().ok_or_else(|| bad("save", "saving files is not available in this build; use file.bytes"))?;
         deliver(&name, "application/octet-stream", bytes).map_err(|e| bad("save", format!("{name}: {e}")))
     }
 }
@@ -189,22 +189,22 @@ fn saved(path: &str, bytes: usize) -> Value {
 fn run_save(s: &mut Session, p: &Value) -> Result<Value> {
     let path = match str_param(p, "path") {
         Some(p) => p.to_string(),
-        None => s.state()?.path.clone().ok_or_else(|| bad("qsave", "drawing has no file name yet; use saveas {path}"))?,
+        None => s.state()?.path.clone().ok_or_else(|| bad("file.save", "drawing has no file name yet; use saveas {path}"))?,
     };
     let n = save_to(s, &path)?;
     Ok(saved(&path, n))
 }
 
 fn run_saveas(s: &mut Session, p: &Value) -> Result<Value> {
-    let path = str_param(p, "path").ok_or_else(|| bad("saveas", "`path` is required"))?.to_string();
+    let path = str_param(p, "path").ok_or_else(|| bad("file.saveAs", "`path` is required"))?.to_string();
     let n = save_to(s, &path)?;
     Ok(saved(&path, n))
 }
 
 fn run_switch(s: &mut Session, p: &Value) -> Result<Value> {
-    let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("document.switch", "`index` is required"))? as usize;
+    let i = p.get("index").and_then(Value::as_u64).ok_or_else(|| bad("file.switch", "`index` is required"))? as usize;
     if i >= s.docs.len() {
-        return Err(bad("document.switch", "no such drawing"));
+        return Err(bad("file.switch", "no such drawing"));
     }
     s.cancel();
     s.active = i;
@@ -212,10 +212,10 @@ fn run_switch(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_bytes(s: &mut Session, p: &Value) -> Result<Value> {
-    let hooks = io().ok_or_else(|| bad("document.bytes", "file formats are not available in this build"))?;
+    let hooks = io().ok_or_else(|| bad("file.bytes", "file formats are not available in this build"))?;
     let fmt = str_param(p, "format").unwrap_or("dxf");
     let lost = not_saved(s.doc()?);
-    let bytes = (hooks.write)(s.doc()?, &format!("drawing.{fmt}")).map_err(|e| bad("document.bytes", e))?;
+    let bytes = (hooks.write)(s.doc()?, &format!("drawing.{fmt}")).map_err(|e| bad("file.bytes", e))?;
     let mut r = json!({ "data": base64_encode(&bytes), "bytes": bytes.len() });
     if is_drawing_file(&format!("drawing.{fmt}")) {
         report_not_saved(s, &mut r, &lost);
@@ -337,7 +337,7 @@ mod tests {
         let mut s = Session::new();
         s.execute("new", &json!({})).unwrap();
         s.execute("new", &json!({})).unwrap();
-        s.execute("document.switch", &json!({"index": 1})).unwrap();
+        s.execute("file.switch", &json!({"index": 1})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
         s.execute("close", &json!({"index": 0})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
@@ -361,7 +361,7 @@ mod tests {
         let mut s = Session::new();
         s.execute("new", &json!({})).unwrap();
         s.execute("new", &json!({})).unwrap();
-        s.execute("document.switch", &json!({"index": 1})).unwrap();
+        s.execute("file.switch", &json!({"index": 1})).unwrap();
         s.execute("close", &json!({"index": 2})).unwrap();
         assert_eq!(active_title(&s), "Drawing2");
     }

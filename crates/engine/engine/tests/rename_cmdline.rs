@@ -16,8 +16,8 @@ fn insert_targets(d: &Drawing) -> Vec<String> {
 fn drawing() -> Session {
     let mut s = Session::new();
     s.execute("circle", &json!({ "center": [0, 0], "radius": 1 })).unwrap();
-    s.execute("attdef", &json!({ "tag": "TAG", "at": [0, 2] })).unwrap();
-    s.execute("selectall", &json!({})).unwrap();
+    s.execute("attribute.define", &json!({ "tag": "TAG", "at": [0, 2] })).unwrap();
+    s.execute("edit.selectAll", &json!({})).unwrap();
     s.execute("block", &json!({ "name": "Valve", "base": [0, 0], "keep": "delete" })).unwrap();
     let h =
         s.execute("insert", &json!({ "name": "Valve", "at": [0, 0], "attribs": { "TAG": "V-1" } })).unwrap()["handle"].as_str().unwrap().to_string();
@@ -48,12 +48,12 @@ fn json_block_rename_repoints_every_insert() {
     assert!(s.execute("rename", &json!({ "table": "block", "from": "Nope", "to": "X" })).is_err());
     assert_eq!(insert_targets(s.doc().unwrap()), ["Assy", "Pump", "Pump", "Pump"]);
     // Multileader styles: the current-style variable follows; Standard stays.
-    s.execute("mleaderstyle", &json!({ "name": "Callout", "current": true })).unwrap();
-    s.execute("rename", &json!({ "table": "mleaderstyle", "from": "Callout", "to": "Notes" })).unwrap();
+    s.execute("multileaderStyle.open", &json!({ "name": "Callout", "current": true })).unwrap();
+    s.execute("rename", &json!({ "table": "multileaderStyle.open", "from": "Callout", "to": "Notes" })).unwrap();
     assert_eq!(s.doc().unwrap().header.str("CMLEADERSTYLE", ""), "Notes");
-    assert!(s.execute("rename", &json!({ "table": "mleaderstyle", "from": "Standard", "to": "X" })).is_err());
+    assert!(s.execute("rename", &json!({ "table": "multileaderStyle.open", "from": "Standard", "to": "X" })).is_err());
     // A layer rename is one undo step too.
-    s.execute("layer.new", &json!({ "name": "Old" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Old" })).unwrap();
     let undo = s.state().unwrap().undo.len();
     s.execute("rename", &json!({ "table": "layer", "from": "Old", "to": "New" })).unwrap();
     assert_eq!(s.state().unwrap().undo.len(), undo + 1);
@@ -69,7 +69,7 @@ fn rename_prompts_type_old_and_new_name() {
         s.prompt_text()
     );
     s.cancel();
-    s.execute("layer.new", &json!({ "name": "Old" })).unwrap();
+    s.execute("layer.add", &json!({ "name": "Old" })).unwrap();
     s.script("-RENAME B Valve Pump\n-RENAME LA Old New\nLINE 0,0 1,0\n\n").unwrap();
     assert!(s.running.is_none(), "{}", s.prompt_text());
     let d = s.doc().unwrap();

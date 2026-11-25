@@ -28,43 +28,43 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["mredo"])
             .params(r#"{count?: n, scope?: "person"|"agent"}"#)
             .noundo(),
-        CommandSpec::new("cutclip", "Cut", run_cut)
+        CommandSpec::new("edit.cut", "Cut", run_cut)
             .menu(&["Edit", "Cut"])
             .key("Cmd+X")
             .params("{handles?}")
-            .interactive(|_| Ok(Box::new(SelectRun::new("cutclip", "CUTCLIP")))),
-        CommandSpec::new("copyclip", "Copy", run_copyclip)
+            .interactive(|_| Ok(Box::new(SelectRun::new("edit.cut", "CUTCLIP")))),
+        CommandSpec::new("edit.copy", "Copy", run_copyclip)
             .menu(&["Edit", "Copy"])
             .key("Cmd+C")
             .params("{handles?}")
             .noundo()
-            .interactive(|_| Ok(Box::new(SelectRun::new("copyclip", "COPYCLIP")))),
-        CommandSpec::new("copybase", "Copy with Base Point", run_copybase)
+            .interactive(|_| Ok(Box::new(SelectRun::new("edit.copy", "COPYCLIP")))),
+        CommandSpec::new("edit.copyWithBasePoint", "Copy with Base Point", run_copybase)
             .menu(&["Edit", "Copy with Base Point"])
             .key("Cmd+Shift+C")
             .params("{handles?, base: [x,y]}")
             .noundo()
             .interactive(|_| Ok(Box::new(CopyBaseM::default()))),
-        CommandSpec::new("pasteclip", "Paste", run_paste)
+        CommandSpec::new("edit.paste", "Paste", run_paste)
             .menu(&["Edit", "Paste"])
             .key("Cmd+V")
             .params("{at?: [x,y]} (where the base point lands; default: the original coordinates)")
             .enabled(clipboard::has_clip)
             .interactive(|_| Ok(Box::new(PasteM { mode: PasteMode::Clip }))),
-        CommandSpec::new("pasteblock", "Paste as Block", run_pasteblock)
+        CommandSpec::new("edit.pasteAsBlock", "Paste as Block", run_pasteblock)
             .menu(&["Edit", "Paste as Block"])
             .key("Cmd+Shift+V")
             .params("{at?: [x,y]} (insertion point; default: the original coordinates)")
             .enabled(clipboard::has_clip)
             .interactive(|_| Ok(Box::new(PasteM { mode: PasteMode::Block }))),
-        CommandSpec::new("pasteorig", "Paste to Original Coordinates", run_pasteorig)
+        CommandSpec::new("edit.pasteToOriginalCoordinates", "Paste to Original Coordinates", run_pasteorig)
             .menu(&["Edit", "Paste to Original Coordinates"])
             .params("{} (only into a drawing other than the one copied from)")
             .enabled(clipboard::can_paste_orig)
             .interactive(|_| Ok(Box::new(PasteM { mode: PasteMode::Orig }))),
-        CommandSpec::new("erase.selection", "Clear", run_clear).menu(&["Edit", "Clear"]).key("Delete").enabled(has_selection).params("{}"),
-        CommandSpec::new("selectall", "Select All", run_selectall).menu(&["Edit", "Select All"]).key("Cmd+A").alias(&["ai_selall"]).noundo(),
-        CommandSpec::new("ai_deselect", "Deselect All", run_deselect).params("{}").noundo(),
+        CommandSpec::new("edit.delete", "Clear", run_clear).menu(&["Edit", "Clear"]).key("Delete").enabled(has_selection).params("{}"),
+        CommandSpec::new("edit.selectAll", "Select All", run_selectall).menu(&["Edit", "Select All"]).key("Cmd+A").alias(&["ai_selall"]).noundo(),
+        CommandSpec::new("edit.deselectAll", "Deselect All", run_deselect).params("{}").noundo(),
         CommandSpec::new("select", "Select", run_select)
             .params("{handles: [str] (handles)} | {window: [[x,y],[x,y]], crossing?: bool} | {at: [x,y], aperture?: number (drawing units: how far from the point an object may be; default the pick box at the view, or for an agent 0.5% of the larger side of the space's extents)} | {fence: [[x,y],...]} | {clear: true} | {add?: bool}")
             .noundo()
@@ -212,7 +212,7 @@ fn paste(s: &mut Session, offset: Vec2) -> Result<Vec<Handle>> {
 
 fn run_paste(s: &mut Session, p: &Value) -> Result<Value> {
     if s.clipboard.is_empty() {
-        return Err(bad("pasteclip", "the clipboard is empty"));
+        return Err(bad("edit.paste", "the clipboard is empty"));
     }
     let off = match point_param(p, "at") {
         Some(at) => at - s.clipboard_base,

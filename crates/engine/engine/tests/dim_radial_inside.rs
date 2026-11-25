@@ -45,7 +45,7 @@ fn radial_text_goes_inside_when_the_location_is_inside() {
 
     // JSON form, diameter: the line spans the circle, broken around the text.
     let c = s.doc().unwrap().model.iter().next().unwrap().handle.hex();
-    s.execute("dimdiameter", &json!({"handle": c, "at": [-3, 0]})).unwrap();
+    s.execute("dimension.addDiameter", &json!({"handle": c, "at": [-3, 0]})).unwrap();
     let (_, g) = last_dim(&s);
     assert!(g.text_pos.dist(Vec2::new(-3.0, 0.0)) < 1e-9, "{:?}", g.text_pos);
     assert!(covers(&g, -9.5) && covers(&g, 9.5) && !covers(&g, -3.0));

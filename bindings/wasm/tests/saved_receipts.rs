@@ -40,7 +40,9 @@ fn snapshot(doc: &mut CadDocument) -> BTreeMap<String, Value> {
                     pending.extend(fields[key].as_object().into_iter().flat_map(|m| m.values()).filter_map(Value::as_str).map(str::to_owned));
                 }
             }
-            "Block" | "Layout" => pending.extend(fields["entities"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned)),
+            "Block" | "Layout" => {
+                pending.extend(fields["object.query"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned))
+            }
             _ => {}
         }
         let id = object["id"].as_str().unwrap().to_owned();
@@ -77,14 +79,14 @@ fn representative_writes_equal_the_saved_fixture_model() {
         let text = doc.execute("text", json!({"at":[10,30],"text":"original","height":2.123456789123})).unwrap()["handle"].clone();
         let table = doc.execute("table", json!({"at":[200,0],"rows":3,"cols":2})).unwrap()["handle"].clone();
         for (command, params) in [
-            ("properties.set", json!({"handles":[line],"lineweight":0.123456789,"transparency":23,"color":"red"})),
+            ("object.setProperties", json!({"handles":[line],"lineweight":0.123456789,"transparency":23,"color":"red"})),
             ("move", json!({"handles":[line],"delta":[0.123456789123,0.234567891234]})),
             ("rotate", json!({"handles":[line],"base":[0,0],"angle":13.123456789123})),
-            ("properties.set", json!({"handles":[circle],"radius":std::f64::consts::E})),
-            ("textedit", json!({"handle":text,"text":"saved text"})),
+            ("object.setProperties", json!({"handles":[circle],"radius":std::f64::consts::E})),
+            ("text.edit", json!({"handle":text,"text":"saved text"})),
             ("table.set", json!({"handle":table,"row":1,"col":0,"text":"cell"})),
-            ("table.insertrow", json!({"handle":table,"row":1})),
-            ("layer.new", json!({"name":"ReceiptLayer","color":"blue"})),
+            ("table.insertRow", json!({"handle":table,"row":1})),
+            ("layer.add", json!({"name":"ReceiptLayer","color":"blue"})),
         ] {
             doc.execute(command, params).unwrap_or_else(|e| panic!("{fixture} {command}: {e}"));
             let memory = snapshot(&mut doc);

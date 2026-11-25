@@ -7,16 +7,16 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn spacing_preserves_base_color() {
     check(
-        |f| ("dimspace", json!({"base":f.dim,"handles":[f.attached_dim],"spacing":12})),
+        |f| ("dimension.space", json!({"base":f.dim,"handles":[f.attached_dim],"spacing":12})),
         |f| vec![("move", json!({"handles":[f.dim],"delta":[0,5]}))],
-        |f| vec![("properties.set", json!({"handles":[f.dim],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.dim],"color":"blue"}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn spacing_noop_preserves_base_geometry() {
     check(
-        |f| ("dimspace", json!({"base":f.dim,"handles":[f.dim],"spacing":12})),
+        |f| ("dimension.space", json!({"base":f.dim,"handles":[f.dim],"spacing":12})),
         |f| vec![("erase", json!({"handles":[f.dim]}))],
         |f| vec![("move", json!({"handles":[f.dim],"delta":[0,5]}))],
     )

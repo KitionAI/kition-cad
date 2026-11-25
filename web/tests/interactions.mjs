@@ -104,7 +104,7 @@ try {
   await page.mouse.wheel(0, -250)
   await until('plain wheel zooms the CAD canvas', async () => (await kit.getByTestId('kit-zoom').innerText()) !== initialZoom)
   const zoomed = await kit.getByTestId('kit-zoom').innerText()
-  await command('zoom.extents')
+  await command('view.zoomToFit')
   await until('typed Zoom Extents changes the viewport', async () => (await kit.getByTestId('kit-zoom').innerText()) !== zoomed)
   const fitZoom = await kit.getByTestId('kit-zoom').innerText()
   await page.mouse.move(700, 500)

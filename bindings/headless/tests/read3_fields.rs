@@ -7,18 +7,18 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_override_replaces_only_the_named_override() {
     check(
-        |f| ("dimoverride", json!({"handles":[f.dim],"DIMASZ":4})),
-        |f| vec![("dimoverride", json!({"handles":[f.dim],"DIMASZ":8}))],
-        |f| vec![("dimoverride", json!({"handles":[f.dim],"DIMTXT":8}))],
+        |f| ("dimension.override", json!({"handles":[f.dim],"DIMASZ":4})),
+        |f| vec![("dimension.override", json!({"handles":[f.dim],"DIMASZ":8}))],
+        |f| vec![("dimension.override", json!({"handles":[f.dim],"DIMTXT":8}))],
     )
     .await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn dimension_justification_replaces_only_text_justification() {
     check(
-        |f| ("dimtedit.left", json!({"handles":[f.dim]})),
-        |f| vec![("dimtedit.right", json!({"handles":[f.dim]}))],
-        |f| vec![("dimoverride", json!({"handles":[f.dim],"DIMASZ":8}))],
+        |f| ("dimension.textLeft", json!({"handles":[f.dim]})),
+        |f| vec![("dimension.textRight", json!({"handles":[f.dim]}))],
+        |f| vec![("dimension.override", json!({"handles":[f.dim],"DIMASZ":8}))],
     )
     .await;
 }
@@ -42,7 +42,7 @@ async fn flatten_holds_replaced_elevation_but_allows_planar_geometry() {
             .unwrap();
         });
         let before = f.disk();
-        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"flatten","params":{"handles":[f.circle]}}]})).await;
+        let answer = f.call("run", json!({"basis":basis,"steps":[{"command":"object.flatten","params":{"handles":[f.circle]}}]})).await;
         if relevant {
             assert_eq!(answer.err().map(|e| e["error"]["code"].clone()), Some(json!("conflict")));
             assert_eq!(f.disk(), before);

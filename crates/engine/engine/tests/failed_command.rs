@@ -1,6 +1,6 @@
 //! A command that fails changes nothing (task card C4/C5/C6-cad): `Session::execute` puts the
 //! drawing and the selection back when a command answers an error, as it does when one panics,
-//! records no undo step and moves no revision. Before, `properties.set` given a new layer and an
+//! records no undo step and moves no revision. Before, `object.setProperties` given a new layer and an
 //! unknown dimension style made the layer, then failed on the style, and the layer stayed (with an
 //! undo step for a command that reported failure).
 #![allow(clippy::unwrap_used, clippy::panic)]
@@ -16,7 +16,7 @@ fn issue_partial_change_a_failing_command_leaves_the_drawing_as_it_was() {
     s.execute("select", &json!({ "handles": [handle] })).unwrap();
     let (revision, layers, undo) = (s.state().unwrap().revision, s.doc().unwrap().layers.len(), s.state().unwrap().undo.len());
     let doc = s.doc().unwrap().clone();
-    let error = s.execute("properties.set", &json!({ "handles": [handle], "layer": "Fresh", "dimStyle": "Nope" })).unwrap_err();
+    let error = s.execute("object.setProperties", &json!({ "handles": [handle], "layer": "Fresh", "dimStyle": "Nope" })).unwrap_err();
     assert!(error.to_string().contains("Nope"), "{error}");
     assert!(s.doc().unwrap().layer("Fresh").is_none(), "the failed command left its new layer");
     assert_eq!(s.doc().unwrap().layers.len(), layers);

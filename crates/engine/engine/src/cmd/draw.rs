@@ -18,7 +18,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["l"])
             .params("{points: [[x,y],...], closed?: bool}")
             .interactive(|_| Ok(Box::new(LineM::default()))),
-        CommandSpec::new("pline", "Polyline", run_pline)
+        CommandSpec::new("polyline.add", "Polyline", run_pline)
             .menu(&["Draw", "Polyline"])
             .alias(&["pl"])
             .params("{vertices: [[x,y] | {p:[x,y], bulge, startWidth, endWidth}], closed?, width?} | {points: [[x,y] | {p:[x,y], bulge, startWidth, endWidth}], closed?, width?} (points: another name for vertices)")
@@ -33,7 +33,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["a"])
             .params("{p1, p2, p3} | {center, radius, start, end (degrees)} | {start, center, end}")
             .interactive(|_| Ok(super::draw2::arc_machine())),
-        CommandSpec::new("rectang", "Rectangle", super::draw2::run_rectang2)
+        CommandSpec::new("rectangle.add", "Rectangle", super::draw2::run_rectang2)
             .menu(&["Draw", "Rectangle"])
             .alias(&["rec", "rectangle"])
             .params("{p1, p2?: [x,y] (the opposite corner; with dimensions it picks the quadrant), dimensions?: [l, w], area?: number, length?: number, breadth?: number (area with length or breadth), rotation? (deg), fillet?, chamfer?: [d1, d2], width?, elevation?, thickness?}")
@@ -53,11 +53,11 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["po"])
             .params("{at: [x,y]} | {points: [...]}")
             .interactive(|_| Ok(Box::new(PointM { multiple: false }))),
-        CommandSpec::new("point.multiple", "Multiple Point", run_point)
+        CommandSpec::new("point.addMultiple", "Multiple Point", run_point)
             .menu(&["Draw", "Point", "Multiple Point"])
             .params("{points: [...]} | {at: [x,y]}")
             .interactive(|_| Ok(Box::new(PointM { multiple: true }))),
-        CommandSpec::new("xline", "Construction Line", super::draw2::run_xline2)
+        CommandSpec::new("constructionLine.add", "Construction Line", super::draw2::run_xline2)
             .menu(&["Draw", "Construction Line"])
             .alias(&["xl"])
             .params("{base, through} | {base, angle (degrees)} | {base, hor|ver: true} | {vertex, start, end} (bisect) | {handle, distance, side} | {handle, through} (offset)")
@@ -81,7 +81,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["dt", "dtext"])
             .params("{at, text, height?, rotation? (degrees), justify?: L|C|R|M|TL|TC|TR|ML|MC|MR|BL|BC|BR}")
             .interactive(|s| Ok(Box::new(TextM::new(s)))),
-        CommandSpec::new("mtext", "Multiline Text", run_mtext)
+        CommandSpec::new("multilineText.add", "Multiline Text", run_mtext)
             .menu(&["Draw", "Text", "Multiline Text..."])
             .alias(&["t", "mt"])
             .params("{at, text, height?, width?, attach?: 1..9, justify?: TL..BR (instead of attach), rotation?, style?, lineSpacing?, lineSpacingExact?}")
@@ -132,17 +132,17 @@ fn vertex_value(v: &Value) -> Option<PolyVertex> {
 fn run_pline(s: &mut Session, p: &Value) -> Result<Value> {
     let raw = p.get("vertices").or_else(|| p.get("points")).and_then(Value::as_array);
     for v in raw.into_iter().flatten() {
-        size_param("pline", v, "startWidth", true)?;
-        size_param("pline", v, "endWidth", true)?;
+        size_param("polyline.add", v, "startWidth", true)?;
+        size_param("polyline.add", v, "endWidth", true)?;
     }
     // Each vertex with whether it gave its own start and end widths.
     let given: Vec<(PolyVertex, bool, bool)> = raw
         .map(|a| a.iter().filter_map(|v| Some((vertex_value(v)?, v.get("startWidth").is_some(), v.get("endWidth").is_some()))).collect())
         .unwrap_or_default();
     if given.len() < 2 {
-        return Err(bad("pline", "`vertices` needs at least 2 points"));
+        return Err(bad("polyline.add", "`vertices` needs at least 2 points"));
     }
-    let width = size_param("pline", p, "width", true)?.unwrap_or(0.0);
+    let width = size_param("polyline.add", p, "width", true)?.unwrap_or(0.0);
     // `width` is every segment's width unless a vertex gives its own: then it is the width of the
     // ends the vertices leave out, and the polyline has no constant width.
     let own = given.iter().any(|(_, start, end)| *start || *end);
@@ -287,7 +287,7 @@ fn run_spline(s: &mut Session, p: &Value) -> Result<Value> {
         if c.len() < 2 {
             return Err(bad("spline", "need 2+ control points"));
         }
-        // Degree 1..=10 as at the Degree prompt, `spline.cv` and DXF input (tessellation grows
+        // Degree 1..=10 as at the Degree prompt, `spline.addControlVertices` and DXF input (tessellation grows
         // with its square).
         Spline::from_control(c, p.get("degree").and_then(Value::as_u64).unwrap_or(3).clamp(1, 10) as usize)
     } else {
@@ -369,18 +369,20 @@ fn run_text(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_mtext(s: &mut Session, p: &Value) -> Result<Value> {
-    let at = point_req("mtext", p, "at")?;
-    let text = str_param(p, "text").ok_or_else(|| bad("mtext", "`text` is required"))?;
+    let at = point_req("multilineText.add", p, "at")?;
+    let text = str_param(p, "text").ok_or_else(|| bad("multilineText.add", "`text` is required"))?;
     let height = f64_or(p, "height", s.doc()?.header.f64("TEXTSIZE", 0.2));
     if height <= 0.0 {
-        return Err(bad("mtext", "height must be positive"));
+        return Err(bad("multilineText.add", "height must be positive"));
     }
     let style = match str_param(p, "style") {
-        Some(n) => s.doc()?.text_style(n).map(|t| t.name.clone()).ok_or_else(|| bad("mtext", format!("no text style \"{n}\"")))?,
+        Some(n) => s.doc()?.text_style(n).map(|t| t.name.clone()).ok_or_else(|| bad("multilineText.add", format!("no text style \"{n}\"")))?,
         None => s.doc()?.header.str("TEXTSTYLE", "Standard"),
     };
     let attach = match str_param(p, "justify") {
-        Some(j) => super::mtext_opts::attach_code(j).ok_or_else(|| bad("mtext", "`justify` must be TL, TC, TR, ML, MC, MR, BL, BC or BR"))?,
+        Some(j) => {
+            super::mtext_opts::attach_code(j).ok_or_else(|| bad("multilineText.add", "`justify` must be TL, TC, TR, ML, MC, MR, BL, BC or BR"))?
+        }
         None => p.get("attach").and_then(Value::as_u64).unwrap_or(1).clamp(1, 9) as u8,
     };
     let k = EntityKind::MText(MText {
@@ -1211,7 +1213,7 @@ impl Interactive for RayM {
 struct SplineM {
     pts: Vec<Vec2>,
     asking_method: bool,
-    /// `Method` > `CV` hands over to the control-vertex machine (`spline.cv`).
+    /// `Method` > `CV` hands over to the control-vertex machine (`spline.addControlVertices`).
     delegate: Option<Box<dyn Interactive>>,
     /// Knots, end tangents and fit tolerance chosen so far.
     opts: kition_cad_geom::FitOptions,
@@ -1278,7 +1280,7 @@ impl Interactive for SplineM {
         if self.asking_method {
             match i {
                 Input::Keyword(k) if k == "CV" => {
-                    let Some(factory) = find_command("spline.cv").and_then(|c| c.interactive) else {
+                    let Some(factory) = find_command("spline.addControlVertices").and_then(|c| c.interactive) else {
                         return Err(crate::EngineError::Other("CV: not available yet".into()));
                     };
                     let mut m = factory(s)?;

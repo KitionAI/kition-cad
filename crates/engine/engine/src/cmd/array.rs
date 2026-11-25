@@ -28,11 +28,11 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["ar"])
             .params("{type?: \"rectangular\" (default) | \"polar\" | \"path\", handles?: [str], rows?, cols?, rowSpacing?, colSpacing?, center?: [x,y], count?, angle?, rotate?: bool, path?: str (a handle), spacing?, align?: bool}")
             .interactive(|_| Ok(Box::new(ArrayM::default()))),
-        CommandSpec::new("arrayrect", "Rectangular Array", run_arrayrect)
+        CommandSpec::new("object.arrayRectangular", "Rectangular Array", run_arrayrect)
             .menu(&["Modify", "Array", "Rectangular Array"])
             .params("{handles?, rows, cols, rowSpacing, colSpacing}")
             .interactive(|_| Ok(Box::new(RectM::default()))),
-        CommandSpec::new("arraypolar", "Polar Array", run_arraypolar)
+        CommandSpec::new("object.arrayPolar", "Polar Array", run_arraypolar)
             .menu(&["Modify", "Array", "Polar Array"])
             .params("{handles?, center, count, angle? (degrees, default 360), rotate?: bool}")
             .interactive(|_| Ok(Box::new(PolarM::default()))),
@@ -167,18 +167,18 @@ fn yes_no(i: &Input, cur: bool) -> Option<bool> {
 /// Concrete JSON command used by ARRAY, shared with its premise declaration.
 pub fn array_operation(p: &Value) -> Result<&'static str> {
     Ok(match str_param(p, "type").unwrap_or("rectangular").to_ascii_lowercase().as_str() {
-        "rectangular" | "rect" | "r" => "arrayrect",
-        "polar" | "po" => "arraypolar",
-        "path" | "pa" => "arraypath",
+        "rectangular" | "rect" | "r" => "object.arrayRectangular",
+        "polar" | "po" => "object.arrayPolar",
+        "path" | "pa" => "object.arrayPath",
         _ => return Err(bad("array", "`type` must be \"rectangular\", \"polar\" or \"path\"")),
     })
 }
 
 fn run_array(s: &mut Session, p: &Value) -> Result<Value> {
     match array_operation(p)? {
-        "arrayrect" => run_arrayrect(s, p),
-        "arraypolar" => run_arraypolar(s, p),
-        "arraypath" => super::modify2::run_arraypath(s, p),
+        "object.arrayRectangular" => run_arrayrect(s, p),
+        "object.arrayPolar" => run_arraypolar(s, p),
+        "object.arrayPath" => super::modify2::run_arraypath(s, p),
         id => Err(EngineError::UnknownCommand(id.into())),
     }
 }
@@ -196,7 +196,7 @@ fn run_arrayrect(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn run_arraypolar(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
-    let c = point_req("arraypolar", p, "center")?;
+    let c = point_req("object.arrayPolar", p, "center")?;
     let n = p.get("count").and_then(Value::as_u64).unwrap_or(6).max(1);
     check_size(s, n, hs.len())?;
     let fill = f64_or(p, "angle", 360.0);

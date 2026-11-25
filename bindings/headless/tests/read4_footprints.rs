@@ -16,7 +16,7 @@ async fn finite_line_boundary_still_holds_endpoints() {
     check_with_setup(
         |_| ("boundary", json!({"points":[[50,25]]})),
         |f| vec![("move", json!({"handles":[f.line],"delta":[0,5]}))],
-        |f| vec![("properties.set", json!({"handles":[f.line],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.line],"color":"blue"}))],
         |_| vec![("line", json!({"points":[[100,50],[0,50],[0,0]]}))],
     )
     .await;
@@ -35,7 +35,7 @@ async fn equal_finite_line_offsets_keep_their_receipt_footprint() {
     let answer = tools::call_as(
         &kits,
         "cad_run",
-        &json!({"path":FILE,"steps":[{"command":"move","params":{"handles":ids,"delta":[0,5]}}]}),
+        &json!({"path":FILE,"steps":[{"command":"object.move","params":{"handles":ids,"delta":[0,5]}}]}),
         CallOptions::default(),
         "agent-me",
     )

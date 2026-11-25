@@ -85,13 +85,13 @@ pub(super) fn simple(s: &mut Session, table: &str, from: &str, to: &str) -> Resu
     if !valid_name(&to) {
         return Err(bad("rename", "invalid name"));
     }
-    if matches!(table, "mleaderstyle" | "tablestyle") && from.eq_ignore_ascii_case("Standard") {
+    if matches!(table, "multileaderStyle.open" | "tableStyle.open") && from.eq_ignore_ascii_case("Standard") {
         return Err(bad("rename", "the Standard style cannot be renamed"));
     }
     let d = s.doc_mut()?;
     let mut names: Vec<&mut String> = match table {
-        "mleaderstyle" => d.mleader_styles.iter_mut().map(|t| &mut t.name).collect(),
-        "tablestyle" => d.table_styles.iter_mut().map(|t| &mut t.name).collect(),
+        "multileaderStyle.open" => d.mleader_styles.iter_mut().map(|t| &mut t.name).collect(),
+        "tableStyle.open" => d.table_styles.iter_mut().map(|t| &mut t.name).collect(),
         "view" => d.views.iter_mut().map(|t| &mut t.name).collect(),
         "ucs" => d.ucss.iter_mut().map(|t| &mut t.name).collect(),
         _ => return Err(bad("rename", "unsupported table")),
@@ -103,16 +103,16 @@ pub(super) fn simple(s: &mut Session, table: &str, from: &str, to: &str) -> Resu
     let old = std::mem::replace(&mut **n, to.clone());
     d.rename_record_id(table, &old, &to);
     let current = match table {
-        "mleaderstyle" => "CMLEADERSTYLE",
-        "tablestyle" => "CTABLESTYLE",
+        "multileaderStyle.open" => "CMLEADERSTYLE",
+        "tableStyle.open" => "CTABLESTYLE",
         _ => return Ok(()),
     };
     if d.header.str(current, "Standard").eq_ignore_ascii_case(&old) {
         d.header.set_str(current, &to);
     }
     let uses = |k: &EntityKind| match k {
-        EntityKind::MLeader(m) => table == "mleaderstyle" && m.style.eq_ignore_ascii_case(&old),
-        EntityKind::Table(t) => table == "tablestyle" && t.style.eq_ignore_ascii_case(&old),
+        EntityKind::MLeader(m) => table == "multileaderStyle.open" && m.style.eq_ignore_ascii_case(&old),
+        EntityKind::Table(t) => table == "tableStyle.open" && t.style.eq_ignore_ascii_case(&old),
         _ => false,
     };
     let fix = |k: &mut EntityKind| match k {
@@ -128,14 +128,14 @@ pub(super) fn simple(s: &mut Session, table: &str, from: &str, to: &str) -> Resu
 /// Prompt keyword, `rename` table (None: not available yet), noun.
 const TYPES: &[(&str, Option<&str>, &str)] = &[
     ("Block", Some("block"), "block"),
-    ("Dimstyle", Some("dimstyle"), "dimension style"),
+    ("Dimstyle", Some("dimensionStyle.open"), "dimension style"),
     ("LAyer", Some("layer"), "layer"),
     ("LType", Some("linetype"), "linetype"),
     ("Material", None, "material"),
-    ("multileadeRstyle", Some("mleaderstyle"), "multileader style"),
+    ("multileadeRstyle", Some("multileaderStyle.open"), "multileader style"),
     ("Plotstyle", None, "plot style"),
     ("textStyle", Some("style"), "text style"),
-    ("Tablestyle", Some("tablestyle"), "table style"),
+    ("Tablestyle", Some("tableStyle.open"), "table style"),
     ("Ucs", Some("ucs"), "UCS"),
     ("VIew", Some("view"), "view"),
     ("VPort", None, "viewport configuration"),
@@ -156,9 +156,9 @@ fn exists(d: &Drawing, table: &str, name: &str) -> bool {
         "layer" => d.layer(name).is_some(),
         "linetype" => d.linetype(name).is_some(),
         "style" => d.text_style(name).is_some(),
-        "dimstyle" => d.dim_style(name).is_some(),
-        "mleaderstyle" => any_named(d.mleader_styles.iter().map(|t| &t.name), name),
-        "tablestyle" => any_named(d.table_styles.iter().map(|t| &t.name), name),
+        "dimensionStyle.open" => d.dim_style(name).is_some(),
+        "multileaderStyle.open" => any_named(d.mleader_styles.iter().map(|t| &t.name), name),
+        "tableStyle.open" => any_named(d.table_styles.iter().map(|t| &t.name), name),
         "view" => any_named(d.views.iter().map(|t| &t.name), name),
         "ucs" => any_named(d.ucss.iter().map(|t| &t.name), name),
         _ => true,

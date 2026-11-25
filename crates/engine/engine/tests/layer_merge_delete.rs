@@ -6,7 +6,7 @@ use kition_cad_engine::doc::EntityKind;
 use serde_json::json;
 
 fn line_on(s: &mut Session, layer: &str, y: f64) -> String {
-    s.execute("layer.current", &json!({ "name": layer })).unwrap();
+    s.execute("layer.setCurrent", &json!({ "name": layer })).unwrap();
     s.execute("line", &json!({ "points": [[0, y], [10, y]] })).unwrap()["handles"][0].as_str().unwrap().to_string()
 }
 
@@ -15,18 +15,18 @@ fn line_on(s: &mut Session, layer: &str, y: f64) -> String {
 fn drawing() -> Session {
     let mut s = Session::new();
     for n in ["A", "B", "C"] {
-        s.execute("layer.new", &json!({ "name": n })).unwrap();
+        s.execute("layer.add", &json!({ "name": n })).unwrap();
     }
     let a = line_on(&mut s, "A", 0.0);
     s.execute("block", &json!({ "name": "Part", "base": [0, 0], "handles": [a], "keep": "delete" })).unwrap();
     line_on(&mut s, "A", 1.0);
     line_on(&mut s, "B", 2.0);
-    s.execute("layer.current", &json!({ "name": "0" })).unwrap();
+    s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
     s.execute("insert", &json!({ "name": "Part", "at": [5, 5] })).unwrap();
     s.execute("layout.set", &json!({ "name": "Layout1" })).unwrap();
     line_on(&mut s, "A", 3.0);
-    s.execute("layer.current", &json!({ "name": "0" })).unwrap();
-    let vp = s.execute("mview", &json!({ "layout": "Layout1" })).unwrap()["viewports"][0].as_str().unwrap().to_string();
+    s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
+    let vp = s.execute("viewport.add", &json!({ "layout": "Layout1" })).unwrap()["viewports"][0].as_str().unwrap().to_string();
     s.execute("viewport.set", &json!({ "handle": vp, "freeze": ["A", "C"], "colors": { "B": 1 } })).unwrap();
     s.execute("layout.set", &json!({ "name": "Model" })).unwrap();
     s
@@ -58,7 +58,7 @@ fn laymrg_typed_moves_everything_and_deletes_the_source() {
     assert_eq!(count(&s, "A"), 3);
     let undo = s.state().unwrap().undo.len();
     // A is current: merging it away makes the target current.
-    s.execute("layer.current", &json!({ "name": "A" })).unwrap();
+    s.execute("layer.setCurrent", &json!({ "name": "A" })).unwrap();
     let undo_cur = s.state().unwrap().undo.len();
     assert_eq!(undo_cur, undo + 1);
     s.script("LAYMRG\nN\nA\n\nN\nB\n").unwrap();
@@ -79,7 +79,7 @@ fn laymrg_typed_moves_everything_and_deletes_the_source() {
 
     // Answering No (or Enter) changes nothing; picking an object on the layer works too.
     let h = s.doc().unwrap().model.iter().find(|e| e.common.layer == "C" || e.common.layer == "A").map(|e| e.handle).unwrap();
-    s.start("laymrg").unwrap();
+    s.start("layer.merge").unwrap();
     assert!(s.prompt_text().contains("Select object on layer to merge or [Name]:"), "{}", s.prompt_text());
     s.input(kition_cad_engine::Input::Pick(vec![h])).unwrap();
     assert!(s.prompt_text().contains("[Name/Undo]"), "{}", s.prompt_text());
@@ -99,8 +99,8 @@ fn laymrg_refusals() {
         (json!({ "from": ["A"], "to": "Nope" }), "no layer"),
         (json!({ "from": [], "to": "A" }), "required"),
     ] {
-        s.execute("layer.new", &json!({ "name": "Defpoints" })).ok();
-        let e = s.execute("laymrg", &p).unwrap_err().to_string();
+        s.execute("layer.add", &json!({ "name": "Defpoints" })).ok();
+        let e = s.execute("layer.merge", &p).unwrap_err().to_string();
         assert!(e.contains(why), "{p}: {e}");
     }
     assert_eq!(count(&s, "A"), 3);
@@ -111,7 +111,7 @@ fn laymrg_refusals() {
     assert!(s.prompt_text().contains("Select object on target layer"), "{}", s.prompt_text());
     s.cancel();
     // JSON merges several layers at once.
-    let r = s.execute("laymrg", &json!({ "from": ["A", "C"], "to": "0" })).unwrap();
+    let r = s.execute("layer.merge", &json!({ "from": ["A", "C"], "to": "0" })).unwrap();
     assert_eq!(r["moved"], 3);
     assert!(s.doc().unwrap().layer("C").is_none());
 }
@@ -133,18 +133,18 @@ fn laydel_deletes_the_layer_and_its_objects() {
     assert_eq!(s.state().unwrap().undo.len(), undo + 1, "one undo step");
 
     // Refused: layer 0, Defpoints, the current layer, xref-dependent layers.
-    s.execute("layer.current", &json!({ "name": "B" })).unwrap();
+    s.execute("layer.setCurrent", &json!({ "name": "B" })).unwrap();
     let d = std::sync::Arc::make_mut(&mut s.state_mut().unwrap().doc);
     d.layers.push(kition_cad_engine::doc::Layer::new("Site|Walls"));
     d.layers.push(kition_cad_engine::doc::Layer::new("Defpoints"));
     for n in ["0", "Defpoints", "B", "Site|Walls"] {
-        assert!(s.execute("laydel", &json!({ "names": [n] })).is_err(), "{n}");
+        assert!(s.execute("layer.deleteWithObjects", &json!({ "names": [n] })).is_err(), "{n}");
         assert!(s.doc().unwrap().layer(n).is_some(), "{n}");
     }
     s.script("LAYDEL\nN\nB\n").unwrap();
     assert!(s.log.iter().any(|l| l.contains("Cannot delete the current layer")), "{:?}", s.log);
     s.cancel();
-    let r = s.execute("laydel", &json!({ "names": ["C"] })).unwrap();
+    let r = s.execute("layer.deleteWithObjects", &json!({ "names": ["C"] })).unwrap();
     assert_eq!(r["erased"], 0);
     assert!(viewport_lists(&s).iter().all(|(f, _)| f.is_empty()));
 }

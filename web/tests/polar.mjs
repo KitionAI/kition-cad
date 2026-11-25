@@ -76,13 +76,13 @@ try {
   await kit.getByTestId('cad-undo').click()
   await until('one Undo restores clean geometry after all mode changes', async () => !(await inspect()).dirty)
   await kit.getByTestId('cad-redo').click()
-  await command('selectall')
+  await command('edit.selectAll')
   await until('selectall selects the redone circle', async () => (await circle())?.center[0] > 260)
   const center = (await circle()).center
   await kit.getByTestId('cad-save').click()
   await until('polar edit saves through the host', async () => !(await inspect()).dirty)
   await page.evaluate(async () => { const file = window.devHost.files.get('Sample.dxf'); await window.devHost.open('Sample.dxf', file.bytes) })
-  await command('selectall')
+  await command('edit.selectAll')
   await until('reopened circle preserves the constrained destination', async () => JSON.stringify((await circle())?.center) === JSON.stringify(center))
 
   await open()
@@ -93,7 +93,7 @@ try {
   await until('polar-off pointer keeps its unconstrained Y', async () => (await circle())?.center[0] > 260 && Math.abs((await circle()).center[1] - 130) > 0.5)
 
   await open()
-  await command('setvar')
+  await command('variable.set')
   await until('SETVAR requests the variable', async () => (await details()).prompt.includes('variable name'))
   await command('POLARANG')
   await until('SETVAR requests POLARANG value', async () => (await details()).prompt.includes('new value for POLARANG'))

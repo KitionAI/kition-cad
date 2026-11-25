@@ -16,8 +16,8 @@ steps:
         In plan.dxf, add a horizontal linear dimension along the bottom edge of the rectangle, from
         one bottom corner to the other, placed a little below the edge. Change nothing else.
       max_turns: 20
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { type: Dimension } }], as: dims }
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query, params: { type: Dimension } }], as: dims }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query }], as: all }
 expected:
   - actual: out:dims
     compare: values
@@ -33,6 +33,6 @@ expected:
       completed.0.result.count: 6
 solution:
   - tool: cad_run
-    args: { path: plan.dxf, steps: [{ command: dimlinear, params: { p1: [0, 0], p2: [100, 0], at: [50, -10] } }] }
+    args: { path: plan.dxf, steps: [{ command: dimension.addLinear, params: { p1: [0, 0], p2: [100, 0], at: [50, -10] } }] }
 since: "2026-11-17"
 timeout_s: 600

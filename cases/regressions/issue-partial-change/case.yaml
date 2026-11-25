@@ -4,7 +4,7 @@ feature: cad.agent.context
 intent: >-
   A command that fails changes nothing: the engine puts the drawing and the selection back when a
   command answers an error, as it does when one panics, and records no undo step and no revision.
-  Before, `properties.set` given a new layer and an unknown dimension style made the layer, failed
+  Before, `object.setProperties` given a new layer and an unknown dimension style made the layer, failed
   on the style, and the layer stayed with an undo step for a command that reported failure; an
   agent's run in the open editor was left with that partial change.
 layer: gate

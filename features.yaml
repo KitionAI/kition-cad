@@ -72,11 +72,11 @@ features:
     cases: [cad.agent.ids/guard-conflicts, cad.agent.ids/guard-others, cad.agent.ids/kdm-tool-ids, cad.agent.ids/new-server, cad.agent.ids/receipts, regressions/issue-session-entity-ids, regressions/issue-c8-cad-params, regressions/issue-c8-cad-saved, regressions/issue-c8-cad-identity-loss]
     since: "2026-11-17"
   - id: cad.agent.measure
-    title: "Measurements in one read-only command (entities.measure): bounds, minimum distance, intersections, duplicate objects"
+    title: "Measurements in one read-only command (object.measure): bounds, minimum distance, intersections, duplicate objects"
     dimension: [ai, function]
     priority: P1
     status: has
-    commands: [entities.measure]
+    commands: [object.measure]
     paths: [crates/engine/engine/src/cmd/measure.rs]
     cases: [cad.agent.measure/report, cad.agent.measure/through-run]
     since: "2026-11-17"
@@ -95,7 +95,7 @@ features:
     dimension: [conversion, function]
     priority: P1
     status: partial
-    commands: [new, open, close, closeall, qsave, saveas, document.switch, document.bytes, audit, recover]
+    commands: [file.new, file.open, file.close, file.closeAll, file.save, file.saveAs, file.switch, file.bytes, file.audit, file.recover]
     paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/audit.rs, crates/engine/engine/src/cmd/modify2.rs, bindings/wasm/src/links.rs]
     target: "AutoCAD 2027"
     gap: "Drawings made with the core drawing, text, layer, block, dimension and modify commands save to DXF and reopen unchanged (the cad.*/dxf-save-reopen cases); other entities and tables are not yet proved, and the DWG path (native app) is proved only for the data its regression cases cover."
@@ -149,7 +149,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [u, undo, redo, cutclip, copyclip, copybase, pasteclip, pasteblock, pasteorig, erase.selection, erase, edit.undo, edit.redo]
+    commands: [edit.undoStep, edit.undoMany, edit.redoStep, edit.cut, edit.copy, edit.copyWithBasePoint, edit.paste, edit.pasteAsBlock, edit.pasteToOriginalCoordinates, edit.delete, object.delete, edit.undo, edit.redo]
     paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/machines.rs, bindings/wasm/src/collab.rs, crates/engine/engine/src/cmd/modify2.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -159,7 +159,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [selectall, ai_deselect, select, qselect, qselect.info, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, selectioncycling, find]
+    commands: [edit.selectAll, edit.deselectAll, select.set, select.quick, select.quickInfo, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, drafting.selectionCycling, edit.find]
     paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -169,7 +169,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [zoom, zoom.previous, zoom.window, zoom.in, zoom.out, zoom.all, zoom.extents, zoom.object, pan, pan.left, pan.right, pan.up, pan.down, regen, regenall, redraw, view.set, view.get]
+    commands: [view.zoomRealtime, view.zoomPrevious, view.zoomWindow, view.zoomIn, view.zoomOut, view.zoomAll, view.zoomToFit, view.zoomObject, view.pan, view.panLeft, view.panRight, view.panUp, view.panDown, view.regen, view.regenAll, view.redraw, view.set, view.get]
     paths: [crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/interaction.rs, crates/engine/engine/src/cmd/machines.rs, web/src/ribbon/HomeTab.tsx]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -179,7 +179,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [line, pline, xline, ray, "3dpoly", mline]
+    commands: [line.add, polyline.add, constructionLine.add, ray.add, "polyline.add3d", multiline.add]
     paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/kdm/kdm-model/src/repair.rs, web/src/ribbon/HomeTab.tsx]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -189,7 +189,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [circle, arc, ellipse, spline, donut, arc.sce, arc.sca, arc.scl, arc.sea, arc.sed, arc.ser, arc.cse, arc.csa, arc.csl, arc.continue, circle.cd, circle.2p, circle.3p, circle.ttr, circle.ttt, ellipse.axis, ellipse.arc, helix, spline.cv]
+    commands: [circle.add, arc.add, ellipse.add, spline.add, donut.add, arc.addStartCenterEnd, arc.addStartCenterAngle, arc.addStartCenterLength, arc.addStartEndAngle, arc.addStartEndDirection, arc.addStartEndRadius, arc.addCenterStartEnd, arc.addCenterStartAngle, arc.addCenterStartLength, arc.addContinue, circle.addCenterDiameter, circle.addTwoPoints, circle.addThreePoints, circle.addTanTanRadius, circle.addTanTanTan, ellipse.addAxisEnd, ellipse.addArc, helix.add, spline.addControlVertices]
     paths: [crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/draw.rs, crates/kdm/kdm-model/src/repair.rs, web/src/ribbon/HomeTab.tsx]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -199,7 +199,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [rectang, polygon, revcloud, revcloud.polygonal, revcloud.freehand, wipeout]
+    commands: [rectangle.add, polygon.add, revisionCloud.add, revisionCloud.addPolygonal, revisionCloud.addFreehand, wipeout.add]
     paths: [crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/machines.rs, crates/engine/engine/src/cmd/hatch.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -209,7 +209,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [point, point.multiple, divide, measure, ddptype]
+    commands: [point.add, point.addMultiple, point.divide, point.measure, point.style]
     paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/props.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -219,7 +219,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [text, mtext, textedit, style, style.list, style.rename, style.delete, style.current]
+    commands: [text.add, multilineText.add, text.edit, textStyle.open, textStyle.list, textStyle.rename, textStyle.delete, textStyle.setCurrent]
     paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/layout/plotstyle.rs, crates/support/fonts/src/mtext.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -230,7 +230,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [centermark, centerline]
+    commands: [centerMark.add, centerLine.add]
     paths: [crates/engine/engine/src/cmd/draw2.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -240,7 +240,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [hatch, gradient, boundary, region, hatchedit]
+    commands: [hatch.add, hatch.addGradient, boundary.add, region.add, hatch.edit]
     paths: [crates/engine/engine/src/cmd/hatch.rs, bindings/wasm/src/conformance.rs, crates/engine/engine/src/cmd/machines.rs, crates/kdm/kdm-model/src/repair.rs, crates/engine/doc/src/library.rs, crates/render/render/src/hatch.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -251,7 +251,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [dimlinear, dimaligned, dimradius, dimdiameter, dimangular, dimarc, dimordinate, dimcontinue, dimbaseline, qdim, dim]
+    commands: [dimension.addLinear, dimension.addAligned, dimension.addRadius, dimension.addDiameter, dimension.addAngular, dimension.addArcLength, dimension.addOrdinate, dimension.addContinue, dimension.addBaseline, dimension.addQuick, dimension.add]
     paths: [crates/engine/engine/src/cmd/annotate.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -262,7 +262,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [dimoverride, dimreassociate, dimdisassociate, dimtedit.home, dimtedit.angle, dimtedit.left, dimtedit.center, dimtedit.right, dimtedit, dimspace]
+    commands: [dimension.override, dimension.reassociate, dimension.disassociate, dimension.textHome, dimension.textAngle, dimension.textLeft, dimension.textCenter, dimension.textRight, dimension.editText, dimension.space]
     paths: [crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/props.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -272,7 +272,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [dimstyle.update, dimstyle, dimstyle.dimension, dimstyle.list, dimstyle.rename, dimstyle.delete, dimstyle.current, dimstyle.override]
+    commands: [dimension.updateStyle, dimensionStyle.open, dimensionStyle.openManager, dimensionStyle.list, dimensionStyle.rename, dimensionStyle.delete, dimensionStyle.setCurrent, dimensionStyle.override]
     paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/props/rename.rs]
     cases: [regressions/issue-cad-own-dimscale]
     target: "AutoCAD 2027"
@@ -283,7 +283,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [mleader, leader, mleaderstyle]
+    commands: [multileader.add, leader.add, multileaderStyle.open]
     paths: [crates/engine/engine/src/cmd/annotate.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/mleader_content.rs, crates/engine/engine/src/cmd/props.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -293,7 +293,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [block, "-block", insert, attdef, attedit, "-attedit", wblock, base, purge, blocks.list, battman, attdisp, attsync]
+    commands: [block.addDialog, "block.add", block.insert, attribute.define, attribute.edit, "attribute.editGlobal", block.write, block.setBase, file.purge, block.list, attribute.manage, attribute.display, attribute.sync]
     paths: [crates/engine/engine/src/cmd/blocks.rs, crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/blocks/attedit.rs, crates/engine/engine/src/cmd/blocks/attribs.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -303,7 +303,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [move, copy, rotate, scale, mirror, stretch, align, ncopy]
+    commands: [object.move, object.copy, object.rotate, object.scale, object.mirror, object.stretch, object.align, object.copyNested]
     paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/gripcmds.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -313,7 +313,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [offset, trim, extend, fillet, chamfer, explode, break, breakatpoint, join, overkill, pedit, splinedit, lengthen, blend, reverse, flatten]
+    commands: [object.offset, object.trim, object.extend, object.fillet, object.chamfer, object.explode, object.break, object.breakAtPoint, object.join, object.deleteDuplicates, polyline.edit, spline.edit, object.lengthen, object.blend, object.reverse, object.flatten]
     paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/draw2.rs, crates/engine/engine/src/cmd/machines.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -323,7 +323,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [array, arrayrect, arraypolar, arraypath]
+    commands: [object.array, object.arrayRectangular, object.arrayPolar, object.arrayPath]
     paths: [crates/engine/engine/src/cmd/array.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/modify2.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -333,7 +333,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [draworder.front, draworder.back, group, ungroup, groupedit, groups.list]
+    commands: [arrange.bringToFront, arrange.sendToBack, arrange.group, arrange.ungroup, group.edit, group.list]
     paths: [crates/engine/engine/src/cmd/groups.rs, crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/blocks/purge.rs, crates/engine/engine/src/cmd/machines.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -343,7 +343,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [layer, layer.new, layer.set, layer.current, layer.delete, laymcur, laymch, laycur, layiso, layuniso, layfrz, layoff, laylck, layulk, layon, laythw, layerp, layerstate.save, layerstate.restore, layerstate.list, layerstate.delete, layerstate.rename, laymrg, laydel, layout, vplayer]
+    commands: [layer.open, layer.add, layer.set, layer.setCurrent, layer.delete, layer.makeObjectCurrent, layer.match, layer.changeToCurrent, layer.isolate, layer.unisolate, layer.freeze, layer.off, layer.lock, layer.unlock, layer.allOn, layer.thawAll, layer.previous, layerState.save, layerState.restore, layerState.list, layerState.delete, layerState.rename, layer.merge, layer.deleteWithObjects, layout.manage, viewport.freezeLayer]
     paths: [crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/machines.rs, crates/engine/engine/src/cmd/layer/prompts.rs, crates/engine/engine/src/cmd/layout.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -353,7 +353,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [layout.set, chspace, layout.new, layout.delete, layout.rename, layout.copy, layout.list, mview, vports, vports.1, vports.2, vports.3, vports.4, viewport.set, mspace, pspace, viewport.sync]
+    commands: [layout.set, object.changeSpace, layout.add, layout.delete, layout.rename, layout.duplicate, layout.list, viewport.add, viewport.new, viewport.one, viewport.two, viewport.three, viewport.four, viewport.set, viewport.modelSpace, viewport.paperSpace, viewport.sync]
     paths: [crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/layout/prompts.rs, crates/engine/engine/src/cmd/layer.rs, crates/engine/engine/src/cmd/modify2.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -363,7 +363,7 @@ features:
     dimension: [conversion, function]
     priority: P1
     status: partial
-    commands: [pagesetup, plot, exportpdf, plotstyle, stylesmanager]
+    commands: [plot.pageSetup, file.print, file.exportPdf, plot.style, plot.styleManager]
     paths: [bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/layout/plotstyle.rs, crates/engine/engine/src/cmd/layer.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -373,7 +373,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [properties, properties.set, matchprop, color, linetype, lweight, ltscale, rename]
+    commands: [object.properties, object.setProperties, object.matchProperties, property.color, property.linetype, property.lineweight, property.linetypeScale, namedObject.rename]
     paths: [crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/qselect.rs, crates/engine/engine/src/cmd/inquiry.rs, crates/engine/engine/src/cmd/layer.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -383,7 +383,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [units, limits, ortho, grid, snap, polar, otrack, dynmode, lwdisplay, isodraft, transparencydisplay, qpmode, osnap, dsettings]
+    commands: [file.setUnits, file.setLimits, drafting.ortho, drafting.grid, drafting.snap, drafting.polar, drafting.objectSnapTracking, drafting.dynamicInput, drafting.lineweightDisplay, drafting.isometric, drafting.transparencyDisplay, drafting.quickProperties, drafting.objectSnap, drafting.settings]
     paths: [crates/engine/engine/src/cmd/settings.rs, crates/engine/engine/src/cmd/props.rs, crates/engine/doc/src/tables.rs, crates/engine/engine/src/cmd/array.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -393,7 +393,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [dist, id, list, area, time, status, drawing.inspect, entities, count, setvar, getvar, sysvars, cal, massprop, measuregeom, radius.measure, angle.measure]
+    commands: [measure.distance, measure.point, object.list, measure.area, file.time, file.status, file.inspect, object.query, object.count, variable.set, variable.get, variable.list, calculator.open, measure.massProperties, measure.geometry, measure.radius, measure.angle]
     paths: [crates/engine/engine/src/cmd/inquiry.rs, crates/engine/engine/src/cmd/utility.rs, crates/engine/engine/src/cmd/layout.rs, crates/engine/engine/src/cmd/settings.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -403,7 +403,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [tablestyle, table, table.set, table.insertrow, table.deleterow, table.insertcol, table.deletecol, table.merge, table.unmerge]
+    commands: [tableStyle.open, table.add, table.set, table.insertRow, table.deleteRow, table.insertColumn, table.deleteColumn, table.merge, table.unmerge]
     paths: [crates/engine/engine/src/cmd/table.rs, crates/engine/engine/src/cmd/props.rs, crates/engine/engine/src/cmd/props/rename.rs, crates/engine/engine/src/cmd/blocks/purge.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -413,7 +413,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [geomconstraint, gccoincident, gcperpendicular, gcparallel, gctangent, gchorizontal, gcvertical, gccollinear, gcconcentric, gcsmooth, gcsymmetric, gcequal, gcfix, autoconstrain, constraintbar, constraintbar.showall, constraintbar.hideall, dimconstraint, dcaligned, dchorizontal, dcvertical, dcangular, dcradius, dcdiameter, dclinear, dcdisplay, dcdisplay.showall, dcdisplay.hideall, delconstraint, parameters, constraintsettings, constraints.inspect]
+    commands: [constraint.addGeometric, constraint.coincident, constraint.perpendicular, constraint.parallel, constraint.tangent, constraint.horizontal, constraint.vertical, constraint.collinear, constraint.concentric, constraint.smooth, constraint.symmetric, constraint.equal, constraint.fix, constraint.auto, constraint.bars, constraint.showAllBars, constraint.hideAllBars, constraint.addDimensional, constraint.dimensionAligned, constraint.dimensionHorizontal, constraint.dimensionVertical, constraint.dimensionAngular, constraint.dimensionRadius, constraint.dimensionDiameter, constraint.dimensionLinear, constraint.dynamicDimensions, constraint.showAllDynamicDimensions, constraint.hideAllDynamicDimensions, constraint.delete, constraint.parameters, constraint.settings, constraint.inspect]
     paths: [crates/engine/engine/src/cmd/constraints.rs]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -423,7 +423,7 @@ features:
     dimension: [function]
     priority: P2
     status: partial
-    commands: [commandLine]
+    commands: [command.runLine]
     target: "AutoCAD 2027"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
@@ -440,7 +440,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [line, circle, arc, pline, rectang, saveas, open]
+    commands: [line.add, circle.add, arc.add, polyline.add, rectangle.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/draw2.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.draw.basic-geometry/dxf-save-reopen]
@@ -450,7 +450,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [text, mtext, saveas, open]
+    commands: [text.add, multilineText.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/props.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.draw.text-labels/dxf-save-reopen, regressions/issue-dwg-style-font]
@@ -460,7 +460,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [layer.new, layer.set, layer.current, line, circle, saveas, open]
+    commands: [layer.add, layer.set, layer.setCurrent, line.add, circle.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/layer.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.layer.basics/dxf-save-reopen]
@@ -470,7 +470,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [block, insert, line, circle, saveas, open]
+    commands: [block.addDialog, block.insert, line.add, circle.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/blocks.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.block.define-insert/dxf-save-reopen]
@@ -480,7 +480,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [dimlinear, dimaligned, dimradius, line, circle, saveas, open]
+    commands: [dimension.addLinear, dimension.addAligned, dimension.addRadius, line.add, circle.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/annotate.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.dimension.basic/dxf-save-reopen, regressions/issue-dimension-extents]
@@ -490,7 +490,7 @@ features:
     dimension: [function, conversion]
     priority: P0
     status: has
-    commands: [move, rotate, scale, copy, mirror, array, rectang, hatch, saveas, open]
+    commands: [object.move, object.rotate, object.scale, object.copy, object.mirror, object.array, rectangle.add, hatch.add, file.saveAs, file.open]
     paths: [crates/engine/engine/src/cmd/modify.rs, crates/engine/engine/src/cmd/modify2.rs, crates/engine/engine/src/cmd/array.rs, crates/engine/engine/src/cmd/hatch.rs, crates/formats/io/src/dxf_write.rs, crates/formats/io/src/dxf_read.rs]
     target: "AutoCAD 2027"
     cases: [cad.modify.transform-hatch/dxf-save-reopen, regressions/issue-dwg-hatch-associative]

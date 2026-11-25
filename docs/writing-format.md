@@ -27,42 +27,42 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 
 | Parameter | Values | Commands |
 |---|---|---|
-| `action` | `move`, `insert`, `straighten`, `width` | `pedit` |
-| `action` | `list`, `get`, `new`, `set`, `delete`, `load`, `save` | `stylesmanager` |
-| `applyTo` | `drawing`, `selection` | `qselect`, `qselect.info` |
-| `arrangement` | `vertical`, `horizontal`, `left`, `right`, `above`, `below` | `mview` |
-| `arrangement` | `vertical`, `horizontal` | `vports.2` |
-| `arrangement` | `right`, `left`, `above`, `below`, `vertical`, `horizontal` | `vports.3` |
-| `blockAttach` | `center`, `insertion` | `mleader` |
+| `action` | `move`, `insert`, `straighten`, `width` | `polyline.edit` |
+| `action` | `list`, `get`, `new`, `set`, `delete`, `load`, `save` | `plot.styleManager` |
+| `applyTo` | `drawing`, `selection` | `select.quick`, `select.quickInfo` |
+| `arrangement` | `vertical`, `horizontal`, `left`, `right`, `above`, `below` | `viewport.add` |
+| `arrangement` | `vertical`, `horizontal` | `viewport.two` |
+| `arrangement` | `right`, `left`, `above`, `below`, `vertical`, `horizontal` | `viewport.three` |
+| `blockAttach` | `center`, `insertion` | `multileader.add` |
 | `continuity` | `tangent`, `smooth` | `blend` |
 | `edgeMode` | `extend`, `none` | `trim`, `extend` |
 | `format` | `pdf`, `svg`, `png` | `file.export` |
-| `format` | `dxf`, `dwg` | `saveas` |
+| `format` | `dxf`, `dwg` | `file.saveAs` |
 | `frames` | `on`, `off`, `display` | `wipeout` |
-| `justification` | `top`, `zero`, `bottom` | `mline` |
-| `justify` | `TL`, `TC`, `TR`, `ML`, `MC`, `MR`, `BL`, `BC`, `BR` | `mtext` |
+| `justification` | `top`, `zero`, `bottom` | `multiline.add` |
+| `justify` | `TL`, `TC`, `TR`, `ML`, `MC`, `MR`, `BL`, `BC`, `BR` | `multilineText.add` |
 | `justify` | `L`, `C`, `R`, `M`, `TL`, `TC`, `TR`, `ML`, `MC`, `MR`, `BL`, `BC`, `BR` | `text` |
-| `keep` | `delete`, `retain`, `convert` | `-block` |
+| `keep` | `delete`, `retain`, `convert` | `block.add` |
 | `keep` | `convert`, `retain`, `delete` | `block` |
-| `kind` | `colorDependent`, `named` | `stylesmanager` |
+| `kind` | `colorDependent`, `named` | `plot.styleManager` |
 | `knots` | `chord`, `sqrt`, `uniform` | `spline` |
 | `layer` | `source`, `current` | `offset` |
-| `leaderType` | `straight`, `spline`, `none` | `mleader` |
-| `lineweight` | `mm`, `ByLayer` | `lweight` |
-| `mode` | `normal`, `on`, `off` | `attdisp` |
-| `mode` | `show`, `hide`, `showall`, `hideall` | `constraintbar`, `dcdisplay` |
-| `mode` | `new`, `append`, `exclude` | `qselect` |
+| `leaderType` | `straight`, `spline`, `none` | `multileader.add` |
+| `lineweight` | `mm`, `ByLayer` | `property.lineweight` |
+| `mode` | `normal`, `on`, `off` | `attribute.display` |
+| `mode` | `show`, `hide`, `showall`, `hideall` | `constraint.bars`, `constraint.dynamicDimensions` |
+| `mode` | `new`, `append`, `exclude` | `select.quick` |
 | `mode` | `quick`, `standard` | `trim` |
-| `operator` | `=`, `!=`, `>`, `<`, `*` | `qselect` |
+| `operator` | `=`, `!=`, `>`, `<`, `*` | `select.quick` |
 | `option` | `new`, `copy`, `delete`, `rename`, `set`, `list` | `layout` |
-| `option` | `close`, `open`, `join`, `width`, `fit`, `spline`, `decurve`, `reverse`, `ltypegen`, `vertex` | `pedit` |
-| `option` | `close`, `open`, `reverse`, `refit`, `purge`, `polyline`, `move` | `splinedit` |
+| `option` | `close`, `open`, `join`, `width`, `fit`, `spline`, `decurve`, `reverse`, `ltypegen`, `vertex` | `polyline.edit` |
+| `option` | `close`, `open`, `reverse`, `refit`, `purge`, `polyline`, `move` | `spline.edit` |
 | `scope` | `person`, `agent` | `u`, `undo`, `redo`, `edit.undo`, `edit.redo` |
-| `style` | `normal`, `calligraphy` | `revcloud`, `revcloud.polygonal`, `revcloud.freehand` |
-| `table` | `layer`, `linetype`, `style`, `dimstyle`, `block`, `mleaderstyle`, `tablestyle`, `view`, `ucs` | `rename` |
+| `style` | `normal`, `calligraphy` | `revisionCloud.add`, `revisionCloud.addPolygonal`, `revisionCloud.addFreehand` |
+| `table` | `layer`, `linetype`, `style`, `dimensionStyle.open`, `block`, `multileaderStyle.open`, `tableStyle.open`, `view`, `ucs` | `rename` |
 | `type` | `rectangular`, `polar`, `path` | `array` |
-| `type` | `linear`, `aligned`, `horizontal`, `vertical`, `angular`, `radius`, `diameter` | `dimconstraint` |
-| `type` | `coincident`, `collinear`, `concentric`, `fix`, `parallel`, `perpendicular`, `horizontal`, `vertical`, `tangent`, `smooth`, `symmetric`, `equal` | `geomconstraint` |
+| `type` | `linear`, `aligned`, `horizontal`, `vertical`, `angular`, `radius`, `diameter` | `constraint.addDimensional` |
+| `type` | `coincident`, `collinear`, `concentric`, `fix`, `parallel`, `perpendicular`, `horizontal`, `vertical`, `tangent`, `smooth`, `symmetric`, `equal` | `constraint.addGeometric` |
 | `type` | `all`, `blocks`, `dimstyles`, `groups`, `layers`, `linetypes`, `mleaderstyles`, `tablestyles`, `textstyles`, `zerolength`, `emptytext` | `purge` |
 
 ## Defaults
@@ -72,8 +72,8 @@ Defaults the engine states in its schemas (other defaults are named in the param
 | Command | Parameter | Default |
 |---|---|---|
 | `select` | `clear` | `true` |
-| `xline` | `hor` | `true` |
-| `xline` | `ver` | `true` |
+| `constructionLine.add` | `hor` | `true` |
+| `constructionLine.add` | `ver` | `true` |
 | `fillet` | `polyline` | `true` |
 | `chamfer` | `polyline` | `true` |
 
@@ -100,29 +100,29 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### File > Close All
 
-- `closeall` (writes): Closes every open drawing without saving, leaving no current document. No parameters.
+- `file.closeAll` (writes): Closes every open drawing without saving, leaving no current document. No parameters.
 
 ### File > Save
 
-- `qsave` (writes): Saves the current drawing to its own file, or to the given path, in the format the file name says.
+- `file.save` (writes): Saves the current drawing to its own file, or to the given path, in the format the file name says.
   - `path` file
 
 ### File > Save As...
 
-- `saveas` (writes): Saves the current drawing to a new path as DXF or DWG and makes that path the drawing's file.
+- `file.saveAs` (writes): Saves the current drawing to a new path as DXF or DWG and makes that path the drawing's file.
   - `format` string, one of `dxf` | `dwg`
   - `path` file
 
 ### (no menu)
 
-- `document.switch` (writes): Makes the open drawing at the given document index the current one.
+- `file.switch` (writes): Makes the open drawing at the given document index the current one.
   - `index` integer, a position counted from 0 (the first is 0)
-- `document.bytes` (reads): Answers the current drawing written as DXF, base64-encoded, without saving it to a file.
+- `file.bytes` (reads): Answers the current drawing written as DXF, base64-encoded, without saving it to a file.
   - `format` string
 - `undo` (writes): Undoes the last count steps of the caller's undo scope, or of the given person or agent scope.
   - `count` integer
   - `scope` string, one of `person` | `agent`
-- `ai_deselect` (reads): Clears the selection so no object is selected, and answers the selection count. No parameters.
+- `edit.deselectAll` (reads): Clears the selection so no object is selected, and answers the selection count. No parameters.
 - `select` (reads): Sets or extends the selection by handles, a window or crossing box, or a pick point, or clears it; answers the selected handles.
   - `add` boolean, in one of several forms of the parameters
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
@@ -133,7 +133,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `handles` string[], handles; in one of several forms of the parameters
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
   - `window` array[], in one of several forms of the parameters
-- `qselect.info` (reads): Answers the object types in the drawing or selection with their counts, and the properties and operators Quick Select offers for a type.
+- `select.quickInfo` (reads): Answers the object types in the drawing or selection with their counts, and the properties and operators Quick Select offers for a type.
   - `applyTo` string, one of `drawing` | `selection`
   - `type` string
 - `view.set` (reads): Sets the view to a centre point and a visible height in drawing units.
@@ -147,18 +147,18 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
   - `points` array
   - `text` string
-- `dimdisassociate` (writes): Removes the associativity of the given dimensions so they no longer follow their objects.
+- `dimension.disassociate` (writes): Removes the associativity of the given dimensions so they no longer follow their objects.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
-- `dimtedit` (writes): Moves the text of the given dimensions to a point, or sets it home, to an angle, left, centre or right.
+- `dimension.editText` (writes): Moves the text of the given dimensions to a point, or sets it home, to an angle, left, centre or right.
   - `angle` number
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `handles` string[]
   - `mode` string
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
-- `-block` (writes): Defines a block from objects and a base point, then deletes the objects by default (or keeps or converts them), as -BLOCK does.
+- `block.add` (writes): Defines a block from objects and a base point, then deletes the objects by default (or keeps or converts them), as -BLOCK does.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` number[]
   - `description` string
@@ -168,7 +168,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
   - `name` string
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
-- `wblock` (writes): Writes a block, or the given objects with a base point, to a new drawing file at a path.
+- `block.write` (writes): Writes a block, or the given objects with a base point, to a new drawing file at a path.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` number[]
   - `handles` string[]
@@ -178,8 +178,8 @@ Defaults the engine states in its schemas (other defaults are named in the param
 - `purge` (writes): Removes unused named items of one or every type (blocks, layers, styles and more) and zero-length or empty objects, matching names.
   - `names` string, like A*,B; default *
   - `type` string, one of `all` | `blocks` | `dimstyles` | `groups` | `layers` | `linetypes` | `mleaderstyles` | `tablestyles` | `textstyles` | `zerolength` | `emptytext`, default all: every named type
-- `blocks.list` (reads): Answers every named block definition in the drawing with its name, base point, number of objects and description. No parameters.
-- `attdisp` (writes): Sets how attributes display (normal, all on or all off) through ATTMODE, and answers the new value.
+- `block.list` (reads): Answers every named block definition in the drawing with its name, base point, number of objects and description. No parameters.
+- `attribute.display` (writes): Sets how attributes display (normal, all on or all off) through ATTMODE, and answers the new value.
   - `mode` string, one of `normal` | `on` | `off`
 - `array` (writes): Copies objects in a rectangular, polar or path array, taking the parameters of arrayrect, arraypolar or arraypath.
   - `align` boolean
@@ -201,12 +201,12 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
-- `groupedit` (writes): Adds objects to a group, removes them, or renames it, and answers its members; removing every member deletes the group.
+- `group.edit` (writes): Adds objects to a group, removes them, or renames it, and answers its members; removing every member deletes the group.
   - `add` json[], [handles]
   - `name` string
   - `remove` json[], [handles]
   - `rename` string
-- `groups.list` (reads): Answers every group in the drawing with its name, description, selectability, whether it is unnamed, and its member handles. No parameters.
+- `group.list` (reads): Answers every group in the drawing with its name, description, selectability, whether it is unnamed, and its member handles. No parameters.
 - `grip.move` (writes): Stretches one grip of the given objects to a point, or with mode move moves the objects from a grip, optionally copying them.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` number[], in one of several forms of the parameters
@@ -254,7 +254,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `index` integer, a position counted from 0 (the first is 0)
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
   - `to` number[]
-- `layer.new` (writes): Creates a layer with a name and optional colour, linetype and lineweight, optionally making it current.
+- `layer.add` (writes): Creates a layer with a name and optional colour, linetype and lineweight, optionally making it current.
   - `color` string
   - `current` boolean
   - `linetype` string
@@ -276,18 +276,18 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `transparency` number or string
 - `layer.delete` (writes): Deletes the named layer when it is empty and is not layer 0, Defpoints or the current layer.
   - `name` string
-- `laymcur` (writes): Makes the layer of the given object, or the selected one, the current layer.
+- `layer.makeObjectCurrent` (writes): Makes the layer of the given object, or the selected one, the current layer.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
-- `layon` (writes): Turns every layer in the drawing on. No parameters.
-- `laythw` (writes): Thaws every frozen layer in the drawing. No parameters.
-- `layerstate.restore` (writes): Restores the layer settings saved in the named layer state.
+- `layer.allOn` (writes): Turns every layer in the drawing on. No parameters.
+- `layer.thawAll` (writes): Thaws every frozen layer in the drawing. No parameters.
+- `layerState.restore` (writes): Restores the layer settings saved in the named layer state.
   - `name` string
-- `layerstate.list` (reads): Answers the names of the saved layer states, with a message line. No parameters.
-- `layerstate.delete` (writes): Deletes the named saved layer state.
+- `layerState.list` (reads): Answers the names of the saved layer states, with a message line. No parameters.
+- `layerState.delete` (writes): Deletes the named saved layer state.
   - `name` string
-- `layerstate.rename` (writes): Renames a saved layer state from one name to another.
+- `layerState.rename` (writes): Renames a saved layer state from one name to another.
   - `from` string
   - `to` string
 - `layout` (writes): Creates, copies, deletes, renames, sets or lists paper space layouts, with the option prompts of LAYOUT.
@@ -301,11 +301,11 @@ Defaults the engine states in its schemas (other defaults are named in the param
 - `layout.rename` (writes): Renames a layout, by default the current one, to a new name.
   - `from` string
   - `to` string
-- `layout.copy` (writes): Copies a layout with its page setup and viewports to a new layout name.
+- `layout.duplicate` (writes): Copies a layout with its page setup and viewports to a new layout name.
   - `from` string
   - `to` string
 - `layout.list` (reads): Answers every layout with its name, tab order, whether it is current, its page setup and its viewports. No parameters.
-- `mview` (writes): Creates one to four viewports in a layout over two corners, by default the printable area, in an arrangement.
+- `viewport.add` (writes): Creates one to four viewports in a layout over two corners, by default the printable area, in an arrangement.
   - `arrangement` string, one of `vertical` | `horizontal` | `left` | `right` | `above` | `below`
   - `count` integer
   - `layout` string
@@ -323,7 +323,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `scale` number or string or array
   - `thaw` json[], [layer]
   - `viewHeight` number
-- `vplayer` (writes): Freezes or thaws layers and overrides layer colours in one layout viewport only.
+- `viewport.freezeLayer` (writes): Freezes or thaws layers and overrides layer colours in one layout viewport only.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `center` number[]
   - `colors` object, {layer: color ("red" | 1..255 | "r,g,b") | null to clear}; "red" | 1..255 | "r,g,b"
@@ -335,11 +335,11 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `scale` number or string
   - `thaw` json[], [layer]
   - `viewHeight` number
-- `mspace` (reads): Makes a layout viewport active so editing happens in model space through it, by handle or by a paper point inside it.
+- `viewport.modelSpace` (reads): Makes a layout viewport active so editing happens in model space through it, by handle or by a paper point inside it.
   - `at` number[]
   - `handle` string
-- `pspace` (reads): Leaves the active viewport so editing happens in the layout's paper space again. No parameters.
-- `properties.set` (writes): Sets properties of the given objects, or the selection: layer, colour, linetype, lineweight, scale, transparency, visibility and geometry fields.
+- `viewport.paperSpace` (reads): Leaves the active viewport so editing happens in the layout's paper space again. No parameters.
+- `object.setProperties` (writes): Sets properties of the given objects, or the selection: layer, colour, linetype, lineweight, scale, transparency, visibility and geometry fields.
   - `angle` number, degrees; a line's, or a hatch pattern's
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `area` number
@@ -357,7 +357,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `length` number, a line's
   - `linetype` string
   - `lineweight` number or string
-  - `ltscale` number
+  - `property.linetypeScale` number
   - `pattern` string, a hatch pattern name
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
   - `position` number[], text
@@ -372,26 +372,26 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `visible` boolean
   - `width` number, a polyline's or text frame's
   - `widthFactor` number
-- `ltscale` (writes): Sets the drawing's global linetype scale factor (LTSCALE).
+- `property.linetypeScale` (writes): Sets the drawing's global linetype scale factor (LTSCALE).
   - `scale` number
-- `style.list` (reads): Answers every text style with its font, height, width factor, flags and whether it is current. No parameters.
-- `style.rename` (writes): Renames a text style from one name to another.
+- `textStyle.list` (reads): Answers every text style with its font, height, width factor, flags and whether it is current. No parameters.
+- `textStyle.rename` (writes): Renames a text style from one name to another.
   - `from` string
   - `to` string
-- `style.delete` (writes): Deletes a text style that is not Standard, current or used by any object.
+- `textStyle.delete` (writes): Deletes a text style that is not Standard, current or used by any object.
   - `name` string
-- `style.current` (writes): Makes the named text style the current one for new text.
+- `textStyle.setCurrent` (writes): Makes the named text style the current one for new text.
   - `name` string
-- `dimstyle.list` (reads): Answers the dimension styles and the current one, and every variable of the named style when one is given.
+- `dimensionStyle.list` (reads): Answers the dimension styles and the current one, and every variable of the named style when one is given.
   - `name` string
-- `dimstyle.rename` (writes): Renames a dimension style from one name to another.
+- `dimensionStyle.rename` (writes): Renames a dimension style from one name to another.
   - `from` string
   - `to` string
-- `dimstyle.delete` (writes): Deletes a dimension style that is not Standard, current or used by any dimension.
+- `dimensionStyle.delete` (writes): Deletes a dimension style that is not Standard, current or used by any dimension.
   - `name` string
-- `dimstyle.current` (writes): Makes the named dimension style the current one for new dimensions.
+- `dimensionStyle.setCurrent` (writes): Makes the named dimension style the current one for new dimensions.
   - `name` string
-- `dimstyle.override` (writes): Sets per-dimension overrides of style fields or DIM variables on the given dimensions, or clears them.
+- `dimensionStyle.override` (writes): Sets per-dimension overrides of style fields or DIM variables on the given dimensions, or clears them.
   - `DIMADEC` boolean or number or string
   - `DIMALT` boolean or number or string
   - `DIMALTD` boolean or number or string
@@ -491,10 +491,10 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `tolZeroSuppression` boolean or number or string
   - `tolerance` boolean or number or string
   - `zeroSuppression` boolean or number or string
-- `drawing.inspect` (reads): Answers an overview of the drawing: object counts by type, layers, blocks, styles, current settings and, optionally, a page of its objects.
-  - `entities` boolean
+- `file.inspect` (reads): Answers an overview of the drawing: object counts by type, layers, blocks, styles, current settings and, optionally, a page of its objects.
+  - `object.query` boolean
   - `limit` integer
-- `entities` (reads): Answers a page of objects of one space (Model, or a layout by `layout`, without going there; default the space shown) filtered by type, layer and a crossing or inside window, with their handles, properties and geometry and the total count.
+- `object.query` (reads): Answers a page of objects of one space (Model, or a layout by `layout`, without going there; default the space shown) filtered by type, layer and a crossing or inside window, with their handles, properties and geometry and the total count.
   - `crossing` boolean, default true; false = entirely inside
   - `layer` string, a layer name
   - `layout` string, "Model" or a layout's name; default the space shown
@@ -502,7 +502,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `offset` number
   - `type` string
   - `window` array[]
-- `entities.measure` (reads): Measures without changing anything: each entity's bounding box (`bounds`: handles), the minimum distance between two entities or points with the nearest points (`distance`: [a, b], each a handle or [x, y]), the points where two entities cross (`intersections`: [a, b] handles), or the pairs of duplicate objects in a space (`overlaps`: {layout?}, Model unless named; OVERKILL's report, nothing deleted). Give exactly one.
+- `object.measure` (reads): Measures without changing anything: each entity's bounding box (`bounds`: handles), the minimum distance between two entities or points with the nearest points (`distance`: [a, b], each a handle or [x, y]), the points where two entities cross (`intersections`: [a, b] handles), or the pairs of duplicate objects in a space (`overlaps`: {layout?}, Model unless named; OVERKILL's report, nothing deleted). Give exactly one.
   - `bounds` string[], entities' handles
   - `distance` array, two entities (handles) or points ([x, y])
   - `intersections` string[], two entities' handles
@@ -515,28 +515,28 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `on` boolean
 - `polar` (reads): Turns polar tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.
   - `on` boolean
-- `otrack` (reads): Turns object snap tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.
+- `drafting.objectSnapTracking` (reads): Turns object snap tracking on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.
   - `on` boolean
-- `dynmode` (reads): Turns dynamic input on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.
+- `drafting.dynamicInput` (reads): Turns dynamic input on or off, or toggles it with no value, and answers the new state; the drawing is unchanged.
   - `on` boolean
-- `lwdisplay` (reads): Turns the display of lineweights on or off, or toggles it with no value, and answers the new state.
+- `drafting.lineweightDisplay` (reads): Turns the display of lineweights on or off, or toggles it with no value, and answers the new state.
   - `on` boolean
-- `isodraft` (reads): Turns isometric drafting on or off, or toggles it with no value, and answers the new state.
+- `drafting.isometric` (reads): Turns isometric drafting on or off, or toggles it with no value, and answers the new state.
   - `on` boolean
-- `transparencydisplay` (reads): Turns the display of object transparency on or off, or toggles it with no value, and answers the new state.
+- `drafting.transparencyDisplay` (reads): Turns the display of object transparency on or off, or toggles it with no value, and answers the new state.
   - `on` boolean
-- `qpmode` (reads): Turns the Quick Properties palette on or off, or toggles it with no value, and answers the new state.
+- `drafting.quickProperties` (reads): Turns the Quick Properties palette on or off, or toggles it with no value, and answers the new state.
   - `on` boolean
-- `selectioncycling` (reads): Turns selection cycling of overlapping objects on or off, or toggles it with no value, and answers the new state.
+- `drafting.selectionCycling` (reads): Turns selection cycling of overlapping objects on or off, or toggles it with no value, and answers the new state.
   - `on` boolean
-- `osnap` (reads): Turns running object snaps on or off and sets their modes by name or OSMODE bits; answers the state and the active modes.
+- `drafting.objectSnap` (reads): Turns running object snaps on or off and sets their modes by name or OSMODE bits; answers the state and the active modes.
   - `modes` string[]
   - `on` boolean
   - `osmode` integer, instead of modes
-- `getvar` (reads): Answers the value of the named system variable.
+- `variable.get` (reads): Answers the value of the named system variable.
   - `name` string
-- `sysvars` (reads): Answers every system variable the drawing has, by name, with its value. No parameters.
-- `measuregeom` (reads): Measures a distance, a radius, an angle or an area, taking the parameters of dist, radius.measure, angle.measure or area.
+- `variable.list` (reads): Answers every system variable the drawing has, by name, with its value. No parameters.
+- `measure.geometry` (reads): Measures a distance, a radius, an angle or an area, taking the parameters of dist, measure.radius, measure.angle or area.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `handles` string[]
@@ -551,18 +551,18 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `handle` string
   - `row` integer
   - `text` string
-- `table.insertrow` (writes): Inserts a row into a table before a row, or appends one, with an optional height.
+- `table.insertRow` (writes): Inserts a row into a table before a row, or appends one, with an optional height.
   - `handle` string
   - `height` number
   - `row` integer, insert before; default: append
-- `table.deleterow` (writes): Deletes one row of a table by its index.
+- `table.deleteRow` (writes): Deletes one row of a table by its index.
   - `handle` string
   - `row` integer
-- `table.insertcol` (writes): Inserts a column into a table before a column, or appends one, with an optional width.
+- `table.insertColumn` (writes): Inserts a column into a table before a column, or appends one, with an optional width.
   - `col` integer
   - `handle` string
   - `width` number
-- `table.deletecol` (writes): Deletes one column of a table by its index.
+- `table.deleteColumn` (writes): Deletes one column of a table by its index.
   - `col` integer
   - `handle` string
 - `table.merge` (writes): Merges a block of table cells, from a row and column over a number of rows and columns, into one cell.
@@ -575,7 +575,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `col` integer
   - `handle` string
   - `row` integer
-- `geomconstraint` (writes): Adds a geometric constraint of a given type between points or objects and re-solves the drawing's constraints.
+- `constraint.addGeometric` (writes): Adds a geometric constraint of a given type between points or objects and re-solves the drawing's constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -583,7 +583,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `p2` string or array
   - `p3` string or array
   - `type` string, one of `coincident` | `collinear` | `concentric` | `fix` | `parallel` | `perpendicular` | `horizontal` | `vertical` | `tangent` | `smooth` | `symmetric` | `equal`
-- `dimconstraint` (writes): Adds a dimensional constraint (linear, aligned, horizontal, vertical, angular, radius or diameter) with a value or expression and re-solves.
+- `constraint.addDimensional` (writes): Adds a dimensional constraint (linear, aligned, horizontal, vertical, angular, radius or diameter) with a value or expression and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -592,7 +592,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `p2` string or array
   - `type` string, one of `linear` | `aligned` | `horizontal` | `vertical` | `angular` | `radius` | `diameter`
   - `value` number
-- `dclinear` (writes): Adds a horizontal or vertical distance constraint between two points, with a value or expression, and re-solves.
+- `constraint.dimensionLinear` (writes): Adds a horizontal or vertical distance constraint between two points, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -600,8 +600,8 @@ Defaults the engine states in its schemas (other defaults are named in the param
   - `p1` string or array
   - `p2` string or array
   - `value` number
-- `constraints.inspect` (reads): Answers the drawing's constraints, their glyph anchors, the parameters, the constraint settings and whether everything is satisfied. No parameters.
-- `commandLine` (writes): Runs a line typed at the command line: a command name or alias with its prompts' answers, as the person types them.
+- `constraint.inspect` (reads): Answers the drawing's constraints, their glyph anchors, the parameters, the constraint settings and whether everything is satisfied. No parameters.
+- `command.runLine` (writes): Runs a line typed at the command line: a command name or alias with its prompts' answers, as the person types them.
   - `text` string
 - `file.export` (reads): Exports the drawing as a PDF, SVG or PNG file: model space framed to its extents (a PDF fitted to its page's paper). Answers the file as base64 `data`, without saving the drawing or changing it.
   - `format` string, one of `pdf` | `svg` | `png`
@@ -642,21 +642,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Edit > Cut
 
-- `cutclip` (writes): Copies the given objects, or the selection, to the clipboard and erases them from the drawing.
+- `edit.cut` (writes): Copies the given objects, or the selection, to the clipboard and erases them from the drawing.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Edit > Copy
 
-- `copyclip` (reads): Copies the given objects, or the selection, to the clipboard with their own coordinates; the drawing is unchanged.
+- `edit.copy` (reads): Copies the given objects, or the selection, to the clipboard with their own coordinates; the drawing is unchanged.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Edit > Copy with Base Point
 
-- `copybase` (reads): Copies the given objects, or the selection, to the clipboard with a base point that a later paste places; the drawing is unchanged.
+- `edit.copyWithBasePoint` (reads): Copies the given objects, or the selection, to the clipboard with a base point that a later paste places; the drawing is unchanged.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` number[]
   - `handles` string[]
@@ -664,31 +664,31 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Edit > Paste
 
-- `pasteclip` (writes): Pastes the clipboard's objects into the current space, putting their base point at the given point or at their original coordinates.
+- `edit.paste` (writes): Pastes the clipboard's objects into the current space, putting their base point at the given point or at their original coordinates.
   - `at` number[]
 
 ### Edit > Paste as Block
 
-- `pasteblock` (writes): Pastes the clipboard's objects as one new anonymous block reference inserted at the given point or at their original coordinates.
+- `edit.pasteAsBlock` (writes): Pastes the clipboard's objects as one new anonymous block reference inserted at the given point or at their original coordinates.
   - `at` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
 
 ### Edit > Paste to Original Coordinates
 
-- `pasteorig` (writes): Pastes the clipboard's objects at their original coordinates into a drawing other than the one they were copied from. No parameters.
+- `edit.pasteToOriginalCoordinates` (writes): Pastes the clipboard's objects at their original coordinates into a drawing other than the one they were copied from. No parameters.
 
 ### Edit > Clear
 
-- `erase.selection` (writes): Erases every selected object from the drawing, as Edit > Clear does. No parameters.
+- `edit.delete` (writes): Erases every selected object from the drawing, as Edit > Clear does. No parameters.
 
 ### Edit > Select All
 
-- `selectall` (reads): Selects every selectable object in the current space and answers how many are selected. No parameters.
+- `edit.selectAll` (reads): Selects every selectable object in the current space and answers how many are selected. No parameters.
 
 ### Edit > Quick Select...
 
-- `qselect` (reads): Selects objects by type and a property comparison (equals, differs, greater, less, wildcard), new, appended or excluded, over the drawing or the selection.
+- `select.quick` (reads): Selects objects by type and a property comparison (equals, differs, greater, less, wildcard), new, appended or excluded, over the drawing or the selection.
   - `applyTo` string, one of `drawing` | `selection`
   - `color` string
   - `layer` string, a layer name
@@ -712,33 +712,33 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Zoom > Previous
 
-- `zoom.previous` (reads): Restores the view saved before the last zoom or pan, if there is one. No parameters.
+- `view.zoomPrevious` (reads): Restores the view saved before the last zoom or pan, if there is one. No parameters.
 
 ### View > Zoom > Window
 
-- `zoom.window` (reads): Zooms the view to fit the rectangle between two corner points.
+- `view.zoomWindow` (reads): Zooms the view to fit the rectangle between two corner points.
   - `p1` number[]
   - `p2` number[]
 
 ### View > Zoom > In
 
-- `zoom.in` (reads): Zooms the view in by a factor of two about its centre. No parameters.
+- `view.zoomIn` (reads): Zooms the view in by a factor of two about its centre. No parameters.
 
 ### View > Zoom > Out
 
-- `zoom.out` (reads): Zooms the view out by a factor of two about its centre. No parameters.
+- `view.zoomOut` (reads): Zooms the view out by a factor of two about its centre. No parameters.
 
 ### View > Zoom > All
 
-- `zoom.all` (reads): Zooms the view to show the drawing limits and every object, whichever is larger. No parameters.
+- `view.zoomAll` (reads): Zooms the view to show the drawing limits and every object, whichever is larger. No parameters.
 
 ### View > Zoom > Extents
 
-- `zoom.extents` (reads): Zooms the view to fit the extents of every object in the current space. No parameters.
+- `view.zoomToFit` (reads): Zooms the view to fit the extents of every object in the current space. No parameters.
 
 ### View > Zoom > Object
 
-- `zoom.object` (reads): Zooms the view to fit the given objects, or the selection.
+- `view.zoomObject` (reads): Zooms the view to fit the given objects, or the selection.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
@@ -753,31 +753,31 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Pan > Left
 
-- `pan.left` (reads): Pans the view a step to the left. No parameters.
+- `view.panLeft` (reads): Pans the view a step to the left. No parameters.
 
 ### View > Pan > Right
 
-- `pan.right` (reads): Pans the view a step to the right. No parameters.
+- `view.panRight` (reads): Pans the view a step to the right. No parameters.
 
 ### View > Pan > Up
 
-- `pan.up` (reads): Pans the view a step upwards. No parameters.
+- `view.panUp` (reads): Pans the view a step upwards. No parameters.
 
 ### View > Pan > Down
 
-- `pan.down` (reads): Pans the view a step downwards. No parameters.
+- `view.panDown` (reads): Pans the view a step downwards. No parameters.
 
 ### View > Regen
 
-- `regen` (reads): Regenerates the current viewport's display from the drawing data; the drawing is unchanged. No parameters.
+- `view.regen` (reads): Regenerates the current viewport's display from the drawing data; the drawing is unchanged. No parameters.
 
 ### View > Regen All
 
-- `regenall` (reads): Regenerates the display of every viewport from the drawing data; the drawing is unchanged. No parameters.
+- `view.regenAll` (reads): Regenerates the display of every viewport from the drawing data; the drawing is unchanged. No parameters.
 
 ### View > Redraw
 
-- `redraw` (reads): Repaints the current view to clear leftover marks; the drawing is unchanged. No parameters.
+- `view.redraw` (reads): Repaints the current view to clear leftover marks; the drawing is unchanged. No parameters.
 
 ### Draw > Line
 
@@ -789,7 +789,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Polyline
 
-- `pline` (writes): Draws one lightweight polyline through the vertices, each a point or a point with bulge and start and end widths, optionally closed.
+- `polyline.add` (writes): Draws one lightweight polyline through the vertices, each a point or a point with bulge and start and end widths, optionally closed.
   - `closed` boolean, in one of several forms of the parameters
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -824,7 +824,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Rectangle
 
-- `rectang` (writes): Draws a closed rectangular polyline from two corners, dimensions or an area, with optional rotation, fillet or chamfer corners, width, elevation and thickness.
+- `rectangle.add` (writes): Draws a closed rectangular polyline from two corners, dimensions or an area, with optional rotation, fillet or chamfer corners, width, elevation and thickness.
   - `area` number
   - `breadth` number, area with length or breadth
   - `chamfer` number[], [d1, d2]
@@ -873,7 +873,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Point > Multiple Point
 
-- `point.multiple` (writes): Draws a point object at each of the given points in the current point style.
+- `point.addMultiple` (writes): Draws a point object at each of the given points in the current point style.
   - `at` number[], in one of several forms of the parameters
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -881,7 +881,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Construction Line
 
-- `xline` (writes): Draws an infinite construction line through two points, at an angle, horizontal or vertical, bisecting an angle, or offset from a line.
+- `constructionLine.add` (writes): Draws an infinite construction line through two points, at an angle, horizontal or vertical, bisecting an angle, or offset from a line.
   - `angle` number, degrees; in one of several forms of the parameters
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` number[]
@@ -946,7 +946,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Text > Multiline Text...
 
-- `mtext` (writes): Draws multiline text at a point with optional height, wrap width, attachment, rotation, style and line spacing.
+- `multilineText.add` (writes): Draws multiline text at a point with optional height, wrap width, attachment, rotation, style and line spacing.
   - `at` number[]
   - `attach` integer
   - `height` number
@@ -962,7 +962,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, Center, End
 
-- `arc.sce` (writes): Draws a counter-clockwise arc from a start point about a centre to the angle of an end point.
+- `arc.addStartCenterEnd` (writes): Draws a counter-clockwise arc from a start point about a centre to the angle of an end point.
   - `center` number[]
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -971,7 +971,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, Center, Angle
 
-- `arc.sca` (writes): Draws an arc from a start point about a centre through an included angle; positive angles go counter-clockwise.
+- `arc.addStartCenterAngle` (writes): Draws an arc from a start point about a centre through an included angle; positive angles go counter-clockwise.
   - `angle` number, degrees, + = CCW
   - `center` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -980,7 +980,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, Center, Length
 
-- `arc.scl` (writes): Draws an arc from a start point about a centre with the given chord length; a negative length draws the major arc.
+- `arc.addStartCenterLength` (writes): Draws an arc from a start point about a centre with the given chord length; a negative length draws the major arc.
   - `center` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -989,7 +989,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, End, Angle
 
-- `arc.sea` (writes): Draws an arc between a start and an end point that sweeps the given included angle.
+- `arc.addStartEndAngle` (writes): Draws an arc between a start and an end point that sweeps the given included angle.
   - `angle` number, degrees, + = CCW
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -998,7 +998,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, End, Direction
 
-- `arc.sed` (writes): Draws an arc between a start and an end point that leaves the start point in the given tangent direction.
+- `arc.addStartEndDirection` (writes): Draws an arc between a start and an end point that leaves the start point in the given tangent direction.
   - `direction` number or array
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1007,7 +1007,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Start, End, Radius
 
-- `arc.ser` (writes): Draws an arc between a start and an end point with the given radius; a negative radius draws the major arc.
+- `arc.addStartEndRadius` (writes): Draws an arc between a start and an end point with the given radius; a negative radius draws the major arc.
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1016,7 +1016,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Center, Start, End
 
-- `arc.cse` (writes): Draws a counter-clockwise arc about a centre from a start point to the angle of an end point.
+- `arc.addCenterStartEnd` (writes): Draws a counter-clockwise arc about a centre from a start point to the angle of an end point.
   - `center` number[]
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1025,7 +1025,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Center, Start, Angle
 
-- `arc.csa` (writes): Draws an arc about a centre from a start point through an included angle in degrees.
+- `arc.addCenterStartAngle` (writes): Draws an arc about a centre from a start point through an included angle in degrees.
   - `angle` number, degrees
   - `center` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1034,7 +1034,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Center, Start, Length
 
-- `arc.csl` (writes): Draws an arc about a centre from a start point with the given chord length.
+- `arc.addCenterStartLength` (writes): Draws an arc about a centre from a start point with the given chord length.
   - `center` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1043,7 +1043,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Arc > Continue
 
-- `arc.continue` (writes): Draws an arc tangent to the end of the last line or arc drawn, to an end point, or from a start point and direction.
+- `arc.addContinue` (writes): Draws an arc tangent to the end of the last line or arc drawn, to an end point, or from a start point and direction.
   - `direction` number or array
   - `end` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1052,7 +1052,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Circle > Center, Diameter
 
-- `circle.cd` (writes): Draws a circle from its centre point and diameter.
+- `circle.addCenterDiameter` (writes): Draws a circle from its centre point and diameter.
   - `center` number[]
   - `diameter` number
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1060,7 +1060,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Circle > 2 Points
 
-- `circle.2p` (writes): Draws a circle whose diameter runs between two points.
+- `circle.addTwoPoints` (writes): Draws a circle whose diameter runs between two points.
   - `center` number[]
   - `diameter` number
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1070,7 +1070,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Circle > 3 Points
 
-- `circle.3p` (writes): Draws the circle that passes through three points.
+- `circle.addThreePoints` (writes): Draws the circle that passes through three points.
   - `center` number[]
   - `diameter` number
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1081,7 +1081,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Circle > Tan, Tan, Radius
 
-- `circle.ttr` (writes): Draws a circle of a given radius tangent to two lines, circles, arcs or polyline segments, the solution nearest the pick points.
+- `circle.addTanTanRadius` (writes): Draws a circle of a given radius tangent to two lines, circles, arcs or polyline segments, the solution nearest the pick points.
   - `h1` string
   - `h2` string
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1092,7 +1092,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Circle > Tan, Tan, Tan
 
-- `circle.ttt` (writes): Draws a circle tangent to three lines, circles, arcs or polyline segments, the solution nearest the three pick points.
+- `circle.addTanTanTan` (writes): Draws a circle tangent to three lines, circles, arcs or polyline segments, the solution nearest the three pick points.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -1104,7 +1104,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Ellipse > Axis, End
 
-- `ellipse.axis` (writes): Draws an ellipse from the two end points of one axis and half the length of the other, as a distance or a third point.
+- `ellipse.addAxisEnd` (writes): Draws an ellipse from the two end points of one axis and half the length of the other, as a distance or a third point.
   - `distance` number
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1114,7 +1114,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Ellipse > Arc
 
-- `ellipse.arc` (writes): Draws an elliptical arc between start and end angles, from a centre, major axis and ratio or from axis end points and a distance.
+- `ellipse.addArc` (writes): Draws an elliptical arc between start and end angles, from a centre, major axis and ratio or from axis end points and a distance.
   - `center` number[]
   - `distance` number
   - `end` number, degrees; in one of several forms of the parameters
@@ -1153,7 +1153,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Revision Cloud > Rectangular
 
-- `revcloud` (writes): Draws a revision cloud of arcs from a rectangle, a polygon, a freehand path or an existing object, with optional arc length and style.
+- `revisionCloud.add` (writes): Draws a revision cloud of arcs from a rectangle, a polygon, a freehand path or an existing object, with optional arc length and style.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `arcLength` number
   - `freehand` array[]
@@ -1169,7 +1169,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Revision Cloud > Polygonal
 
-- `revcloud.polygonal` (writes): Draws a revision cloud of arcs along the closed polygon through the given points.
+- `revisionCloud.addPolygonal` (writes): Draws a revision cloud of arcs along the closed polygon through the given points.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `arcLength` number
   - `freehand` array[]
@@ -1183,7 +1183,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Revision Cloud > Freehand
 
-- `revcloud.freehand` (writes): Draws a revision cloud of arcs along a freehand path through the given points.
+- `revisionCloud.addFreehand` (writes): Draws a revision cloud of arcs along a freehand path through the given points.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `arcLength` number
   - `freehand` array[]
@@ -1209,7 +1209,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > 3D Polyline
 
-- `3dpoly` (writes): Draws a 3D polyline of straight segments through points with optional z values, optionally closed.
+- `polyline.add3d` (writes): Draws a 3D polyline of straight segments through points with optional z values, optionally closed.
   - `closed` boolean
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1217,7 +1217,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Multiline
 
-- `mline` (writes): Draws a multiline as two parallel offset polylines through the points, with scale, justification and an optional close.
+- `multiline.add` (writes): Draws a multiline as two parallel offset polylines through the points, with scale, justification and an optional close.
   - `closed` boolean
   - `justification` string, one of `top` | `zero` | `bottom`
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1239,7 +1239,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Spline > Control Vertices
 
-- `spline.cv` (writes): Draws a spline from control vertices with the given degree (default 3), optionally closed.
+- `spline.addControlVertices` (writes): Draws a spline from control vertices with the given degree (default 3), optionally closed.
   - `closed` boolean
   - `control` array[]
   - `degree` integer, 1 to 10; default 3
@@ -1248,7 +1248,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Center Mark
 
-- `centermark` (writes): Draws centre marks with centre lines on the CENTER linetype for the given circles and arcs.
+- `centerMark.add` (writes): Draws centre marks with centre lines on the CENTER linetype for the given circles and arcs.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `handles` string[]
@@ -1258,7 +1258,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Center Line
 
-- `centerline` (writes): Draws a centre line midway between two lines, on the CENTER linetype.
+- `centerLine.add` (writes): Draws a centre line midway between two lines, on the CENTER linetype.
   - `h1` string
   - `h2` string
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1266,7 +1266,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Linear
 
-- `dimlinear` (writes): Draws a horizontal, vertical or rotated linear dimension between two points, or an associative one for an object, with the line at a point.
+- `dimension.addLinear` (writes): Draws a horizontal, vertical or rotated linear dimension between two points, or an associative one for an object, with the line at a point.
   - `at` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1278,7 +1278,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Aligned
 
-- `dimaligned` (writes): Draws a dimension parallel to the line between two points, its dimension line through a point, with optional override text.
+- `dimension.addAligned` (writes): Draws a dimension parallel to the line between two points, its dimension line through a point, with optional override text.
   - `at` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1288,7 +1288,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Radius
 
-- `dimradius` (writes): Draws a radius dimension for an arc or circle, or from a centre and a point on the curve.
+- `dimension.addRadius` (writes): Draws a radius dimension for an arc or circle, or from a centre and a point on the curve.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `center` number[]
@@ -1300,7 +1300,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Diameter
 
-- `dimdiameter` (writes): Draws a diameter dimension for an arc or circle, or from a centre and a point on the curve.
+- `dimension.addDiameter` (writes): Draws a diameter dimension for an arc or circle, or from a centre and a point on the curve.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `center` number[]
@@ -1312,7 +1312,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Angular
 
-- `dimangular` (writes): Draws an angular dimension from a vertex and two points, between two lines, or for an arc, with its arc through a point.
+- `dimension.addAngular` (writes): Draws an angular dimension from a vertex and two points, between two lines, or for an arc, with its arc through a point.
   - `arc` string, a handle; in one of several forms of the parameters
   - `at` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1324,7 +1324,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Arc Length
 
-- `dimarc` (writes): Draws an arc length dimension for an arc or polyline arc segment, its line through a point.
+- `dimension.addArcLength` (writes): Draws an arc length dimension for an arc or polyline arc segment, its line through a point.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `handle` string
@@ -1334,7 +1334,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Ordinate
 
-- `dimordinate` (writes): Draws an ordinate dimension giving a feature point's x or y datum value, with its leader to a point.
+- `dimension.addOrdinate` (writes): Draws an ordinate dimension giving a feature point's x or y datum value, with its leader to a point.
   - `feature` number[]
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
@@ -1343,21 +1343,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Continue
 
-- `dimcontinue` (writes): Draws linear dimensions that continue end to end from the last linear dimension to each of the given points.
+- `dimension.addContinue` (writes): Draws linear dimensions that continue end to end from the last linear dimension to each of the given points.
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
   - `points` array
 
 ### Dimension > Baseline
 
-- `dimbaseline` (writes): Draws linear dimensions from the first extension line of the last linear dimension to each of the given points, spaced apart.
+- `dimension.addBaseline` (writes): Draws linear dimensions from the first extension line of the last linear dimension to each of the given points, spaced apart.
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
   - `points` array
 
 ### Dimension > Quick Dimension
 
-- `qdim` (writes): Draws a continuous series of linear dimensions across the end points of the given objects, horizontal or vertical, at a point.
+- `dimension.addQuick` (writes): Draws a continuous series of linear dimensions across the end points of the given objects, horizontal or vertical, at a point.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `handles` string[]
@@ -1380,7 +1380,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Multileader
 
-- `mleader` (writes): Draws a multileader from an arrow point through vertices to a landing, with mtext or a block, straight, spline or no leader.
+- `multileader.add` (writes): Draws a multileader from an arrow point through vertices to a landing, with mtext or a block, straight, spline or no leader.
   - `block` string
   - `blockAttach` string, one of `center` | `insertion`
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
@@ -1391,14 +1391,14 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Update
 
-- `dimstyle.update` (writes): Applies the current dimension style to the given dimensions, or the selected ones, removing their overrides.
+- `dimension.updateStyle` (writes): Applies the current dimension style to the given dimensions, or the selected ones, removing their overrides.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Override
 
-- `dimoverride` (writes): Overrides dimension style fields or DIM variables on the given dimensions, or clears their overrides, and can set override text.
+- `dimension.override` (writes): Overrides dimension style fields or DIM variables on the given dimensions, or clears their overrides, and can set override text.
   - `DIMADEC` boolean or number or string
   - `DIMALT` boolean or number or string
   - `DIMALTD` boolean or number or string
@@ -1502,21 +1502,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Reassociate Dimensions
 
-- `dimreassociate` (writes): Reassociates the given dimensions so their definition points attach to the objects under them.
+- `dimension.reassociate` (writes): Reassociates the given dimensions so their definition points attach to the objects under them.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Align Text > Home
 
-- `dimtedit.home` (writes): Moves the text of the given dimensions back to its default position and angle.
+- `dimension.textHome` (writes): Moves the text of the given dimensions back to its default position and angle.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Align Text > Angle
 
-- `dimtedit.angle` (writes): Rotates the text of the given dimensions to an angle in degrees.
+- `dimension.textAngle` (writes): Rotates the text of the given dimensions to an angle in degrees.
   - `angle` number, degrees
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
@@ -1524,28 +1524,28 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Align Text > Left
 
-- `dimtedit.left` (writes): Moves the text of the given linear dimensions towards the left extension line.
+- `dimension.textLeft` (writes): Moves the text of the given linear dimensions towards the left extension line.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Align Text > Center
 
-- `dimtedit.center` (writes): Centres the text of the given dimensions on the dimension line.
+- `dimension.textCenter` (writes): Centres the text of the given dimensions on the dimension line.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Align Text > Right
 
-- `dimtedit.right` (writes): Moves the text of the given linear dimensions towards the right extension line.
+- `dimension.textRight` (writes): Moves the text of the given linear dimensions towards the right extension line.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Dimension > Dimension Space
 
-- `dimspace` (writes): Spaces parallel linear or angular dimensions evenly from a base dimension, by the given spacing or DIMDLI.
+- `dimension.space` (writes): Spaces parallel linear or angular dimensions evenly from a base dimension, by the given spacing or DIMDLI.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `base` string, a handle
   - `handles` string[], handles
@@ -1595,7 +1595,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Hatch...
 
-- `hatchedit` (writes): Changes the pattern, scale or angle of the given hatches, or the selected ones.
+- `hatch.edit` (writes): Changes the pattern, scale or angle of the given hatches, or the selected ones.
   - `angle` number
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
@@ -1632,7 +1632,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Draw > Block > Define Attributes...
 
-- `attdef` (writes): Defines a block attribute with a tag, prompt and default value at a point, with optional height and invisibility.
+- `attribute.define` (writes): Defines a block attribute with a tag, prompt and default value at a point, with optional height and invisibility.
   - `at` number[]
   - `default` string
   - `height` number
@@ -1644,7 +1644,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Attribute > Single...
 
-- `attedit` (writes): Sets attribute values on one block reference by tag, and answers which changed and which tags were unknown.
+- `attribute.edit` (writes): Sets attribute values on one block reference by tag, and answers which changed and which tags were unknown.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
@@ -1652,7 +1652,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Attribute > Global
 
-- `-attedit` (writes): Finds and replaces text in attribute values across block references filtered by block, tag and value, and answers how many changed.
+- `attribute.editGlobal` (writes): Finds and replaces text in attribute values across block references filtered by block, tag and value, and answers how many changed.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `block` string
   - `find` string
@@ -1670,12 +1670,12 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Attribute > Block Attribute Manager...
 
-- `battman` (reads): Answers the attribute definitions of the named block (tag, prompt, default and invisibility), as the Block Attribute Manager lists them.
+- `attribute.manage` (reads): Answers the attribute definitions of the named block (tag, prompt, default and invisibility), as the Block Attribute Manager lists them.
   - `name` string
 
 ### Modify > Object > Attribute > Synchronize Attributes
 
-- `attsync` (writes): Updates every reference of a block so its attributes match the block's current attribute definitions.
+- `attribute.sync` (writes): Updates every reference of a block so its attributes match the block's current attribute definitions.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `name` string, in one of several forms of the parameters
@@ -1812,14 +1812,14 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Draw Order > Bring to Front
 
-- `draworder.front` (writes): Moves the given objects, or the selection, to the front of the draw order.
+- `arrange.bringToFront` (writes): Moves the given objects, or the selection, to the front of the draw order.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Tools > Draw Order > Send to Back
 
-- `draworder.back` (writes): Moves the given objects, or the selection, to the back of the draw order.
+- `arrange.sendToBack` (writes): Moves the given objects, or the selection, to the back of the draw order.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
@@ -1835,7 +1835,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Break At Point
 
-- `breakatpoint` (writes): Splits an object into two at one point, leaving no gap.
+- `object.breakAtPoint` (writes): Splits an object into two at one point, leaving no gap.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `at` number[]
   - `handle` string
@@ -1850,14 +1850,14 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Delete Duplicate Objects
 
-- `overkill` (writes): Deletes duplicate and overlapping objects among the given ones, or the selection.
+- `object.deleteDuplicates` (writes): Deletes duplicate and overlapping objects among the given ones, or the selection.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Modify > Array > Rectangular Array
 
-- `arrayrect` (writes): Copies the given objects, or the selection, into a grid of rows and columns at the given spacings.
+- `object.arrayRectangular` (writes): Copies the given objects, or the selection, into a grid of rows and columns at the given spacings.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `colSpacing` number
   - `cols` integer
@@ -1868,7 +1868,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Array > Polar Array
 
-- `arraypolar` (writes): Copies the given objects, or the selection, a number of times about a centre over an angle, optionally rotating them.
+- `object.arrayPolar` (writes): Copies the given objects, or the selection, a number of times about a centre over an angle, optionally rotating them.
   - `angle` number, degrees, default 360
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `center` number[]
@@ -1879,7 +1879,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Polyline
 
-- `pedit` (writes): Edits polylines: close, open, join, width, fit, spline, decurve, reverse, linetype generation, or edit one vertex.
+- `polyline.edit` (writes): Edits polylines: close, open, join, width, fit, spline, decurve, reverse, linetype generation, or edit one vertex.
   - `action` string, one of `move` | `insert` | `straighten` | `width`
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `convert` boolean
@@ -1897,7 +1897,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Spline
 
-- `splinedit` (writes): Edits a spline: close, open, reverse, refit, purge fit data, convert to a polyline, or move a fit or control point.
+- `spline.edit` (writes): Edits a spline: close, open, reverse, refit, purge fit data, convert to a polyline, or move a fit or control point.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `fit` array[]
   - `handle` string
@@ -1909,7 +1909,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Lengthen
 
-- `lengthen` (writes): Changes an object's length at the picked end by a delta, percent, total or to a point, or alone measures its length.
+- `object.lengthen` (writes): Changes an object's length at the picked end by a delta, percent, total or to a point, or alone measures its length.
   - `delta` number
   - `deltaAngle` number
   - `handle` string
@@ -1944,7 +1944,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Copy Nested Objects
 
-- `ncopy` (writes): Copies objects nested inside a block reference, the one nearest a pick or all, out into the drawing by a delta or points.
+- `object.copyNested` (writes): Copies objects nested inside a block reference, the one nearest a pick or all, out into the drawing by a delta or points.
   - `delta` number[], [dx, dy]
   - `from` number[]
   - `handle` string
@@ -1953,7 +1953,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Change Space
 
-- `chspace` (writes): Moves the given objects between model space and a layout's paper space through a viewport, keeping their apparent size.
+- `object.changeSpace` (writes): Moves the given objects between model space and a layout's paper space through a viewport, keeping their apparent size.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
@@ -1969,7 +1969,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Array > Path Array
 
-- `arraypath` (writes): Copies the given objects, or the selection, along a path object, a count of copies or at a spacing, optionally aligned to it.
+- `object.arrayPath` (writes): Copies the given objects, or the selection, along a path object, a count of copies or at a spacing, optionally aligned to it.
   - `align` boolean, default true
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `count` integer
@@ -1980,7 +1980,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Object > Edit Text...
 
-- `textedit` (writes): Replaces the contents of a text, mtext, attribute definition, or a dimension's override text.
+- `text.edit` (writes): Replaces the contents of a text, mtext, attribute definition, or a dimension's override text.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
@@ -2010,12 +2010,12 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Layer Tools > Make Current
 
-- `layer.current` (writes): Makes the named layer current, so new objects are drawn on it.
+- `layer.setCurrent` (writes): Makes the named layer current, so new objects are drawn on it.
   - `name` string
 
 ### Format > Layer Tools > Layer Match
 
-- `laymch` (writes): Moves the given objects, or the selection, onto the named layer.
+- `layer.match` (writes): Moves the given objects, or the selection, onto the named layer.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `layer` string, the target layer's name
@@ -2023,73 +2023,73 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Layer Tools > Change to Current Layer
 
-- `laycur` (writes): Moves the given objects, or the selection, onto the current layer.
+- `layer.changeToCurrent` (writes): Moves the given objects, or the selection, onto the current layer.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Isolate Layer
 
-- `layiso` (writes): Isolates the layers of the given objects, or the selection, by turning every other layer off.
+- `layer.isolate` (writes): Isolates the layers of the given objects, or the selection, by turning every other layer off.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Unisolate Layer
 
-- `layuniso` (writes): Restores the layers turned off by the last layer isolate. No parameters.
+- `layer.unisolate` (writes): Restores the layers turned off by the last layer isolate. No parameters.
 
 ### Format > Layer Tools > Freeze Layer
 
-- `layfrz` (writes): Freezes the layers of the given objects, or the selection.
+- `layer.freeze` (writes): Freezes the layers of the given objects, or the selection.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Layer Off
 
-- `layoff` (writes): Turns off the layers of the given objects, or the selection.
+- `layer.off` (writes): Turns off the layers of the given objects, or the selection.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Lock Layer
 
-- `laylck` (writes): Locks the layers of the given objects, or the selection, so their objects cannot be edited.
+- `layer.lock` (writes): Locks the layers of the given objects, or the selection, so their objects cannot be edited.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Unlock Layer
 
-- `layulk` (writes): Unlocks the layers of the given objects, or the selection.
+- `layer.unlock` (writes): Unlocks the layers of the given objects, or the selection.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Format > Layer Tools > Previous Layer
 
-- `layerp` (writes): Undoes the last change to layer settings, restoring the previous layer state. No parameters.
+- `layer.previous` (writes): Undoes the last change to layer settings, restoring the previous layer state. No parameters.
 
 ### Format > Layer States Manager...
 
-- `layerstate.save` (writes): Saves every layer's current settings as a named layer state.
+- `layerState.save` (writes): Saves every layer's current settings as a named layer state.
   - `name` string
 
 ### Format > Layer Tools > Layer Merge
 
-- `laymrg` (writes): Moves the objects on the from layers onto a target layer, then deletes the from layers.
+- `layer.merge` (writes): Moves the objects on the from layers onto a target layer, then deletes the from layers.
   - `from` json[], [names]
   - `to` string
 
 ### Format > Layer Tools > Layer Delete
 
-- `laydel` (writes): Deletes the named layers together with every object on them.
+- `layer.deleteWithObjects` (writes): Deletes the named layers together with every object on them.
   - `names` array
 
 ### Insert > Layout > New Layout
 
-- `layout.new` (writes): Creates a paper space layout with a name, by default with one viewport, and answers its name and viewport.
+- `layout.add` (writes): Creates a paper space layout with a name, by default with one viewport, and answers its name and viewport.
   - `layer` string, the layer the new objects go on, by name (default: the current layer); the drawing's current layer stays as it is
   - `layout` string, the space the new objects go in: "Model" or a layout's name (default: the space the call's part or the editor names); the space shown stays as it is
   - `name` string
@@ -2097,7 +2097,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Viewports > New Viewports...
 
-- `vports` (writes): Creates one to four viewports on a layout in an arrangement, over two corners or the printable area.
+- `viewport.new` (writes): Creates one to four viewports on a layout in an arrangement, over two corners or the printable area.
   - `arrangement` string
   - `count` integer
   - `layout` string
@@ -2106,14 +2106,14 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Viewports > 1 Viewport
 
-- `vports.1` (writes): Creates a single viewport on a layout over two corners, by default the printable area.
+- `viewport.one` (writes): Creates a single viewport on a layout over two corners, by default the printable area.
   - `layout` string
   - `p1` number[]
   - `p2` number[]
 
 ### View > Viewports > 2 Viewports
 
-- `vports.2` (writes): Creates two viewports on a layout side by side or stacked, over two corners or the printable area.
+- `viewport.two` (writes): Creates two viewports on a layout side by side or stacked, over two corners or the printable area.
   - `arrangement` string, one of `vertical` | `horizontal`
   - `layout` string
   - `p1` number[]
@@ -2121,7 +2121,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Viewports > 3 Viewports
 
-- `vports.3` (writes): Creates three viewports on a layout with the large one right, left, above or below, or in a row or column.
+- `viewport.three` (writes): Creates three viewports on a layout with the large one right, left, above or below, or in a row or column.
   - `arrangement` string, one of `right` | `left` | `above` | `below` | `vertical` | `horizontal`
   - `layout` string
   - `p1` number[]
@@ -2129,14 +2129,14 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### View > Viewports > 4 Viewports
 
-- `vports.4` (writes): Creates four equal viewports on a layout over two corners, by default the printable area.
+- `viewport.four` (writes): Creates four equal viewports on a layout over two corners, by default the printable area.
   - `layout` string
   - `p1` number[]
   - `p2` number[]
 
 ### File > Page Setup Manager...
 
-- `pagesetup` (writes): Sets a layout's page setup: paper, orientation, margins, plot area, scale or fit, centring, lineweights and plot style table.
+- `plot.pageSetup` (writes): Sets a layout's page setup: paper, orientation, margins, plot area, scale or fit, centring, lineweights and plot style table.
   - `center` boolean
   - `displayPlotStyles` boolean
   - `height` number, mm
@@ -2164,7 +2164,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### File > Export to PDF...
 
-- `exportpdf` (reads): Exports a layout or model space to PDF, on a paper and orientation, fitted or not, to a path or answered as base64.
+- `file.exportPdf` (reads): Exports a layout or model space to PDF, on a paper and orientation, fitted or not, to a path or answered as base64.
   - `fit` boolean
   - `landscape` boolean
   - `layout` string
@@ -2174,7 +2174,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Plot Style...
 
-- `plotstyle` (writes): Sets the named plot style of the given or selected objects, or the current one for new objects; with no name reports it.
+- `plot.style` (writes): Sets the named plot style of the given or selected objects, or the current one for new objects; with no name reports it.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `handles` string[]
@@ -2183,7 +2183,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### File > Plot Styles...
 
-- `stylesmanager` (writes): Lists, reads, creates, changes, deletes, loads or saves plot style tables (colour-dependent .ctb or named .stb) and their styles.
+- `plot.styleManager` (writes): Lists, reads, creates, changes, deletes, loads or saves plot style tables (colour-dependent .ctb or named .stb) and their styles.
   - `action` string, one of `list` | `get` | `new` | `set` | `delete` | `load` | `save`, default
   - `description` string
   - `from` string
@@ -2203,7 +2203,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Modify > Match Properties
 
-- `matchprop` (writes): Copies the layer, colour, linetype, lineweight and other properties of a source object onto the target objects.
+- `object.matchProperties` (writes): Copies the layer, colour, linetype, lineweight and other properties of a source object onto the target objects.
   - `source` string
   - `targets` string[], handles
 
@@ -2220,7 +2220,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Lineweight...
 
-- `lweight` (writes): Sets the current lineweight for new objects, in millimetres or ByLayer.
+- `property.lineweight` (writes): Sets the current lineweight for new objects, in millimetres or ByLayer.
   - `lineweight` string, one of `mm` | `ByLayer`
 
 ### Format > Units...
@@ -2255,7 +2255,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Dimension Style...
 
-- `dimstyle` (writes): Creates or changes a dimension style from style fields or DIM variables, and by default makes it current; answers the styles.
+- `dimensionStyle.open` (writes): Creates or changes a dimension style from style fields or DIM variables, and by default makes it current; answers the styles.
   - `DIMADEC` boolean or number or string
   - `DIMALT` boolean or number or string
   - `DIMALTD` boolean or number or string
@@ -2356,7 +2356,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Dimension > Dimension Style...
 
-- `dimstyle.dimension` (writes): Creates or changes a dimension style from style fields or DIM variables, and by default makes it current, from the Dimension menu.
+- `dimensionStyle.openManager` (writes): Creates or changes a dimension style from style fields or DIM variables, and by default makes it current, from the Dimension menu.
   - `DIMADEC` boolean or number or string
   - `DIMALT` boolean or number or string
   - `DIMALTD` boolean or number or string
@@ -2457,7 +2457,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Table Style...
 
-- `tablestyle` (writes): Creates or changes a table style's text height, cell margin, title and header rows, optionally making it current.
+- `tableStyle.open` (writes): Creates or changes a table style's text height, cell margin, title and header rows, optionally making it current.
   - `current` boolean
   - `header` boolean
   - `margin` number
@@ -2467,7 +2467,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Multileader Style...
 
-- `mleaderstyle` (writes): Creates or changes a multileader style's arrow size, text height and style, landing gap and dogleg, optionally making it current.
+- `multileaderStyle.open` (writes): Creates or changes a multileader style's arrow size, text height and style, landing gap and dogleg, optionally making it current.
   - `arrowSize` number
   - `current` boolean
   - `dogleg` number
@@ -2478,7 +2478,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Format > Point Style...
 
-- `ddptype` (writes): Sets how point objects display (PDMODE) and their size (PDSIZE).
+- `point.style` (writes): Sets how point objects display (PDMODE) and their size (PDSIZE).
   - `pdmode` integer
   - `pdsize` number
 
@@ -2486,7 +2486,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 - `rename` (writes): Renames a named item (layer, linetype, text style, dimension style, block, multileader or table style, view or UCS).
   - `from` string
-  - `table` string, one of `layer` | `linetype` | `style` | `dimstyle` | `block` | `mleaderstyle` | `tablestyle` | `view` | `ucs`
+  - `table` string, one of `layer` | `linetype` | `style` | `dimensionStyle.open` | `block` | `multileaderStyle.open` | `tableStyle.open` | `view` | `ucs`
   - `to` string
 
 ### Tools > Inquiry > Distance
@@ -2530,7 +2530,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Drafting Settings...
 
-- `dsettings` (reads): Sets drafting settings (snap and grid spacing, polar angle, major grid lines) and answers every drafting setting.
+- `drafting.settings` (reads): Sets drafting settings (snap and grid spacing, polar angle, major grid lines) and answers every drafting setting.
   - `gridmajor` integer
   - `gridunit` number[]
   - `polarang` number
@@ -2538,7 +2538,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Inquiry > Set Variable
 
-- `setvar` (writes): Sets a system variable by name to a value, as SETVAR does.
+- `variable.set` (writes): Sets a system variable by name to a value, as SETVAR does.
   - `name` string
   - `value` string or number or boolean
 
@@ -2558,21 +2558,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Inquiry > Region/Mass Properties
 
-- `massprop` (reads): Answers the area, perimeter, centroid and moments of inertia of each given or selected closed object.
+- `measure.massProperties` (reads): Answers the area, perimeter, centroid and moments of inertia of each given or selected closed object.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Tools > Inquiry > Radius
 
-- `radius.measure` (reads): Answers the radius and diameter of an arc or circle.
+- `measure.radius` (reads): Answers the radius and diameter of an arc or circle.
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handle` string
   - `pick` number[], Instead of handles: a drawing-space point [x,y], picked by the engine in the call's layout. With basis, holds what was at that point.
 
 ### Tools > Inquiry > Angle
 
-- `angle.measure` (reads): Measures the angle at a vertex between two points, or between two lines, in degrees.
+- `measure.angle` (reads): Measures the angle at a vertex between two points, or between two lines, in degrees.
   - `h1` string
   - `h2` string
   - `p1` number[]
@@ -2596,7 +2596,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Coincident
 
-- `gccoincident` (writes): Constrains two points, or a point and an object, to coincide, and re-solves the constraints.
+- `constraint.coincident` (writes): Constrains two points, or a point and an object, to coincide, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2606,7 +2606,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Perpendicular
 
-- `gcperpendicular` (writes): Constrains two lines or polyline segments to stay perpendicular, and re-solves the constraints.
+- `constraint.perpendicular` (writes): Constrains two lines or polyline segments to stay perpendicular, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2616,7 +2616,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Parallel
 
-- `gcparallel` (writes): Constrains two lines or polyline segments to stay parallel, and re-solves the constraints.
+- `constraint.parallel` (writes): Constrains two lines or polyline segments to stay parallel, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2626,7 +2626,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Tangent
 
-- `gctangent` (writes): Constrains a curve to stay tangent to another curve or line, and re-solves the constraints.
+- `constraint.tangent` (writes): Constrains a curve to stay tangent to another curve or line, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2636,7 +2636,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Horizontal
 
-- `gchorizontal` (writes): Constrains a line, segment or pair of points to stay horizontal, and re-solves the constraints.
+- `constraint.horizontal` (writes): Constrains a line, segment or pair of points to stay horizontal, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2646,7 +2646,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Vertical
 
-- `gcvertical` (writes): Constrains a line, segment or pair of points to stay vertical, and re-solves the constraints.
+- `constraint.vertical` (writes): Constrains a line, segment or pair of points to stay vertical, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2656,7 +2656,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Collinear
 
-- `gccollinear` (writes): Constrains two lines or segments to lie on the same infinite line, and re-solves the constraints.
+- `constraint.collinear` (writes): Constrains two lines or segments to lie on the same infinite line, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2666,7 +2666,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Concentric
 
-- `gcconcentric` (writes): Constrains two arcs, circles or ellipses to share a centre, and re-solves the constraints.
+- `constraint.concentric` (writes): Constrains two arcs, circles or ellipses to share a centre, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2676,7 +2676,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Smooth
 
-- `gcsmooth` (writes): Constrains a spline to join another curve with smooth (curvature) continuity, and re-solves the constraints.
+- `constraint.smooth` (writes): Constrains a spline to join another curve with smooth (curvature) continuity, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2686,7 +2686,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Symmetric
 
-- `gcsymmetric` (writes): Constrains two points or objects to stay symmetric about a symmetry line, and re-solves the constraints.
+- `constraint.symmetric` (writes): Constrains two points or objects to stay symmetric about a symmetry line, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2696,7 +2696,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Equal
 
-- `gcequal` (writes): Constrains two lines to equal length, or two arcs or circles to equal radius, and re-solves the constraints.
+- `constraint.equal` (writes): Constrains two lines to equal length, or two arcs or circles to equal radius, and re-solves the constraints.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2706,7 +2706,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Geometric Constraints > Fix
 
-- `gcfix` (writes): Fixes a point or an object in place so the constraint solver cannot move it.
+- `constraint.fix` (writes): Fixes a point or an object in place so the constraint solver cannot move it.
   - `h1` string
   - `h2` string
   - `h3` string
@@ -2716,7 +2716,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > AutoConstrain
 
-- `autoconstrain` (writes): Infers and adds geometric constraints among the given or selected objects within distance and angle tolerances, of the chosen types.
+- `constraint.auto` (writes): Infers and adds geometric constraints among the given or selected objects within distance and angle tolerances, of the chosen types.
   - `angleTolerance` number
   - `aperture` number, Pick reach in drawing units; default 0.5% of the space extents.
   - `handles` string[]
@@ -2726,21 +2726,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Constraint Bars > Select Objects
 
-- `constraintbar` (writes): Shows or hides the constraint bars of the given objects, or of every object.
+- `constraint.bars` (writes): Shows or hides the constraint bars of the given objects, or of every object.
   - `handles` array
   - `mode` string, one of `show` | `hide` | `showall` | `hideall`
 
 ### Tools > Parametric > Constraint Bars > Show All
 
-- `constraintbar.showall` (writes): Shows the constraint bars of every constrained object. No parameters.
+- `constraint.showAllBars` (writes): Shows the constraint bars of every constrained object. No parameters.
 
 ### Tools > Parametric > Constraint Bars > Hide All
 
-- `constraintbar.hideall` (writes): Hides the constraint bars of every constrained object. No parameters.
+- `constraint.hideAllBars` (writes): Hides the constraint bars of every constrained object. No parameters.
 
 ### Tools > Parametric > Dimensional Constraints > Aligned
 
-- `dcaligned` (writes): Adds an aligned distance constraint between two points or along a line, with a value or expression, and re-solves.
+- `constraint.dimensionAligned` (writes): Adds an aligned distance constraint between two points or along a line, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2751,7 +2751,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dimensional Constraints > Horizontal
 
-- `dchorizontal` (writes): Adds a horizontal distance constraint between two points, with a value or expression, and re-solves.
+- `constraint.dimensionHorizontal` (writes): Adds a horizontal distance constraint between two points, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2762,7 +2762,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dimensional Constraints > Vertical
 
-- `dcvertical` (writes): Adds a vertical distance constraint between two points, with a value or expression, and re-solves.
+- `constraint.dimensionVertical` (writes): Adds a vertical distance constraint between two points, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2773,7 +2773,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dimensional Constraints > Angular
 
-- `dcangular` (writes): Adds an angular constraint between two lines or on an arc, with a value or expression in degrees, and re-solves.
+- `constraint.dimensionAngular` (writes): Adds an angular constraint between two lines or on an arc, with a value or expression in degrees, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2784,7 +2784,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dimensional Constraints > Radius
 
-- `dcradius` (writes): Adds a radius constraint to an arc or circle, with a value or expression, and re-solves.
+- `constraint.dimensionRadius` (writes): Adds a radius constraint to an arc or circle, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2795,7 +2795,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dimensional Constraints > Diameter
 
-- `dcdiameter` (writes): Adds a diameter constraint to an arc or circle, with a value or expression, and re-solves.
+- `constraint.dimensionDiameter` (writes): Adds a diameter constraint to an arc or circle, with a value or expression, and re-solves.
   - `expr` string
   - `h1` string
   - `h2` string
@@ -2806,21 +2806,21 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Dynamic Dimensions > Select Objects
 
-- `dcdisplay` (writes): Shows or hides the dynamic dimensional constraints of the given objects, or of every object.
+- `constraint.dynamicDimensions` (writes): Shows or hides the dynamic dimensional constraints of the given objects, or of every object.
   - `handles` array
   - `mode` string, one of `show` | `hide` | `showall` | `hideall`
 
 ### Tools > Parametric > Dynamic Dimensions > Show All
 
-- `dcdisplay.showall` (writes): Shows every dynamic dimensional constraint in the drawing. No parameters.
+- `constraint.showAllDynamicDimensions` (writes): Shows every dynamic dimensional constraint in the drawing. No parameters.
 
 ### Tools > Parametric > Dynamic Dimensions > Hide All
 
-- `dcdisplay.hideall` (writes): Hides every dynamic dimensional constraint in the drawing. No parameters.
+- `constraint.hideAllDynamicDimensions` (writes): Hides every dynamic dimensional constraint in the drawing. No parameters.
 
 ### Tools > Parametric > Delete Constraints
 
-- `delconstraint` (writes): Deletes the constraints on the given or selected objects, or the constraints with the given ids.
+- `constraint.delete` (writes): Deletes the constraints on the given or selected objects, or the constraints with the given ids.
   - `handles` array
   - `ids` integer[], one of several alternative parameters
 
@@ -2835,7 +2835,7 @@ Defaults the engine states in its schemas (other defaults are named in the param
 
 ### Tools > Parametric > Constraint Settings
 
-- `constraintsettings` (writes): Sets constraint inference, distance and angle tolerances, auto-constrain types, and constraint bar and dimension visibility.
+- `constraint.settings` (writes): Sets constraint inference, distance and angle tolerances, auto-constrain types, and constraint bar and dimension visibility.
   - `angleTolerance` number
   - `autoTypes` json[], [names]
   - `barTransparency` number
@@ -2859,21 +2859,21 @@ From [`agent/guide.md`](../agent/guide.md).
 
 ```json
 cad_run {"path": "Plan.dxf", "steps": [
-  {"command": "layer.new", "params": {"name": "Furniture", "color": 3}},
-  {"command": "rectang", "params": {"p1": [10, 10], "p2": [40, 30], "layer": "Furniture"}},
-  {"command": "dimaligned", "params": {"p1": [10, 10], "p2": [40, 10], "at": [25, 2], "layer": "Furniture"}}
+  {"command": "layer.add", "params": {"name": "Furniture", "color": 3}},
+  {"command": "rectangle.add", "params": {"p1": [10, 10], "p2": [40, 30], "layer": "Furniture"}},
+  {"command": "dimension.addAligned", "params": {"p1": [10, 10], "p2": [40, 10], "at": [25, 2], "layer": "Furniture"}}
 ]}
 ```
 
-Answer: `completed: [{command: "layer.new"}, {command: "rectang", result: {handle: "3A63500000000"}},
-{command: "dimaligned", result: {handle: "3A63500000001"}}]`, `changes.created` naming both handles,
+Answer: `completed: [{command: "layer.add"}, {command: "rectangle.add", result: {handle: "3A63500000000"}},
+{command: "dimension.addAligned", result: {handle: "3A63500000001"}}]`, `changes.created` naming both handles,
 `revision: "qxa7"`, `saved: true`; the current layer is still `0`. Move the table by its handle,
 measure its clearance to the wall line `"100"`, and pass the revision:
 
 ```json
 cad_run {"path": "Plan.dxf", "basis": "qxa7", "steps": [
-  {"command": "move", "on": ["3A63500000000"], "params": {"delta": [5, 5]}},
-  {"command": "entities.measure", "params": {"distance": ["3A63500000000", "100"]}}
+  {"command": "object.move", "on": ["3A63500000000"], "params": {"delta": [5, 5]}},
+  {"command": "object.measure", "params": {"distance": ["3A63500000000", "100"]}}
 ]}
 → completed[1].result: {"distance": 15, "from": [15, 15], "to": [15, 0]}
 cad_check {"path": "Plan.dxf"}
@@ -2888,8 +2888,8 @@ move a wall line in model space, without switching layouts:
 
 ```json
 cad_run {"path": "Plan.dxf", "basis": "k2m9", "steps": [
-  {"command": "text", "at": {"part": {"layout": "Layout1"}}, "params": {"at": [20, 15], "height": 5, "text": "Ground floor", "layer": "Titles"}},
-  {"command": "move", "on": ["101"], "params": {"delta": [0, -10]}}
+  {"command": "text.add", "at": {"part": {"layout": "Layout1"}}, "params": {"at": [20, 15], "height": 5, "text": "Ground floor", "layer": "Titles"}},
+  {"command": "object.move", "on": ["101"], "params": {"delta": [0, -10]}}
 ]}
 cad_inspect {"path": "Plan.dxf", "preview": true, "target": {"layout": "Layout1"}, "scale": 2}
 → preview: {"layout": "Layout1", "drew": "extents", "window": [-13.8, -14.05, 293.2, 229.95], "unitsPerPixel": 0.5, "width": 614, "height": 488, …}

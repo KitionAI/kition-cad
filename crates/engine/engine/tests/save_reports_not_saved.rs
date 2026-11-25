@@ -25,7 +25,7 @@ fn save_lists_the_entities_the_file_does_not_keep() {
     s.open_drawing(d, "foreign.dxf", None);
 
     let path = std::env::temp_dir().join(format!("kition-cad-not-saved-{}.dxf", std::process::id()));
-    let r = s.execute("saveas", &json!({ "path": path.to_string_lossy() })).unwrap();
+    let r = s.execute("file.saveAs", &json!({ "path": path.to_string_lossy() })).unwrap();
     let _ = std::fs::remove_file(&path);
     assert_eq!(r["notSaved"], json!({ "3DSOLID": 1, "MLINE": 2, "REGION": 1 }));
     let msg = "Not saved (Kition CAD can't write these object types yet): 1 3DSOLID, 2 MLINE, 1 REGION";
@@ -33,13 +33,13 @@ fn save_lists_the_entities_the_file_does_not_keep() {
 
     // Exporting an image isn't a save of the drawing: no report.
     let png = std::env::temp_dir().join(format!("kition-cad-not-saved-{}.png", std::process::id()));
-    let r = s.execute("saveas", &json!({ "path": png.to_string_lossy() })).unwrap();
+    let r = s.execute("file.saveAs", &json!({ "path": png.to_string_lossy() })).unwrap();
     let _ = std::fs::remove_file(&png);
     assert!(r.get("notSaved").is_none());
 
     // A drawing the file keeps completely: nothing to report.
     s.open_drawing(Drawing::new_imperial(), "plain.dxf", None);
     let n = s.log.len();
-    let r = s.execute("document.bytes", &json!({})).unwrap();
+    let r = s.execute("file.bytes", &json!({})).unwrap();
     assert!(r.get("notSaved").is_none() && s.log.len() == n);
 }

@@ -176,14 +176,14 @@ mod tests {
     #[test]
     fn selection_commands_prompt_without_pickfirst() {
         let mut s = Session::new();
-        s.execute("layer.new", &json!({ "name": "A", "current": true })).unwrap();
+        s.execute("layer.add", &json!({ "name": "A", "current": true })).unwrap();
         s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
-        s.execute("layer.current", &json!({ "name": "0" })).unwrap();
+        s.execute("layer.setCurrent", &json!({ "name": "0" })).unwrap();
         s.execute("line", &json!({ "points": [[0, 5], [10, 5]] })).unwrap();
         let hs: Vec<Handle> = s.doc().unwrap().model.iter().map(|e| e.handle).collect();
         let undo_before = s.state().unwrap().undo.len();
 
-        s.start("cutclip").unwrap();
+        s.start("edit.cut").unwrap();
         assert!(s.prompt_text().contains("Select objects"), "{}", s.prompt_text());
         s.input(Input::Pick(vec![hs[1]])).unwrap();
         s.input(Input::Enter).unwrap();
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(s.state().unwrap().undo.len(), undo_before + 1, "one undo step");
 
         // COPYBASE asks for the base point first, then for objects.
-        s.start("copybase").unwrap();
+        s.start("edit.copyWithBasePoint").unwrap();
         assert!(s.prompt_text().contains("Specify base point"), "{}", s.prompt_text());
         s.input(Input::Point(Vec2::new(3.0, 4.0))).unwrap();
         assert!(s.prompt_text().contains("Select objects"), "{}", s.prompt_text());
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(s.clipboard_base, Vec2::new(3.0, 4.0));
 
         // LAYFRZ picks one object and freezes its layer.
-        s.start("layfrz").unwrap();
+        s.start("layer.freeze").unwrap();
         assert!(s.prompt_text().contains("layer to be frozen"), "{}", s.prompt_text());
         s.input(Input::Pick(vec![hs[0]])).unwrap();
         assert!(s.running.is_none());
@@ -217,12 +217,12 @@ mod tests {
         s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
         let h = s.doc().unwrap().model.iter().next().unwrap().handle;
         s.set_selection(vec![h]);
-        s.start("copyclip").unwrap();
+        s.start("edit.copy").unwrap();
         assert!(s.running.is_none(), "pickfirst: no prompt");
         assert_eq!(s.clipboard.len(), 1);
 
         s.set_selection(Vec::new());
-        for id in ["cutclip", "copyclip", "zoom.object", "draworder.front", "laycur", "layoff"] {
+        for id in ["edit.cut", "edit.copy", "view.zoomObject", "arrange.bringToFront", "layer.changeToCurrent", "layer.off"] {
             let _ = s.execute(id, &json!({}));
             assert!(s.running.is_none(), "{id}: JSON form must not prompt");
         }
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn prompts_remember_last_options() {
         let mut s = Session::new();
-        s.execute("rectang", &json!({"p1": [0, 0], "p2": [10, 10]})).unwrap();
+        s.execute("rectangle.add", &json!({"p1": [0, 0], "p2": [10, 10]})).unwrap();
         let rect = s.doc().unwrap().model.iter().next().unwrap().handle;
 
         // HATCH: the "Select objects" mode sticks; `P` there is still Previous, not "picK".

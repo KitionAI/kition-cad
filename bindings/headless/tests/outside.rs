@@ -23,7 +23,7 @@ impl Fixture {
         let a = d.execute("line", json!({"points":[[0,0],[100,0]]})).unwrap()["handles"][0].clone();
         let b = d.execute("line", json!({"points":[[0,50],[100,50]]})).unwrap()["handles"][0].clone();
         let table = d.execute("table", json!({"at":[200,0],"rows":3,"cols":2,"cells":[["A","B"],["C","D"],["E","F"]]})).unwrap()["handle"].clone();
-        d.execute("layer.new", json!({"name":"Walls","color":"white"})).unwrap();
+        d.execute("layer.add", json!({"name":"Walls","color":"white"})).unwrap();
         let workspace = tempfile::tempdir().unwrap();
         std::fs::write(workspace.path().join(FILE), d.save(Some(FILE)).unwrap()).unwrap();
         let definition = KitDefinition::from_manifest_text(include_str!("../../../kit.json")).unwrap();
@@ -84,8 +84,8 @@ fn reason(error: &Value, reason: &str) {
 async fn unrelated_change_applies_and_others_names_only_the_changed_entity() {
     let f = Fixture::new();
     let basis = f.basis().await;
-    f.colleague(&[("properties.set", json!({"handles":[f.b],"color":"blue"}))]);
-    let answer = f.write(basis, "premise", "properties.set", json!({"handles":[f.a],"color":"red"})).await.unwrap();
+    f.colleague(&[("object.setProperties", json!({"handles":[f.b],"color":"blue"}))]);
+    let answer = f.write(basis, "premise", "object.setProperties", json!({"handles":[f.a],"color":"red"})).await.unwrap();
     let ids: Vec<_> = answer["others"]["changed"].as_array().unwrap().iter().map(|e| e["id"].clone()).collect();
     assert_eq!(ids, vec![f.b.clone()], "{answer}");
     let entity = answer["others"]["changed"].as_array().unwrap().iter().find(|e| e["id"] == f.b).unwrap();
@@ -99,11 +99,11 @@ async fn same_field_is_changed_and_a_deleted_target_is_deleted() {
         let f = Fixture::new();
         let basis = f.basis().await;
         f.colleague(&[(
-            if deleted { "erase" } else { "properties.set" },
+            if deleted { "erase" } else { "object.setProperties" },
             if deleted { json!({"handles":[f.a]}) } else { json!({"handles":[f.a],"color":"blue"}) },
         )]);
         let before = f.disk();
-        let refused = f.write(basis, "premise", "properties.set", json!({"handles":[f.a],"color":"red"})).await.unwrap_err();
+        let refused = f.write(basis, "premise", "object.setProperties", json!({"handles":[f.a],"color":"red"})).await.unwrap_err();
         reason(&refused, if deleted { "deleted" } else { "changed" });
         assert_eq!(before, f.disk());
         f.stop().await;
@@ -117,7 +117,7 @@ async fn geometry_changes_do_not_refuse_a_color_by_id_but_do_relocate_a_pick() {
         let basis = f.basis().await;
         f.colleague(&[("move", json!({"handles":[f.a],"delta":[0,20]}))]);
         let params = if pick { json!({"pick":[50,0],"aperture":0.1,"color":"red"}) } else { json!({"handles":[f.a],"color":"red"}) };
-        let answer = f.write(basis, "premise", "properties.set", params).await;
+        let answer = f.write(basis, "premise", "object.setProperties", params).await;
         if pick {
             reason(&answer.unwrap_err(), "relocated");
         } else {
@@ -135,7 +135,7 @@ async fn unrelated_fields_on_the_same_object_apply_and_moves_hold_the_lock() {
         if lock {
             f.colleague(&[("layer.set", json!({"name":"0","locked":true}))]);
         } else {
-            f.colleague(&[("properties.set", json!({"handles":[f.a],"color":"blue"}))]);
+            f.colleague(&[("object.setProperties", json!({"handles":[f.a],"color":"blue"}))]);
         }
         let answer = f.write(basis, "premise", "move", json!({"handles":[f.a],"delta":[2,0]})).await;
         if lock {
@@ -152,7 +152,7 @@ async fn another_object_moving_into_the_pick_is_refused() {
     let f = Fixture::new();
     let basis = f.basis().await;
     f.colleague(&[("move", json!({"handles":[f.b],"delta":[0,-50]}))]);
-    reason(&f.write(basis, "premise", "properties.set", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
+    reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
     f.stop().await;
 }
 
@@ -161,8 +161,8 @@ async fn overlapping_draw_order_changes_relocate_a_pick() {
     let f = Fixture::new();
     f.colleague(&[("move", json!({"handles":[f.b],"delta":[0,-50]}))]);
     let basis = f.basis().await;
-    f.colleague(&[("draworder.front", json!({"handles":[f.a]}))]);
-    reason(&f.write(basis, "premise", "properties.set", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
+    f.colleague(&[("arrange.bringToFront", json!({"handles":[f.a]}))]);
+    reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
     f.stop().await;
 }
 
@@ -175,14 +175,14 @@ async fn a_parent_move_relocates_a_pick_of_its_children() {
     std::fs::write(f.path(), d.save(Some(FILE)).unwrap()).unwrap();
     let basis = f.basis().await;
     f.colleague(&[("move", json!({"handles":[parent],"delta":[0,20]}))]);
-    reason(&f.write(basis, "premise", "properties.set", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
+    reason(&f.write(basis, "premise", "object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})).await.unwrap_err(), "relocated");
     f.stop().await;
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn swapping_named_layers_with_different_values_is_refused() {
     let f = Fixture::new();
-    f.colleague(&[("layer.new", json!({"name":"Other","color":"blue"}))]);
+    f.colleague(&[("layer.add", json!({"name":"Other","color":"blue"}))]);
     let basis = f.basis().await;
     f.colleague(&[
         ("layer.set", json!({"name":"Walls","newName":"Temporary"})),
@@ -200,7 +200,7 @@ async fn an_empty_insertion_gap_holds_its_ordinal() {
     let read = f.call("query", json!({"objects":[f.a],"fields":["common","kind"]})).await.unwrap();
     let fields = &read["objects"][0]["fields"];
     let basis = f.basis().await;
-    f.colleague(&[("line", json!({"points":[[0,100],[100,100]]})), ("draworder.back", json!({"handles":[f.b]}))]);
+    f.colleague(&[("line", json!({"points":[[0,100],[100,100]]})), ("arrange.sendToBack", json!({"handles":[f.b]}))]);
     let saved = f.disk();
     let answer = f.call("batch", json!({"basis":basis,"ops":[{"op":"create","type":"Entity","in":"root.model","at":1,"fields":fields}]})).await;
     reason(&answer.unwrap_err(), "relocated");
@@ -226,7 +226,7 @@ async fn creation_holds_my_current_layer_not_a_colleagues_and_respects_explicit_
     for explicit in [false, true] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[("layer.current", json!({"name":"Walls"}))]);
+        f.colleague(&[("layer.setCurrent", json!({"name":"Walls"}))]);
         let mut p = json!({"points":[[0,100],[100,100]]});
         if explicit {
             p["layer"] = json!("Walls");
@@ -246,7 +246,7 @@ async fn inserting_before_a_table_cell_refuses_but_appending_applies() {
     for row in [0, 3] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[("table.insertrow", json!({"handle":f.table,"row":row}))]);
+        f.colleague(&[("table.insertRow", json!({"handle":f.table,"row":row}))]);
         let result = f.write(basis, "premise", "table.set", json!({"handle":f.table,"row":1,"col":0,"text":"mine"})).await;
         if row == 0 {
             reason(&result.unwrap_err(), "changed");
@@ -262,8 +262,8 @@ async fn epoch_premise_and_off_have_distinct_behavior() {
     for guard in ["epoch", "premise", "off"] {
         let f = Fixture::new();
         let basis = f.basis().await;
-        f.colleague(&[("properties.set", json!({"handles":[f.a],"color":"blue"}))]);
-        let result = f.write(basis, guard, "properties.set", json!({"handles":[f.a],"color":"red"})).await;
+        f.colleague(&[("object.setProperties", json!({"handles":[f.a],"color":"blue"}))]);
+        let result = f.write(basis, guard, "object.setProperties", json!({"handles":[f.a],"color":"red"})).await;
         if guard == "off" {
             result.unwrap();
         } else {
@@ -281,7 +281,7 @@ async fn fifty_unrelated_rounds() {
         for round in 0..50 {
             let basis = f.basis().await;
             f.colleague(&[("move", json!({"handles":[f.b],"delta":[1,0]}))]);
-            let r = f.write(basis, guard, "properties.set", json!({"handles":[f.a],"color":if round%2==0 {"red"}else{"green"}})).await;
+            let r = f.write(basis, guard, "object.setProperties", json!({"handles":[f.a],"color":if round%2==0 {"red"}else{"green"}})).await;
             refused += usize::from(r.is_err());
         }
         println!("UNRELATED {guard}: rounds=50 applied={} refused={refused}", 50 - refused);
@@ -313,15 +313,15 @@ async fn mixed_fifty_rounds_fixed_seed() {
             let f = Fixture::new();
             let basis = f.basis().await;
             let change = match kind {
-                0 => ("properties.set", json!({"handles":[f.b],"color":"blue"})),
-                1 => ("properties.set", json!({"handles":[f.a],"color":"blue"})),
+                0 => ("object.setProperties", json!({"handles":[f.b],"color":"blue"})),
+                1 => ("object.setProperties", json!({"handles":[f.a],"color":"blue"})),
                 2 => ("move", json!({"handles":[f.a],"delta":[0,20]})),
                 3 => ("move", json!({"handles":[f.b],"delta":[0,-50]})),
                 4 => ("erase", json!({"handles":[f.a]})),
                 5 => ("layer.set", json!({"name":"Walls","newName":"Away"})),
                 6 => ("layer.set", json!({"name":"Walls","color":"blue"})),
-                7 => ("layer.new", json!({"name":"Other"})),
-                8 => ("properties.set", json!({"handles":[f.a],"visible":false})),
+                7 => ("layer.add", json!({"name":"Other"})),
+                8 => ("object.setProperties", json!({"handles":[f.a],"visible":false})),
                 _ => ("move", json!({"handles":[f.b],"delta":[1,0]})),
             };
             f.colleague(&[change]);
@@ -333,9 +333,9 @@ async fn mixed_fifty_rounds_fixed_seed() {
                 _ => matches!(kind, 0 | 1 | 2 | 3 | 4 | 8 | 9),
             };
             let (command, params) = match form {
-                0 => ("properties.set", json!({"handles":[f.a],"color":"red"})),
+                0 => ("object.setProperties", json!({"handles":[f.a],"color":"red"})),
                 1 => ("layer.set", json!({"name":"Walls","color":"red"})),
-                2 => ("properties.set", json!({"pick":[50,0],"aperture":0.1,"color":"red"})),
+                2 => ("object.setProperties", json!({"pick":[50,0],"aperture":0.1,"color":"red"})),
                 _ => ("erase", json!({"handles":[f.a]})),
             };
             let before = f.disk();
@@ -343,8 +343,8 @@ async fn mixed_fifty_rounds_fixed_seed() {
                 f.call(
                     "run",
                     json!({"basis":basis,"steps":[
-                        {"command":"qselect","params":{"type":"Line"}},
-                        {"command":"properties.set","params":{"color":"red"}}
+                        {"command":"select.quick","params":{"type":"Line"}},
+                        {"command":"object.setProperties","params":{"color":"red"}}
                     ]}),
                 )
                 .await

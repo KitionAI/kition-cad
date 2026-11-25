@@ -116,8 +116,8 @@ fn tolerance_option_approximates_the_fit_points() {
 fn object_option_converts_polylines() {
     let mut s = Session::new();
     // A spline-fit polyline: PEDIT Spline leaves straight segments along the curve.
-    let h = s.execute("pline", &json!({"vertices": [[0, 0], [10, 10], [20, 0], [30, 10]]})).unwrap()["handle"].as_str().unwrap().to_string();
-    s.execute("pedit", &json!({"handle": h, "option": "spline"})).unwrap();
+    let h = s.execute("polyline.add", &json!({"vertices": [[0, 0], [10, 10], [20, 0], [30, 10]]})).unwrap()["handle"].as_str().unwrap().to_string();
+    s.execute("polyline.edit", &json!({"handle": h, "option": "spline"})).unwrap();
     let EntityKind::LwPolyline(pl) = last(&s) else { panic!("no polyline") };
     let n = pl.vertices.len();
     s.cmdline("spline o").unwrap();
@@ -133,12 +133,12 @@ fn object_option_converts_polylines() {
     assert!(sp.eval(0.0).near(Vec2::ZERO, 1e-9) && sp.eval(1.0).near(Vec2::new(30.0, 10.0), 1e-9));
 
     // JSON form: a closed polyline becomes a closed spline; arcs are refused.
-    let sq = s.execute("pline", &json!({"vertices": [[0, 20], [10, 20], [10, 30], [0, 30]], "closed": true})).unwrap()["handle"].clone();
+    let sq = s.execute("polyline.add", &json!({"vertices": [[0, 20], [10, 20], [10, 30], [0, 30]], "closed": true})).unwrap()["handle"].clone();
     let r = s.execute("spline", &json!({"object": sq})).unwrap();
     assert_eq!(r["handles"][0], sq);
     let EntityKind::Spline(sp) = last(&s) else { panic!("not converted") };
     assert!(sp.closed && sp.is_periodic() && sp.fit.len() == 4);
-    let arc = s.execute("pline", &json!({"vertices": [{"p": [0, 50], "bulge": 1.0}, [10, 50]]})).unwrap()["handle"].clone();
+    let arc = s.execute("polyline.add", &json!({"vertices": [{"p": [0, 50], "bulge": 1.0}, [10, 50]]})).unwrap()["handle"].clone();
     let e = s.execute("spline", &json!({"object": arc})).unwrap_err().to_string();
     assert!(e.contains("arc segments"), "{e}");
     let line = s.execute("line", &json!({"points": [[0, 60], [5, 60]]})).unwrap()["handles"][0].clone();
@@ -161,12 +161,12 @@ fn json_form_takes_the_fit_options() {
     }
     // Editing a fit point keeps the options (grips and SPLINEDIT refit the same way).
     let h = s.execute("spline", &json!({"fit": fit, "knots": "uniform", "startTangent": [0, 1]})).unwrap()["handle"].clone();
-    s.execute("splinedit", &json!({"handle": h, "option": "move", "index": 2, "to": [5, 4]})).unwrap();
+    s.execute("spline.edit", &json!({"handle": h, "option": "move", "index": 2, "to": [5, 4]})).unwrap();
     let sp = last_spline(&s);
     assert_eq!(sp.fit_opts.knots, KnotParam::Uniform);
     assert_eq!(sp.fit_opts.start_tangent, Some(Vec2::Y));
     // Reversing swaps and turns the tangents.
-    s.execute("splinedit", &json!({"handle": h, "option": "reverse"})).unwrap();
+    s.execute("spline.edit", &json!({"handle": h, "option": "reverse"})).unwrap();
     let sp = last_spline(&s);
     assert_eq!(sp.fit_opts.start_tangent, None);
     assert_eq!(sp.fit_opts.end_tangent, Some(-Vec2::Y));

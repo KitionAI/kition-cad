@@ -18,8 +18,8 @@ async fn table_assignment_keeps_identity_and_merge_redirects() {
 #[tokio::test(flavor = "multi_thread")]
 async fn table_insertion_keeps_the_gap_but_ignores_other_cell_text() {
     check(
-        |f| ("table.insertrow", json!({"handle":f.table,"row":1,"height":8})),
-        |f| vec![("table.insertrow", json!({"handle":f.table,"row":0,"height":7}))],
+        |f| ("table.insertRow", json!({"handle":f.table,"row":1,"height":8})),
+        |f| vec![("table.insertRow", json!({"handle":f.table,"row":0,"height":7}))],
         |f| vec![("table.set", json!({"handle":f.table,"row":2,"col":2,"text":"Kept"}))],
     )
     .await;

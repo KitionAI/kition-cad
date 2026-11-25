@@ -1,7 +1,7 @@
 {
   "steps": [
     {
-      "command": "line",
+      "command": "line.add",
       "params": {
         "points": [
           [

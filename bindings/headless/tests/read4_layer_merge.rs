@@ -7,7 +7,7 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn layer_merge_preserves_destination_color() {
     check(
-        |_| ("laymrg", json!({"from":["Secondary"],"to":"Editable"})),
+        |_| ("layer.merge", json!({"from":["Secondary"],"to":"Editable"})),
         |_| vec![("layer.set", json!({"name":"Secondary","description":"Colleague"}))],
         |_| vec![("layer.set", json!({"name":"Editable","color":"blue"}))],
     )
@@ -16,10 +16,10 @@ async fn layer_merge_preserves_destination_color() {
 #[tokio::test(flavor = "multi_thread")]
 async fn layer_merge_holds_the_freeze_state_it_assigns_when_becoming_current() {
     check_with_setup(
-        |_| ("laymrg", json!({"from":["Secondary"],"to":"Editable"})),
+        |_| ("layer.merge", json!({"from":["Secondary"],"to":"Editable"})),
         |_| vec![("layer.set", json!({"name":"Editable","frozen":true}))],
         |_| vec![("layer.set", json!({"name":"Editable","color":"blue"}))],
-        |_| vec![("layer.current", json!({"name":"Secondary"}))],
+        |_| vec![("layer.setCurrent", json!({"name":"Secondary"}))],
     )
     .await;
 }

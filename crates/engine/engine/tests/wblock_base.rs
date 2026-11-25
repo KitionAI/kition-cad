@@ -22,7 +22,7 @@ fn written(s: &mut Session, p: serde_json::Value) -> String {
     let path = std::env::temp_dir().join(format!("kition-cad-wblock-base-{}.dxf", std::process::id()));
     let mut p = p;
     p["path"] = json!(path.to_string_lossy());
-    s.execute("wblock", &p).unwrap();
+    s.execute("block.write", &p).unwrap();
     let text = std::fs::read_to_string(&path).unwrap();
     let _ = std::fs::remove_file(&path);
     text

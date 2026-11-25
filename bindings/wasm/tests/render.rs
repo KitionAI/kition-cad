@@ -28,11 +28,11 @@ fn drawing() -> (CadDocument, String) {
     });
     let bytes = kition_cad_io::write(&d, "Plan.dxf").unwrap();
     let mut doc = CadDocument::open("Plan.dxf", &bytes).unwrap();
-    doc.execute("rectang", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap();
-    doc.execute("layer.new", json!({ "name": "Marks" })).unwrap();
+    doc.execute("rectangle.add", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap();
+    doc.execute("layer.add", json!({ "name": "Marks" })).unwrap();
     let circle = handle(&doc.execute("circle", json!({ "center": [200, 25], "radius": 10, "layer": "Marks" })).unwrap());
     doc.execute("layout.set", json!({ "name": "Layout1" })).unwrap();
-    let square = handle(&doc.execute("rectang", json!({ "p1": [10, 10], "p2": [30, 30] })).unwrap());
+    let square = handle(&doc.execute("rectangle.add", json!({ "p1": [10, 10], "p2": [30, 30] })).unwrap());
     doc.execute("select", json!({ "handles": [square] })).unwrap();
     doc.execute("zoom", json!({ "mode": "in" })).ok();
     (doc, circle)

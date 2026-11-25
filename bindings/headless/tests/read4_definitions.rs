@@ -72,14 +72,14 @@ async fn definition_sampling_preserves_description() {
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn definition_ncopy_preserves_description() {
-    definition(|f| ("ncopy", json!({"handle":f.insert,"delta":[0,20]}))).await;
+    definition(|f| ("object.copyNested", json!({"handle":f.insert,"delta":[0,20]}))).await;
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn definition_ncopy_preserves_insert_attributes() {
     check(
-        |f| ("ncopy", json!({"handle":f.insert,"delta":[0,20]})),
+        |f| ("object.copyNested", json!({"handle":f.insert,"delta":[0,20]})),
         |f| vec![("move", json!({"handles":[f.insert],"delta":[1,0]}))],
-        |f| vec![("attedit", json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
+        |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"Colleague"}}))],
     )
     .await;
 }

@@ -15,7 +15,7 @@ const EIGHTH: &str = "0.7853981633974483";
 fn session() -> Session {
     let mut s = Session::new();
     for (name, value) in [("AUNITS", json!(3)), ("ANGDIR", json!(1)), ("ANGBASE", json!(90))] {
-        s.execute("setvar", &json!({ "name": name, "value": value })).unwrap();
+        s.execute("variable.set", &json!({ "name": name, "value": value })).unwrap();
     }
     s
 }

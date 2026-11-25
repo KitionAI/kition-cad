@@ -23,7 +23,7 @@ async fn boundary_tolerance(command: &'static str) {
         f.colleague(&[if relevant {
             ("line", json!({"points":[[10000,10000],[20000,20000]]}))
         } else {
-            ("properties.set", json!({"handles":[f.circle],"color":"blue"}))
+            ("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))
         }]);
         let before = f.disk();
         if relevant {
@@ -60,9 +60,9 @@ probe!(gradient_tolerance_dependency, "gradient");
 #[tokio::test(flavor = "multi_thread")]
 async fn layer_state_save_holds_its_destination_name() {
     check(
-        |_| ("layerstate.save", json!({"name":"Mine"})),
-        |_| vec![("layerstate.save", json!({"name":"Mine"}))],
-        |_| vec![("layerstate.save", json!({"name":"Other"}))],
+        |_| ("layerState.save", json!({"name":"Mine"})),
+        |_| vec![("layerState.save", json!({"name":"Mine"}))],
+        |_| vec![("layerState.save", json!({"name":"Other"}))],
     )
     .await;
 }
@@ -70,9 +70,9 @@ async fn layer_state_save_holds_its_destination_name() {
 #[tokio::test(flavor = "multi_thread")]
 async fn point_dimension_scans_follow_new_sources_and_allow_unrelated_properties() {
     check(
-        |_| ("dimlinear", json!({"p1":[700,700],"p2":[710,700],"at":[705,690]})),
+        |_| ("dimension.addLinear", json!({"p1":[700,700],"p2":[710,700],"at":[705,690]})),
         |_| vec![("line", json!({"points":[[700,700],[710,700]]}))],
-        |f| vec![("properties.set", json!({"handles":[f.circle],"color":"blue"}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"color":"blue"}))],
     )
     .await;
 }
@@ -81,8 +81,8 @@ async fn point_dimension_scans_follow_new_sources_and_allow_unrelated_properties
 async fn find_holds_matching_words_and_allows_nonmatching_words() {
     check(
         |_| ("find", json!({"find":"Before","replace":"Mine"})),
-        |f| vec![("textedit", json!({"handle":f.text,"text":"Before colleague"}))],
-        |f| vec![("attedit", json!({"handle":f.insert,"values":{"CODE":"Kept"}}))],
+        |f| vec![("text.edit", json!({"handle":f.text,"text":"Before colleague"}))],
+        |f| vec![("attribute.edit", json!({"handle":f.insert,"values":{"CODE":"Kept"}}))],
     )
     .await;
 }

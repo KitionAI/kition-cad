@@ -2,12 +2,12 @@ import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, Penc
 import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
 
-const DRAW = ['line', 'pline', 'circle', 'arc', 'rectang', 'polygon', 'ellipse', 'spline', 'hatch']
+const DRAW = ['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'polygon', 'ellipse', 'spline', 'hatch']
 const MODIFY = ['move', 'copy', 'rotate', 'scale', 'mirror', 'offset', 'trim', 'extend', 'fillet']
-const ANNOTATION = ['mtext', 'text', 'dimlinear', 'dimaligned', 'dimradius']
+const ANNOTATION = ['multilineText.add', 'text', 'dimension.addLinear', 'dimension.addAligned', 'dimension.addRadius']
 
 /** The tools Single line's row shows. */
-const PRIMARY = new Set(['line', 'pline', 'circle', 'arc', 'rectang', 'move', 'copy', 'rotate', 'trim', 'offset', 'erase', 'mtext', 'dimlinear'])
+const PRIMARY = new Set(['line', 'polyline.add', 'circle', 'arc', 'rectangle.add', 'move', 'copy', 'rotate', 'trim', 'offset', 'erase', 'multilineText.add', 'dimension.addLinear'])
 
 /** One of the engine's tools by id, with its icon and its label translated; `primary` shows it in Single line's row. */
 function Tool({ id, size = 'small', primary }: { id: string; size?: 'large' | 'small'; primary?: boolean }) {
@@ -24,7 +24,7 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
     <>
       <RibbonGroup label={p('Draw')} icon={Pencil}>
         <Tool id="line" primary={PRIMARY.has('line')} size="large" />
-        <Tool id="pline" primary={PRIMARY.has('pline')} size="large" />
+        <Tool id="polyline.add" primary={PRIMARY.has('polyline.add')} size="large" />
         <Tool id="circle" primary={PRIMARY.has('circle')} size="large" />
         <Tool id="arc" primary={PRIMARY.has('arc')} size="large" />
         <RibbonStack>
@@ -55,7 +55,7 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
       </RibbonGroup>
 
       <RibbonGroup label={p('Annotation')} icon={Ruler}>
-        <Tool id="mtext" primary={PRIMARY.has('mtext')} size="large" />
+        <Tool id="multilineText.add" primary={PRIMARY.has('multilineText.add')} size="large" />
         <RibbonStack>
           {ANNOTATION.slice(1).map((id) => (
             <Tool key={id} id={id} primary={PRIMARY.has(id)} />
@@ -73,8 +73,8 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
                 style={{ width: 150 }}
                 value={info.currentLayer}
                 aria-label={t('layers')}
-                disabled={!enabled('layer.current')}
-                onChange={(event) => void run('layer.current', { name: event.target.value })}
+                disabled={!enabled('layer.setCurrent')}
+                onChange={(event) => void run('layer.setCurrent', { name: event.target.value })}
                 data-testid="cad-layer"
               >
                 {info.layers.map((layer) => (
@@ -91,8 +91,8 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
       <RibbonGroup label={p('Utilities')} icon={Wrench}>
         <RibbonButton icon={Maximize} size="large" label={t('zoomExtents')} onClick={onFit} data-testid="cad-zoom-extents" primary />
         <RibbonStack>
-          <CommandButton command="zoom.window" icon={ScanSearch} label={p('Zoom Window')} ask />
-          <CommandButton command="overkill" icon={Shrink} label={p('Delete Duplicate Objects')} />
+          <CommandButton command="view.zoomWindow" icon={ScanSearch} label={p('Zoom Window')} ask />
+          <CommandButton command="object.deleteDuplicates" icon={Shrink} label={p('Delete Duplicate Objects')} />
         </RibbonStack>
       </RibbonGroup>
     </>

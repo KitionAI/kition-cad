@@ -18,8 +18,8 @@ steps:
           rectangle from its bottom-left corner to its top-right corner.
         - In the same draft, add a circle of radius 10 at the centre of the rectangle.
       max_turns: 20
-  - run: { path: plan.dxf, args: { draft: true, save: false }, steps: [{ command: entities }], as: draft }
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+  - run: { path: plan.dxf, args: { draft: true, save: false }, steps: [{ command: object.query }], as: draft }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query }], as: all }
 expected:
   - actual: out:draft
     compare: values
@@ -37,8 +37,8 @@ expected:
       completed.0.result.count: 5
 solution:
   - tool: cad_run
-    args: { path: plan.dxf, draft: true, steps: [{ command: line, params: { points: [[0, 0], [100, 60]] } }] }
+    args: { path: plan.dxf, draft: true, steps: [{ command: line.add, params: { points: [[0, 0], [100, 60]] } }] }
   - tool: cad_run
-    args: { path: plan.dxf, draft: true, steps: [{ command: circle, params: { center: [50, 30], radius: 10 } }] }
+    args: { path: plan.dxf, draft: true, steps: [{ command: circle.add, params: { center: [50, 30], radius: 10 } }] }
 since: "2026-11-17"
 timeout_s: 600

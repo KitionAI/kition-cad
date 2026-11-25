@@ -1,6 +1,6 @@
 //! Parametric drawing: GEOMCONSTRAINT and the GC* commands, DIMCONSTRAINT and the DC* commands,
 //! AUTOCONSTRAIN, DELCONSTRAINT, PARAMETERS, CONSTRAINTBAR, DCDISPLAY, CONSTRAINTSETTINGS and
-//! `constraints.inspect`, plus the post-command re-solve hook ([`after_command`]).
+//! `constraint.inspect`, plus the post-command re-solve hook ([`after_command`]).
 //!
 //! The solver lives in `kition-cad-constraints`; this module turns picks and JSON parameters into
 //! constraint references and keeps the drawing's constraints satisfied after edits.
@@ -36,56 +36,56 @@ macro_rules! dc {
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("geomconstraint", "Geometric Constraint", run_geomconstraint)
+        CommandSpec::new("constraint.addGeometric", "Geometric Constraint", run_geomconstraint)
             .alias(&["gcon"])
             .params("{type: coincident|collinear|concentric|fix|parallel|perpendicular|horizontal|vertical|tangent|smooth|symmetric|equal, h1, p1?, h2?, p2?, h3?, p3?}")
             .interactive(|_| Ok(Box::new(GeomM::default()))),
-        gc!("gccoincident", "Coincident", K::Coincident, "Coincident"),
-        gc!("gcperpendicular", "Perpendicular", K::Perpendicular, "Perpendicular"),
-        gc!("gcparallel", "Parallel", K::Parallel, "Parallel"),
-        gc!("gctangent", "Tangent", K::Tangent, "Tangent"),
-        gc!("gchorizontal", "Horizontal", K::Horizontal, "Horizontal"),
-        gc!("gcvertical", "Vertical", K::Vertical, "Vertical"),
-        gc!("gccollinear", "Collinear", K::Collinear, "Collinear"),
-        gc!("gcconcentric", "Concentric", K::Concentric, "Concentric"),
-        gc!("gcsmooth", "Smooth", K::Smooth, "Smooth"),
-        gc!("gcsymmetric", "Symmetric", K::Symmetric, "Symmetric"),
-        gc!("gcequal", "Equal", K::Equal, "Equal"),
-        gc!("gcfix", "Fix", K::Fix, "Fix"),
-        CommandSpec::new("autoconstrain", "AutoConstrain", run_autoconstrain)
+        gc!("constraint.coincident", "Coincident", K::Coincident, "Coincident"),
+        gc!("constraint.perpendicular", "Perpendicular", K::Perpendicular, "Perpendicular"),
+        gc!("constraint.parallel", "Parallel", K::Parallel, "Parallel"),
+        gc!("constraint.tangent", "Tangent", K::Tangent, "Tangent"),
+        gc!("constraint.horizontal", "Horizontal", K::Horizontal, "Horizontal"),
+        gc!("constraint.vertical", "Vertical", K::Vertical, "Vertical"),
+        gc!("constraint.collinear", "Collinear", K::Collinear, "Collinear"),
+        gc!("constraint.concentric", "Concentric", K::Concentric, "Concentric"),
+        gc!("constraint.smooth", "Smooth", K::Smooth, "Smooth"),
+        gc!("constraint.symmetric", "Symmetric", K::Symmetric, "Symmetric"),
+        gc!("constraint.equal", "Equal", K::Equal, "Equal"),
+        gc!("constraint.fix", "Fix", K::Fix, "Fix"),
+        CommandSpec::new("constraint.auto", "AutoConstrain", run_autoconstrain)
             .menu(&["Tools", "Parametric", "AutoConstrain"])
             .params("{handles?, tolerance?, angleTolerance? (degrees), types?: [names]}")
             .interactive(|_| Ok(Box::new(SelM::new(SelOp::Auto)))),
-        CommandSpec::new("constraintbar", "Constraint Bars", run_constraintbar)
+        CommandSpec::new("constraint.bars", "Constraint Bars", run_constraintbar)
             .menu(&["Tools", "Parametric", "Constraint Bars", "Select Objects"])
             .params("{mode?: show|hide|showall|hideall, handles?}")
             .interactive(|_| Ok(Box::new(SelM::new(SelOp::Bars)))),
-        CommandSpec::new("constraintbar.showall", "Show All Constraint Bars", |s, _| set_bars(s, false, "showall", &[]))
+        CommandSpec::new("constraint.showAllBars", "Show All Constraint Bars", |s, _| set_bars(s, false, "showall", &[]))
             .menu(&["Tools", "Parametric", "Constraint Bars", "Show All"]),
-        CommandSpec::new("constraintbar.hideall", "Hide All Constraint Bars", |s, _| set_bars(s, false, "hideall", &[]))
+        CommandSpec::new("constraint.hideAllBars", "Hide All Constraint Bars", |s, _| set_bars(s, false, "hideall", &[]))
             .menu(&["Tools", "Parametric", "Constraint Bars", "Hide All"]),
-        CommandSpec::new("dimconstraint", "Dimensional Constraint", run_dimconstraint)
+        CommandSpec::new("constraint.addDimensional", "Dimensional Constraint", run_dimconstraint)
             .alias(&["dcon"])
             .params("{type: linear|aligned|horizontal|vertical|angular|radius|diameter, h1, p1?, h2?, p2?, expr? | value?, name?}")
             .interactive(|_| Ok(Box::new(DcM::new(None)))),
-        dc!("dcaligned", "Aligned", Dc::Aligned, "Aligned"),
-        dc!("dchorizontal", "Horizontal", Dc::Horizontal, "Horizontal"),
-        dc!("dcvertical", "Vertical", Dc::Vertical, "Vertical"),
-        dc!("dcangular", "Angular", Dc::Angular, "Angular"),
-        dc!("dcradius", "Radius", Dc::Radius, "Radius"),
-        dc!("dcdiameter", "Diameter", Dc::Diameter, "Diameter"),
-        CommandSpec::new("dclinear", "Linear", |s, p| run_dc(s, p, Dc::Linear))
+        dc!("constraint.dimensionAligned", "Aligned", Dc::Aligned, "Aligned"),
+        dc!("constraint.dimensionHorizontal", "Horizontal", Dc::Horizontal, "Horizontal"),
+        dc!("constraint.dimensionVertical", "Vertical", Dc::Vertical, "Vertical"),
+        dc!("constraint.dimensionAngular", "Angular", Dc::Angular, "Angular"),
+        dc!("constraint.dimensionRadius", "Radius", Dc::Radius, "Radius"),
+        dc!("constraint.dimensionDiameter", "Diameter", Dc::Diameter, "Diameter"),
+        CommandSpec::new("constraint.dimensionLinear", "Linear", |s, p| run_dc(s, p, Dc::Linear))
             .params("{h1, p1?, h2?, p2?, expr? | value?, name?}")
             .interactive(|_| Ok(Box::new(DcM::new(Some(Dc::Linear))))),
-        CommandSpec::new("dcdisplay", "Dynamic Dimensions", run_dcdisplay)
+        CommandSpec::new("constraint.dynamicDimensions", "Dynamic Dimensions", run_dcdisplay)
             .menu(&["Tools", "Parametric", "Dynamic Dimensions", "Select Objects"])
             .params("{mode?: show|hide|showall|hideall, handles?}")
             .interactive(|_| Ok(Box::new(SelM::new(SelOp::Dims)))),
-        CommandSpec::new("dcdisplay.showall", "Show All Dynamic Dimensions", |s, _| set_bars(s, true, "showall", &[]))
+        CommandSpec::new("constraint.showAllDynamicDimensions", "Show All Dynamic Dimensions", |s, _| set_bars(s, true, "showall", &[]))
             .menu(&["Tools", "Parametric", "Dynamic Dimensions", "Show All"]),
-        CommandSpec::new("dcdisplay.hideall", "Hide All Dynamic Dimensions", |s, _| set_bars(s, true, "hideall", &[]))
+        CommandSpec::new("constraint.hideAllDynamicDimensions", "Hide All Dynamic Dimensions", |s, _| set_bars(s, true, "hideall", &[]))
             .menu(&["Tools", "Parametric", "Dynamic Dimensions", "Hide All"]),
-        CommandSpec::new("delconstraint", "Delete Constraints", run_delconstraint)
+        CommandSpec::new("constraint.delete", "Delete Constraints", run_delconstraint)
             .menu(&["Tools", "Parametric", "Delete Constraints"])
             .params("{handles? | ids?: [n]}")
             .interactive(|_| Ok(Box::new(SelM::new(SelOp::Delete)))),
@@ -93,11 +93,11 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Tools", "Parametric", "Parameters Manager"])
             .alias(&["par", "parametersclose"])
             .params("{name?: string, expr?: string, value?: number, description?: string, delete?: string (a parameter name)} (no keys lists the parameters; name with expr or value sets one, a new name making a user parameter, and re-solves; delete removes one)"),
-        CommandSpec::new("constraintsettings", "Constraint Settings", run_constraintsettings)
+        CommandSpec::new("constraint.settings", "Constraint Settings", run_constraintsettings)
             .menu(&["Tools", "Parametric", "Constraint Settings"])
             .alias(&["csettings"])
             .params("{infer?, distanceTolerance?, angleTolerance?, autoTypes?: [names], barsVisible?, barTransparency?, dimsVisible?}"),
-        CommandSpec::new("constraints.inspect", "Inspect Constraints", run_inspect).noundo().params("{} → constraints, glyph anchors, parameters, settings"),
+        CommandSpec::new("constraint.inspect", "Inspect Constraints", run_inspect).noundo().params("{} → constraints, glyph anchors, parameters, settings"),
     ]
 }
 
@@ -334,13 +334,13 @@ fn kind_from_name(t: &str) -> Option<K> {
 }
 
 fn run_geomconstraint(s: &mut Session, p: &Value) -> Result<Value> {
-    let t = str_param(p, "type").ok_or_else(|| bad("geomconstraint", "`type` is required"))?;
-    let kind = kind_from_name(t).ok_or_else(|| bad("geomconstraint", format!("unknown constraint type `{t}`")))?;
+    let t = str_param(p, "type").ok_or_else(|| bad("constraint.addGeometric", "`type` is required"))?;
+    let kind = kind_from_name(t).ok_or_else(|| bad("constraint.addGeometric", format!("unknown constraint type `{t}`")))?;
     run_gc(s, p, kind)
 }
 
 fn run_gc(s: &mut Session, p: &Value, kind: K) -> Result<Value> {
-    let cmd = "geomconstraint";
+    let cmd = "constraint.addGeometric";
     if h_param(p, "h1").is_none() {
         return Err(bad(cmd, "a valid `h1` is required"));
     }
@@ -536,12 +536,12 @@ fn dc_kind(d: &Drawing, dc: Dc, refs: &[GeomRef]) -> K {
 
 fn run_dimconstraint(s: &mut Session, p: &Value) -> Result<Value> {
     let t = str_param(p, "type").unwrap_or("aligned");
-    let dc = dc_from_name(t).ok_or_else(|| bad("dimconstraint", format!("unknown type `{t}`")))?;
+    let dc = dc_from_name(t).ok_or_else(|| bad("constraint.addDimensional", format!("unknown type `{t}`")))?;
     run_dc(s, p, dc)
 }
 
 fn run_dc(s: &mut Session, p: &Value, dc: Dc) -> Result<Value> {
-    let cmd = "dimconstraint";
+    let cmd = "constraint.addDimensional";
     let h1 = h_param(p, "h1").ok_or_else(|| bad(cmd, "`h1` is required"))?;
     let (p1, p2) = (hint_param(cmd, p, "p1")?, hint_param(cmd, p, "p2")?);
     let h2 = h_param(p, "h2");
@@ -781,7 +781,7 @@ impl Interactive for SelM {
 fn run_autoconstrain(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.is_empty() {
-        return Err(bad("autoconstrain", "select objects (or pass `handles`)"));
+        return Err(bad("constraint.auto", "select objects (or pass `handles`)"));
     }
     let set = &s.doc()?.parametric.settings;
     let mut o = cs::InferOptions { distance_tolerance: set.distance_tolerance, angle_tolerance: set.angle_tolerance, types: set.auto_types.clone() };
@@ -803,7 +803,7 @@ fn run_delconstraint(s: &mut Session, p: &Value) -> Result<Value> {
         p.get("ids").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_u64).filter_map(|v| u32::try_from(v).ok()).collect());
     let hs = targets(s, p)?;
     if ids.is_none() && hs.is_empty() {
-        return Err(bad("delconstraint", "select objects (or pass `handles` / `ids`)"));
+        return Err(bad("constraint.delete", "select objects (or pass `handles` / `ids`)"));
     }
     let doomed = |c: &Constraint| match &ids {
         Some(ids) => ids.contains(&c.id),
@@ -893,7 +893,7 @@ fn set_bars(s: &mut Session, dims: bool, mode: &str, hs: &[Handle]) -> Result<Va
             }
             exceptions.truncate(100_000);
         }
-        other => return Err(bad(if dims { "dcdisplay" } else { "constraintbar" }, format!("unknown mode `{other}`"))),
+        other => return Err(bad(if dims { "constraint.dynamicDimensions" } else { "constraint.bars" }, format!("unknown mode `{other}`"))),
     }
     let what = if dims { "Dynamic constraints" } else { "Constraint bars" };
     Ok(json!({ "visible": *visible, "exceptions": exceptions.iter().map(|h| h.hex()).collect::<Vec<_>>(), "message": format!("{what}: {mode}") }))
@@ -903,7 +903,7 @@ fn bar_cmd(s: &mut Session, p: &Value, dims: bool) -> Result<Value> {
     let mode = str_param(p, "mode").unwrap_or("show").to_ascii_lowercase();
     let hs = targets(s, p)?;
     if matches!(mode.as_str(), "show" | "hide") && hs.is_empty() {
-        return Err(bad(if dims { "dcdisplay" } else { "constraintbar" }, "select objects (or pass `handles`)"));
+        return Err(bad(if dims { "constraint.dynamicDimensions" } else { "constraint.bars" }, "select objects (or pass `handles`)"));
     }
     set_bars(s, dims, &mode, &hs)
 }

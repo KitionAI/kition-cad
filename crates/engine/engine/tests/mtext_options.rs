@@ -127,10 +127,10 @@ fn style_and_columns() {
 #[test]
 fn json_form_takes_justify_style_and_spacing() {
     let mut s = Session::new();
-    s.execute("mtext", &json!({"at": [1, 2], "text": "a\nb", "justify": "BR", "lineSpacing": 1.25, "lineSpacingExact": true})).unwrap();
+    s.execute("multilineText.add", &json!({"at": [1, 2], "text": "a\nb", "justify": "BR", "lineSpacing": 1.25, "lineSpacingExact": true})).unwrap();
     let t = last_mtext(&s);
     assert_eq!(t.attach, 9);
     assert!(t.line_spacing_exact && t.line_spacing == 1.25);
-    assert!(s.execute("mtext", &json!({"at": [1, 2], "text": "a", "justify": "XX"})).is_err());
-    assert!(s.execute("mtext", &json!({"at": [1, 2], "text": "a", "style": "missing"})).is_err());
+    assert!(s.execute("multilineText.add", &json!({"at": [1, 2], "text": "a", "justify": "XX"})).is_err());
+    assert!(s.execute("multilineText.add", &json!({"at": [1, 2], "text": "a", "style": "missing"})).is_err());
 }

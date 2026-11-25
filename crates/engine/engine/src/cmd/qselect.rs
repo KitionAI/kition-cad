@@ -1,5 +1,5 @@
 //! QSELECT: build a selection set from an object type and a property filter
-//! (`property operator value`), and `qselect.info` for the Quick Select dialog.
+//! (`property operator value`), and `select.quickInfo` for the Quick Select dialog.
 
 use kition_cad_color::Color;
 use kition_cad_doc::{Drawing, Entity, Handle};
@@ -10,7 +10,7 @@ use crate::{Result, Session};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        CommandSpec::new("qselect", "Quick Select...", run_qselect)
+        CommandSpec::new("select.quick", "Quick Select...", run_qselect)
             .menu(&["Edit", "Quick Select..."])
             .alias(&["qs"])
             .params(
@@ -18,7 +18,7 @@ pub fn specs() -> Vec<CommandSpec> {
                  applyTo?: drawing|selection, layer?: string (a layer name), color?} → selected handles",
             )
             .noundo(),
-        CommandSpec::new("qselect.info", "Quick Select Properties", run_info)
+        CommandSpec::new("select.quickInfo", "Quick Select Properties", run_info)
             .params("{applyTo?: drawing|selection, type?} → object types with counts and the properties available for `type`")
             .noundo(),
     ]
@@ -65,7 +65,7 @@ pub fn properties(d: &Drawing, e: &Entity) -> Vec<(String, Value)> {
         }
     };
     if let Some(o) = v.as_object() {
-        for k in ["type", "layer", "color", "linetype", "lineweight", "ltscale", "handle", "visible"] {
+        for k in ["type", "layer", "color", "linetype", "lineweight", "property.linetypeScale", "handle", "visible"] {
             if let Some(x) = o.get(k) {
                 push(k, x);
             }
@@ -222,7 +222,7 @@ fn candidates(s: &Session, p: &Value) -> Result<Vec<Handle>> {
 }
 
 fn run_qselect(s: &mut Session, p: &Value) -> Result<Value> {
-    let cmd = "qselect";
+    let cmd = "select.quick";
     let ty = str_param(p, "type");
     let op = match str_param(p, "operator") {
         Some(o) => Some(Op::parse(o).ok_or_else(|| bad(cmd, format!("unknown operator `{o}` (use =, !=, >, <, *)")))?),
@@ -326,13 +326,13 @@ mod tests {
 
     fn session() -> Session {
         let mut s = Session::new();
-        s.execute("layer.new", &json!({ "name": "Walls" })).unwrap();
+        s.execute("layer.add", &json!({ "name": "Walls" })).unwrap();
         s.execute("line", &json!({ "points": [[0, 0], [10, 0]] })).unwrap();
         s.execute("line", &json!({ "points": [[0, 0], [3, 4]] })).unwrap();
         s.execute("circle", &json!({ "center": [0, 0], "radius": 2 })).unwrap();
         s.execute("circle", &json!({ "center": [5, 5], "radius": 7 })).unwrap();
         let h = s.doc().unwrap().model.iter().last().unwrap().handle.hex();
-        s.execute("properties.set", &json!({ "handles": [h], "layer": "Walls", "color": 1 })).unwrap();
+        s.execute("object.setProperties", &json!({ "handles": [h], "layer": "Walls", "color": 1 })).unwrap();
         s.set_selection(Vec::new());
         s
     }
@@ -344,34 +344,34 @@ mod tests {
     #[test]
     fn type_and_property_filters() {
         let mut s = session();
-        assert_eq!(n(&s.execute("qselect", &json!({ "type": "Line" })).unwrap()), 2);
-        assert_eq!(n(&s.execute("qselect", &json!({ "type": "Circle", "property": "radius", "operator": ">", "value": 3 })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "type": "Circle", "property": "Radius", "operator": "<", "value": "3" })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "type": "Line", "property": "length", "operator": "=", "value": 5 })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "layer", "operator": "=", "value": "walls" })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "layer", "operator": "!=", "value": "Walls" })).unwrap()), 3);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "layer", "operator": "*", "value": "W*s" })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "color", "operator": "=", "value": "red" })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "color", "operator": "=", "value": 1 })).unwrap()), 1);
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "centerX", "operator": "=", "value": 5 })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "type": "Line" })).unwrap()), 2);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "type": "Circle", "property": "radius", "operator": ">", "value": 3 })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "type": "Circle", "property": "Radius", "operator": "<", "value": "3" })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "type": "Line", "property": "length", "operator": "=", "value": 5 })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "layer", "operator": "=", "value": "walls" })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "layer", "operator": "!=", "value": "Walls" })).unwrap()), 3);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "layer", "operator": "*", "value": "W*s" })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "color", "operator": "=", "value": "red" })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "color", "operator": "=", "value": 1 })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "centerX", "operator": "=", "value": 5 })).unwrap()), 1);
         // Back-compatible short form.
-        assert_eq!(n(&s.execute("qselect", &json!({ "layer": "Walls" })).unwrap()), 1);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "layer": "Walls" })).unwrap()), 1);
     }
 
     #[test]
     fn modes_append_exclude_and_scope() {
         let mut s = session();
-        s.execute("qselect", &json!({ "type": "Circle" })).unwrap();
+        s.execute("select.quick", &json!({ "type": "Circle" })).unwrap();
         assert_eq!(
-            n(&s.execute("qselect", &json!({ "type": "Line", "property": "length", "operator": ">", "value": 6, "mode": "append" })).unwrap()),
+            n(&s.execute("select.quick", &json!({ "type": "Line", "property": "length", "operator": ">", "value": 6, "mode": "append" })).unwrap()),
             3
         );
         // Exclude: everything that does NOT match.
-        assert_eq!(n(&s.execute("qselect", &json!({ "property": "layer", "operator": "=", "value": "Walls", "mode": "exclude" })).unwrap()), 3);
+        assert_eq!(n(&s.execute("select.quick", &json!({ "property": "layer", "operator": "=", "value": "Walls", "mode": "exclude" })).unwrap()), 3);
         // Apply to the current selection only.
-        let r = s.execute("qselect", &json!({ "applyTo": "selection", "type": "Line" })).unwrap();
+        let r = s.execute("select.quick", &json!({ "applyTo": "selection", "type": "Line" })).unwrap();
         assert_eq!(n(&r), 2);
-        let info = s.execute("qselect.info", &json!({ "type": "Circle" })).unwrap();
+        let info = s.execute("select.quickInfo", &json!({ "type": "Circle" })).unwrap();
         assert_eq!(info["types"].as_array().unwrap().len(), 2);
         assert!(info["properties"].as_array().unwrap().iter().any(|p| p == "radius"));
     }
@@ -379,12 +379,12 @@ mod tests {
     #[test]
     fn hostile_params_are_errors_not_panics() {
         let mut s = session();
-        assert!(s.execute("qselect", &json!({ "operator": "~~" })).is_err());
-        assert!(s.execute("qselect", &json!({ "mode": "sideways" })).is_err());
-        assert!(s.execute("qselect", &json!({ "property": "radius" })).is_err());
+        assert!(s.execute("select.quick", &json!({ "operator": "~~" })).is_err());
+        assert!(s.execute("select.quick", &json!({ "mode": "sideways" })).is_err());
+        assert!(s.execute("select.quick", &json!({ "property": "radius" })).is_err());
         for v in [json!(null), json!([1, 2]), json!({"a": 1}), json!(f64::MAX), json!("*".repeat(5000))] {
-            let _ = s.execute("qselect", &json!({ "property": "radius", "operator": "*", "value": v }));
-            let _ = s.execute("qselect", &json!({ "property": v, "operator": ">", "value": v, "type": v }));
+            let _ = s.execute("select.quick", &json!({ "property": "radius", "operator": "*", "value": v }));
+            let _ = s.execute("select.quick", &json!({ "property": v, "operator": ">", "value": v, "type": v }));
         }
     }
 

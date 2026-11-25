@@ -7,7 +7,7 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn layout_copy_ignores_source_layer_lock() {
     check(
-        |_| ("layout.copy", json!({"from":"Layout1","to":"Sheet"})),
+        |_| ("layout.duplicate", json!({"from":"Layout1","to":"Sheet"})),
         |f| vec![("viewport.set", json!({"handle":f.viewport,"viewHeight":10}))],
         |_| vec![("layer.set", json!({"name":"0","locked":true}))],
     )
@@ -26,9 +26,9 @@ async fn block_reference_ignores_member_layer_lock() {
 async fn ungroup_ignores_a_preceding_group_deletion() {
     check_with_setup(
         |_| ("ungroup", json!({"name":"Group"})),
-        |f| vec![("groupedit", json!({"name":"Group","add":[f.rect]}))],
+        |f| vec![("group.edit", json!({"name":"Group","add":[f.rect]}))],
         |_| vec![("ungroup", json!({"name":"Before"}))],
-        |f| vec![("groupedit", json!({"name":"Group","rename":"Before"})), ("group", json!({"name":"Group","handles":[f.circle]}))],
+        |f| vec![("group.edit", json!({"name":"Group","rename":"Before"})), ("group", json!({"name":"Group","handles":[f.circle]}))],
     )
     .await;
 }

@@ -7,9 +7,9 @@ use serde_json::json;
 #[tokio::test(flavor = "multi_thread")]
 async fn setting_assignments_keep_copied_style_dependencies() {
     check(
-        |_| ("dimstyle.current", json!({"name":"Standard"})),
-        |_| vec![("dimstyle", json!({"name":"Standard","textHeight":8,"current":false}))],
-        |f| vec![("properties.set", json!({"handles":[f.circle],"radius":7}))],
+        |_| ("dimensionStyle.setCurrent", json!({"name":"Standard"})),
+        |_| vec![("dimensionStyle.open", json!({"name":"Standard","textHeight":8,"current":false}))],
+        |f| vec![("object.setProperties", json!({"handles":[f.circle],"radius":7}))],
     )
     .await;
 }
@@ -23,11 +23,11 @@ async fn dimension_sync_sets_my_dimension_variables_not_a_colleagues() {
     for present in [false, true] {
         let f = Fixture::new();
         if present {
-            f.colleague(&[("setvar", json!({"name":"DIMASZ","value":2.0}))]);
+            f.colleague(&[("variable.set", json!({"name":"DIMASZ","value":2.0}))]);
         }
         let basis = f.call("inspect", json!({})).await.unwrap()["revision"].clone();
-        f.colleague(&[("setvar", json!({"name":"DIMASZ","value":3})), ("move", json!({"handles":[f.circle],"delta":[1,0]}))]);
-        f.call("run", json!({"basis":basis,"steps":[{"command":"dimstyle.current","params":{"name":"ISO-25"}}]}))
+        f.colleague(&[("variable.set", json!({"name":"DIMASZ","value":3})), ("move", json!({"handles":[f.circle],"delta":[1,0]}))]);
+        f.call("run", json!({"basis":basis,"steps":[{"command":"dimensionStyle.setCurrent","params":{"name":"ISO-25"}}]}))
             .await
             .unwrap_or_else(|e| panic!("a colleague's DIMASZ is theirs: {e}"));
         let d = kition_cad_io::read(&f.disk(), FILE).unwrap();

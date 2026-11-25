@@ -44,13 +44,13 @@ struct Drawing {
 fn drawing() -> Drawing {
     let bytes = CadDocument::create(FILE, 420, 297).unwrap().save(Some(FILE)).unwrap();
     let mut doc = CadDocument::open(FILE, &bytes).unwrap();
-    let r = handle(&doc.execute("rectang", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap());
+    let r = handle(&doc.execute("rectangle.add", json!({ "p1": [0, 0], "p2": [100, 50] })).unwrap());
     let a = handle(&doc.execute("line", json!({ "points": [[0, 80], [100, 80]] })).unwrap());
     let b = handle(&doc.execute("line", json!({ "points": [[0, 90], [100, 90]] })).unwrap());
     let door_line = handle(&doc.execute("line", json!({ "points": [[300, 0], [300, 20]] })).unwrap());
     doc.execute("block", json!({ "name": "Door", "base": [300, 0], "handles": [door_line] })).unwrap();
     let insert = handle(&doc.execute("insert", json!({ "name": "Door", "at": [150, 0] })).unwrap());
-    doc.execute("layer.new", json!({ "name": "Walls" })).unwrap();
+    doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
     let p = handle(&doc.execute("line", json!({ "points": [[10, 10], [60, 10]], "layout": "Layout1" })).unwrap());
     let bytes = doc.save(Some(FILE)).unwrap();
     // The block's line: its handle inside the definition, as the file has it.
@@ -108,8 +108,8 @@ impl Fixture {
 
     /// The handles of a space's entities, as `entities {layout}` lists them.
     async fn space(&self, layout: &str) -> Vec<String> {
-        let ran = self.ok("run", json!({ "save": false, "steps": [{ "command": "entities", "params": { "layout": layout } }] })).await;
-        ran["completed"][0]["result"]["entities"].as_array().unwrap().iter().map(|e| e["handle"].as_str().unwrap().to_owned()).collect()
+        let ran = self.ok("run", json!({ "save": false, "steps": [{ "command": "object.query", "params": { "layout": layout } }] })).await;
+        ran["completed"][0]["result"]["object.query"].as_array().unwrap().iter().map(|e| e["handle"].as_str().unwrap().to_owned()).collect()
     }
 
     async fn revision(&self) -> String {
@@ -159,14 +159,14 @@ async fn receipts_name_entities_by_handle_with_before_and_after() {
     let f = Fixture::new();
     let d = &f.d;
     // A move: the entity's geometry (`kind`), before and after.
-    let ran = f.ok("run", json!({ "steps": [{ "command": "move", "on": [d.a], "params": { "delta": [0, 5] } }] })).await;
+    let ran = f.ok("run", json!({ "steps": [{ "command": "object.move", "on": [d.a], "params": { "delta": [0, 5] } }] })).await;
     assert_eq!(ids(&ran["changes"]["changed"]), vec![d.a.clone()], "{ran}");
     assert_eq!(entry(&ran["changes"]["changed"], &d.a)["fields"], json!(["kind.a.y", "kind.b.y"]));
     let moved = entry(&ran["changes"]["changed"], &d.a);
     assert_eq!(edit(&moved, "kind.a.y"), json!({"field":"kind.a.y","before":80,"after":85}));
     assert_eq!(edit(&moved, "kind.b.y"), json!({"field":"kind.b.y","before":80,"after":85}));
     // A property change: its `common`.
-    let ran = f.ok("run", json!({ "steps": [{ "command": "properties.set", "params": { "handles": [d.b], "color": "red" } }] })).await;
+    let ran = f.ok("run", json!({ "steps": [{ "command": "object.setProperties", "params": { "handles": [d.b], "color": "red" } }] })).await;
     let common = entry(&ran["changes"]["changed"], &d.b);
     assert_eq!(edit(&common, "common.color.kind"), json!({"field":"common.color.kind","before":"byLayer","after":"index"}));
     assert_eq!(edit(&common, "common.color.value"), json!({"field":"common.color.value","before":null,"after":1}));
@@ -192,7 +192,7 @@ async fn receipts_name_entities_by_handle_with_before_and_after() {
     assert!(!ids(&ran["changes"]["changed"]).contains(&d.insert));
     assert!(!ids(&ran["changes"]["changed"]).contains(&"block:Door".to_owned()));
     // An erase: deleted, by handle.
-    let ran = f.ok("run", json!({ "steps": [{ "command": "erase", "on": [d.b] }] })).await;
+    let ran = f.ok("run", json!({ "steps": [{ "command": "object.delete", "on": [d.b] }] })).await;
     assert_eq!(ids(&ran["changes"]["deleted"]), vec![d.b.clone()], "{ran}");
     f.shutdown().await;
 }
@@ -207,13 +207,13 @@ async fn a_run_acts_in_two_layouts_and_the_file_keeps_no_navigation() {
             "run",
             json!({ "target": { "layout": "Layout1" }, "steps": [
                 // On the run's layout.
-                { "command": "circle", "params": { "center": [50, 50], "radius": 5 } },
+                { "command": "circle.add", "params": { "center": [50, 50], "radius": 5 } },
                 // Another layout as the step's part.
-                { "command": "circle", "params": { "center": [20, 20], "radius": 5 }, "at": { "part": { "layout": "Layout2" } } },
+                { "command": "circle.add", "params": { "center": [20, 20], "radius": 5 }, "at": { "part": { "layout": "Layout2" } } },
                 // `on` an entity of Model space, whose handle names its space.
-                { "command": "move", "on": [f.d.a], "params": { "delta": [1, 0] } },
+                { "command": "object.move", "on": [f.d.a], "params": { "delta": [1, 0] } },
                 // An explicit layer and layout on a drawing command.
-                { "command": "line", "params": { "points": [[0, 0], [5, 5]], "layer": "Walls", "layout": "Model" } },
+                { "command": "line.add", "params": { "points": [[0, 0], [5, 5]], "layer": "Walls", "layout": "Model" } },
             ] }),
         )
         .await;
@@ -227,14 +227,14 @@ async fn a_run_acts_in_two_layouts_and_the_file_keeps_no_navigation() {
         "run",
         json!({ "steps": [
             { "command": "layout.set", "params": { "name": "Layout1" } },
-            { "command": "zoom", "params": { "mode": "extents" } },
-            { "command": "select", "params": { "window": [[0, 0], [100, 100]] } },
+            { "command": "view.zoomRealtime", "params": { "mode": "extents" } },
+            { "command": "select.set", "params": { "window": [[0, 0], [100, 100]] } },
         ] }),
     )
     .await;
     assert_eq!(f.file(), before, "the saved drawing is the person's");
     // The next call starts where the person is: a circle without a part goes in Model space.
-    f.ok("run", json!({ "steps": [{ "command": "circle", "params": { "center": [0, 0], "radius": 1 } }] })).await;
+    f.ok("run", json!({ "steps": [{ "command": "circle.add", "params": { "center": [0, 0], "radius": 1 } }] })).await;
     assert_eq!(f.space("Model").await.len(), 7);
     f.shutdown().await;
 }
@@ -247,8 +247,8 @@ async fn a_failing_later_step_changes_nothing() {
         .refused(
             "run",
             json!({ "target": { "layout": "Layout1" }, "steps": [
-                { "command": "move", "on": [f.d.p], "params": { "delta": [5, 5] } },
-                { "command": "properties.set", "params": { "handles": [f.d.p], "layer": "Fresh", "dimStyle": "Nope" } },
+                { "command": "object.move", "on": [f.d.p], "params": { "delta": [5, 5] } },
+                { "command": "object.setProperties", "params": { "handles": [f.d.p], "layer": "Fresh", "dimStyle": "Nope" } },
             ] }),
         )
         .await;
@@ -263,7 +263,7 @@ async fn inspect_lists_every_space_and_previews_a_layout_by_name() {
     let seen = f.ok("inspect", json!({})).await;
     let layouts = seen["details"]["layouts"].clone();
     assert_eq!(layouts[0]["part"], json!({ "layout": "Model" }), "{seen}");
-    assert_eq!((layouts[1]["id"].clone(), layouts[1]["entities"].clone()), (json!("layout:Layout1"), json!(1)), "{seen}");
+    assert_eq!((layouts[1]["id"].clone(), layouts[1]["object.query"].clone()), (json!("layout:Layout1"), json!(1)), "{seen}");
     assert!(seen["details"].get("space").is_none() && seen["details"].get("selection").is_none(), "editor state is not what an agent reads");
     // A layout's preview by name, through the render command, without going there.
     let seen = f.ok("inspect", json!({ "target": { "layout": "Layout1" }, "preview": true })).await;
@@ -272,7 +272,7 @@ async fn inspect_lists_every_space_and_previews_a_layout_by_name() {
     let seen = f.ok("inspect", json!({ "target": { "window": [-5, -5, 105, 55] }, "preview": true })).await;
     assert_eq!(seen["preview"]["window"], json!([-5.0, -5.0, 105.0, 55.0]), "{}", seen["preview"]);
     // The inspection did not move the person: a circle without a part goes in Model space.
-    f.ok("run", json!({ "steps": [{ "command": "circle", "params": { "center": [0, 0], "radius": 1 } }] })).await;
+    f.ok("run", json!({ "steps": [{ "command": "circle.add", "params": { "center": [0, 0], "radius": 1 } }] })).await;
     assert_eq!(f.space("Model").await.len(), 6);
     f.shutdown().await;
 }
@@ -281,12 +281,12 @@ async fn inspect_lists_every_space_and_previews_a_layout_by_name() {
 async fn handles_from_an_earlier_call_name_the_same_entities_after_a_new_server_opens_the_saved_file() {
     let f = Fixture::new();
     let made = handle(
-        &f.ok("run", json!({ "steps": [{ "command": "circle", "params": { "center": [5, 5], "radius": 2 } }] })).await["completed"][0]["result"],
+        &f.ok("run", json!({ "steps": [{ "command": "circle.add", "params": { "center": [5, 5], "radius": 2 } }] })).await["completed"][0]["result"],
     );
     f.kits.shutdown().await;
     let again = Fixture { kits: Fixture::server(f.workspace.path()), workspace: f.workspace, d: f.d };
     assert!(again.space("Model").await.contains(&made), "the circle made in the earlier call keeps its handle");
-    let ran = again.ok("run", json!({ "steps": [{ "command": "move", "on": [made], "params": { "delta": [1, 1] } }] })).await;
+    let ran = again.ok("run", json!({ "steps": [{ "command": "object.move", "on": [made], "params": { "delta": [1, 1] } }] })).await;
     assert_eq!(ids(&ran["changes"]["changed"]), vec![made.clone()]);
     // The object model takes and answers the same ids.
     let read = again.ok("query", json!({ "objects": [made], "fields": ["handle", "kind"] })).await;
@@ -304,9 +304,9 @@ async fn entities_measure_through_the_run_tool() {
         .ok(
             "run",
             json!({ "save": false, "steps": [
-                { "command": "entities.measure", "params": { "bounds": [f.d.r] } },
-                { "command": "entities.measure", "params": { "distance": [f.d.a, f.d.b] } },
-                { "command": "entities.measure", "params": { "overlaps": {} } },
+                { "command": "object.measure", "params": { "bounds": [f.d.r] } },
+                { "command": "object.measure", "params": { "distance": [f.d.a, f.d.b] } },
+                { "command": "object.measure", "params": { "overlaps": {} } },
             ] }),
         )
         .await;
@@ -323,8 +323,8 @@ async fn entities_measure_through_the_run_tool() {
 async fn another_agents_edit_of_an_unrelated_entity_is_reported_and_my_write_applies() {
     let f = Fixture::new();
     let basis = f.revision().await;
-    f.by(OTHER, "run", json!({ "steps": [{ "command": "move", "on": [f.d.b], "params": { "delta": [0, 1] } }] })).await;
-    let ran = f.ok("run", json!({ "basis": basis, "steps": [{ "command": "move", "on": [f.d.a], "params": { "delta": [0, 2] } }] })).await;
+    f.by(OTHER, "run", json!({ "steps": [{ "command": "object.move", "on": [f.d.b], "params": { "delta": [0, 1] } }] })).await;
+    let ran = f.ok("run", json!({ "basis": basis, "steps": [{ "command": "object.move", "on": [f.d.a], "params": { "delta": [0, 2] } }] })).await;
     assert_eq!(ids(&ran["others"]["changed"]), vec![f.d.b.clone(), "drawing".into()], "{ran}");
     assert_eq!(entry(&ran["others"]["changed"], "drawing")["fields"], json!(["~modelBounds"]), "{ran}");
     assert_eq!(ran["others"]["by"], json!([OTHER]), "{ran}");
@@ -336,18 +336,18 @@ async fn another_agents_edit_of_an_unrelated_entity_is_reported_and_my_write_app
 #[tokio::test(flavor = "multi_thread")]
 async fn another_agents_edit_or_erase_of_my_target_refuses_my_write() {
     let f = Fixture::new();
-    let mine = |h: &str| json!([{ "command": "move", "on": [h], "params": { "delta": [3, 0] } }]);
+    let mine = |h: &str| json!([{ "command": "object.move", "on": [h], "params": { "delta": [3, 0] } }]);
     // Geometry edited by the other agent: changed. A color edit alone permits the move
     // (outside.rs covers that unrelated-field case).
     let basis = f.revision().await;
-    f.by(OTHER, "run", json!({ "steps": [{ "command": "move", "params": { "handles": [f.d.a], "delta": [0, 5] } }] })).await;
+    f.by(OTHER, "run", json!({ "steps": [{ "command": "object.move", "params": { "handles": [f.d.a], "delta": [0, 5] } }] })).await;
     let before = f.file();
     let refused = f.refused("run", json!({ "basis": basis, "steps": mine(&f.d.a) })).await;
     assert_conflict(&refused, &f.d.a, "changed");
     assert_eq!(f.file(), before, "nothing changed in the file");
     // Erased by the other agent: deleted.
     let basis = revision(&refused);
-    f.by(OTHER, "run", json!({ "steps": [{ "command": "erase", "on": [f.d.b] }] })).await;
+    f.by(OTHER, "run", json!({ "steps": [{ "command": "object.delete", "on": [f.d.b] }] })).await;
     let gone = f.file();
     let refused = f.refused("run", json!({ "basis": basis, "steps": mine(&f.d.b) })).await;
     assert_conflict(&refused, &f.d.b, "deleted");

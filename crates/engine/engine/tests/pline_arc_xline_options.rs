@@ -47,7 +47,7 @@ fn angle_then_endpoint_center_or_radius() {
 #[test]
 fn included_angle_follows_angdir() {
     let mut s = Session::new();
-    s.execute("setvar", &json!({ "name": "ANGDIR", "value": 1 })).unwrap();
+    s.execute("variable.set", &json!({ "name": "ANGDIR", "value": 1 })).unwrap();
     s.script("PLINE 0,0 A A 90 10,0\n\n").unwrap();
     assert_pline(&s, &[(0.0, 0.0, -QUARTER), (10.0, 0.0, 0.0)]);
 }

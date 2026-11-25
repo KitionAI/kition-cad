@@ -2,7 +2,7 @@ format: 1
 id: cad.agent.measure/through-run
 feature: cad.agent.measure
 intent: >-
-  entities.measure answers bounds, distance and overlaps through cad_run and changes nothing.
+  object.measure answers bounds, distance and overlaps through cad_run and changes nothing.
 layer: gate
 source:
   kind: synthetic

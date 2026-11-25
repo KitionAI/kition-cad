@@ -34,18 +34,18 @@ enum Kind {
 const KINDS: &[(&str, &[&str], Kind)] = &[
     ("Blocks", &["blocks", "block"], Kind::Blocks),
     ("DEtailviewstyles", &["detailviewstyles"], Kind::Absent),
-    ("Dimstyles", &["dimstyles", "dimstyle"], Kind::Dimstyles),
+    ("Dimstyles", &["dimstyles", "dimensionStyle.open"], Kind::Dimstyles),
     ("Groups", &["groups", "group"], Kind::Groups),
     ("LAyers", &["layers", "layer"], Kind::Layers),
     ("LTypes", &["ltypes", "linetypes", "linetype"], Kind::Linetypes),
     ("MAterials", &["materials"], Kind::Absent),
-    ("MUltileaderstyles", &["multileaderstyles", "mleaderstyles", "mleaderstyle"], Kind::MleaderStyles),
+    ("MUltileaderstyles", &["multileaderstyles", "mleaderstyles", "multileaderStyle.open"], Kind::MleaderStyles),
     ("Plotstyles", &["plotstyles"], Kind::Absent),
     ("SHapes", &["shapes"], Kind::Absent),
     ("textSTyles", &["textstyles", "textstyle", "styles", "style"], Kind::TextStyles),
     ("Mlinestyles", &["mlinestyles"], Kind::Absent),
     ("SEctionviewstyles", &["sectionviewstyles"], Kind::Absent),
-    ("Tablestyles", &["tablestyles", "tablestyle"], Kind::TableStyles),
+    ("Tablestyles", &["tablestyles", "tableStyle.open"], Kind::TableStyles),
     ("Visualstyles", &["visualstyles"], Kind::Absent),
     ("Regapps", &["regapps"], Kind::Absent),
     ("Zero-length geometry", &["zerolengthgeometry", "zerolength"], Kind::ZeroLength),
@@ -232,7 +232,7 @@ fn purge_one(s: &mut Session, kind: Kind, name: &str) -> Result<bool> {
     let n = name.to_string();
     let gone = match kind {
         Kind::Layers => return Ok(call(s, "layer.delete", &json!({ "name": n })).is_ok()),
-        Kind::TextStyles => return Ok(call(s, "style.delete", &json!({ "name": n })).is_ok()),
+        Kind::TextStyles => return Ok(call(s, "textStyle.delete", &json!({ "name": n })).is_ok()),
         Kind::Blocks => {
             let key = d.blocks.keys().find(|k| k.eq_ignore_ascii_case(name)).cloned();
             key.is_some_and(|k| d.blocks.remove(&k).is_some())

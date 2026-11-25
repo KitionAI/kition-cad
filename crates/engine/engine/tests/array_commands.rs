@@ -77,7 +77,7 @@ fn array_asks_for_the_type_and_continues_as_that_array() {
 fn arrayrect_edits_the_array_in_a_loop_until_exit() {
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 0], "radius": 0.5})).unwrap();
-    typed(&mut s, &["arrayrect", "l", ""]);
+    typed(&mut s, &["object.arrayRectangular", "l", ""]);
     let p = prompt(&s);
     assert!(p.contains("Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit] <eXit>"), "{p}");
     // Nothing is created before eXit.
@@ -97,7 +97,7 @@ fn arrayrect_edits_the_array_in_a_loop_until_exit() {
     // COLumns with a Total distance, Rows with spacing and elevation.
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 0], "radius": 0.5})).unwrap();
-    typed(&mut s, &["arrayrect", "l", "", "col", "3", "t", "20", "r", "2", "5", "0", "x"]);
+    typed(&mut s, &["object.arrayRectangular", "l", "", "col", "3", "t", "20", "r", "2", "5", "0", "x"]);
     assert!(s.current_prompt().is_none(), "{}", prompt(&s));
     let c = circle_centers(&s);
     assert_eq!(c.len(), 6, "{c:?}");
@@ -106,7 +106,7 @@ fn arrayrect_edits_the_array_in_a_loop_until_exit() {
     // Invalid counts re-prompt.
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 0], "radius": 0.5})).unwrap();
-    typed(&mut s, &["arrayrect", "l", "", "cou", "0"]);
+    typed(&mut s, &["object.arrayRectangular", "l", "", "cou", "0"]);
     assert!(prompt(&s).contains("number of columns"), "{}", prompt(&s));
     typed(&mut s, &["2", "1", "x"]);
     assert_eq!(circle_centers(&s).len(), 2);
@@ -114,7 +114,7 @@ fn arrayrect_edits_the_array_in_a_loop_until_exit() {
     // The JSON form is unchanged.
     let mut s = Session::new();
     let r = s.execute("circle", &json!({"center": [0, 0], "radius": 0.5})).unwrap();
-    let r = s.execute("arrayrect", &json!({"handles": [r["handle"]], "rows": 2, "cols": 3, "rowSpacing": 4, "colSpacing": 2})).unwrap();
+    let r = s.execute("object.arrayRectangular", &json!({"handles": [r["handle"]], "rows": 2, "cols": 3, "rowSpacing": 4, "colSpacing": 2})).unwrap();
     assert_eq!(r["created"], 5);
     assert!(has(&circle_centers(&s), 4.0, 4.0));
 }
@@ -123,7 +123,7 @@ fn arrayrect_edits_the_array_in_a_loop_until_exit() {
 fn arraypolar_asks_for_the_center_then_edits_items_and_angles() {
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [10, 0], "radius": 1})).unwrap();
-    typed(&mut s, &["arraypolar", "l", ""]);
+    typed(&mut s, &["object.arrayPolar", "l", ""]);
     assert!(prompt(&s).contains("Specify center point of array or [Base point/Axis of rotation]"), "{}", prompt(&s));
     typed(&mut s, &["0,0"]);
     let p = prompt(&s);
@@ -151,7 +151,7 @@ fn arraypolar_asks_for_the_center_then_edits_items_and_angles() {
     // Fill angle 180 with 3 items, items not rotated: the copies only move.
     let mut s = Session::new();
     s.execute("line", &json!({"points": [[10, 0], [12, 0]]})).unwrap();
-    typed(&mut s, &["arraypolar", "l", "", "0,0", "i", "3", "f", "180", "rot", "n", "x"]);
+    typed(&mut s, &["object.arrayPolar", "l", "", "0,0", "i", "3", "f", "180", "rot", "n", "x"]);
     assert!(s.current_prompt().is_none(), "{}", prompt(&s));
     let lines: Vec<(Vec2, Vec2)> = s
         .doc()
@@ -175,24 +175,26 @@ fn arrays_over_maxarray_are_refused_not_shrunk() {
     let c = s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
     let h = c["handle"].clone();
     let before = s.doc().unwrap().model.iter().count();
-    let e = s.execute("arrayrect", &json!({"handles": [h], "rows": 1_000_000, "cols": 1_000_000})).unwrap_err();
+    let e = s.execute("object.arrayRectangular", &json!({"handles": [h], "rows": 1_000_000, "cols": 1_000_000})).unwrap_err();
     assert!(e.to_string().contains("MAXARRAY"), "{e}");
-    assert!(s.execute("arraypolar", &json!({"handles": [h], "center": [5, 5], "count": 200_000})).unwrap_err().to_string().contains("MAXARRAY"));
+    assert!(
+        s.execute("object.arrayPolar", &json!({"handles": [h], "center": [5, 5], "count": 200_000})).unwrap_err().to_string().contains("MAXARRAY")
+    );
     let path = s.execute("line", &json!({"points": [[0, 5], [100, 5]]})).unwrap()["handles"][0].clone();
-    let e = s.execute("arraypath", &json!({"handles": [h], "path": path, "spacing": 1e-6})).unwrap_err();
+    let e = s.execute("object.arrayPath", &json!({"handles": [h], "path": path, "spacing": 1e-6})).unwrap_err();
     assert!(e.to_string().contains("MAXARRAY"), "{e}");
     assert_eq!(s.doc().unwrap().model.iter().count(), before + 1);
 
     // The limit counts every selected object, and MAXARRAY is a settable system variable.
-    s.execute("setvar", &json!({"name": "MAXARRAY", "value": 100})).unwrap();
+    s.execute("variable.set", &json!({"name": "MAXARRAY", "value": 100})).unwrap();
     let h2 = s.execute("circle", &json!({"center": [3, 0], "radius": 1})).unwrap()["handle"].clone();
-    assert!(s.execute("arrayrect", &json!({"handles": [h, h2], "rows": 10, "cols": 6})).is_err());
-    assert_eq!(s.execute("arrayrect", &json!({"handles": [h, h2], "rows": 10, "cols": 5})).unwrap()["created"], 98);
+    assert!(s.execute("object.arrayRectangular", &json!({"handles": [h, h2], "rows": 10, "cols": 6})).is_err());
+    assert_eq!(s.execute("object.arrayRectangular", &json!({"handles": [h, h2], "rows": 10, "cols": 5})).unwrap()["created"], 98);
 
     // Interactive: a count over the limit is rejected at its prompt and the loop keeps going.
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 0], "radius": 1})).unwrap();
-    typed(&mut s, &["arrayrect", "l", "", "cou", "1000", "1000"]);
+    typed(&mut s, &["object.arrayRectangular", "l", "", "cou", "1000", "1000"]);
     assert!(s.log.iter().any(|l| l.contains("MAXARRAY")), "{:?}", s.log);
     assert!(prompt(&s).contains("rows"), "{}", prompt(&s));
     typed(&mut s, &["2", ""]);

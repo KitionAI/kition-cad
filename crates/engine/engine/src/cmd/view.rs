@@ -17,31 +17,31 @@ pub fn specs() -> Vec<CommandSpec> {
             .noundo()
             .transparent()
             .interactive(|_| Ok(Box::new(ZoomM::default()))),
-        CommandSpec::new("zoom.previous", "Zoom Previous", |s, _| zoom(s, &json!({"mode":"previous"})))
+        CommandSpec::new("view.zoomPrevious", "Zoom Previous", |s, _| zoom(s, &json!({"mode":"previous"})))
             .menu(&["View", "Zoom", "Previous"])
             .noundo()
             .transparent(),
-        CommandSpec::new("zoom.window", "Zoom Window", run_zoom)
+        CommandSpec::new("view.zoomWindow", "Zoom Window", run_zoom)
             .menu(&["View", "Zoom", "Window"])
             .params("{p1, p2}")
             .noundo()
             .transparent()
             .interactive(|_| Ok(Box::new(ZoomM { window: true, ..Default::default() }))),
-        CommandSpec::new("zoom.in", "Zoom In", |s, _| zoom(s, &json!({"mode":"in"}))).menu(&["View", "Zoom", "In"]).noundo().transparent(),
-        CommandSpec::new("zoom.out", "Zoom Out", |s, _| zoom(s, &json!({"mode":"out"}))).menu(&["View", "Zoom", "Out"]).noundo().transparent(),
-        CommandSpec::new("zoom.all", "Zoom All", |s, _| zoom(s, &json!({"mode":"all"}))).menu(&["View", "Zoom", "All"]).noundo().transparent(),
-        CommandSpec::new("zoom.extents", "Zoom Extents", |s, _| zoom(s, &json!({"mode":"extents"})))
+        CommandSpec::new("view.zoomIn", "Zoom In", |s, _| zoom(s, &json!({"mode":"in"}))).menu(&["View", "Zoom", "In"]).noundo().transparent(),
+        CommandSpec::new("view.zoomOut", "Zoom Out", |s, _| zoom(s, &json!({"mode":"out"}))).menu(&["View", "Zoom", "Out"]).noundo().transparent(),
+        CommandSpec::new("view.zoomAll", "Zoom All", |s, _| zoom(s, &json!({"mode":"all"}))).menu(&["View", "Zoom", "All"]).noundo().transparent(),
+        CommandSpec::new("view.zoomToFit", "Zoom Extents", |s, _| zoom(s, &json!({"mode":"extents"})))
             .menu(&["View", "Zoom", "Extents"])
             .noundo()
             .transparent(),
-        CommandSpec::new("zoom.object", "Zoom Object", |s, p| {
+        CommandSpec::new("view.zoomObject", "Zoom Object", |s, p| {
             zoom(s, &json!({"mode":"object", "handles": p.get("handles").cloned().unwrap_or(Value::Null)}))
         })
         .menu(&["View", "Zoom", "Object"])
         .params("{handles?}")
         .noundo()
         .transparent()
-        .interactive(|_| Ok(Box::new(SelectRun::new("zoom.object", "ZOOM")))),
+        .interactive(|_| Ok(Box::new(SelectRun::new("view.zoomObject", "ZOOM")))),
         CommandSpec::new("pan", "Pan", run_pan)
             .menu(&["View", "Pan", "Realtime"])
             .alias(&["p"])
@@ -49,25 +49,25 @@ pub fn specs() -> Vec<CommandSpec> {
             .noundo()
             .transparent()
             .interactive(|_| Ok(Box::new(PanM::default()))),
-        CommandSpec::new("pan.left", "Pan Left", |s, _| pan_frac(s, Vec2::new(-0.25, 0.0))).menu(&["View", "Pan", "Left"]).noundo().transparent(),
-        CommandSpec::new("pan.right", "Pan Right", |s, _| pan_frac(s, Vec2::new(0.25, 0.0))).menu(&["View", "Pan", "Right"]).noundo().transparent(),
-        CommandSpec::new("pan.up", "Pan Up", |s, _| pan_frac(s, Vec2::new(0.0, 0.25))).menu(&["View", "Pan", "Up"]).noundo().transparent(),
-        CommandSpec::new("pan.down", "Pan Down", |s, _| pan_frac(s, Vec2::new(0.0, -0.25))).menu(&["View", "Pan", "Down"]).noundo().transparent(),
-        CommandSpec::new("regen", "Regen", |s, _| {
+        CommandSpec::new("view.panLeft", "Pan Left", |s, _| pan_frac(s, Vec2::new(-0.25, 0.0))).menu(&["View", "Pan", "Left"]).noundo().transparent(),
+        CommandSpec::new("view.panRight", "Pan Right", |s, _| pan_frac(s, Vec2::new(0.25, 0.0))).menu(&["View", "Pan", "Right"]).noundo().transparent(),
+        CommandSpec::new("view.panUp", "Pan Up", |s, _| pan_frac(s, Vec2::new(0.0, 0.25))).menu(&["View", "Pan", "Up"]).noundo().transparent(),
+        CommandSpec::new("view.panDown", "Pan Down", |s, _| pan_frac(s, Vec2::new(0.0, -0.25))).menu(&["View", "Pan", "Down"]).noundo().transparent(),
+        CommandSpec::new("view.regen", "Regen", |s, _| {
             s.touch();
             Ok(json!({"message": "Regenerating model."}))
         })
         .menu(&["View", "Regen"])
         .alias(&["re"])
         .noundo(),
-        CommandSpec::new("regenall", "Regen All", |s, _| {
+        CommandSpec::new("view.regenAll", "Regen All", |s, _| {
             s.touch();
             Ok(json!({"message": "Regenerating all viewports."}))
         })
         .menu(&["View", "Regen All"])
         .alias(&["rea"])
         .noundo(),
-        CommandSpec::new("redraw", "Redraw", |s, _| {
+        CommandSpec::new("view.redraw", "Redraw", |s, _| {
             s.touch();
             ok()
         })

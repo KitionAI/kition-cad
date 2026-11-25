@@ -31,11 +31,11 @@ async fn receipt_mode(doc: &CadDocument, steps: Value, all: bool) -> Value {
 #[tokio::test(flavor = "multi_thread")]
 async fn offsets_use_footprints_and_a_cap_states_its_omissions() {
     let (d, ids) = drawing(200);
-    let compact = receipt_mode(&d, json!([{"command":"move","params":{"handles":ids,"delta":[0,5]}}]), false).await;
+    let compact = receipt_mode(&d, json!([{"command":"object.move","params":{"handles":ids,"delta":[0,5]}}]), false).await;
     println!("BYTES default-offset-200: {}", compact.to_string().len());
     assert_eq!(compact["footprint"][0]["ids"].as_array().unwrap().len(), 200, "{compact}");
     assert!(compact.get("truncated").is_none(), "{compact}");
-    let steps: Vec<_> = ids.iter().enumerate().map(|(i, id)| json!({"command":"move","params":{"handles":[id],"delta":[0,i+1]}})).collect();
+    let steps: Vec<_> = ids.iter().enumerate().map(|(i, id)| json!({"command":"object.move","params":{"handles":[id],"delta":[0,i+1]}})).collect();
     let capped = receipt_mode(&d, json!(steps), false).await;
     assert_eq!(capped["changed"].as_array().unwrap().len(), 50);
     assert_eq!(capped["truncated"]["changed"], 151, "200 entities plus the drawing's derived bounds: {capped}");
@@ -55,7 +55,7 @@ fn drawing(count: usize) -> (CadDocument, Vec<Value>) {
 async fn receipt_bytes_and_parent_carries() {
     let (d, ids) = drawing(1);
     for (label, command, p) in
-        [("property", "properties.set", json!({"handles":ids,"color":"red"})), ("move", "move", json!({"handles":ids,"delta":[0,5]}))]
+        [("property", "object.setProperties", json!({"handles":ids,"color":"red"})), ("move", "move", json!({"handles":ids,"delta":[0,5]}))]
     {
         let changes = receipt(&d, command, p).await;
         println!("BYTES {label}: {}", changes.to_string().len());

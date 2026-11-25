@@ -302,7 +302,7 @@ fn entity(e: &Entity, found: &mut Found) {
                 format!("Dimension {} shows \"{}\" instead of its measurement, so it won't follow edits to the geometry.", h.hex(), dim.text),
             )
             .on(of_entity(h))
-            .fix("properties.set", Some(json!({ "handles": [h.hex()], "textOverride": "" }))),
+            .fix("object.setProperties", Some(json!({ "handles": [h.hex()], "textOverride": "" }))),
         ),
         _ => {}
     }

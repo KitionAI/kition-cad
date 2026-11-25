@@ -5,7 +5,7 @@ use kition_cad_engine::Session;
 use serde_json::{Value, json};
 
 fn circles(s: &mut Session) -> Vec<Value> {
-    s.execute("entities", &json!({ "type": "Circle" })).unwrap()["entities"].as_array().cloned().unwrap_or_default()
+    s.execute("object.query", &json!({ "type": "Circle" })).unwrap()["object.query"].as_array().cloned().unwrap_or_default()
 }
 
 #[test]
@@ -13,7 +13,7 @@ fn malformed_handles_are_rejected_instead_of_using_the_selection() {
     let mut s = Session::new();
     let a = s.execute("circle", &json!({ "center": [0, 0], "radius": 1 })).unwrap()["handle"].as_str().unwrap().to_string();
     s.execute("circle", &json!({ "center": [10, 0], "radius": 1 })).unwrap();
-    s.execute("qselect", &json!({ "type": "Circle" })).unwrap();
+    s.execute("select.quick", &json!({ "type": "Circle" })).unwrap();
     assert_eq!(s.selection().len(), 2);
 
     for (cmd, params) in [
@@ -35,7 +35,7 @@ fn malformed_handles_are_rejected_instead_of_using_the_selection() {
     // Well-formed handles act on exactly those objects; without either key the selection is used.
     assert_eq!(s.execute("move", &json!({ "handle": a, "delta": [0, 5] })).unwrap()["moved"], 1);
     assert_eq!(s.execute("erase", &json!({ "handles": [a] })).unwrap()["erased"], 1);
-    s.execute("qselect", &json!({ "type": "Circle" })).unwrap();
+    s.execute("select.quick", &json!({ "type": "Circle" })).unwrap();
     assert_eq!(s.execute("erase", &json!({ "handles": null })).unwrap()["erased"], 1);
     assert!(circles(&mut s).is_empty());
 }

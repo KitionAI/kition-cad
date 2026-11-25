@@ -6,7 +6,7 @@ import { useKitEditor, useKitTools } from '@kition/sdk/editor'
 export function CommandLine({ prompt, running, input, history, onCommand }: { prompt: string; running: string | null; input: RefObject<HTMLInputElement | null>; history: string[]; onCommand: (text: string) => void }) {
   const { run, enabled, t, phrase, commands } = useKitEditor()
   // What is typed runs as a command that may edit: a viewer cannot type here.
-  const disabled = !enabled('commandLine')
+  const disabled = !enabled('command.runLine')
   const tools = useKitTools()
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
   const draft = useRef('')
@@ -19,7 +19,7 @@ export function CommandLine({ prompt, running, input, history, onCommand }: { pr
         if (input.current) input.current.value = ''
         setHistoryIndex(null)
         if (!running && !prompt.startsWith('STRETCH ') && text.trim()) onCommand(text.trim())
-        void run('commandLine', { text }).then(() => tools?.refresh())
+        void run('command.runLine', { text }).then(() => tools?.refresh())
       }}
     >
       <Terminal size={14} className="kui-muted" aria-hidden="true" />
@@ -27,8 +27,8 @@ export function CommandLine({ prompt, running, input, history, onCommand }: { pr
       <input
         className="kui-field cad-command-input"
         ref={input}
-        placeholder={t('commandLine')}
-        aria-label={t('commandLine')}
+        placeholder={t('command.runLine')}
+        aria-label={t('command.runLine')}
         spellCheck={false}
         disabled={disabled}
         onChange={() => setHistoryIndex(null)}

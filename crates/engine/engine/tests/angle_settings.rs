@@ -8,7 +8,7 @@ use kition_cad_engine::units::AngleSettings;
 use serde_json::json;
 
 fn setvar(s: &mut Session, name: &str, value: serde_json::Value) {
-    s.execute("setvar", &json!({ "name": name, "value": value })).unwrap();
+    s.execute("variable.set", &json!({ "name": name, "value": value })).unwrap();
 }
 
 /// Draws LINE 0,0 `to` at the command line; returns the end point.

@@ -61,7 +61,7 @@ try {
   await until('Escape with nothing to cancel leaves Focus', async () => (await mode()) === 'classic')
 
   // A selection is something to cancel too: the first Escape clears it, the second leaves Focus.
-  await kit.getByTestId('cad-command-line').fill('selectall')
+  await kit.getByTestId('cad-command-line').fill('edit.selectAll')
   await kit.getByTestId('cad-command-line').press('Enter')
   await until('everything selected', async () => (await details()).selection === 7)
   await app.focus()

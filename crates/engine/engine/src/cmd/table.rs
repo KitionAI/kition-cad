@@ -20,10 +20,10 @@ pub fn specs() -> Vec<CommandSpec> {
             .params("{at: [x,y], rows (data rows), cols, rowHeight? (rows grow to fit their text), colWidth? (default 63.5 in metric drawings, 2.5 in imperial), textHeight? (default: the table style's), cells?: [[text]], title?: text, header?: [text]}")
             .interactive(|s| Ok(Box::new(TableM::new(s)))),
         CommandSpec::new("table.set", "Set Table Cell", run_set).params("{handle, row, col, text}"),
-        CommandSpec::new("table.insertrow", "Insert Row", run_insert_row).params("{handle, row? (insert before; default: append), height?}"),
-        CommandSpec::new("table.deleterow", "Delete Row", run_delete_row).params("{handle, row}"),
-        CommandSpec::new("table.insertcol", "Insert Column", run_insert_col).params("{handle, col? (insert before; default: append), width?}"),
-        CommandSpec::new("table.deletecol", "Delete Column", run_delete_col).params("{handle, col}"),
+        CommandSpec::new("table.insertRow", "Insert Row", run_insert_row).params("{handle, row? (insert before; default: append), height?}"),
+        CommandSpec::new("table.deleteRow", "Delete Row", run_delete_row).params("{handle, row}"),
+        CommandSpec::new("table.insertColumn", "Insert Column", run_insert_col).params("{handle, col? (insert before; default: append), width?}"),
+        CommandSpec::new("table.deleteColumn", "Delete Column", run_delete_col).params("{handle, col}"),
         CommandSpec::new("table.merge", "Merge Cells", run_merge).params("{handle, row, col, rows, cols}"),
         CommandSpec::new("table.unmerge", "Unmerge Cells", run_unmerge).params("{handle, row, col}"),
     ]
@@ -232,7 +232,7 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_insert_row(s: &mut Session, p: &Value) -> Result<Value> {
-    edit(s, p, "table.insertrow", |t| {
+    edit(s, p, "table.insertRow", |t| {
         if t.cells.len() >= MAX_ROWS {
             return Err("too many rows".into());
         }
@@ -259,7 +259,7 @@ fn run_insert_row(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_delete_row(s: &mut Session, p: &Value) -> Result<Value> {
-    edit(s, p, "table.deleterow", |t| {
+    edit(s, p, "table.deleteRow", |t| {
         let r = usize_param(p, "row").ok_or("`row` is required")?;
         if r >= t.cells.len() || t.cells.len() <= 1 {
             return Err("no such row (a table keeps at least one row)".into());
@@ -294,7 +294,7 @@ fn run_delete_row(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_insert_col(s: &mut Session, p: &Value) -> Result<Value> {
-    edit(s, p, "table.insertcol", |t| {
+    edit(s, p, "table.insertColumn", |t| {
         if t.col_widths.len() >= MAX_COLS {
             return Err("too many columns".into());
         }
@@ -322,7 +322,7 @@ fn run_insert_col(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_delete_col(s: &mut Session, p: &Value) -> Result<Value> {
-    edit(s, p, "table.deletecol", |t| {
+    edit(s, p, "table.deleteColumn", |t| {
         let c = usize_param(p, "col").ok_or("`col` is required")?;
         if c >= t.col_widths.len() || t.col_widths.len() <= 1 {
             return Err("no such column (a table keeps at least one column)".into());

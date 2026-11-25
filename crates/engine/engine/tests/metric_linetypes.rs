@@ -44,7 +44,7 @@ fn centerline_loads_the_metric_center_linetype() {
     s.execute("line", &json!({ "points": [[0, 20], [100, 20]] })).unwrap();
     let hs: Vec<String> = s.doc().unwrap().model.iter().map(|e| e.handle.hex()).collect();
     let (h1, h2) = (&hs[0], &hs[1]);
-    s.execute("centerline", &json!({ "h1": h1, "h2": h2 })).unwrap();
+    s.execute("centerLine.add", &json!({ "h1": h1, "h2": h2 })).unwrap();
     let lt = s.doc().unwrap().linetype("CENTER").unwrap().clone();
     assert!((lt.pattern[0].length - 31.75).abs() < 1e-9, "{lt:?}");
 }

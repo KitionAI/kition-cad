@@ -72,7 +72,7 @@ try {
   await until(async () => (await details()).drafting.ortho === true)
   step('turns Ortho on', (await details()).drafting.ortho === true)
 
-  const run = await page.evaluate(async () => window.devHost.connection().ai.run([{ command: 'circle', params: { center: [60, 250], radius: 10 } }], false))
+  const run = await page.evaluate(async () => window.devHost.connection().ai.run([{ command: 'circle.add', params: { center: [60, 250], radius: 10 } }], false))
   await page.waitForTimeout(300)
   step('the agent edits the live drawing', run.completed[0].changed && (await page.evaluate(() => window.devHost.changes.at(-1).by)) === 'agent')
   await kit.getByTestId('cad-save').click()

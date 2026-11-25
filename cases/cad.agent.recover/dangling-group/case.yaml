@@ -18,7 +18,7 @@ steps:
         text in the drawing.
       max_turns: 20
   - check: { path: plan.dxf, as: diagnostics }
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query }], as: all }
 expected:
   - actual: out:diagnostics
     compare: diagnostics
@@ -31,6 +31,6 @@ expected:
       completed.0.result.entities: { any: { type: Text } }
 solution:
   - tool: cad_run
-    args: { path: plan.dxf, steps: [{ command: audit, params: { fix: true } }] }
+    args: { path: plan.dxf, steps: [{ command: file.audit, params: { fix: true } }] }
 since: "2026-11-17"
 timeout_s: 600

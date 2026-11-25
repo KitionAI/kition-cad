@@ -16,8 +16,8 @@ steps:
         In plan.dxf, create a layer named "Walls" and move the four lines of the rectangle onto it.
         The text stays on layer 0, and no geometry changes.
       max_turns: 20
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities, params: { layer: Walls } }], as: walls }
-  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: entities }], as: all }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query, params: { layer: Walls } }], as: walls }
+  - run: { path: plan.dxf, args: { save: false }, steps: [{ command: object.query }], as: all }
 expected:
   - actual: out:walls
     compare: values
@@ -33,6 +33,6 @@ expected:
       completed.0.result.entities.0.geometry.b.x: 100
 solution:
   - tool: cad_run
-    args: { path: plan.dxf, steps: [{ command: layer.new, params: { name: Walls } }, { command: properties.set, params: { handles: ["100", "101", "102", "103"], layer: Walls } }] }
+    args: { path: plan.dxf, steps: [{ command: layer.add, params: { name: Walls } }, { command: object.setProperties, params: { handles: ["100", "101", "102", "103"], layer: Walls } }] }
 since: "2026-11-17"
 timeout_s: 600

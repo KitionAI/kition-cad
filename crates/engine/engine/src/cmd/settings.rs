@@ -39,62 +39,64 @@ pub fn specs() -> Vec<CommandSpec> {
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("otrack", "Object Snap Tracking", |s, p| toggle(s, p, |st| &mut st.otrack, "Object Snap Tracking"))
+        CommandSpec::new("drafting.objectSnapTracking", "Object Snap Tracking", |s, p| toggle(s, p, |st| &mut st.otrack, "Object Snap Tracking"))
             .key("F11")
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("dynmode", "Dynamic Input", |s, p| toggle(s, p, |st| &mut st.dynmode, "Dynamic Input"))
+        CommandSpec::new("drafting.dynamicInput", "Dynamic Input", |s, p| toggle(s, p, |st| &mut st.dynmode, "Dynamic Input"))
             .key("F12")
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("lwdisplay", "Show/Hide Lineweight", |s, p| toggle(s, p, |st| &mut st.lwdisplay, "Lineweight"))
+        CommandSpec::new("drafting.lineweightDisplay", "Show/Hide Lineweight", |s, p| toggle(s, p, |st| &mut st.lwdisplay, "Lineweight"))
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("isodraft", "Isometric Drafting", |s, p| toggle(s, p, |st| &mut st.isodraft, "Isodraft"))
+        CommandSpec::new("drafting.isometric", "Isometric Drafting", |s, p| toggle(s, p, |st| &mut st.isodraft, "Isodraft"))
             .params("{on?: bool}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("transparencydisplay", "Show/Hide Transparency", |s, p| toggle(s, p, |st| &mut st.transparency_display, "Transparency"))
+        CommandSpec::new("drafting.transparencyDisplay", "Show/Hide Transparency", |s, p| {
+            toggle(s, p, |st| &mut st.transparency_display, "Transparency")
+        })
+        .params("{on?: bool}")
+        .enabled(always)
+        .noundo(),
+        CommandSpec::new("drafting.quickProperties", "Quick Properties", |s, p| toggle(s, p, |st| &mut st.qpmode, "Quick Properties"))
+            .params("{on?: bool}")
+            .enabled(always)
+            .noundo()
+            .transparent(),
+        CommandSpec::new("drafting.selectionCycling", "Selection Cycling", |s, p| toggle(s, p, |st| &mut st.selection_cycling, "Selection Cycling"))
             .params("{on?: bool}")
             .enabled(always)
             .noundo(),
-        CommandSpec::new("qpmode", "Quick Properties", |s, p| toggle(s, p, |st| &mut st.qpmode, "Quick Properties"))
-            .params("{on?: bool}")
-            .enabled(always)
-            .noundo()
-            .transparent(),
-        CommandSpec::new("selectioncycling", "Selection Cycling", |s, p| toggle(s, p, |st| &mut st.selection_cycling, "Selection Cycling"))
-            .params("{on?: bool}")
-            .enabled(always)
-            .noundo(),
-        CommandSpec::new("osnap", "Object Snap", run_osnap)
+        CommandSpec::new("drafting.objectSnap", "Object Snap", run_osnap)
             .key("F3")
             .alias(&["os", "ddosnap"])
             .params("{on?: bool, modes?: [\"end\",\"mid\",...], osmode?: n (instead of modes)}")
             .enabled(always)
             .noundo()
             .transparent(),
-        CommandSpec::new("dsettings", "Drafting Settings...", run_dsettings)
+        CommandSpec::new("drafting.settings", "Drafting Settings...", run_dsettings)
             .menu(&["Tools", "Drafting Settings..."])
             .alias(&["ds", "se"])
             .params("{snapunit?: [x,y], gridunit?: [x,y], polarang? (degrees), gridmajor?}")
             .enabled(always)
             .noundo(),
-        CommandSpec::new("setvar", "Set Variable", run_setvar)
+        CommandSpec::new("variable.set", "Set Variable", run_setvar)
             .menu(&["Tools", "Inquiry", "Set Variable"])
             .alias(&["set"])
             .params("{name, value}")
             .transparent()
             .interactive(|_| Ok(Box::new(SetvarM::default()))),
-        CommandSpec::new("getvar", "Get Variable", run_getvar).params("{name}").enabled(always).noundo(),
-        CommandSpec::new("sysvars", "List System Variables", |s, _| Ok(crate::sysvars::list(s))).enabled(always).noundo(),
+        CommandSpec::new("variable.get", "Get Variable", run_getvar).params("{name}").enabled(always).noundo(),
+        CommandSpec::new("variable.list", "List System Variables", |s, _| Ok(crate::sysvars::list(s))).enabled(always).noundo(),
     ]
 }
 
@@ -159,8 +161,8 @@ fn run_dsettings(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_setvar(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("setvar", "`name` is required"))?;
-    let v = p.get("value").ok_or_else(|| bad("setvar", "`value` is required"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("variable.set", "`name` is required"))?;
+    let v = p.get("value").ok_or_else(|| bad("variable.set", "`value` is required"))?;
     crate::sysvars::set(s, name, v)?;
     s.touch();
     Ok(json!({ "name": name.to_ascii_uppercase(), "value": crate::sysvars::get(s, name) }))
@@ -243,7 +245,7 @@ impl Interactive for SetvarM {
 }
 
 fn run_getvar(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("getvar", "`name` is required"))?;
-    let v = crate::sysvars::get(s, name).ok_or_else(|| bad("getvar", format!("unknown variable `{name}`")))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("variable.get", "`name` is required"))?;
+    let v = crate::sysvars::get(s, name).ok_or_else(|| bad("variable.get", format!("unknown variable `{name}`")))?;
     Ok(json!({ "name": name.to_ascii_uppercase(), "value": v }))
 }

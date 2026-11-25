@@ -8,8 +8,8 @@ use serde_json::json;
 async fn leader_uses_text_height_but_not_dimension_override_headers() {
     check(
         |_| ("leader", json!({"points":[[600,0],[610,10]],"text":"Agent"})),
-        |_| vec![("dimstyle", json!({"name":"ISO-25","textHeight":8}))],
-        |_| vec![("setvar", json!({"name":"DIMASZ","value":8}))],
+        |_| vec![("dimensionStyle.open", json!({"name":"ISO-25","textHeight":8}))],
+        |_| vec![("variable.set", json!({"name":"DIMASZ","value":8}))],
     )
     .await;
 }

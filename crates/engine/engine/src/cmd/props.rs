@@ -10,48 +10,48 @@ use serde_json::{Value, json};
 use super::*;
 use crate::{Result, Session};
 
-/// `dimstyle` and its Dimension menu entry, `dimstyle.dimension`.
+/// `dimensionStyle.open` and its Dimension menu entry, `dimensionStyle.openManager`.
 const DIMSTYLE_PARAMS: &str = "{name: str, current?: bool (make it the current style; default true), DIMTSZ?, DIMBLK?, DIMTAD?, …or any other dimension style field or DIM* variable as its own key (arrowSize or DIMASZ, DIMLUNIT)} → styles";
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("properties", "Properties", run_get).menu(&["Modify", "Properties"]).alias(&["pr", "props", "ch"]).params("{handles?} → properties of the selection").noundo(),
-        CommandSpec::new("properties.set", "Set Properties", run_set).params("{handles?, layer?: string (a layer name), color?, linetype?, lineweight?, ltscale?: number, transparency?: \"ByLayer\" | \"ByBlock\" | 0..90, visible?: bool, dimStyle?: string (a dimension style name), start?: [x,y], end?: [x,y], length?: number (a line's), angle?: number (degrees; a line's, or a hatch pattern's), center?: [x,y], radius?: number, diameter?: number, circumference?: number, area?: number, startAngle?: number (degrees), endAngle?: number (degrees), text?: string, textOverride?: string (a dimension's), height?: number, rotation?: number (degrees), widthFactor?: number, width?: number (a polyline's or text frame's), position?: [x,y] (text), closed?: bool, scale?: number (a block's or hatch pattern's), pattern?: string (a hatch pattern name)}"),
-        CommandSpec::new("matchprop", "Match Properties", run_matchprop).menu(&["Modify", "Match Properties"]).alias(&["ma", "painter"]).params("{source, targets: [str] (handles)}"),
+        CommandSpec::new("object.setProperties", "Set Properties", run_set).params("{handles?, layer?: string (a layer name), color?, linetype?, lineweight?, ltscale?: number, transparency?: \"ByLayer\" | \"ByBlock\" | 0..90, visible?: bool, dimStyle?: string (a dimension style name), start?: [x,y], end?: [x,y], length?: number (a line's), angle?: number (degrees; a line's, or a hatch pattern's), center?: [x,y], radius?: number, diameter?: number, circumference?: number, area?: number, startAngle?: number (degrees), endAngle?: number (degrees), text?: string, textOverride?: string (a dimension's), height?: number, rotation?: number (degrees), widthFactor?: number, width?: number (a polyline's or text frame's), position?: [x,y] (text), closed?: bool, scale?: number (a block's or hatch pattern's), pattern?: string (a hatch pattern name)}"),
+        CommandSpec::new("object.matchProperties", "Match Properties", run_matchprop).menu(&["Modify", "Match Properties"]).alias(&["ma", "painter"]).params("{source, targets: [str] (handles)}"),
         CommandSpec::new("color", "Color...", run_color).menu(&["Format", "Color..."]).alias(&["col", "colour"]).params("{color: \"ByLayer\" | \"red\" | 1..255 | \"r,g,b\"}"),
         CommandSpec::new("linetype", "Linetype...", run_linetype).menu(&["Format", "Linetype..."]).alias(&["lt", "ltype"]).params("{current?: name, load?: name | \"*\"}"),
-        CommandSpec::new("lweight", "Lineweight...", run_lweight).menu(&["Format", "Lineweight..."]).alias(&["lw", "lineweight"]).params("{lineweight: mm | ByLayer}"),
-        CommandSpec::new("ltscale", "Linetype Scale", run_ltscale).alias(&["lts"]).params("{scale}"),
+        CommandSpec::new("property.lineweight", "Lineweight...", run_lweight).menu(&["Format", "Lineweight..."]).alias(&["lw", "lineweight"]).params("{lineweight: mm | ByLayer}"),
+        CommandSpec::new("property.linetypeScale", "Linetype Scale", run_ltscale).alias(&["lts"]).params("{scale}"),
         CommandSpec::new("units", "Units...", run_units).menu(&["Format", "Units..."]).alias(&["un"]).params("{lunits?: 1..5, luprec?: 0..8, aunits?: 0..4, auprec?: 0..8, insunits?}"),
         CommandSpec::new("limits", "Drawing Limits", run_limits).menu(&["Format", "Drawing Limits"]).params("{min: [x,y], max: [x,y]}"),
         CommandSpec::new("style", "Text Style...", run_style)
             .menu(&["Format", "Text Style..."])
             .alias(&["st"])
             .params("{name, font?, bigFont?, height?, widthFactor?, oblique? (degrees), backwards?, upsideDown?, vertical?, annotative?, current?} → styles"),
-        CommandSpec::new("style.list", "List Text Styles", run_style_list).params("{} → text styles").noundo(),
-        CommandSpec::new("style.rename", "Rename Text Style", run_style_rename).params("{from, to}"),
-        CommandSpec::new("style.delete", "Delete Text Style", run_style_delete).params("{name} (not Standard, the current style or one in use)"),
-        CommandSpec::new("style.current", "Set Current Text Style", run_style_current).params("{name}"),
-        CommandSpec::new("dimstyle", "Dimension Style...", run_dimstyle)
+        CommandSpec::new("textStyle.list", "List Text Styles", run_style_list).params("{} → text styles").noundo(),
+        CommandSpec::new("textStyle.rename", "Rename Text Style", run_style_rename).params("{from, to}"),
+        CommandSpec::new("textStyle.delete", "Delete Text Style", run_style_delete).params("{name} (not Standard, the current style or one in use)"),
+        CommandSpec::new("textStyle.setCurrent", "Set Current Text Style", run_style_current).params("{name}"),
+        CommandSpec::new("dimensionStyle.open", "Dimension Style...", run_dimstyle)
             .menu(&["Format", "Dimension Style..."])
             .alias(&["d", "dst", "ddim"])
             .params(DIMSTYLE_PARAMS),
-        CommandSpec::new("dimstyle.dimension", "Dimension Style...", run_dimstyle).menu(&["Dimension", "Dimension Style..."]).params(DIMSTYLE_PARAMS),
-        CommandSpec::new("dimstyle.list", "List Dimension Styles", run_dimstyle_list).params("{name?} → styles (with all variables for `name`)").noundo(),
-        CommandSpec::new("dimstyle.rename", "Rename Dimension Style", run_dimstyle_rename).params("{from, to}"),
-        CommandSpec::new("dimstyle.delete", "Delete Dimension Style", run_dimstyle_delete).params("{name} (not Standard, the current style or one in use)"),
-        CommandSpec::new("dimstyle.current", "Set Current Dimension Style", run_dimstyle_current).params("{name}"),
-        CommandSpec::new("dimstyle.override", "Dimension Style Override", dim_override)
+        CommandSpec::new("dimensionStyle.openManager", "Dimension Style...", run_dimstyle).menu(&["Dimension", "Dimension Style..."]).params(DIMSTYLE_PARAMS),
+        CommandSpec::new("dimensionStyle.list", "List Dimension Styles", run_dimstyle_list).params("{name?} → styles (with all variables for `name`)").noundo(),
+        CommandSpec::new("dimensionStyle.rename", "Rename Dimension Style", run_dimstyle_rename).params("{from, to}"),
+        CommandSpec::new("dimensionStyle.delete", "Delete Dimension Style", run_dimstyle_delete).params("{name} (not Standard, the current style or one in use)"),
+        CommandSpec::new("dimensionStyle.setCurrent", "Set Current Dimension Style", run_dimstyle_current).params("{name}"),
+        CommandSpec::new("dimensionStyle.override", "Dimension Style Override", dim_override)
             .params("{handles?, …any dimension style field or DIM* variable as its own key with its value, clear?: bool} (per-dimension overrides)"),
-        CommandSpec::new("tablestyle", "Table Style...", run_tablestyle)
+        CommandSpec::new("tableStyle.open", "Table Style...", run_tablestyle)
             .menu(&["Format", "Table Style..."])
             .alias(&["ts"])
             .params("{name, textHeight?, margin?, title?, header?, current?} → styles"),
-        CommandSpec::new("mleaderstyle", "Multileader Style...", run_mleaderstyle)
+        CommandSpec::new("multileaderStyle.open", "Multileader Style...", run_mleaderstyle)
             .menu(&["Format", "Multileader Style..."])
             .alias(&["mls"])
             .params("{name, arrowSize?, textHeight?, landingGap?, dogleg?, textStyle?, current?} → styles"),
-        CommandSpec::new("ddptype", "Point Style...", run_ptype).menu(&["Format", "Point Style..."]).params("{pdmode, pdsize}"),
+        CommandSpec::new("point.style", "Point Style...", run_ptype).menu(&["Format", "Point Style..."]).params("{pdmode, pdsize}"),
         CommandSpec::new("rename", "Rename...", run_rename)
             .menu(&["Format", "Rename..."])
             .alias(&["ren", "-rename"])
@@ -68,7 +68,7 @@ pub(super) fn entity_props(d: &kition_cad_doc::Drawing, e: &kition_cad_doc::Enti
         "color": e.common.color.name(),
         "linetype": e.common.linetype,
         "lineweight": e.common.lineweight.name(),
-        "ltscale": e.common.ltscale,
+        "property.linetypeScale": e.common.ltscale,
         "transparency": transparency_value(e.common.transparency),
         "visible": e.common.visible,
     });
@@ -131,7 +131,7 @@ fn parse_color(v: &Value) -> Option<Color> {
     v.as_str().and_then(Color::parse).or_else(|| v.as_i64().and_then(|i| i16::try_from(i).ok()).map(Color::from_aci))
 }
 
-/// A transparency as JSON, in the form `properties.set` takes: "ByLayer", "ByBlock" or a percentage.
+/// A transparency as JSON, in the form `object.setProperties` takes: "ByLayer", "ByBlock" or a percentage.
 pub(super) fn transparency_value(t: Transparency) -> Value {
     match t {
         Transparency::Percent(p) => json!(p),
@@ -160,12 +160,14 @@ fn set_xy(p: &mut Vec3, v: &Value) {
 fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
     let hs = targets(s, p)?;
     if hs.is_empty() {
-        return Err(bad("properties.set", "nothing selected"));
+        return Err(bad("object.setProperties", "nothing selected"));
     }
-    let color = p.get("color").map(|c| parse_color(c).ok_or_else(|| bad("properties.set", "bad colour"))).transpose()?;
+    let color = p.get("color").map(|c| parse_color(c).ok_or_else(|| bad("object.setProperties", "bad colour"))).transpose()?;
     let transparency = p
         .get("transparency")
-        .map(|v| parse_transparency(v).ok_or_else(|| bad("properties.set", "transparency must be ByLayer, ByBlock or a percentage from 0 to 90")))
+        .map(|v| {
+            parse_transparency(v).ok_or_else(|| bad("object.setProperties", "transparency must be ByLayer, ByBlock or a percentage from 0 to 90"))
+        })
         .transpose()?;
     let lw = p.get("lineweight").map(|v| match v.as_str().map(str::to_ascii_lowercase).as_deref() {
         Some("bylayer") => Lineweight::ByLayer,
@@ -182,13 +184,13 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
         && !["bylayer", "byblock"].contains(&lt.to_ascii_lowercase().as_str())
         && d.linetype(lt).is_none()
     {
-        return Err(bad("properties.set", format!("linetype `{lt}` is not loaded")));
+        return Err(bad("object.setProperties", format!("linetype `{lt}` is not loaded")));
     }
     if let Some(l) = str_param(p, "layer") {
         d.ensure_layer(l);
     }
     let dim_style = str_param(p, "dimStyle")
-        .map(|n| d.dim_style(n).map(|st| st.name.clone()).ok_or_else(|| bad("properties.set", format!("dimension style `{n}` not found"))))
+        .map(|n| d.dim_style(n).map(|st| st.name.clone()).ok_or_else(|| bad("object.setProperties", format!("dimension style `{n}` not found"))))
         .transpose()?;
     for h in &hs {
         d.modify_entity(*h, |e| {
@@ -204,7 +206,7 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
             if let Some(w) = lw {
                 e.common.lineweight = w;
             }
-            if let Some(x) = p.get("ltscale").and_then(Value::as_f64).filter(|x| *x > 0.0) {
+            if let Some(x) = p.get("property.linetypeScale").and_then(Value::as_f64).filter(|x| *x > 0.0) {
                 e.common.ltscale = x;
             }
             if let Some(t) = transparency {
@@ -355,14 +357,14 @@ fn run_matchprop(s: &mut Session, p: &Value) -> Result<Value> {
         .get("source")
         .and_then(Value::as_str)
         .and_then(kition_cad_doc::Handle::parse_hex)
-        .ok_or_else(|| bad("matchprop", "`source` is required"))?;
+        .ok_or_else(|| bad("object.matchProperties", "`source` is required"))?;
     let tg: Vec<kition_cad_doc::Handle> = p
         .get("targets")
         .and_then(Value::as_array)
         .map(|a| a.iter().filter_map(|v| v.as_str().and_then(kition_cad_doc::Handle::parse_hex)).collect())
         .unwrap_or_default();
     let d = s.doc_mut()?;
-    let c = d.entity(src).map(|e| e.common.clone()).ok_or_else(|| bad("matchprop", "no such source"))?;
+    let c = d.entity(src).map(|e| e.common.clone()).ok_or_else(|| bad("object.matchProperties", "no such source"))?;
     for h in &tg {
         d.modify_entity(*h, |e| {
             e.common.layer = c.layer.clone();
@@ -419,21 +421,21 @@ fn run_linetype(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_lweight(s: &mut Session, p: &Value) -> Result<Value> {
-    let v = p.get("lineweight").ok_or_else(|| bad("lweight", "`lineweight` is required"))?;
+    let v = p.get("lineweight").ok_or_else(|| bad("property.lineweight", "`lineweight` is required"))?;
     let code = match v.as_str().map(str::to_ascii_lowercase).as_deref() {
         Some("bylayer") => -1,
         Some("byblock") => -2,
         Some("default") => -3,
-        _ => (v.as_f64().ok_or_else(|| bad("lweight", "bad lineweight"))? * 100.0).round().clamp(0.0, 211.0) as i64,
+        _ => (v.as_f64().ok_or_else(|| bad("property.lineweight", "bad lineweight"))? * 100.0).round().clamp(0.0, 211.0) as i64,
     };
     s.doc_mut()?.header.set_i64("CELWEIGHT", code);
     ok()
 }
 
 fn run_ltscale(s: &mut Session, p: &Value) -> Result<Value> {
-    let v = f64_req("ltscale", p, "scale")?;
+    let v = f64_req("property.linetypeScale", p, "scale")?;
     if v <= 0.0 {
-        return Err(bad("ltscale", "scale must be positive"));
+        return Err(bad("property.linetypeScale", "scale must be positive"));
     }
     s.doc_mut()?.header.set_f64("LTSCALE", v);
     Ok(json!({ "message": "Regenerating model." }))
@@ -535,9 +537,9 @@ fn run_style_list(s: &mut Session, _p: &Value) -> Result<Value> {
 }
 
 fn run_style_current(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("style.current", "`name` is required"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("textStyle.setCurrent", "`name` is required"))?;
     let d = s.doc_mut()?;
-    let n = d.text_style(name).map(|t| t.name.clone()).ok_or_else(|| bad("style.current", format!("no text style `{name}`")))?;
+    let n = d.text_style(name).map(|t| t.name.clone()).ok_or_else(|| bad("textStyle.setCurrent", format!("no text style `{name}`")))?;
     d.header.set_str("TEXTSTYLE", &n);
     ok()
 }
@@ -563,16 +565,16 @@ pub(super) fn text_styles_in_use(d: &kition_cad_doc::Drawing) -> Vec<String> {
 }
 
 fn run_style_rename(s: &mut Session, p: &Value) -> Result<Value> {
-    let from = str_param(p, "from").ok_or_else(|| bad("style.rename", "`from` is required"))?.to_string();
-    let to = str_param(p, "to").map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("style.rename", "`to` is required"))?.to_string();
+    let from = str_param(p, "from").ok_or_else(|| bad("textStyle.rename", "`from` is required"))?.to_string();
+    let to = str_param(p, "to").map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("textStyle.rename", "`to` is required"))?.to_string();
     let d = s.doc_mut()?;
     if from.eq_ignore_ascii_case("Standard") {
-        return Err(bad("style.rename", "the Standard style cannot be renamed"));
+        return Err(bad("textStyle.rename", "the Standard style cannot be renamed"));
     }
     if d.text_style(&to).is_some() && !to.eq_ignore_ascii_case(&from) {
-        return Err(bad("style.rename", format!("a text style `{to}` already exists")));
+        return Err(bad("textStyle.rename", format!("a text style `{to}` already exists")));
     }
-    let st = d.text_styles.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&from)).ok_or_else(|| bad("style.rename", "no such style"))?;
+    let st = d.text_styles.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&from)).ok_or_else(|| bad("textStyle.rename", "no such style"))?;
     let old = st.name.clone();
     st.name = to.clone();
     d.rename_record_id("textstyle", &old, &to);
@@ -615,21 +617,21 @@ fn run_style_rename(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_style_delete(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("style.delete", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("textStyle.delete", "`name` is required"))?.to_string();
     let d = s.doc_mut()?;
     if name.eq_ignore_ascii_case("Standard") {
-        return Err(bad("style.delete", "the Standard style cannot be deleted"));
+        return Err(bad("textStyle.delete", "the Standard style cannot be deleted"));
     }
     if d.header.str("TEXTSTYLE", "Standard").eq_ignore_ascii_case(&name) {
-        return Err(bad("style.delete", "the current text style cannot be deleted"));
+        return Err(bad("textStyle.delete", "the current text style cannot be deleted"));
     }
     if text_styles_in_use(d).iter().any(|n| n.eq_ignore_ascii_case(&name)) {
-        return Err(bad("style.delete", format!("text style `{name}` is in use")));
+        return Err(bad("textStyle.delete", format!("text style `{name}` is in use")));
     }
     let before = d.text_styles.len();
     d.text_styles.retain(|t| !t.name.eq_ignore_ascii_case(&name));
     if d.text_styles.len() == before {
-        return Err(bad("style.delete", format!("no text style `{name}`")));
+        return Err(bad("textStyle.delete", format!("no text style `{name}`")));
     }
     Ok(styles_json(d))
 }
@@ -639,9 +641,9 @@ fn dimstyles_json(d: &kition_cad_doc::Drawing) -> Value {
 }
 
 fn run_dimstyle(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("dimstyle", "`name` is required"))?.trim().to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("dimensionStyle.open", "`name` is required"))?.trim().to_string();
     if name.is_empty() || name.len() > 255 {
-        return Err(bad("dimstyle", "bad style name"));
+        return Err(bad("dimensionStyle.open", "bad style name"));
     }
     let d = s.doc_mut()?;
     let base = d.dim_style(&d.header.str("DIMSTYLE", "Standard")).cloned().unwrap_or_default();
@@ -678,7 +680,7 @@ fn run_dimstyle_list(s: &mut Session, p: &Value) -> Result<Value> {
     let d = s.doc()?;
     let mut out = dimstyles_json(d);
     if let Some(n) = str_param(p, "name") {
-        let st = d.dim_style(n).ok_or_else(|| bad("dimstyle.list", format!("no dimension style `{n}`")))?;
+        let st = d.dim_style(n).ok_or_else(|| bad("dimensionStyle.list", format!("no dimension style `{n}`")))?;
         let vars: serde_json::Map<String, Value> = {
             let v = serde_json::to_value(st).unwrap_or(Value::Null);
             kition_cad_doc::DIMVARS.iter().filter_map(|(var, field)| v.get(*field).map(|x| ((*var).to_string(), x.clone()))).collect()
@@ -692,9 +694,9 @@ fn run_dimstyle_list(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_dimstyle_current(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("dimstyle.current", "`name` is required"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("dimensionStyle.setCurrent", "`name` is required"))?;
     let d = s.doc_mut()?;
-    let n = d.dim_style(name).map(|t| t.name.clone()).ok_or_else(|| bad("dimstyle.current", format!("no dimension style `{name}`")))?;
+    let n = d.dim_style(name).map(|t| t.name.clone()).ok_or_else(|| bad("dimensionStyle.setCurrent", format!("no dimension style `{name}`")))?;
     d.header.set_str("DIMSTYLE", &n);
     d.sync_dim_vars();
     Ok(dimstyles_json(d))
@@ -742,19 +744,23 @@ pub fn record_eligibility(d: &kition_cad_doc::Drawing) -> Value {
 }
 
 fn run_dimstyle_rename(s: &mut Session, p: &Value) -> Result<Value> {
-    let from = str_param(p, "from").ok_or_else(|| bad("dimstyle.rename", "`from` is required"))?.to_string();
-    let to = str_param(p, "to").map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("dimstyle.rename", "`to` is required"))?.to_string();
+    let from = str_param(p, "from").ok_or_else(|| bad("dimensionStyle.rename", "`from` is required"))?.to_string();
+    let to = str_param(p, "to").map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("dimensionStyle.rename", "`to` is required"))?.to_string();
     let d = s.doc_mut()?;
     if from.eq_ignore_ascii_case("Standard") {
-        return Err(bad("dimstyle.rename", "the Standard style cannot be renamed"));
+        return Err(bad("dimensionStyle.rename", "the Standard style cannot be renamed"));
     }
     if d.dim_style(&to).is_some() && !to.eq_ignore_ascii_case(&from) {
-        return Err(bad("dimstyle.rename", format!("a dimension style `{to}` already exists")));
+        return Err(bad("dimensionStyle.rename", format!("a dimension style `{to}` already exists")));
     }
-    let st = d.dim_styles.iter_mut().find(|t| t.name.eq_ignore_ascii_case(&from)).ok_or_else(|| bad("dimstyle.rename", "no such dimension style"))?;
+    let st = d
+        .dim_styles
+        .iter_mut()
+        .find(|t| t.name.eq_ignore_ascii_case(&from))
+        .ok_or_else(|| bad("dimensionStyle.rename", "no such dimension style"))?;
     let old = st.name.clone();
     st.name = to.clone();
-    d.rename_record_id("dimstyle", &old, &to);
+    d.rename_record_id("dimensionStyle.open", &old, &to);
     if d.header.str("DIMSTYLE", "Standard").eq_ignore_ascii_case(&from) {
         d.header.set_str("DIMSTYLE", &to);
     }
@@ -778,21 +784,21 @@ fn run_dimstyle_rename(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn run_dimstyle_delete(s: &mut Session, p: &Value) -> Result<Value> {
-    let name = str_param(p, "name").ok_or_else(|| bad("dimstyle.delete", "`name` is required"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("dimensionStyle.delete", "`name` is required"))?.to_string();
     let d = s.doc_mut()?;
     if name.eq_ignore_ascii_case("Standard") {
-        return Err(bad("dimstyle.delete", "the Standard style cannot be deleted"));
+        return Err(bad("dimensionStyle.delete", "the Standard style cannot be deleted"));
     }
     if d.header.str("DIMSTYLE", "Standard").eq_ignore_ascii_case(&name) {
-        return Err(bad("dimstyle.delete", "the current dimension style cannot be deleted"));
+        return Err(bad("dimensionStyle.delete", "the current dimension style cannot be deleted"));
     }
     if !dims_using(d, &name).is_empty() {
-        return Err(bad("dimstyle.delete", format!("dimension style `{name}` is in use")));
+        return Err(bad("dimensionStyle.delete", format!("dimension style `{name}` is in use")));
     }
     let before = d.dim_styles.len();
     d.dim_styles.retain(|t| !t.name.eq_ignore_ascii_case(&name));
     if d.dim_styles.len() == before {
-        return Err(bad("dimstyle.delete", format!("no dimension style `{name}`")));
+        return Err(bad("dimensionStyle.delete", format!("no dimension style `{name}`")));
     }
     Ok(dimstyles_json(d))
 }
@@ -814,7 +820,7 @@ pub(super) fn dim_override(s: &mut Session, p: &Value) -> Result<Value> {
         .filter_map(|(k, v)| kition_cad_doc::DimStyle::field_name(k).map(|f| (f.to_string(), v.clone())))
         .collect();
     if !clear && good.is_empty() {
-        return Err(bad("dimoverride", format!("no valid dimension variables given (ignored: {})", rejected.join(", "))));
+        return Err(bad("dimension.override", format!("no valid dimension variables given (ignored: {})", rejected.join(", "))));
     }
     let d = s.doc_mut()?;
     let mut n = 0;
@@ -872,7 +878,7 @@ fn run_mleaderstyle(s: &mut Session, p: &Value) -> Result<Value> {
         if let Some(t) = str_param(p, "textStyle")
             && d.text_style(t).is_none()
         {
-            return Err(bad("mleaderstyle", format!("no text style `{t}`")));
+            return Err(bad("multileaderStyle.open", format!("no text style `{t}`")));
         }
         let idx = match d.mleader_styles.iter().position(|t| t.name.eq_ignore_ascii_case(name)) {
             Some(i) => i,
@@ -911,7 +917,9 @@ fn run_ptype(s: &mut Session, p: &Value) -> Result<Value> {
     let mode = match p.get("pdmode") {
         None | Some(Value::Null) => None,
         Some(v) => Some(
-            v.as_i64().filter(|m| (0..=100).contains(m) && m & !96 <= 4).ok_or_else(|| bad("ddptype", "`pdmode` must be 0..4, plus 32 and/or 64"))?,
+            v.as_i64()
+                .filter(|m| (0..=100).contains(m) && m & !96 <= 4)
+                .ok_or_else(|| bad("point.style", "`pdmode` must be 0..4, plus 32 and/or 64"))?,
         ),
     };
     let d = s.doc_mut()?;
@@ -935,12 +943,12 @@ fn run_rename(s: &mut Session, p: &Value) -> Result<Value> {
             (set.run)(s, &json!({ "name": from, "newName": to }))?;
         }
         "block" => rename::block(s, &from, &to)?,
-        "mleaderstyle" | "multileaderstyle" => rename::simple(s, "mleaderstyle", &from, &to)?,
-        "tablestyle" | "view" | "ucs" => rename::simple(s, &table, &from, &to)?,
+        "multileaderStyle.open" | "multileaderstyle" => rename::simple(s, "multileaderStyle.open", &from, &to)?,
+        "tableStyle.open" | "view" | "ucs" => rename::simple(s, &table, &from, &to)?,
         "style" | "textstyle" => {
             run_style_rename(s, &json!({ "from": from, "to": to }))?;
         }
-        "dimstyle" => {
+        "dimensionStyle.open" => {
             run_dimstyle_rename(s, &json!({ "from": from, "to": to }))?;
         }
         "linetype" | "ltype" => {

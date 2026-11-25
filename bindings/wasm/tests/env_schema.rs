@@ -35,7 +35,7 @@ fn json_member_and_command_numeric_limits_are_validated() {
     let schema: serde_json::Value = serde_json::from_str(include_str!("../../../crates/kdm/kdm-model/model/schema.json")).unwrap();
     let parsed = kition_kit::kdm::Schema::parse(&schema.to_string()).unwrap();
     assert_eq!(
-        parsed.type_def("Entity").unwrap().fields["common"].members["ltscale"].minimum.as_ref().and_then(serde_json::Number::as_f64),
+        parsed.type_def("Entity").unwrap().fields["common"].members["property.linetypeScale"].minimum.as_ref().and_then(serde_json::Number::as_f64),
         Some(0.0)
     );
     kition_kit::schema::validate(&serde_json::json!({"radius":{"type":"number","minimum":0.0}})).unwrap();

@@ -108,7 +108,7 @@ fn a_drawing_file_becomes_a_block_with_its_insbase_and_tables() {
     let bolt = file("bolt.dxf", "10,10");
     let mut s = Session::new();
     // This drawing's own layer PARTS keeps its colour.
-    s.execute("layer.new", &json!({ "name": "PARTS", "color": 3 })).unwrap();
+    s.execute("layer.add", &json!({ "name": "PARTS", "color": 3 })).unwrap();
 
     s.script(&format!("-INSERT {bolt} 100,100 1 1 0\n")).unwrap();
     assert!(s.running.is_none(), "INSERT finished: {}", s.prompt_text());

@@ -80,7 +80,7 @@ pub(super) fn json_content(s: &Session, p: &Value) -> Result<Content> {
         None | Some("straight") => LeaderType::Straight,
         Some("spline") => LeaderType::Spline,
         Some("none") => LeaderType::None,
-        Some(_) => return Err(bad("mleader", "`leaderType` must be \"straight\", \"spline\" or \"none\"")),
+        Some(_) => return Err(bad("multileader.add", "`leaderType` must be \"straight\", \"spline\" or \"none\"")),
     };
     let block = match str_param(p, "block") {
         None => None,
@@ -88,9 +88,9 @@ pub(super) fn json_content(s: &Session, p: &Value) -> Result<Content> {
             let center = match str_param(p, "blockAttach").map(str::to_ascii_lowercase).as_deref() {
                 None | Some("center") => true,
                 Some("insertion") => false,
-                Some(_) => return Err(bad("mleader", "`blockAttach` must be \"center\" or \"insertion\"")),
+                Some(_) => return Err(bad("multileader.add", "`blockAttach` must be \"center\" or \"insertion\"")),
             };
-            Some((block_name(s, n).map_err(|e| bad("mleader", e.to_string()))?, center))
+            Some((block_name(s, n).map_err(|e| bad("multileader.add", e.to_string()))?, center))
         }
     };
     Ok(Content { leader, block })

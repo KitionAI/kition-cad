@@ -14,7 +14,7 @@ use serde_json::json;
 /// and a line of text in it. Framed to the limits as well, it would fill a third of the width.
 fn drawing() -> CadDocument {
     let mut doc = CadDocument::create("Plan.dxf", 420, 297).unwrap();
-    doc.execute("rectang", json!({ "p1": [1000, 500], "p2": [1400, 800] })).unwrap();
+    doc.execute("rectangle.add", json!({ "p1": [1000, 500], "p2": [1400, 800] })).unwrap();
     doc.execute("circle", json!({ "center": [1200, 650], "radius": 100 })).unwrap();
     doc.execute("text", json!({ "at": [1020, 520], "height": 20, "text": "Two words" })).unwrap();
     let bytes = doc.save(Some("Plan.dxf")).unwrap();
