@@ -10,7 +10,7 @@
 //! referenced by path). Everything here is `Send`.
 
 use kition_cad_doc::Drawing;
-use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, OriginKind, Replica, UndoScope, Version};
+use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, OriginKind, Replica, UndoOutcome, UndoScope, Version};
 use kition_kit::session::{Damage, KitModel, KitSession, MemoryBlobs};
 
 use crate::{CadModel, Ids, Result, canonical, handle_range, identify_cells, kit_err, next_handle, read_document, write_changes, write_document};
@@ -143,37 +143,39 @@ impl CadSession {
     /// Undoes this replica's last step of the person (never an import or a repair), repairs the
     /// result and patches the view. Answers whether there was one, and the damage.
     pub fn undo(&mut self) -> Result<(bool, Damage)> {
-        self.undo_in(UndoScope::Person)
+        self.undo_in(UndoScope::Person).map(|(outcome, damage)| (outcome.is_done(), damage))
     }
 
     pub fn redo(&mut self) -> Result<(bool, Damage)> {
-        self.redo_in(UndoScope::Person)
+        self.redo_in(UndoScope::Person).map(|(outcome, damage)| (outcome.is_done(), damage))
     }
 
     /// [`CadSession::undo`] in `scope` (KitModel M12a): the person's and the agents' steps on this
-    /// replica are separate histories.
-    pub fn undo_in(&mut self, scope: UndoScope) -> Result<(bool, Damage)> {
-        if !self.can_undo_in(scope) {
-            return Ok((false, Damage::None));
-        }
-        let (done, damage) = self.inner.undo_in(scope)?;
-        if done {
-            self.undo_steps = self.undo_steps.saturating_sub(1);
-            self.redo_steps = self.redo_steps.saturating_add(1);
-        }
-        Ok((done, damage))
+    /// replica are separate histories. Answers which steps the replica took off its stack
+    /// ([`UndoOutcome`]: those it passed over, with nothing left to change, and the one it took
+    /// back; together they become one redo step) and the damage. The steps counted here
+    /// ([`CadSession::steps`]) follow: every step taken off leaves, one comes onto the other stack.
+    pub fn undo_in(&mut self, scope: UndoScope) -> Result<(UndoOutcome, Damage)> {
+        self.step_in(scope, true)
     }
 
-    pub fn redo_in(&mut self, scope: UndoScope) -> Result<(bool, Damage)> {
-        if !self.can_redo_in(scope) {
-            return Ok((false, Damage::None));
+    /// Redoes the last undone step of `scope`, answering like [`CadSession::undo_in`].
+    pub fn redo_in(&mut self, scope: UndoScope) -> Result<(UndoOutcome, Damage)> {
+        self.step_in(scope, false)
+    }
+
+    fn step_in(&mut self, scope: UndoScope, undo: bool) -> Result<(UndoOutcome, Damage)> {
+        let can = if undo { self.can_undo_in(scope) } else { self.can_redo_in(scope) };
+        if !can {
+            return Ok((UndoOutcome::default(), Damage::None));
         }
-        let (done, damage) = self.inner.redo_in(scope)?;
-        if done {
-            self.redo_steps = self.redo_steps.saturating_sub(1);
-            self.undo_steps = self.undo_steps.saturating_add(1);
+        let (outcome, damage) = if undo { self.inner.undo_in_outcome(scope)? } else { self.inner.redo_in_outcome(scope)? };
+        let (from, to) = if undo { (&mut self.undo_steps, &mut self.redo_steps) } else { (&mut self.redo_steps, &mut self.undo_steps) };
+        *from = from.saturating_sub(outcome.steps());
+        if outcome.is_done() {
+            *to = to.saturating_add(1);
         }
-        Ok((done, damage))
+        Ok((outcome, damage))
     }
 
     /// Whether the person has an undo step to take: one of this replica's, not trimmed by

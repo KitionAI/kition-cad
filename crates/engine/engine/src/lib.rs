@@ -161,17 +161,16 @@ impl DocState {
     fn restore_under(&mut self, redo: bool, i: usize, scope: UndoScope) -> Option<String> {
         let steps = (if redo { &self.redo } else { &self.undo }).get(i)?.steps;
         let before = self.doc.clone();
-        if !self.replay_kdm(steps, !redo, scope) {
-            return None;
-        }
+        let (made, beyond) = self.replay_kdm(steps, !redo, scope)?;
         let u = if redo { self.redo.remove(i) } else { self.undo.remove(i) };
         let label = u.label.clone();
-        let cur = Snapshot { label: u.label, doc: before.clone(), selection: self.selection.clone(), steps: u.steps, scope };
+        let cur = Snapshot { label: u.label, doc: before.clone(), selection: self.selection.clone(), steps: made, scope };
         if redo {
             self.undo.push(cur)
         } else {
             self.redo.push(cur)
         }
+        self.take_below(!redo, scope, beyond);
         self.trim_kdm();
         self.follow_layout(&before);
         self.selection.retain(|h| self.doc.entity(*h).is_some());

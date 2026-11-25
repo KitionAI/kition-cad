@@ -787,3 +787,70 @@ fn has_circle(s: &Session) -> bool {
 fn has_line(s: &Session) -> bool {
     doc(s).model.iter().any(|e| matches!(&e.kind, EntityKind::Line(l) if l.b.x == 60.0))
 }
+
+fn line_start_x(s: &Session, h: &str) -> Option<f64> {
+    doc(s).entity(Handle::parse_hex(h).unwrap()).map(|e| match &e.kind {
+        EntityKind::Line(l) => l.a.x,
+        _ => f64::NAN,
+    })
+}
+
+fn has_first_circle(s: &Session) -> bool {
+    doc(s).model.iter().any(|e| matches!(&e.kind, EntityKind::Circle(c) if c.radius == 3.0))
+}
+
+/// The person's history steps on the undo (or redo) stack.
+fn person_steps(s: &Session, redo: bool) -> usize {
+    let st = s.state().unwrap();
+    (if redo { &st.redo } else { &st.undo }).iter().filter(|e| e.scope == kition_cad_engine::UndoScope::Person).count()
+}
+
+/// A person's undo whose last step's entity was erased since (by an agent here, whose later step
+/// sits above it, or by a collaborator): the replica passes that step over and takes back the one
+/// below in the same call (`UndoOutcome`). The engine's history takes both of its steps back
+/// together, so the history and the replica's undo steps stay in line: the next undo takes back
+/// exactly the step below them, and the redos bring them back in order. Before, the history kept
+/// a step the replica had already taken back, and every later undo took back the step below the
+/// one it named.
+#[test]
+fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
+    for by_agent in [true, false] {
+        let what = if by_agent { "erased by an agent" } else { "erased by a collaborator" };
+        let mut s = new_session();
+        let mut other = peer(&mut s);
+        let lines: Vec<String> = doc(&s).model.iter().filter(|e| matches!(e.kind, EntityKind::Line(_))).map(|e| e.handle.hex()).collect();
+        let (first, second) = (lines[0].clone(), lines[1].clone());
+        s.execute("move", &json!({"handles": [first], "delta": [20, 0]})).unwrap();
+        s.execute("move", &json!({"handles": [second], "delta": [0, 30]})).unwrap();
+        if by_agent {
+            s.execute_as("erase", &json!({"handles": [second]}), &Origin::agent("test")).unwrap();
+        } else {
+            sync(&mut s, &mut other);
+            other.execute("erase", &json!({"handles": [second]})).unwrap();
+            sync(&mut s, &mut other);
+        }
+        assert!(doc(&s).entity(Handle::parse_hex(&second).unwrap()).is_none(), "{what}");
+        let (entries, (undo, redo)) = (person_steps(&s, false), s.kdm().unwrap().steps());
+        s.execute("undo", &json!({})).unwrap();
+        assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}: the step below is taken back");
+        assert_eq!(person_steps(&s, false), entries - 2, "{what}: both history steps are taken back together");
+        assert_eq!(person_steps(&s, true), 1, "{what}: as one redo step");
+        assert_eq!(s.kdm().unwrap().steps(), (undo - 2, redo + 1), "{what}: the replica's steps, as the session counts them");
+        assert_eq!(s.kdm_resets(), 0, "{what}");
+        assert_holds(&s, what);
+        // The next undo takes back the step below those, exactly.
+        assert!(has_first_circle(&s));
+        s.execute("undo", &json!({})).unwrap();
+        assert!(!has_first_circle(&s), "{what}: the circle drawn last before is taken back");
+        assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}");
+        assert_holds(&s, what);
+        s.execute("redo", &json!({})).unwrap();
+        assert!(has_first_circle(&s), "{what}: the redo brings the circle back");
+        assert_eq!(line_start_x(&s, &first), Some(0.0), "{what}");
+        s.execute("redo", &json!({})).unwrap();
+        assert_eq!(line_start_x(&s, &first), Some(20.0), "{what}: the redo brings the step below back");
+        assert_eq!(person_steps(&s, true), 0, "{what}: nothing of the person's is left to redo");
+        assert_eq!(s.kdm_resets(), 0, "{what}");
+        assert_holds(&s, what);
+    }
+}

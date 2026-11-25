@@ -250,15 +250,21 @@ impl DocState {
 
     /// After undo or redo set the drawing to the step's own snapshot: steps the replica too and
     /// takes its view (with every collaborator's edit since) instead. `floor` is the drawing's
-    /// next handle before, which the view never lowers.
+    /// next handle before, which the view never lowers. The step, already on the other stack,
+    /// counts the replica steps the calls left there, and the steps below it whose replica steps
+    /// went with it leave their stack ([`DocState::take_kdm_steps`]).
     pub(crate) fn step_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope, floor: u64) {
-        if steps > 0
-            && let Some(kdm) = self.link.kdm.as_mut()
-            && !(0..steps).all(|_| matches!(if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) }, Ok((true, _))))
-        {
-            self.detach_kdm();
-            self.link.mark = self.pushed;
-            return;
+        if steps > 0 && self.link.kdm.is_some() {
+            let Some((made, beyond)) = self.take_kdm_steps(steps, undo, scope) else {
+                self.detach_kdm();
+                self.link.mark = self.pushed;
+                return;
+            };
+            let to = if undo { &mut self.redo } else { &mut self.undo };
+            if let Some(e) = to.iter_mut().rev().find(|e| e.scope == scope) {
+                e.steps = made;
+            }
+            self.take_below(undo, scope, beyond);
         }
         if let Some(kdm) = self.link.kdm.as_ref() {
             // The step's own snapshot (the caller set it) holds the current properties it had.
@@ -271,24 +277,69 @@ impl DocState {
 
     /// A step under the other scope's later ones: the replica undoes (or redoes) the step's
     /// `steps` transactions of `scope` and the drawing becomes its view, with the other scope's
-    /// later edits and every collaborator's. `false`, changing nothing, when the replica does not
-    /// hold them. The caller moves the step to the other stack, then trims ([`DocState::trim_kdm`]).
-    pub(crate) fn replay_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope) -> bool {
+    /// later edits and every collaborator's. `None`, changing nothing, when the replica does not
+    /// hold them. Answers what [`DocState::take_kdm_steps`] does: the caller moves the step to the
+    /// other stack counting the replica steps made there, takes the steps below that went with it
+    /// ([`DocState::take_below`]), then trims ([`DocState::trim_kdm`]).
+    pub(crate) fn replay_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope) -> Option<(u32, usize)> {
         let floor = self.doc.handseed;
-        let Some(kdm) = self.link.kdm.as_mut() else { return false };
+        let kdm = self.link.kdm.as_ref()?;
         let (available, can) = if undo { (kdm.steps().0, kdm.can_undo_in(scope)) } else { (kdm.steps().1, kdm.can_redo_in(scope)) };
         if steps == 0 || !can || usize::try_from(steps).unwrap_or(usize::MAX) > available {
-            return false;
+            return None;
         }
-        if !(0..steps).all(|_| matches!(if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) }, Ok((true, _)))) {
+        let Some(taken) = self.take_kdm_steps(steps, undo, scope) else {
             self.detach_kdm();
             self.link.mark = self.pushed;
-            return false;
+            return None;
+        };
+        if let Some(kdm) = self.link.kdm.as_ref() {
+            self.doc = view_of(kdm, floor, &self.doc);
         }
-        self.doc = view_of(kdm, floor, &self.doc);
         self.link.synced = self.doc.clone();
         self.link.mark = self.pushed;
-        true
+        Some(taken)
+    }
+
+    /// Undoes (or redoes) a history step's `steps` replica steps of `scope`. The replica passes
+    /// over a step with nothing left to change (say a collaborator erased the entity it moved)
+    /// and goes on to the one below in the same call (`UndoOutcome`): so the calls may take fewer
+    /// of this step's replica steps back than they take off the stack, or reach below it into the
+    /// scope's next history step. Answers the replica steps the calls made on the other stack and
+    /// how many they took off beyond the step's own; `None` when the replica refused (the caller
+    /// leaves it). A replica with nothing left to take stops the calls.
+    fn take_kdm_steps(&mut self, steps: u32, undo: bool, scope: UndoScope) -> Option<(u32, usize)> {
+        let kdm = self.link.kdm.as_mut()?;
+        let want = steps as usize;
+        let (mut consumed, mut made) = (0usize, 0u32);
+        while consumed < want {
+            match if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) } {
+                Ok((outcome, _)) if outcome.steps() == 0 => break,
+                Ok((outcome, _)) => {
+                    consumed = consumed.saturating_add(outcome.steps());
+                    made = made.saturating_add(u32::from(outcome.is_done()));
+                }
+                Err(_) => return None,
+            }
+        }
+        Some((made, consumed.saturating_sub(want)))
+    }
+
+    /// The history steps of `scope` below an undone (or redone) one whose `beyond` replica steps
+    /// its calls took with it: they leave their stack (a step keeps the replica steps left of it).
+    pub(crate) fn take_below(&mut self, undo: bool, scope: UndoScope, mut beyond: usize) {
+        let from = if undo { &mut self.undo } else { &mut self.redo };
+        while beyond > 0 {
+            let Some(i) = from.iter().rposition(|e| e.scope == scope && e.steps > 0) else { break };
+            let below = from[i].steps as usize;
+            if below <= beyond {
+                from.remove(i);
+                beyond -= below;
+            } else {
+                from[i].steps -= u32::try_from(beyond).unwrap_or(u32::MAX);
+                beyond = 0;
+            }
+        }
     }
 
     /// After an import: the drawing follows the replica, the selections drop what vanished, the

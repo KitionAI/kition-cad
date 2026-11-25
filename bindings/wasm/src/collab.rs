@@ -474,6 +474,42 @@ mod tests {
         assert_eq!(doc.version().unwrap(), at, "a refused merge changes nothing");
     }
 
+    /// The type names of the drawing's model-space entities, sorted.
+    fn model_types(doc: &CadDocument) -> Vec<&'static str> {
+        let mut types: Vec<&'static str> = doc.session.doc().unwrap().model.iter().map(|entity| entity.kind.type_name()).collect();
+        types.sort();
+        types
+    }
+
+    /// A draft that draws an entity merges into a drawing that drew another meanwhile: both
+    /// append to the one model-space list (`Drawing.model`), which merges by item (data model 6.6,
+    /// D5), so both entities are there, and one Undo takes the draft's back and leaves the one
+    /// drawn here.
+    #[test]
+    fn a_draft_and_the_drawing_both_drawing_an_entity_merge() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        let base = doc.version().unwrap();
+        let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
+        draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        let changes = draft.export_changes(&base).unwrap();
+        let start = model_types(&doc);
+        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        let with_line = model_types(&doc);
+        assert_eq!(with_line.len(), start.len() + 1);
+        let origin = Origin::person("person:local");
+        let answer = doc.merge_changes(&changes, &origin).unwrap();
+        assert_ne!(answer["damage"], json!("none"), "{answer}");
+        let mut both = with_line.clone();
+        both.push("Circle");
+        both.sort();
+        assert_eq!(model_types(&doc), both, "the draft's circle and the line drawn here are both there");
+        assert_eq!(entity_ids(&doc).len(), entity_ids(&draft).len() + 1, "the replica holds both entities");
+        assert!(doc.undo().unwrap().0);
+        assert_eq!(model_types(&doc), with_line, "one undo takes the draft's circle back and leaves the line");
+        assert!(doc.redo().unwrap().0);
+        assert_eq!(model_types(&doc), both);
+    }
+
     /// Comparing a draft names what merging it would do, and changes nothing.
     #[test]
     fn comparing_a_draft_names_what_the_merge_would_do_and_changes_nothing() {

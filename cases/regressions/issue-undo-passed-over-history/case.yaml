@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-undo-passed-over-history
+feature: cad.collab.drafts
+intent: >-
+  A person's undo whose last step's entity was erased since (by an agent, whose step sits above
+  it, or by a collaborator): the replica passes that step over and takes back the one below in the
+  same call (UndoOutcome, KitSession::undo_in_outcome). The engine's history takes both of its
+  steps back together, so the history and the replica's undo steps stay in line: the next undo
+  takes back exactly the step below them, and the redos bring them back in order. Before, the
+  history kept one step the replica had already taken back, and every later undo took back the
+  step below the one it named.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/kdm_bridge.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "an_undo_that_passes_over_a_step_takes_the_one_below_with_it" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-25"
