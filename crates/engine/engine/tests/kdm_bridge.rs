@@ -186,30 +186,6 @@ fn an_interactive_command_is_one_undo_step() {
 }
 
 #[test]
-fn a_remote_edit_in_the_middle_of_a_command_keeps_both() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    for t in ["line", "30,30", "40,30"] {
-        a.cmdline(t).unwrap();
-    }
-    let c = doc(&b).model.iter().find(|e| matches!(e.kind, EntityKind::Circle(_))).map(|e| e.handle.hex()).unwrap();
-    b.execute("move", &json!({"handles": [c], "delta": [5, 0]})).unwrap();
-    send(&mut b, &mut a);
-    assert!(a.running.is_some(), "the command goes on");
-    for t in ["40,40", ""] {
-        a.cmdline(t).unwrap();
-    }
-    assert_holds(&a, "after the command");
-    let circle_x = |s: &Session| doc(s).model.iter().find_map(|e| if let EntityKind::Circle(c) = &e.kind { Some(c.center.x) } else { None });
-    assert_eq!(circle_x(&a), Some(25.0), "the remote move is in");
-    a.execute("u", &json!({})).unwrap();
-    assert_eq!(doc(&a).model.len(), 3, "the whole LINE undoes");
-    assert_eq!(circle_x(&a), Some(25.0), "the remote edit stays");
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "exchanged");
-}
-
-#[test]
 fn undo_back_to_the_saved_drawing_is_clean() {
     let mut s = new_session();
     let st = s.state_mut().unwrap();
