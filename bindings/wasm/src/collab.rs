@@ -454,7 +454,8 @@ mod tests {
         let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
         draft.execute("circle", json!({ "center": [300, 200], "radius": 10 })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
-        doc.execute("line", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
+        // Meanwhile, here, an edit of another field (a merge refuses a field both sides changed).
+        doc.execute("setvar", json!({ "name": "DIMSCALE", "value": 3 })).unwrap();
         let before = entities(&doc);
         let origin = Origin::person("person:local");
         let answer = doc.merge_changes(&changes, &origin).unwrap();
@@ -462,8 +463,10 @@ mod tests {
         assert!(answer["summary"].is_object(), "{answer}");
         assert_eq!(entities(&doc), before + 1, "the engine's drawing follows the merge");
         assert!(doc.dirty());
+        assert_eq!(doc.session.doc().unwrap().header.f64("DIMSCALE", 0.0), 3.0, "the edit made here stays");
         assert!(doc.undo().unwrap().0);
         assert_eq!(entities(&doc), before, "one undo takes the whole draft back");
+        assert_eq!(doc.session.doc().unwrap().header.f64("DIMSCALE", 0.0), 3.0, "and only the draft");
         assert!(doc.redo().unwrap().0);
         assert_eq!(entities(&doc), before + 1, "and one redo brings it again");
         let at = doc.version().unwrap();
