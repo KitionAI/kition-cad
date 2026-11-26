@@ -33,7 +33,7 @@ export function PromptButton({ command, icon, label, size = 'small', primary, li
   )
 }
 
-/** One of a menu tab's commands: its prompts when it has them, else as the shared button runs it; Hatch… its dialog. */
+/** One of a menu tab's commands: its prompts when it has them, else as the shared button runs it (a title ending in … asks its parameters first); Hatch… its dialog. */
 function MenuCommand({ command, primary, onHatch }: { command: KitCommand; primary: boolean; onHatch?: () => void }) {
   const catalog = useCatalog()
   const editor = useKitEditor()
@@ -54,7 +54,10 @@ function MenuCommand({ command, primary, onHatch }: { command: KitCommand; prima
     )
   }
   if (startsPrompt(catalog.byId.get(command.id))) return <PromptButton command={command.id} icon={icon} primary={primary} lineLabel={icon === COMMAND_FALLBACK_ICON} />
-  return <CommandButton command={command.id} icon={icon} primary={primary} lineLabel={icon === COMMAND_FALLBACK_ICON} />
+  // A title ending in an ellipsis promises a dialog: its parameters are asked before it runs, even
+  // where none is marked required (Insert › Block... ran bare and failed; regression
+  // issue-dialog-commands-run-bare).
+  return <CommandButton command={command.id} icon={icon} primary={primary} lineLabel={icon === COMMAND_FALLBACK_ICON} ask={/(\.\.\.|…)\s*$/.test(command.title)} />
 }
 
 /**

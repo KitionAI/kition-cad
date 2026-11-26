@@ -460,8 +460,8 @@ features:
     priority: P1
     status: partial
     commands: [command.list, command.runLine]
-    paths: [bindings/wasm/src/command_line.rs, bindings/wasm/src/command_line_tests.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/lib.rs, web/src/CommandLine.tsx, web/src/commands.ts, web/src/ribbon/CommandTab.tsx, web/src/ribbon/HomeTab.tsx, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/command-line.mjs, kit.json]
-    cases: [cad.editor.command-line/command-line-by-hand, cad.editor.command-line/history-and-prompt, regressions/issue-buttons-start-prompts]
+    paths: [bindings/wasm/src/command_line.rs, bindings/wasm/src/command_line_tests.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/lib.rs, web/src/CommandLine.tsx, web/src/commands.ts, web/src/ribbon/CommandTab.tsx, web/src/ribbon/HomeTab.tsx, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/command-line.mjs, kit.json, web/src/keyboardHome.ts, web/tests/keys.mjs]
+    cases: [cad.editor.command-line/command-line-by-hand, cad.editor.command-line/history-and-prompt, regressions/issue-buttons-start-prompts, regressions/issue-keys-after-ribbon]
     since: "2026-11-26"
   - id: cad.editor.dynamic-input
     title: "Dynamic input in the editor (F12): the prompt and value boxes beside the cursor, X and Y at a first point and distance and angle after it with live values, typing on the canvas filling them, Tab and the separators locking a value that holds the cursor, Enter sending the point measured from the last point, one box for a value prompt, Down Arrow listing the options, F12 and a status bar button"
@@ -514,12 +514,12 @@ features:
     since: "2026-11-26"
   - id: cad.editor.ribbon
     title: "Every command on the ribbon has an icon of its own (none draws the neutral command mark, no two commands of a group share one; Kition CAD's own drawings for the ways to draw a circle, an arc, an ellipse, a point and a revision cloud), and the Classic ribbon keeps its labels when it runs out of room: Home fits whole at 1600 px and keeps every label narrower (Delete Duplicate Objects left Home for the Modify tab); a Home group short of room shows its first commands labelled with a More button that opens the rest with their labels; a menu tab's first group does the same and its later groups give way first, each as one labelled button that opens the group; no button is an icon alone at 1600, 1440, 1165 or 1024 px"
-    gap: "The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own. Commands with the same meaning in different groups share an icon (Copy on Edit and Modify, Radius on Dimension and Parametric); the arc variants tell their points apart by small dots, crosses and arrows, which read best at the large size."
+    gap: "The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own. Commands with the same meaning in different groups share an icon (Copy on Edit and Modify, Radius on Dimension and Parametric); the arc variants tell their points apart by small dots, crosses and arrows, which read best at the large size. A command whose title ends in \"...\" opens the shared parameter dialog, which puts every optional field under More options and takes points as [x, y] (Insert › Block...); there is no Insert dialog with a block list and a picked point, and typed INSERT is refused because it may read a file (bindings/wasm the_command_line_cannot_read_or_write_files)."
     dimension: [function]
     priority: P1
     status: has
     paths: [web/src/ribbon/FitGroup.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/CommandTab.tsx, web/src/commandIcons.ts, web/src/cadIcons.ts, docs/attribution.md, web/src/app.css, web/tests/ribbon.mjs]
-    cases: [cad.editor.ribbon/labels-when-short-of-room, cad.editor.ribbon/every-command-its-icon]
+    cases: [cad.editor.ribbon/labels-when-short-of-room, cad.editor.ribbon/every-command-its-icon, regressions/issue-dialog-commands-run-bare]
     since: "2026-11-26"
   - id: cad.editor.layout-tabs
     title: "Model and layout tabs at the status bar's left: Model, then each layout in the drawing's tab order; choosing one shows that space (layout.set), a line drawn there goes into it, and Model comes back to the model"

@@ -5,7 +5,8 @@
 // 1280, the Draw tab's Draw group at 1165); a menu tab's later groups give way first, each as one
 // labelled button that opens the group (the Draw tab's Arc at 1440), so Donut stays in view. Every
 // command button draws an icon of its own: none draws kit-editor's neutral mark, and no two buttons
-// of a group share one (Home and every menu tab, every group whole at 3000 px).
+// of a group share one (Home and every menu tab, every group whole at 3000 px). A command whose title
+// ends in "..." (Insert › Block...) asks its parameters before it runs.
 // node tests/ribbon.mjs [chromium|webkit]; prints PASS or FAIL per step, exits 1 on any FAIL.
 import { mkdir } from 'node:fs/promises'
 import { chromium, webkit } from 'playwright'
@@ -168,6 +169,34 @@ try {
     await kit.getByTestId('ribbon-tab-Draw').click()
     await page.waitForTimeout(400)
     await page.screenshot({ path: new URL(`${which}-draw-icons.png`, output).pathname, clip: { x: 0, y: 0, width: 3000, height: 200 } })
+    await page.close()
+  }
+  // 7. Regression issue-dialog-commands-run-bare: a command whose title ends in "..." asks its
+  //    parameters first. Insert › Block... ran with none and failed ("`name` is required"), and the
+  //    command line refuses INSERT (it may read a file), so a block could not be inserted by hand.
+  {
+    const { page, kit, details } = await open(1600)
+    await page.evaluate(async () => {
+      const ai = window.devHost.connection().ai
+      const made = await ai.run([{ command: 'circle.add', params: { center: [400, 250], radius: 4 } }], false)
+      const handle = made.completed?.[0]?.result?.handle ?? made.completed?.[0]?.result?.handles?.[0]
+      await ai.run([{ command: 'block.add', params: { name: 'Chair', base: [400, 250], handles: [handle] } }], false)
+    })
+    await kit.getByTestId('ribbon-tab-Insert').click()
+    await page.waitForTimeout(300)
+    await kit.getByTestId('cad-cmd-block.insert').click()
+    const asked = await until(page, async () => (await kit.locator('#param-name').count()) === 1)
+    step('Insert › Block... asks its parameters', asked, `${await kit.locator('.kui-toast').count()} error cards`)
+    if (asked) {
+      const blocks = (await details()).blocks?.map((block) => block.name ?? block) ?? []
+      // Every parameter is optional, so they wait under More options.
+      if (!(await kit.locator('#param-name').isVisible())) await kit.locator('form details summary').click()
+      await kit.locator('#param-name').fill('Chair')
+      await kit.locator('#param-at').fill('[60, 250]')
+      const before = (await details()).entities
+      await kit.getByTestId('command-dialog-run').click()
+      step('and inserts the block where it is told', await until(page, async () => (await details()).entities === before + 1), `${(await details()).entities - before} objects added; blocks ${blocks.join(', ')}`)
+    }
     await page.close()
   }
 } catch (error) {

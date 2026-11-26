@@ -53,7 +53,7 @@ land work, then this list. The comparison with the target application is in
 
 ## Differences on working features
 
-- `cad.editor.ribbon`: The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own. Commands with the same meaning in different groups share an icon (Copy on Edit and Modify, Radius on Dimension and Parametric); the arc variants tell their points apart by small dots, crosses and arrows, which read best at the large size.
+- `cad.editor.ribbon`: The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own. Commands with the same meaning in different groups share an icon (Copy on Edit and Modify, Radius on Dimension and Parametric); the arc variants tell their points apart by small dots, crosses and arrows, which read best at the large size. A command whose title ends in "..." opens the shared parameter dialog, which puts every optional field under More options and takes points as [x, y] (Insert › Block...); there is no Insert dialog with a block list and a picked point, and typed INSERT is refused because it may read a file (bindings/wasm the_command_line_cannot_read_or_write_files).
 - `cad.editor.translation`: Command prompts and their options stay English ("Specify next point or [Close/Undo]"), by the owner's decision; option letters are typed as in English. Layer, style and block names are the drawing's own and are shown as they are.
 - `cad.file.export`: Model space only (a layout prints with plot or exportpdf in the editor); the PNG is 2400 x 1600 whatever the drawing's shape; DWG is not an export, since the web build cannot write it.
 

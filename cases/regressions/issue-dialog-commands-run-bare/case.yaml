@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-dialog-commands-run-bare
+feature: cad.editor.ribbon
+intent: >-
+  A ribbon or menu command whose title ends in "..." asks its parameters before it runs: Insert ›
+  Block... opens its parameter dialog, and with the block's name and a point it inserts the block.
+  Before, it ran with no parameters and failed ("`name` is required") in a red card; with the
+  command line refusing INSERT (it may read a file), a block could not be inserted by hand at all
+  (found by the stage 7 acceptance drawing).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting acceptance drawing, stage 7 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/ribbon.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"
