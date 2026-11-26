@@ -102,9 +102,10 @@ impl DocState {
     }
 
     /// Writes what the drawing changed since the replica last saw it: one transaction per
-    /// history step pushed since the last look; a change that pushed none belongs to the top step
-    /// (a `system` one right after an undo, so the redo steps survive). A running command
-    /// (`live`) is left for its end unless `force` (an import must not lose it).
+    /// history step pushed since the last look; a change that pushed none belongs to the top step,
+    /// and is a `system` one (no undo step) when there is no step for it to belong to (a file's
+    /// caches dropped as it opens) or right after an undo (so the redo steps survive). A running
+    /// command (`live`) is left for its end unless `force` (an import must not lose it).
     pub(crate) fn sync_kdm(&mut self, origin: &Origin, force: bool, live: bool) {
         let pushed = self.pushed_since(self.link.mark);
         self.link.mark = self.pushed;
@@ -122,7 +123,9 @@ impl DocState {
             }
             let mut steps = std::mem::take(&mut self.link.pending);
             if !Arc::ptr_eq(&self.link.synced, &self.doc) {
-                let origin = if self.redo.is_empty() { origin.clone() } else { Origin::system("view") };
+                // Nothing the history holds can take this back: the replica must not offer it as a
+                // step of the person's either.
+                let origin = if self.redo.is_empty() && !self.undo.is_empty() { origin.clone() } else { Origin::system("view") };
                 let after = self.doc.clone();
                 steps = steps.saturating_add(self.record_kdm(&origin, &after).unwrap_or(0));
             }

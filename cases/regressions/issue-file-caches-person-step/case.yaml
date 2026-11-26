@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-file-caches-person-step
+feature: cad.collab.drafts
+intent: >-
+  The replica's undo steps and the engine's history are equal for the person and for the agents
+  after each step of opening a DXF, drawing, an agent's call and undoing everything, and undoing
+  everything gives back the opened file. Before, opening a DXF dropped its caches (EXTMIN, EXTMAX,
+  HANDSEED) from the drawing, and the first replica write recorded that as a step of the person's
+  that no history step held, so the replica offered the person one step more than they took. A
+  change no history step holds is now a system change.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/src/collab.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "the_replicas_and_the_engines_histories_hold_the_same_steps" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

@@ -593,6 +593,9 @@ mod tests {
         let after = [UndoScope::Person, UndoScope::Agent].map(|scope| (depth(&doc, scope), held(&doc, scope)));
         assert_eq!(after[0], (before[0].0 + 1, before[0].1 + 1), "the replica's and the engine's histories each gain one step of the person");
         assert_eq!(after[1], before[1], "and none of the agent");
+        for (replica, engine) in after {
+            assert_eq!(replica, engine, "the replica's and the engine's histories hold the same steps");
+        }
         let _ = doc.session.undo_in(UndoScope::Agent);
         assert_eq!(doc.session.state_hash().unwrap(), merged_hash, "the agent's undo leaves the draft");
         assert_eq!(view(&doc), merged_view);
@@ -606,33 +609,12 @@ mod tests {
         assert_eq!(doc.session.kdm_resets(), 0);
     }
 
-    /// The changes `doc`'s replica made since `base`, each as its number, origin and operation
-    /// kinds (for a failure's message).
-    fn changes_named(doc: &mut CadDocument, base: &[u8]) -> String {
-        let bytes = doc.export_changes(base).unwrap();
-        let text = String::from_utf8_lossy(&bytes).into_owned();
-        let one = |change: &Value| {
-            let ops: Vec<String> = change["ops"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|op| format!("{} {}.{}", op["op"].as_str().unwrap_or("?"), op["id"].as_str().unwrap_or("?"), op["field"].as_str().unwrap_or("")))
-                .collect();
-            format!("#{} {} [{}]", change["seq"], change["origin"], ops.join(", "))
-        };
-        match serde_json::from_str::<Value>(&text) {
-            Ok(Value::Array(changes)) => changes.iter().map(one).collect::<Vec<_>>().join("\n"),
-            Ok(Value::Object(map)) if map.get("changes").is_some_and(Value::is_array) => {
-                map["changes"].as_array().into_iter().flatten().map(one).collect::<Vec<_>>().join("\n")
-            }
-            _ => text.lines().filter_map(|line| serde_json::from_str::<Value>(line).ok()).map(|change| one(&change)).collect::<Vec<_>>().join("\n"),
-        }
-    }
-
     /// The person's and the agents' undo steps, in the replica and in the engine's history: equal
     /// after every step a person takes, so each Undo of the person takes back one thing they did and
     /// nothing else (no step of an opened file, of an import, of a setting that is theirs alone).
-    /// After undoing everything, the drawing is the opened file again.
+    /// After undoing everything, the drawing is the opened file again. Before, opening a DXF drops
+    /// its caches (EXTMIN, EXTMAX, HANDSEED) from the drawing, and the first replica write recorded
+    /// that as a step of the person's no history step held, which the person's Undo never reached.
     #[test]
     fn the_replicas_and_the_engines_histories_hold_the_same_steps() {
         use kition_cad_engine::UndoScope;
@@ -645,33 +627,33 @@ mod tests {
         }
         let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
         let opened = view(&doc);
-        let base = doc.version().unwrap();
-        let check = |doc: &mut CadDocument, after: &str| {
+        doc.version().unwrap();
+        let check = |doc: &CadDocument, after: &str| {
             let [person, agent] = depths(doc);
-            let changes = changes_named(doc, &base);
             assert!(
                 person.0 == person.1 && agent.0 == agent.1,
-                "after {after}: replica (person, agent) steps ({}, {}), engine ({}, {}); the replica's changes since opening:\n{changes}",
+                "after {after}: replica (person, agent) steps ({}, {}), engine ({}, {})",
                 person.0,
                 agent.0,
                 person.1,
                 agent.1
             );
         };
-        check(&mut doc, "opening the file");
+        check(&doc, "opening the file");
         doc.snapshot().unwrap();
-        check(&mut doc, "a snapshot");
+        check(&doc, "a snapshot");
         doc.execute("line.add", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
-        check(&mut doc, "a line");
+        check(&doc, "a line");
         doc.execute("circle.add", json!({ "center": [5, 5], "radius": 2 })).unwrap();
-        check(&mut doc, "a circle");
+        check(&doc, "a circle");
         doc.execute_as("circle.add", json!({ "center": [9, 9], "radius": 1 }), &Origin::agent("agent:test")).unwrap();
-        check(&mut doc, "an agent's call");
+        check(&doc, "an agent's call");
         while doc.undo().unwrap().0 {
-            check(&mut doc, "an undo of the person");
+            check(&doc, "an undo of the person");
         }
-        while doc.session.undo_in(UndoScope::Agent).unwrap().is_some() {
-            check(&mut doc, "an undo of the agent");
+        while doc.session.can_undo_in(UndoScope::Agent) {
+            doc.session.undo_in(UndoScope::Agent).unwrap();
+            check(&doc, "an undo of the agent");
         }
         assert_eq!(depths(&doc), [(0, 0), (0, 0)], "nothing is left to undo");
         assert_eq!(view(&doc), opened, "undoing everything gives back the opened file");
