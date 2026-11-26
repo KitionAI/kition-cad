@@ -39,7 +39,7 @@ pub use kdm_model::kition_kit::session::Damage;
 pub use kition_cad_doc as doc;
 pub use kition_cad_geom as geom;
 pub use kition_cad_render as render;
-pub use prompt::{Accept, Input, Interactive, Prompt, Step};
+pub use prompt::{Accept, Input, Interactive, Prompt, PromptKind, Step};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {
@@ -571,6 +571,10 @@ pub struct Session {
     /// says why not. A host sets it so that the command line runs nothing its caller could not
     /// run directly.
     pub step_gate: Option<StepGate>,
+    /// Inputs the running command refused and asked for again (an invalid point, a value out of
+    /// range), counted so an editor can show that an entry was not taken (the command line
+    /// shakes); the reason is on the log.
+    pub rejected_inputs: u64,
 }
 
 /// The check [`Session::step_gate`] holds: the command id, and its parameters when typed as
@@ -618,6 +622,7 @@ impl Session {
             origin: None,
             pick_tolerance: None,
             layer_override: None,
+            rejected_inputs: 0,
             host_files_only: false,
             step_gate: None,
         }
@@ -1026,6 +1031,7 @@ impl Session {
             Err(e) => {
                 // Invalid input: report and keep prompting (AutoCAD re-prompts).
                 self.echo(cmd::typed_error(&e));
+                self.rejected_inputs = self.rejected_inputs.wrapping_add(1);
                 self.running = Some(run);
                 Ok(())
             }

@@ -1,9 +1,19 @@
 import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, ShrinkIcon as Shrink, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera/icons/react'
-import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools } from '@kition/sdk/editor'
+import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools, type IconComponent } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
+import { startsPrompt, useCatalog } from '../commands'
+import { PromptButton } from './CommandTab'
 
-const DRAW = ['line.add', 'polyline.add', 'circle.add', 'arc.add', 'rectangle.add', 'polygon.add', 'ellipse.add', 'spline.add', 'hatch.add']
-const MODIFY = ['object.move', 'object.copy', 'object.rotate', 'object.scale', 'object.mirror', 'object.offset', 'object.trim', 'object.extend', 'object.fillet']
+/** The Draw group's small buttons after its four large ones, in stacks of three: tools and commands. */
+const DRAW = ['rectangle.add', 'polygon.add', 'ellipse.add', 'spline.add', 'hatch.add', 'point.add']
+/** The Modify group, in stacks of three: the common edits, so none needs the Modify tab. */
+const MODIFY = [
+  'object.move', 'object.copy', 'object.rotate',
+  'object.scale', 'object.mirror', 'object.offset',
+  'object.trim', 'object.extend', 'object.fillet',
+  'object.chamfer', 'object.break', 'object.join',
+  'object.delete', 'object.explode', 'object.stretch',
+]
 const ANNOTATION = ['multilineText.add', 'text.add', 'dimension.addLinear', 'dimension.addAligned', 'dimension.addRadius']
 
 /** The tools Single line's row shows. */
@@ -18,6 +28,24 @@ function Tool({ id, size = 'small', primary }: { id: string; size?: 'large' | 's
   return <ToolButton tool={id} icon={toolIcon(tool.icon, id)} label={p(tool.label)} size={size} title={tool.shortcut ? `${p(tool.label)} (${tool.shortcut})` : p(tool.label)} primary={primary} />
 }
 
+/**
+ * One of the engine's commands on Home: the engine's tool where it has one, else a button that
+ * starts the command's prompts (or, for a command without prompts, runs it as the shared button
+ * does, asking its parameters).
+ */
+function HomeCommand({ id, icon, primary }: { id: string; icon?: IconComponent; primary?: boolean }) {
+  const tools = useKitTools()
+  const catalog = useCatalog()
+  const { phrase: p, byId } = useKitEditor()
+  // Nothing until the engine's tools are known: a tool drawn first as a command button would be
+  // another button (and widen Single line's row for a moment).
+  if (!tools?.tools.length) return null
+  if (tools.tools.some((tool) => tool.id === id)) return <Tool id={id} primary={primary} />
+  const label = p(byId.get(id)?.title ?? id)
+  if (startsPrompt(catalog.byId.get(id))) return <PromptButton command={id} icon={icon} label={label} primary={primary} />
+  return <CommandButton command={id} icon={icon} label={label} primary={primary} ask />
+}
+
 export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () => void; onLayers: () => void }) {
   const { run, enabled, phrase: p, t } = useKitEditor()
   return (
@@ -27,31 +55,21 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
         <Tool id="polyline.add" primary={PRIMARY.has('polyline.add')} size="large" />
         <Tool id="circle.add" primary={PRIMARY.has('circle.add')} size="large" />
         <Tool id="arc.add" primary={PRIMARY.has('arc.add')} size="large" />
-        <RibbonStack>
-          {DRAW.slice(4, 7).map((id) => (
-            <Tool key={id} id={id} primary={PRIMARY.has(id)} />
-          ))}
-        </RibbonStack>
-        <RibbonStack>
-          {DRAW.slice(7).map((id) => (
-            <Tool key={id} id={id} primary={PRIMARY.has(id)} />
-          ))}
-        </RibbonStack>
+        {[0, 3].map((start) => (
+          <RibbonStack key={start}>
+            {DRAW.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
+          </RibbonStack>
+        ))}
       </RibbonGroup>
 
       <RibbonGroup label={p('Modify')} icon={Move}>
-        {[0, 3, 6].map((start) => (
+        {[0, 3, 6, 9, 12].map((start) => (
           <RibbonStack key={start}>
             {MODIFY.slice(start, start + 3).map((id) => (
-              <Tool key={id} id={id} primary={PRIMARY.has(id)} />
+              <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={id === 'object.explode' ? Ungroup : id === 'object.stretch' ? SquareSplitHorizontal : undefined} />
             ))}
           </RibbonStack>
         ))}
-        <RibbonStack>
-          <Tool id="object.delete" primary={PRIMARY.has('object.delete')} />
-          <CommandButton command="object.explode" icon={Ungroup} label={p('Explode')} ask />
-          <CommandButton command="object.stretch" icon={SquareSplitHorizontal} label={p('Stretch')} ask />
-        </RibbonStack>
       </RibbonGroup>
 
       <RibbonGroup label={p('Annotation')} icon={Ruler}>
@@ -91,7 +109,7 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
       <RibbonGroup label={p('Utilities')} icon={Wrench}>
         <RibbonButton icon={Maximize} size="large" label={t('zoomExtents')} onClick={onFit} data-testid="cad-zoom-extents" primary />
         <RibbonStack>
-          <CommandButton command="view.zoomWindow" icon={ScanSearch} label={p('Zoom Window')} ask />
+          <HomeCommand id="view.zoomWindow" icon={ScanSearch} />
           <CommandButton command="object.deleteDuplicates" icon={Shrink} label={p('Delete Duplicate Objects')} />
         </RibbonStack>
       </RibbonGroup>

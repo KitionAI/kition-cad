@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CommandTab,
   HAND_TOOL,
   KitEditorProvider,
   EditorFrame,
@@ -23,6 +22,8 @@ import { engineManifest } from './engine'
 import { CATALOGS } from './strings'
 import { CAD_PRIMARY, DRAFTING, HOST_FILE_COMMANDS, MENU_TABS, describe } from './cad'
 import { HomeTab } from './ribbon/HomeTab'
+import { CadCommandTab } from './ribbon/CommandTab'
+import { CatalogProvider } from './commands'
 import { LayersPanel } from './LayersPanel'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
@@ -68,16 +69,25 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const commandInput = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<string[]>([])
   useEffect(() => setHistory([]), [doc])
+  // F2 opens the command line's whole history, scrollable, and closes it.
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const tabs: FrameTab[] = [
     { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => setPanel((open) => !open)} /> : null },
-    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} /> })),
+    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
 
   return (
     <KitEditorProvider editor={editor} tools={tools}>
+      <CatalogProvider>
       <div className="cad-editor-root" onKeyDownCapture={(event) => {
+        if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && commandInput.current) {
+          event.preventDefault()
+          event.stopPropagation()
+          setHistoryOpen((open) => !open)
+          return
+        }
         if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('command.runLine')) return
         if (!(event.target instanceof Element) || !event.target.matches('.kui-app, canvas, .kui-text-sink')) return
         // Space is Enter, as in CAD (it does not pan here: the middle button, the trackpad and the
@@ -153,11 +163,21 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} />
           {state ? (
             <FrameChrome>
-              <CommandLine prompt={state.prompt} running={state.running} input={commandInput} history={history} onCommand={(text) => setHistory((items) => [...items.filter((item) => item !== text), text].slice(-100))} />
+              <CommandLine
+                prompt={state.prompt}
+                line={state.drafting.commandLine}
+                running={state.running}
+                input={commandInput}
+                history={history}
+                onCommand={(text) => setHistory((items) => [...items.filter((item) => item !== text), text].slice(-100))}
+                expanded={historyOpen}
+                onExpanded={setHistoryOpen}
+              />
             </FrameChrome>
           ) : null}
         </EditorFrame>
       </div>
+      </CatalogProvider>
     </KitEditorProvider>
   )
 }

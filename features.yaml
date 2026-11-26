@@ -453,6 +453,16 @@ features:
     paths: [bindings/wasm/src/interaction.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/cursor_tests.rs, crates/engine/engine/src/select.rs, web/src/cursor.ts, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/cursor.mjs]
     cases: [cad.editor.cursor/cursor-and-highlight, cad.editor.cursor/cursor-by-hand, regressions/issue-grid-zoomed-out]
     since: "2026-11-26"
+  - id: cad.editor.command-line
+    title: "The command line in the editor: the history of what commands write (results, the command started, *Cancel*, refused entries) above the input and in a scrollable window (F2), the prompt above the input with its options and default as buttons, a placeholder saying what the prompt waits for, completion of typed names (Enter, Tab, a click), errors on the history instead of a card; every ribbon, menu and context-menu button of a command with prompts starts them; Classic is the default display mode"
+    gap: "The prompt structure and the history reach the editor under inspect's /drafting/commandLine, because the editor-state inventory (EDITOR_STATE, pinned by its test) cannot gain a /commandLine entry without the owner; the history window has no right-click menu (Recent Commands, Copy History, Clear) and its lines are not clickable; typed answers are written beside their prompt, clicked points are not; buttons whose titles end in an ellipsis (Hatch..., Table...) still ask their parameters first; the prompts are in English."
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [command.list, command.runLine]
+    paths: [bindings/wasm/src/command_line.rs, bindings/wasm/src/command_line_tests.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/lib.rs, web/src/CommandLine.tsx, web/src/commands.ts, web/src/ribbon/CommandTab.tsx, web/src/ribbon/HomeTab.tsx, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/command-line.mjs, kit.json]
+    cases: [cad.editor.command-line/command-line-by-hand, cad.editor.command-line/history-and-prompt, regressions/issue-buttons-start-prompts]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

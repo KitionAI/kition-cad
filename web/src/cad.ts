@@ -15,7 +15,25 @@ export type Drafting = {
   gridMajor: number
   /** CURSORSIZE: the crosshair's arms as a percentage of the canvas height. */
   cursorSize: number
+  /** The command line's prompt taken apart and its history (the engine's `/drafting/commandLine`). */
+  commandLine: CommandLineState
 }
+
+/** What a prompt asks for; `command` between commands. */
+export type PromptKind = 'command' | 'point' | 'distance' | 'angle' | 'select' | 'text' | 'keyword'
+
+/**
+ * The prompt as the command line draws it: the command (as typed, in capitals), the message, the
+ * options (each typed as written to choose it), the default (Enter takes it) and what it asks for.
+ */
+export type PromptParts = { command: string | null; message: string; keywords: string[]; default: string | null; kind: PromptKind }
+
+/** The command line's history: its last lines, and how many lines it has ever had. */
+export type CommandHistory = { serial: number; lines: string[] }
+
+export type CommandLineState = { prompt: PromptParts; history: CommandHistory }
+
+export const IDLE_PROMPT: PromptParts = { command: null, message: 'Command', keywords: [], default: null, kind: 'command' }
 
 /** The status bar's on/off drafting modes. */
 export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay'
@@ -52,7 +70,11 @@ export function describe(info: KitEngineInfo): CadInfo {
     viewRequest: inspected.viewRequest ?? null,
     prompt: inspected.prompt ?? '',
     running: inspected.running ?? null,
-    drafting: { ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5, ...inspected.drafting },
+    drafting: {
+      ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
+      ...inspected.drafting,
+      commandLine: { prompt: inspected.drafting?.commandLine?.prompt ?? IDLE_PROMPT, history: inspected.drafting?.commandLine?.history ?? { serial: 0, lines: [] } },
+    },
     units: inspected.units?.origin ? inspected.units : null,
   }
 }
@@ -86,12 +108,3 @@ export const DRAFTING: Array<{ id: DraftingMode; command: string; label: string 
   { id: 'otrack', command: 'drafting.objectSnapTracking', label: 'Otrack' },
   { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
 ]
-
-/**
- * The options of a prompt as the command line shows them ("Specify next point or [Undo/Close]
- * <0>:" offers Undo and Close): each is typed as it is written to choose it.
- */
-export function promptOptions(prompt: string): string[] {
-  const match = /\[([^\]]+)\][^[]*$/.exec(prompt)
-  return match ? match[1].split('/').map((option) => option.trim()).filter(Boolean) : []
-}

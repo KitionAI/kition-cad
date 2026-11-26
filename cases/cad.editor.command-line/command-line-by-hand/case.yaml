@@ -1,0 +1,31 @@
+format: 1
+id: cad.editor.command-line/command-line-by-hand
+feature: cad.editor.command-line
+intent: >-
+  The command line in a real browser: DIST's result and "Command: DIST" on the history, Escape
+  writing *Cancel*, three history lines by default and more when the top edge is dragged, F2 and the
+  history button opening the scrollable history and F2 closing it; an unknown command a line on the
+  history and a shake of the input instead of a card, an entry LINE refuses shaking the input with
+  its reason on the history; the prompt above the input, a long prompt leaving the input its width,
+  the placeholder saying what the prompt waits for, [Close] closing a line and the default <12>
+  entering a radius of 12; CI and Enter starting CIRCLE, Tab completing REC to RECTANG, a click on a
+  suggestion starting DONUT, at most eight suggestions, an alias listed as "L (LINE)", Up still
+  recalling typed commands; Pan and Zoom from the command menu and 'zoom.in keeping LINE running;
+  Classic as the editor's default display mode with Line one click away.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 3 (web/tests/command-line.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/command-line.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

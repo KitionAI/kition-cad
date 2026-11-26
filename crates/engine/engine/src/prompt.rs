@@ -26,6 +26,25 @@ impl Accept {
     pub const SELECT: Accept = Accept { point: true, number: false, text: false, select: true, enter: true };
 }
 
+/// What a prompt asks for ([`Prompt::kind`]): the command line shows it while it waits, and an
+/// editor's input boxes follow it (a point takes coordinates, a distance or an angle one value).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PromptKind {
+    /// A point (coordinates, a click, a distance along the rubber band).
+    Point,
+    /// One value that is not an angle: a radius, a length, a scale factor, a count.
+    Distance,
+    /// An angle (a rotation, a direction).
+    Angle,
+    /// Objects: "Select objects", or a click that picks one object.
+    Select,
+    /// Free text: a string, a name.
+    Text,
+    /// One of the prompt's options (a question such as "[Yes/No]").
+    Keyword,
+}
+
 /// A prompt shown on the command line.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -73,6 +92,28 @@ impl Prompt {
     /// single object themselves). The UI shows the pick box there.
     pub fn picks_objects(&self) -> bool {
         self.accept.select || (self.accept.point && self.message.starts_with("Select"))
+    }
+    /// What the prompt asks for, as an editor shows it: a value prompt (a radius, a rotation)
+    /// takes one number even where a point may answer it too; see [`PromptKind`].
+    pub fn kind(&self) -> PromptKind {
+        if self.picks_objects() {
+            return PromptKind::Select;
+        }
+        if self.accept.number {
+            let message = self.message.to_ascii_lowercase();
+            return if ["angle", "rotation", "direction", "tangent"].iter().any(|word| message.contains(word)) {
+                PromptKind::Angle
+            } else {
+                PromptKind::Distance
+            };
+        }
+        if self.accept.point {
+            PromptKind::Point
+        } else if self.accept.text && self.keywords.is_empty() {
+            PromptKind::Text
+        } else {
+            PromptKind::Keyword
+        }
     }
     /// "Specify next point or [Undo/Close] <default>:".
     pub fn display(&self) -> String {
@@ -242,5 +283,19 @@ mod tests {
         let q = Prompt::new("", Accept::POINT).kw(&["3P", "2P", "Ttr"]);
         assert_eq!(q.match_keyword("3p").as_deref(), Some("3P"));
         assert_eq!(q.match_keyword("t").as_deref(), Some("Ttr"));
+    }
+
+    #[test]
+    fn kinds() {
+        let kind = |message: &str, accept: Accept| Prompt::new(message, accept).kind();
+        assert_eq!(kind("Specify next point", Accept::POINT), PromptKind::Point);
+        assert_eq!(kind("Specify radius of circle", Accept::POINT_OR_NUMBER), PromptKind::Distance);
+        assert_eq!(kind("Enter number of sides", Accept::NUMBER), PromptKind::Distance);
+        assert_eq!(kind("Specify rotation angle", Accept::POINT_OR_NUMBER), PromptKind::Angle);
+        assert_eq!(kind("Select objects", Accept::SELECT), PromptKind::Select);
+        assert_eq!(kind("Select object to offset", Accept::POINT), PromptKind::Select);
+        assert_eq!(kind("Enter text", Accept::TEXT), PromptKind::Text);
+        assert_eq!(Prompt::new("Erase polyline?", Accept::TEXT).kw(&["Yes", "No"]).kind(), PromptKind::Keyword);
+        assert_eq!(serde_json::to_value(PromptKind::Distance).ok(), Some(serde_json::json!("distance")));
     }
 }

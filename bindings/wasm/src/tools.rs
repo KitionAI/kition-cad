@@ -24,19 +24,19 @@ impl KitTools for CadDocument {
     }
 
     fn select_tool(&mut self, id: &str, zoom: f64) -> Result<ToolResponse, String> {
-        let r = self.select_tool_inner(id, zoom);
+        let r = self.echoed(|doc| doc.select_tool_inner(id, zoom));
         self.session.sync_kdm();
         r
     }
 
     fn pointer(&mut self, event: &ToolPointer) -> Result<ToolResponse, String> {
-        let r = self.pointer_inner(event);
+        let r = self.echoed(|doc| doc.pointer_inner(event));
         self.session.sync_kdm();
         r
     }
 
     fn key(&mut self, key: &str, mods: ToolMods, zoom: f64) -> Result<ToolResponse, String> {
-        let r = self.key_inner(key, mods, zoom);
+        let r = self.echoed(|doc| doc.key_inner(key, mods, zoom));
         self.session.sync_kdm();
         r
     }
@@ -44,7 +44,7 @@ impl KitTools for CadDocument {
     /// Typed text is a command-line entry.
     fn text(&mut self, text: &str, zoom: f64) -> Result<ToolResponse, String> {
         self.sync_view(zoom);
-        let result = self.command_line(text);
+        let result = self.echoed(|doc| doc.command_line(text));
         if self.cursor.is_some() {
             self.resolve_cursor();
         }

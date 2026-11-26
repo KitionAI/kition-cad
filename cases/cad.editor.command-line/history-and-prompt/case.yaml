@@ -1,0 +1,25 @@
+format: 1
+id: cad.editor.command-line/history-and-prompt
+feature: cad.editor.command-line
+intent: >-
+  What the engine tells the command line: the history holds what the person's entries and the
+  commands they run write (the command started, each typed entry beside the prompt it answers,
+  DIST's distance, *Cancel*), keeps its last 200 lines and counts every line, and an agent's calls
+  write nothing there; the prompt taken apart (the command, the message, the options, the default,
+  and what it asks for: a point, a distance, an angle, objects, text, an option); a refused entry
+  comes back rejected and counted by the engine; command.list names every command with the name
+  typed for it, its aliases, whether it prompts and whether the command line may start it.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 3 (bindings/wasm/src/command_line_tests.rs, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "command_line_tests::" }
+  - cargo-test: { package: "kition-cad-engine", filter: "prompt::tests::kinds" }
+  - cargo-test: { package: "kition-cad-engine", filter: "a_refused_entry_is_counted_and_logged" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

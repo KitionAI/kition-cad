@@ -20,6 +20,9 @@ pub mod acts;
 pub mod agent_text;
 pub mod check;
 mod collab;
+mod command_line;
+#[cfg(test)]
+mod command_line_tests;
 #[cfg(test)]
 mod conformance;
 mod context;
@@ -198,6 +201,11 @@ pub struct CadDocument {
     batch_entities: std::sync::Arc<std::sync::Mutex<std::collections::BTreeSet<kition_kit::kdm::ObjectId>>>,
     /// Imported names without persisted IDs or DXF handles cannot prove reread continuity.
     unproven_record_ids: std::collections::BTreeSet<String>,
+    /// The command line's history ([`command_line`]): what the person's entries and the commands
+    /// they ran wrote, the last [`command_line::HISTORY_LINES`] lines, and how many lines it has
+    /// ever had.
+    history: std::collections::VecDeque<String>,
+    history_serial: u64,
 }
 
 /// The parameter names of commands that read or write files outside the document, as
@@ -369,6 +377,8 @@ impl CadDocument {
             kept: std::sync::Mutex::default(),
             unproven_record_ids: std::collections::BTreeSet::new(),
             batch_entities: Default::default(),
+            history: std::collections::VecDeque::new(),
+            history_serial: 0,
         }
     }
 
@@ -462,19 +472,28 @@ impl CadDocument {
 
     /// Runs a typed command-line entry (`line`, `l`, a coordinate such as `10,20`, a keyword,
     /// or an empty line for Enter), as the command line does.
+    ///
+    /// The entry goes on the history beside the prompt it answers; the answer's `rejected` says
+    /// the running command refused it and asks again (the reason is on the history).
     pub fn command_line(&mut self, text: &str) -> Result<Value, String> {
+        self.echo_entry(text);
         if let Some(grip) = self.hot_grip {
             let point = kition_cad_engine::prompt::parse_point(text, grip.base)
                 .filter(|p| p.is_finite())
                 .ok_or("Specify a point, or press Escape to cancel")?;
             self.commit_grip(point)?;
-            return Ok(json!({ "prompt": self.prompt(), "running": null }));
+            return Ok(json!({ "prompt": self.prompt(), "running": null, "rejected": false }));
         }
         let before = self.current_view();
+        let refused = self.session.rejected_inputs;
         // What the text starts or runs passes the session's step gate (command_line_gate).
         self.session.cmdline(text).map_err(engine_error)?;
         self.record_view(before);
-        Ok(json!({ "prompt": self.session.prompt_text(), "running": self.session.running.as_ref().map(|running| running.id.clone()) }))
+        Ok(json!({
+            "prompt": self.session.prompt_text(),
+            "running": self.session.running.as_ref().map(|running| running.id.clone()),
+            "rejected": self.session.rejected_inputs != refused,
+        }))
     }
 
     /// The display list's polylines for `object.query`, as paths in document pixels.
@@ -890,6 +909,7 @@ impl KitDocument for CadDocument {
                 .with_kit_schema(),
             );
             commands.push(render::command());
+            commands.push(command_line::command());
             commands.push(
                 KitCommand {
                     id: "viewport.sync".into(),
@@ -1064,6 +1084,10 @@ impl CadDocument {
         if command == "viewport.sync" {
             return self.sync_viewport(&params);
         }
+        // A read of the engine's catalogue: nothing the person holds (a hot grip) ends.
+        if command == command_line::LIST {
+            return Ok(command_line::list(&params));
+        }
         let before = self.current_view();
         let document_uid = self.session.state().ok().map(|state| state.uid);
         let transparent = kition_cad_engine::cmd::find_command(command).is_some_and(|spec| spec.transparent);
@@ -1087,7 +1111,8 @@ impl CadDocument {
                 let scope = kition_kit::session::history_scope(&params, &self.session.origin()).map_err(|e| e.to_string())?;
                 self.session.redo_in(scope).map(|label| json!({ "redone": label })).map_err(engine_error)
             }
-            "command.runLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
+            // The person's entry: what it and the commands it runs write goes on the history.
+            "command.runLine" => self.echoed(|doc| doc.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default())),
             "file.export" => self.export_command(&params),
             render::RENDER => self.render_view(&params),
             _ => self.session.execute(command, &params).map_err(engine_error),
@@ -1192,6 +1217,8 @@ impl CadDocument {
                 "gridMajor": settings.gridmajor.max(1),
                 // CURSORSIZE: the crosshair's arms, as a percentage of the canvas height.
                 "cursorSize": settings.cursorsize,
+                // The command line: the prompt taken apart and the history (command_line.rs).
+                "commandLine": self.command_line_state(),
             },
             "selection": self.session.selection().len(),
             "selectedObjects": self.selected_objects(),

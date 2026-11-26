@@ -1109,3 +1109,20 @@ fn hover_picks_what_a_click_would_and_skips_locked_layers() {
         assert_eq!(s.hover(p, aperture), None);
     }
 }
+
+/// An entry the running command refuses is counted ([`Session::rejected_inputs`]) and its reason
+/// goes on the log, the command still asking; an entry it takes counts nothing.
+#[test]
+fn a_refused_entry_is_counted_and_logged() {
+    let mut s = Session::new();
+    s.cmdline("line").unwrap();
+    s.cmdline("0,0").unwrap();
+    assert_eq!(s.rejected_inputs, 0);
+    let logged = s.log.len();
+    s.cmdline("nowhere").unwrap();
+    assert_eq!(s.rejected_inputs, 1, "{:?}", s.log);
+    assert!(s.log.len() > logged, "the reason is logged");
+    assert_eq!(s.running.as_ref().map(|r| r.id.as_str()), Some("line.add"), "the command still asks");
+    s.cmdline("10,0").unwrap();
+    assert_eq!(s.rejected_inputs, 1);
+}

@@ -434,6 +434,7 @@ pub const BINDING_COMMANDS: &[(&str, &[EditorState], Option<&str>)] = &[
     ("file.export", &[], None),
     ("file.render", &[], None),
     ("viewport.sync", &[], None),
+    ("command.list", &[], None),
 ];
 
 /// [`reads`] for any listed command: the binding's own from [`BINDING_COMMANDS`].

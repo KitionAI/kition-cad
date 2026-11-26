@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-buttons-start-prompts
+feature: cad.editor.command-line
+intent: >-
+  A ribbon or menu button of a command that asks for its input in prompts starts those prompts on
+  the command line and draws nothing: Draw › Donut shows DONUT's first prompt with the drawing
+  unchanged, and every enabled such button on Home and the menu tabs (found from the engine's
+  command list) starts its command. Before, 127 of the engine's 151 interactive commands ran their
+  JSON form with defaults or opened a parameters dialog from their buttons (walkthrough B6).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B6)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/command-line.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

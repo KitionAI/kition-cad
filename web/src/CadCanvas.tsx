@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
-import { describe, promptOptions, type CadInfo } from './cad'
+import { describe, type CadInfo } from './cad'
 import { cursorState, gridDecoration, ucsDecoration, type CadCursor } from './cursor'
+import { startsPrompt, useCatalog, useStartCommand } from './commands'
 
 /** A right press shorter than this is Enter; a longer one opens the command menu (as CAD does). */
 const QUICK_RIGHT_MS = 250
@@ -38,6 +39,8 @@ type Press = { time: number; x: number; y: number; shift: boolean; running: bool
 export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void }) {
   const editor = useKitEditor()
   const tools = useKitTools()
+  const catalog = useCatalog()
+  const start = useStartCommand()
   const region = useRef<HTMLDivElement>(null)
   const lastView = useRef('')
   const applied = useRef(0)
@@ -147,10 +150,14 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
 
   useEffect(() => () => { if (dwell.current != null) window.clearTimeout(dwell.current) }, [])
 
-  const command = (id: string, label: string) => <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => { void editor.run(id, {}) }} testId={`cad-context-${id}`} />
+  // A command with prompts starts them, as a CAD menu does; one without runs.
+  const command = (id: string, label: string) => (
+    <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => { if (startsPrompt(catalog.byId.get(id))) start(id); else void editor.run(id, {}) }} testId={`cad-context-${id}`} />
+  )
   const unanswerable = () => !prompting() || !editor.enabled('command.runLine')
   const now = fresh()
-  const options = now ? promptOptions(now.prompt) : []
+  // The prompt's options, as the engine gives them (the command line draws the same).
+  const options = now?.drafting.commandLine.prompt.keywords ?? []
   const gripping = now?.prompt.startsWith('STRETCH ') ?? false
   return (
     <div

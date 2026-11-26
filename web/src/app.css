@@ -66,14 +66,147 @@
   border-bottom: 0;
 }
 
+/* Above the command line, floating over the bottom of the canvas (it takes no height from the
+   canvas): the commands a typed name may mean, the history and the prompt. Only its controls take
+   the pointer; a click through the history lines reaches the drawing. */
+.cad-command-line {
+  position: relative;
+}
+
+.cad-command-float {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(360px, 48%, 760px);
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  font-size: 12px;
+  z-index: 2;
+}
+
 .cad-prompt {
-  flex: none;
-  max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid var(--kit-border);
+  border-bottom: 0;
+  border-radius: var(--kit-radius-control) var(--kit-radius-control) 0 0;
+  background: var(--kit-surface);
+  color: var(--kit-text);
+}
+
+.cad-prompt-command {
+  font-weight: 600;
+}
+
+.cad-prompt-option {
+  pointer-events: auto;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--kit-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cad-prompt-option:hover:not(:disabled) {
+  background: var(--kit-primary-soft);
+}
+
+.cad-history {
+  position: relative;
+  overflow: hidden;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--kit-surface) 82%, transparent);
   color: var(--kit-text-muted);
+  font-family: var(--kit-font-mono);
+  line-height: 17px;
+}
+
+.cad-history[data-open='true'] {
+  max-height: 204px;
+  overflow-y: auto;
+  pointer-events: auto;
+  border: 1px solid var(--kit-border);
+  border-bottom: 0;
+  background: var(--kit-surface);
+}
+
+.cad-history-line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cad-history-line[data-error='true'] {
+  color: var(--kit-danger);
+}
+
+.cad-history-grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  cursor: ns-resize;
+  pointer-events: auto;
+}
+
+.cad-completions {
+  margin: 0 0 2px;
+  padding: 2px;
+  list-style: none;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control);
+  background: var(--kit-surface);
+  box-shadow: var(--kit-shadow-card);
+  pointer-events: auto;
+}
+
+.cad-completion {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--kit-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cad-completion[data-first='true'],
+.cad-completion:hover {
+  background: var(--kit-primary-soft);
+}
+
+.cad-completion-name {
+  font-family: var(--kit-font-mono);
+}
+
+.cad-completion-title {
+  color: var(--kit-text-muted);
+}
+
+.cad-history-toggle {
+  flex: none;
+}
+
+.cad-command-line[data-shake='true'] .cad-command-input {
+  animation: cad-shake 0.35s ease-in-out;
+  border-color: var(--kit-danger);
+}
+
+@keyframes cad-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
 }
 
 .cad-command-input {

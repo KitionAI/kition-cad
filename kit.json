@@ -68,7 +68,7 @@
   },
   "ui": {
     "mode": "embedded",
-    "display": "menus",
+    "display": "classic",
     "entry": "ui/index.html",
     "menus": [
       "File",

@@ -599,6 +599,51 @@
    }
   }
  },
+ "command.list": {
+  "description": "Answers the commands the command line knows: each id with the name a person types for it, its aliases, its title, its menu path, whether it asks for its input in prompts, and whether the command line may start it; `search` keeps the commands whose id, name, title or an alias contains it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "commands": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "aliases": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "commandLine": {
+        "type": "boolean"
+       },
+       "id": {
+        "type": "string"
+       },
+       "interactive": {
+        "type": "boolean"
+       },
+       "menu": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "name": {
+        "type": "string"
+       },
+       "title": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
  "command.runLine": {
   "description": "Runs a line typed at the command line: a command name or alias with its prompts' answers, as the person types them."
  },
