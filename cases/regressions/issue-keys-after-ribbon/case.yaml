@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-keys-after-ribbon
+feature: cad.editor.command-line
+intent: >-
+  What a person types after clicking a ribbon button, a status bar toggle or a dialog's button goes
+  to the drawing, as after a click on the canvas: the ribbon's Polyline, then "100,60" and Enter
+  typed with the pointer over the canvas give the polyline's start point (and Enter does not click
+  Polyline again); F8 after the status bar's Grid and F8 after the New Layer dialog closes toggle
+  Ortho; Escape after the ribbon's Line cancels it; a ribbon button pressed with the keyboard keeps
+  the focus. Before, the typed point went to the clicked button and was lost, and keys after a
+  dialog went to the page (found by the stage 7 acceptance drawing).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting acceptance drawing, stage 7 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/keys.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

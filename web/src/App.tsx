@@ -31,6 +31,7 @@ import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
 import { CadCursor } from './cursor'
 import { DraftingStatus, LayoutTabs } from './StatusBar'
+import { useKeyboardHome } from './keyboardHome'
 
 /** The view tools are the host's; the engine's other tools run in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
@@ -90,6 +91,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const commandInput = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<string[]>([])
   useEffect(() => setHistory([]), [doc])
+  // The keyboard goes back to the drawing after a button is clicked or a dialog closes.
+  useKeyboardHome()
   // F2 opens the command line's whole history, scrollable, and closes it.
   const [historyOpen, setHistoryOpen] = useState(false)
 

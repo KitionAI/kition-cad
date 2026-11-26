@@ -25,6 +25,7 @@
     "test:status-bar": "node tests/status-bar.mjs chromium && node tests/status-bar.mjs webkit",
     "test:ribbon": "node tests/ribbon.mjs chromium && node tests/ribbon.mjs webkit",
     "test:layouts": "node tests/layouts.mjs chromium && node tests/layouts.mjs webkit",
+    "test:keys": "node tests/keys.mjs chromium && node tests/keys.mjs webkit",
     "test:cancellation": "node tests/cancellation.mjs chromium && node tests/cancellation.mjs webkit",
     "test:interruption": "node tests/interruption.mjs chromium && node tests/interruption.mjs webkit",
     "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit",
