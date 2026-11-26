@@ -2,62 +2,203 @@
 
 .cad-side {
   width: 232px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Properties above, layers below, each scrolling on its own: the layer list stays put whatever is
+   selected (别扭 7). */
+.cad-side-part {
+  min-height: 0;
+  overflow: auto;
+}
+
+.cad-side-properties {
+  flex: 0 0 48%;
+  border-bottom: 1px solid var(--kit-border);
+}
+
+.cad-side-layers {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cad-side-layers > .kui-panel-body {
+  flex: 1 1 auto;
+  overflow: auto;
 }
 
 .cad-properties {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 12px 10px;
-  border-bottom: 1px solid var(--kit-border);
+  padding: 6px 10px 10px;
   font-size: 12px;
+}
+
+.cad-properties-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cad-property-group-title {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--kit-text-muted, inherit);
 }
 
 .cad-property {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 80px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   margin-top: 4px;
 }
 
-.cad-property .kui-field {
+.cad-property > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-property .kui-field,
+.cad-dialog-fields .kui-field {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+}
+
+.cad-property textarea.kui-field {
+  resize: vertical;
+}
+
+.cad-choice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cad-choice .kui-field {
+  flex: 1;
+}
+
+.cad-swatch {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--kit-border);
+  border-radius: 2px;
+}
+
+.cad-color-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.cad-dialog-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 260px;
 }
 
 .cad-layer {
   display: flex;
+  flex-direction: column;
+  padding: 0 6px 4px 4px;
+  border-bottom: 1px solid var(--kit-border);
+}
+
+.cad-layer-line {
+  display: flex;
   align-items: center;
   gap: 2px;
-  padding: 0 6px 0 4px;
+}
+
+.cad-layer-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding-left: 18px;
+  font-size: 11px;
+}
+
+.cad-layer-details .kui-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.cad-layer-message {
+  padding: 2px 0 2px 18px;
+  font-size: 11px;
+  color: var(--kit-danger, var(--kit-text));
 }
 
 .cad-layer[data-current='true'] {
   background: var(--kit-primary-soft);
 }
 
+.cad-layer-fill {
+  flex: 1;
+  align-self: stretch;
+}
+
 .cad-layer-name {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   height: 28px;
   padding: 0 4px;
-  border: 0;
-  background: transparent;
-  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
+  cursor: default;
+  user-select: none;
 }
 
 .cad-layer-current {
   display: inline-flex;
-  width: 14px;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--kit-primary);
+  cursor: pointer;
+}
+
+/* The text box typed in place over the drawing (N12): a real input, so it takes the pointer. */
+.cad-in-place {
+  z-index: 30;
+  margin: 0;
+  padding: 0 2px;
+  border: 1px solid var(--kit-primary);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--kit-canvas, var(--kit-surface)) 88%, transparent);
+  color: var(--kit-text);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  outline: none;
+  pointer-events: auto;
+  box-sizing: content-box;
+}
+
+textarea.cad-in-place {
+  resize: both;
 }
 
 .cad-command-line {

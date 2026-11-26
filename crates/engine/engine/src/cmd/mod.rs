@@ -19,7 +19,7 @@ mod gripcmds;
 pub(crate) mod groups;
 pub use groups::ungroup_targets;
 mod hatch;
-pub use hatch::{boundary_outline, boundary_sources};
+pub use hatch::{HOVER_HATCH_LIMIT, boundary_outline, boundary_sources};
 mod inquiry;
 mod layer;
 mod layout;
@@ -41,7 +41,7 @@ mod spline_opts;
 mod table;
 mod trimextend;
 mod utility;
-pub use utility::find_matches;
+pub use utility::{eval as calculate, find_matches};
 mod view;
 
 pub mod curves;

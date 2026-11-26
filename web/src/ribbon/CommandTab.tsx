@@ -29,10 +29,26 @@ export function PromptButton({ command, icon, label, size = 'small', primary, li
   )
 }
 
-/** One of a menu tab's commands: its prompts when it has them, else as the shared button runs it. */
-function MenuCommand({ command, primary }: { command: KitCommand; primary: boolean }) {
+/** One of a menu tab's commands: its prompts when it has them, else as the shared button runs it; Hatch… its dialog. */
+function MenuCommand({ command, primary, onHatch }: { command: KitCommand; primary: boolean; onHatch?: () => void }) {
   const catalog = useCatalog()
+  const editor = useKitEditor()
   const icon = commandIcon(command)
+  if (command.id === 'hatch.add' && onHatch) {
+    return (
+      <RibbonButton
+        icon={icon}
+        label={editor.phrase(command.title)}
+        size="small"
+        primary={primary}
+        lineLabel={icon === COMMAND_FALLBACK_ICON}
+        disabled={!editor.enabled(command.id) || !editor.enabled('command.runLine')}
+        onClick={onHatch}
+        data-testid={`${editor.testId}-cmd-${command.id}`}
+        data-kit-ui-id={`command:${command.id}`}
+      />
+    )
+  }
   if (startsPrompt(catalog.byId.get(command.id))) return <PromptButton command={command.id} icon={icon} primary={primary} lineLabel={icon === COMMAND_FALLBACK_ICON} />
   return <CommandButton command={command.id} icon={icon} primary={primary} lineLabel={icon === COMMAND_FALLBACK_ICON} />
 }
@@ -42,7 +58,7 @@ function MenuCommand({ command, primary }: { command: KitCommand; primary: boole
  * `CommandTab` groups it, where a command that asks for its input in prompts starts them
  * ([`PromptButton`]). `primary` lists the commands Single line's row shows.
  */
-export function CadCommandTab({ menu, exclude = [], primary = [] }: { menu: string; exclude?: readonly string[]; primary?: readonly string[] }) {
+export function CadCommandTab({ menu, exclude = [], primary = [], onHatch }: { menu: string; exclude?: readonly string[]; primary?: readonly string[]; onHatch?: () => void }) {
   const { commands, phrase } = useKitEditor()
   const groups = commandGroups(commands.filter((command) => !exclude.includes(command.id)), [menu])
   return (
@@ -50,7 +66,7 @@ export function CadCommandTab({ menu, exclude = [], primary = [] }: { menu: stri
       {[...groups].map(([name, { path, items }]) => (
         <RibbonGroup key={name} id={`menu:${path}`} label={phrase(name)} icon={items[0] ? commandIcon(items[0]) : undefined}>
           <div className="kui-command-grid">
-            {items.map((command) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} />)}
+            {items.map((command) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} onHatch={onHatch} />)}
           </div>
         </RibbonGroup>
       ))}

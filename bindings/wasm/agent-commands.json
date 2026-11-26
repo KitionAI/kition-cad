@@ -4243,6 +4243,266 @@
    }
   }
  },
+ "object.describeProperties": {
+  "description": "Describes the selected objects (or `handles`) for the editor's Properties panel: rows in groups (General: colour, layer, linetype, linetype scale, lineweight, transparency; then each kind's geometry, text or pattern), each with its kind, its value as the drawing's units show it, whether the objects disagree on it, its choices, and the existing command and parameter that write a new value (object.setProperties for objects). With nothing selected the rows are the current properties new objects get, each written by its own command (property.color, layer.setCurrent, property.linetype, property.lineweight, variable.set). Also answers the layers with colour, linetype, lineweight and why one cannot be deleted, the loaded and library linetypes and the hatch patterns, and reads typed values (`parse`: arithmetic, feet and inches, a unit after a number, angles in the drawing's angle units). It changes nothing.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "colors": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "rgb": {
+        "type": "string"
+       },
+       "value": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "count": {
+     "type": "integer"
+    },
+    "current": {
+     "description": "nothing is described: the rows are the current properties",
+     "type": "boolean"
+    },
+    "layers": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "color": {
+        "type": "string"
+       },
+       "current": {
+        "type": "boolean"
+       },
+       "frozen": {
+        "type": "boolean"
+       },
+       "linetype": {
+        "type": "string"
+       },
+       "locked": {
+        "type": "boolean"
+       },
+       "name": {
+        "type": "string"
+       },
+       "on": {
+        "type": "boolean"
+       },
+       "plot": {
+        "type": "boolean"
+       },
+       "rgb": {
+        "type": "string"
+       },
+       "transparency": {
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "library": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "linetypes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "lineweights": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "label": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "locked": {
+     "description": "an object described is on a locked layer: no row is editable",
+     "type": "boolean"
+    },
+    "parsed": {
+     "items": {
+      "oneOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "type": "array"
+    },
+    "patterns": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "rows": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "display": {
+        "description": "the value as the drawing's units show it; empty where the objects disagree",
+        "type": "string"
+       },
+       "editable": {
+        "type": "boolean"
+       },
+       "group": {
+        "description": "General, Geometry, Text, Pattern or Misc",
+        "type": "string"
+       },
+       "key": {
+        "description": "the row's key (`color`, `start.x`, `radius`)",
+        "type": "string"
+       },
+       "kind": {
+        "description": "number, text, choice, color or boolean",
+        "type": "string"
+       },
+       "label": {
+        "description": "the row's English label",
+        "type": "string"
+       },
+       "options": {
+        "items": {
+         "additionalProperties": true,
+         "properties": {
+          "label": {
+           "type": "string"
+          },
+          "load": {
+           "type": "boolean"
+          },
+          "rgb": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "type": "array"
+       },
+       "rgb": {
+        "description": "a colour row's colour, #rrggbb",
+        "type": "string"
+       },
+       "unit": {
+        "description": "a number row's unit: length, angle (degrees), area or number",
+        "type": "string"
+       },
+       "varies": {
+        "description": "whether the objects described disagree on it (value null)",
+        "type": "boolean"
+       },
+       "write": {
+        "additionalProperties": true,
+        "description": "how a new value is written: the command, its parameters, the parameter `key` takes the value; `point` and `index` for one coordinate of a point",
+        "properties": {
+         "command": {
+          "type": "string"
+         },
+         "index": {
+          "type": "integer"
+         },
+         "key": {
+          "type": "string"
+         }
+        },
+        "type": "object"
+       },
+       "positive": {
+        "type": "boolean",
+        "description": "the value must be above zero"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "types": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "count": {
+        "type": "integer"
+       },
+       "type": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "inPlace": {
+     "additionalProperties": true,
+     "type": "object",
+     "description": "one object described that is edited in place (text, paragraphs, dimension, hatch): what the editor opens for it",
+     "properties": {
+      "kind": {
+       "type": "string"
+      },
+      "handle": {
+       "type": "string"
+      },
+      "text": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "handles": {
+    "description": "the objects to describe; the selection when absent",
+    "items": {
+     "type": "string"
+    },
+    "type": "array"
+   },
+   "parse": {
+    "description": "typed values to read as numbers, answered in `parsed` in the same order (null for one that does not read)",
+    "items": {
+     "additionalProperties": false,
+     "properties": {
+      "text": {
+       "type": "string"
+      },
+      "unit": {
+       "enum": [
+        "length",
+        "angle",
+        "number"
+       ],
+       "type": "string"
+      }
+     },
+     "type": "object"
+    },
+    "type": "array"
+   }
+  }
+ },
  "object.explode": {
   "description": "Breaks the given compound objects (blocks, polylines, dimensions, hatches), or the selection, into their component objects.",
   "params": {

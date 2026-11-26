@@ -38,10 +38,16 @@ mod files;
 mod grip_edit;
 #[cfg(test)]
 mod grip_edit_tests;
+mod in_place;
+#[cfg(test)]
+mod in_place_tests;
 mod interaction;
 pub mod links;
 mod params;
 mod place;
+mod properties;
+#[cfg(test)]
+mod properties_tests;
 mod query;
 mod read_fields;
 mod render;
@@ -222,6 +228,10 @@ pub struct CadDocument {
     /// What is typed in the dynamic input boxes ([`dynamic_input`]): a locked value holds the
     /// cursor.
     dynamic_entry: dynamic_input::DynamicEntry,
+    /// The last double-click's request to edit an object in place ([`in_place`]), and how many
+    /// there have been.
+    edit_request: Option<Value>,
+    edit_serial: u64,
 }
 
 /// The parameter names of commands that read or write files outside the document, as
@@ -399,6 +409,8 @@ impl CadDocument {
             history: std::collections::VecDeque::new(),
             history_serial: 0,
             dynamic_entry: dynamic_input::DynamicEntry::default(),
+            edit_request: None,
+            edit_serial: 0,
         }
     }
 
@@ -932,6 +944,7 @@ impl KitDocument for CadDocument {
             commands.push(command_line::command());
             commands.push(dynamic_input::command());
             commands.push(grip_edit::command());
+            commands.push(properties::command());
             commands.push(
                 KitCommand {
                     id: "viewport.sync".into(),
@@ -1115,6 +1128,10 @@ impl CadDocument {
             return Ok(command_line::list(&params));
         }
         // The grip menu's choice: a grip edit starts (and the person's history gets what it wrote).
+        // A read for the Properties panel: nothing the person holds (a hot grip) ends.
+        if command == properties::DESCRIBE {
+            return self.describe_properties(&params);
+        }
         if command == grip_edit::EDIT {
             return self.echoed(|doc| doc.grip_edit_command(&params));
         }
@@ -1252,6 +1269,8 @@ impl CadDocument {
                 "dynamicInput": settings.dynmode,
                 // The command line: the prompt taken apart and the history (command_line.rs).
                 "commandLine": self.command_line_state(),
+                // The last double-click's in-place edit ([`in_place`]).
+                "edit": self.edit_request,
             },
             "selection": self.session.selection().len(),
             "selectedObjects": self.selected_objects(),

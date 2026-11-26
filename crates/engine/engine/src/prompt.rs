@@ -60,11 +60,35 @@ pub struct Prompt {
     /// prompt (a point with no base yet, e.g. the first point of a line). Elsewhere a deferred
     /// pick arrives as the plain point it was picked at.
     pub deferred: bool,
+    /// Where the text a free-text prompt asks for goes in the drawing (TEXT's and MTEXT's "Enter
+    /// text"), so an editor can let the person type it there, in place.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_box: Option<TextBox>,
+}
+
+/// Where typed text goes in the drawing ([`Prompt::text_box`]): its start (a single line's
+/// left end on the baseline; a paragraph's top-left corner), its height and rotation, the
+/// paragraph's width (0 for a single line, or a paragraph without a box), and whether the text
+/// may have several lines (MTEXT: a line break starts a new paragraph).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextBox {
+    pub at: Vec2,
+    pub height: f64,
+    /// Radians counterclockwise from +X.
+    pub rotation: f64,
+    pub width: f64,
+    pub paragraphs: bool,
 }
 
 impl Prompt {
     pub fn new(message: impl Into<String>, accept: Accept) -> Self {
-        Prompt { message: message.into(), keywords: Vec::new(), default: None, accept, base: None, deferred: false }
+        Prompt { message: message.into(), keywords: Vec::new(), default: None, accept, base: None, deferred: false, text_box: None }
+    }
+    /// Where the typed text goes (the `text_box` field).
+    pub fn text_box(mut self, place: TextBox) -> Self {
+        self.text_box = Some(place);
+        self
     }
     pub fn kw(mut self, k: &[&str]) -> Self {
         self.keywords = k.iter().map(|s| s.to_string()).collect();

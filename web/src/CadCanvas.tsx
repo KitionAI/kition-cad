@@ -4,6 +4,10 @@ import { describe, gripping as isGripping, type CadInfo } from './cad'
 import { cursorState, gridDecoration, ucsDecoration, type CadCursor, type GripUnder } from './cursor'
 import { startsPrompt, useCatalog, useStartCommand } from './commands'
 import { DynamicTooltip } from './DynamicTooltip'
+import { InPlaceText, useEditRequests, type InPlace } from './InPlaceText'
+import type { HatchEdit } from './HatchDialog'
+import { DESCRIBE, type Described } from './properties'
+import type { EditRequest } from './cad'
 
 /** A right press shorter than this is Enter; a longer one opens the command menu (as CAD does). */
 const QUICK_RIGHT_MS = 250
@@ -38,9 +42,12 @@ const ZOOMS: Array<[string, string]> = [['zoom.extents', 'Extents'], ['zoom.in',
 const VIEW_ZOOMS: Array<[string, string]> = [['view.zoomToFit', 'Extents'], ['view.zoomIn', 'In'], ['view.zoomOut', 'Out'], ['view.zoomPrevious', 'Previous']]
 /** The grip modes, in the order Space cycles them: the word typed for each, and its label. */
 const GRIP_MODES: Array<[string, string]> = [['stretch', 'Stretch'], ['move', 'Move'], ['rotate', 'Rotate'], ['scale', 'Scale'], ['mirror', 'Mirror']]
-/** The edit each kind of object offers in the drawing menu when everything selected is of it. */
+/**
+ * The edit each kind of object offers in the drawing menu when everything selected is of it. One
+ * text, paragraph or dimension opens in place, hatches in their dialog; the rest start their prompts.
+ */
 const TYPE_EDITS: Array<[string[], string, string]> = [
-  [['Text', 'MText'], 'text.edit', 'Edit Text'],
+  [['Text', 'MText', 'Attribute Definition'], 'text.edit', 'Edit Text'],
   [['Hatch'], 'hatch.edit', 'Edit Hatch'],
   [['Polyline'], 'polyline.edit', 'Edit Polyline'],
   [['Dimension'], 'dimension.editText', 'Edit Dimension Text'],
@@ -56,7 +63,7 @@ type Press = { time: number; x: number; y: number; shift: boolean; running: bool
 const dashed = (text: string) => text.replace(/\s+/g, '-')
 
 /** CAD keeps its model view and the raster viewport in agreement without changing other kits. */
-export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom, onProperties }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void; onProperties: () => void }) {
+export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom, onProperties, onHatch }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void; onProperties: () => void; onHatch: (edit: HatchEdit) => void }) {
   const editor = useKitEditor()
   const tools = useKitTools()
   const catalog = useCatalog()
@@ -70,6 +77,18 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   const middle = useRef<{ time: number; x: number; y: number } | null>(null)
   const dwell = useRef<number | null>(null)
   const { doc } = editor.session
+  // The object whose text is typed in place (a double-click, Edit Text), N12.
+  const [editing, setEditing] = useState<InPlace | null>(null)
+  const openEdit = (request: EditRequest) => {
+    if (request.kind === 'hatch') onHatch({ mode: 'edit', handles: [request.handle], pattern: request.pattern, scale: request.scale, angle: request.angle })
+    else setEditing({ source: 'object', kind: request.kind, handle: request.handle, text: request.text, box: request.box })
+  }
+  useEditRequests(info, openEdit)
+  useEffect(() => setEditing(null), [doc])
+  // TEXT's and MTEXT's text is typed where it goes.
+  const textBox = info?.drafting.commandLine.prompt.textBox ?? null
+  const prompted: InPlace | null = textBox && info?.running ? { source: 'prompt', box: textBox, key: `${info.running}|${textBox.at.join(',')}|${info.drafting.commandLine.prompt.message}` } : null
+  const inPlace = prompted ?? editing
   // The drawn cursor's state, read by the overlay hook when the canvas draws (set while rendering:
   // the canvas, a child, draws in its effects, which run before this component's).
   const drawn = cursorState(tools?.canvasTool.cursor)
@@ -202,9 +221,20 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   // An object's own edit starts its prompts on the selection (its dialog-like title notwithstanding).
   const edit = (id: string, label: string) => {
     const entry = catalog.byId.get(id)
-    return (
-      <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => { if (entry?.interactive && entry.commandLine) start(id); else void editor.run(id, {}).then(refresh) }} testId={`cad-context-${id}`} />
-    )
+    const prompts = () => { if (entry?.interactive && entry.commandLine) start(id); else void editor.run(id, {}).then(refresh) }
+    const select = async () => {
+      const now = fresh()
+      const handles = now?.selectedObjects.map((object) => object.handle) ?? []
+      // Hatches open their dialog (several at once); one text, paragraph or dimension opens in place.
+      if (id === 'hatch.edit' || handles.length === 1) {
+        const described = await editor.query<Described>(DESCRIBE, { handles: handles.slice(0, 1) })
+        const request = described?.inPlace
+        if (request?.kind === 'hatch') { onHatch({ mode: 'edit', handles, pattern: request.pattern, scale: request.scale, angle: request.angle }); return }
+        if (request && id !== 'hatch.edit') { openEdit(request); return }
+      }
+      prompts()
+    }
+    return <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => void select()} testId={`cad-context-${id}`} />
   }
   const unanswerable = () => !prompting() || !editor.enabled('command.runLine')
   const now = fresh()
@@ -296,6 +326,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
     >
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} decorateUnder={grid} decorate={ucs} />
       <DynamicTooltip dynamic={dynamic} />
+      {inPlace && info ? <InPlaceText edit={inPlace} info={info} canvas={canvas} region={region} onDone={() => setEditing(null)} /> : null}
       <ContextMenu at={menu?.kind === 'drawing' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Drawing')} testId="cad-context-menu">
         <MenuItem label={recent[0] ? `${editor.phrase('Repeat')} ${recent[0]}` : editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine('')} testId="cad-context-repeat" />
         <MenuItem label={`${editor.phrase('Recent Commands')} ▸`} disabled={!recent.length || !editor.enabled('command.runLine')} onSelect={() => open('recent')} testId="cad-context-recent" />

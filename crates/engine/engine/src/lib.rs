@@ -39,7 +39,7 @@ pub use kdm_model::kition_kit::session::Damage;
 pub use kition_cad_doc as doc;
 pub use kition_cad_geom as geom;
 pub use kition_cad_render as render;
-pub use prompt::{Accept, Input, Interactive, Prompt, PromptKind, Step};
+pub use prompt::{Accept, Input, Interactive, Prompt, PromptKind, Step, TextBox};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {

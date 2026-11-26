@@ -1,0 +1,39 @@
+format: 1
+id: cad.editor.properties/properties-by-hand
+feature: cad.editor.properties
+intent: >-
+  Properties, layers, text in place and hatch in a real browser: a selected line shows General
+  (colour, layer, linetype, linetype scale, lineweight, transparency) and Geometry rows, its end X
+  rounded to the drawing's precision (400.1235); a new End X moves the end and keeps its Y, one Undo
+  gives it back; a typed 2*30+5 sets the length (Tab writes it), Escape gives the shown value back;
+  two circles show *Varies* for the radius they disagree on and take Red together in one undo step;
+  with nothing selected the panel shows the current properties and a current colour new objects
+  take; the ribbon's Layer Properties keeps the panel open on its layers, the panel's own button
+  closes it, and the layer list stays where it is when an object is selected; a layer's colour
+  recolours its objects on the canvas, a library linetype loads and goes to the layer, a lineweight
+  too, a double-click on its name renames it (its objects follow), a layer with objects says why it
+  cannot be deleted, an empty one is deleted, a double-click on the row makes it current; a
+  double-click on a text opens a box over it with all of it selected, Enter writes it in one undo
+  step, Escape leaves it, Enter while an input method composes writes nothing and a composed Chinese
+  text is written; Edit Text in the drawing menu opens the same box; MTEXT types two lines stored
+  with \P; TEXT types where the text goes, Space a space, Enter the next line, Enter on an empty box
+  ends it; a dimension's emptied text shows its measurement again; Hatch… asks pattern and scale,
+  then picks internal points with the area under the cursor previewed, and a double-click on the
+  hatch opens the dialog that changes it.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 6 (web/tests/properties.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/properties.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

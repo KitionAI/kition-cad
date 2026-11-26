@@ -325,6 +325,9 @@ enum HatchAsk {
     Angle,
 }
 
+/// The most objects a drawing has for HATCH to preview the area under the cursor.
+pub const HOVER_HATCH_LIMIT: usize = 2000;
+
 struct HatchM {
     gradient: bool,
     settings: HatchSettings,
@@ -470,11 +473,18 @@ impl Interactive for HatchM {
             _ => Ok(Step::Continue),
         }
     }
-    fn preview(&self, _s: &Session, _c: Vec2) -> Vec<EntityKind> {
-        if self.loops.is_empty() {
+    /// The hatch as it stands: the areas picked so far and, while internal points are picked,
+    /// the area under the cursor, as a click there would add it (in drawings of at most
+    /// [`HOVER_HATCH_LIMIT`] objects: finding an area reads every object).
+    fn preview(&self, s: &Session, c: Vec2) -> Vec<EntityKind> {
+        let mut loops = self.loops.clone();
+        if !self.selecting && self.asking.is_none() && s.doc().is_ok_and(|d| d.model.len() <= HOVER_HATCH_LIMIT) {
+            loops.extend(loops_at(s, c).unwrap_or_default());
+        }
+        if loops.is_empty() {
             return Vec::new();
         }
-        vec![self.settings.hatch(self.loops.clone())]
+        vec![self.settings.hatch(loops)]
     }
 }
 

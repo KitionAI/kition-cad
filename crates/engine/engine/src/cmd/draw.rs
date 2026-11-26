@@ -1415,6 +1415,10 @@ impl TextM {
     fn new(_s: &Session) -> Self {
         TextM { at: None, height: None, rotation: None, justify: (HAlign::Left, VAlign::Baseline), asking_justify: false, line: 0 }
     }
+    /// Where the next line goes: each line 5/3 of the height below the one before.
+    fn line_at(&self, a: Vec2, h: f64, r: f64) -> Vec2 {
+        a + Vec2::from_angle(r - std::f64::consts::FRAC_PI_2) * (h * 5.0 / 3.0 * self.line as f64)
+    }
 }
 
 impl Interactive for TextM {
@@ -1431,7 +1435,14 @@ impl Interactive for TextM {
             (None, _, _) => Prompt::new("Specify start point of text", Accept::POINT).kw(&["Justify", "Style"]),
             (Some(a), None, _) => Prompt::new("Specify height", Accept::POINT_OR_NUMBER).default(format!("{th:.4}")).base(a),
             (Some(a), Some(_), None) => Prompt::new("Specify rotation angle of text", Accept::POINT_OR_NUMBER).default("0").base(a),
-            _ => Prompt::new("Enter text", Accept::TEXT),
+            // The line typed next goes below the lines typed so far, where `input` puts it.
+            (Some(a), Some(h), Some(r)) => Prompt::new("Enter text", Accept::TEXT).text_box(crate::TextBox {
+                at: self.line_at(a, h, r),
+                height: h,
+                rotation: r,
+                width: 0.0,
+                paragraphs: false,
+            }),
         }
     }
     fn begin(&mut self, s: &mut Session) -> Result<Step> {
@@ -1471,7 +1482,7 @@ impl Interactive for TextM {
                 self.rotation = Some(s.angle_settings().direction(&t).ok_or_else(|| crate::EngineError::Other("Requires an angle.".into()))?)
             }
             (Some(a), Some(h), Some(r), Input::Text(t)) => {
-                let at = a + Vec2::from_angle(r - std::f64::consts::FRAC_PI_2) * (h * 5.0 / 3.0 * self.line as f64);
+                let at = self.line_at(a, h, r);
                 let k = make_text(s, at, &t, h, r, self.justify);
                 s.add_entity(k)?;
                 self.line += 1;
@@ -1501,6 +1512,20 @@ impl MTextM {
     fn boxed(&self) -> bool {
         self.second.is_some() || self.opts.width.is_some()
     }
+    /// Where the paragraph goes: the box's top-left corner (the corners picked, turned by the
+    /// rotation), its width, and the height and rotation the options set.
+    fn text_box(&self, a: Vec2) -> crate::TextBox {
+        let r = self.opts.rotation;
+        let (left, top, width) = match (self.second, self.opts.width) {
+            (_, Some(w)) => (0.0, 0.0, w),
+            (Some(c), None) => {
+                let l = (c - a).rotate(-r);
+                (l.x.min(0.0), l.y.max(0.0), l.x.abs())
+            }
+            (None, None) => (0.0, 0.0, 0.0),
+        };
+        crate::TextBox { at: a + Vec2::new(left, top).rotate(r), height: self.opts.height, rotation: r, width, paragraphs: true }
+    }
 }
 
 impl Interactive for MTextM {
@@ -1521,8 +1546,8 @@ impl Interactive for MTextM {
             Some(a) if !self.boxed() => Prompt::new("Specify opposite corner", Accept::POINT)
                 .kw(&["Height", "Justify", "Line spacing", "Rotation", "Style", "Width", "Columns"])
                 .base(a),
-            _ if self.lines.is_empty() => Prompt::new("Enter text (use \\P for new paragraphs)", Accept::TEXT),
-            _ => Prompt::new("Enter next line of text (empty line to finish)", Accept::TEXT),
+            Some(a) if self.lines.is_empty() => Prompt::new("Enter text (use \\P for new paragraphs)", Accept::TEXT).text_box(self.text_box(a)),
+            Some(a) => Prompt::new("Enter next line of text (empty line to finish)", Accept::TEXT).text_box(self.text_box(a)),
         }
     }
     fn input(&mut self, s: &mut Session, i: Input) -> Result<Step> {

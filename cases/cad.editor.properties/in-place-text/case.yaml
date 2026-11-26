@@ -1,0 +1,23 @@
+format: 1
+id: cad.editor.properties/in-place-text
+feature: cad.editor.properties
+intent: >-
+  What the engine tells the editor for editing in place: a double-click between commands on a text
+  asks to edit it where it is (its handle, text, box and a new serial each time) and cools the grip
+  the second click made hot; a paragraph asks with its lines and width, a dimension with "<>" for
+  its measurement and its box over the drawn text, a hatch with its pattern, scale and angle; a
+  circle, or a double-click in a command, asks nothing; TEXT's "Enter text" says where the line goes
+  (the next one below), MTEXT's where the paragraph goes and how wide, and lines joined by \P make
+  one MTEXT; HATCH previews the area under the cursor before it is picked.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 6 (bindings/wasm/src/in_place_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "in_place_tests::" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

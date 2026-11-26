@@ -19,7 +19,21 @@ export type Drafting = {
   dynamicInput: boolean
   /** The command line's prompt taken apart and its history (the engine's `/drafting/commandLine`). */
   commandLine: CommandLineState
+  /** The last double-click's request to edit an object in place (`in_place.rs`), or null. */
+  edit: EditRequest | null
 }
+
+/**
+ * Where typed text goes in the drawing (drawing units): `at` is a line's left end on its baseline,
+ * a paragraph's top-left corner, or a dimension text's middle when `centered`; the rotation in
+ * degrees; a paragraph's width (0: none).
+ */
+export type TextBox = { at: [number, number]; height: number; rotation: number; width: number; paragraphs: boolean; centered?: boolean }
+
+/** What a double-click (or Edit Text) edits in place: text where it is, or a hatch in its dialog. */
+export type EditRequest =
+  | { serial?: number; kind: 'text' | 'paragraphs' | 'dimension'; handle: string; text: string; box: TextBox }
+  | { serial?: number; kind: 'hatch'; handle: string; pattern: string; scale: number; angle: number }
 
 /** What a prompt asks for; `command` between commands. */
 export type PromptKind = 'command' | 'point' | 'distance' | 'angle' | 'select' | 'text' | 'keyword'
@@ -38,6 +52,8 @@ export type PromptParts = {
   base?: [number, number] | null
   /** A hot grip's edit: its mode (`stretch`, `move`, `rotate`, `scale`, `mirror`) and whether it places copies. */
   grip?: { mode: string; copy: boolean } | null
+  /** Where TEXT's and MTEXT's text goes, at their "Enter text" prompts (typed there, in place). */
+  textBox?: TextBox | null
 }
 
 /** The command line's history: its last lines, and how many lines it has ever had. */
@@ -85,6 +101,7 @@ export function describe(info: KitEngineInfo): CadInfo {
     drafting: {
       ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, dynamicInput: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
       ...inspected.drafting,
+      edit: inspected.drafting?.edit ?? null,
       commandLine: { prompt: inspected.drafting?.commandLine?.prompt ?? IDLE_PROMPT, history: inspected.drafting?.commandLine?.history ?? { serial: 0, lines: [] } },
     },
     units: inspected.units?.origin ? inspected.units : null,

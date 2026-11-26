@@ -1,0 +1,25 @@
+format: 1
+id: cad.editor.properties/describe-properties
+feature: cad.editor.properties
+intent: >-
+  What object.describeProperties answers: a line's rows by group with kinds, units and rounded
+  values, the writer of End X keeping the end's Y in one undo step; several circles mark the radius
+  they disagree on, keep X from being written where Y differs, and take one colour in one undo step;
+  objects of several kinds show the general rows only; with nothing selected the current properties,
+  each written by its own command (property.color, layer.setCurrent, property.linetype,
+  property.lineweight, variable.set), which new objects then take; the layers with their colour and
+  why one cannot be deleted (reserved, current, used); typed values read with arithmetic, feet and
+  inches, angle units and a unit after the number; a read ends no hot grip and changes nothing; a
+  locked member makes every row read-only.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 6 (bindings/wasm/src/properties_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "properties_tests::" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

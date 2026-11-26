@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-unrounded-properties
+feature: cad.editor.properties
+intent: >-
+  A circle of radius 340.411569987389 shows 340.4116 in the Properties panel (LUPREC 4, trailing
+  zeros left off) and 340.41 with LUPREC 2, while the value written stays exact. Before, the panel
+  showed every digit of the number, cut off by the field (walkthrough N13, 340.411569987389…).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (N13)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "numbers_are_rounded_to_the_drawings_precision" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

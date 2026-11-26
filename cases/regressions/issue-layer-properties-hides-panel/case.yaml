@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-layer-properties-hides-panel
+feature: cad.editor.properties
+intent: >-
+  The ribbon's Layer Properties shows the right panel and its layers and never hides it; the panel
+  closes with its own button. Before, the button toggled the panel, so a person who clicked it to
+  see the layers lost the Properties and the layers together (walkthrough B8). The steps "Layer
+  Properties keeps the panel open", "and shows its layers", "the panel's own button closes it" and
+  "Layer Properties opens it again" of web/tests/properties.mjs check it.
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B8)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/properties.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

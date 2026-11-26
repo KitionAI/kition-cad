@@ -151,7 +151,8 @@ impl CadDocument {
                 // The prompt (or grip) changed: the pointer resolves anew for it.
                 self.resolve_cursor();
             }
-            PointerAction::DoubleClick => {}
+            // Between commands a double-click edits text in place, a hatch in its dialog.
+            PointerAction::DoubleClick => self.double_click(at),
         }
         if matches!(event.action, PointerAction::Move | PointerAction::Up) {
             self.update_hover(at);

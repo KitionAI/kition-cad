@@ -20,11 +20,12 @@ import {
 } from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { CATALOGS } from './strings'
-import { CAD_PRIMARY, DRAFTING, HOST_FILE_COMMANDS, MENU_TABS, describe } from './cad'
+import { CAD_PRIMARY, DRAFTING, HOST_FILE_COMMANDS, MENU_TABS, describe, gripping } from './cad'
 import { HomeTab } from './ribbon/HomeTab'
 import { CadCommandTab } from './ribbon/CommandTab'
 import { CatalogProvider } from './commands'
-import { LayersPanel } from './LayersPanel'
+import { LayersPanel, type PanelPart } from './LayersPanel'
+import { HatchDialog, type HatchEdit } from './HatchDialog'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
@@ -66,6 +67,25 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const [zoom, setZoom] = useState(1)
   const [tab, setTab] = useState('home')
   const [panel, setPanel] = useState(true)
+  // The part of the right panel asked for last: the ribbon's Layer Properties shows the layers, the
+  // drawing menu's Properties the properties; neither hides the panel (B8), its own button does.
+  const [panelFocus, setPanelFocus] = useState<{ part: PanelPart; serial: number }>({ part: 'properties', serial: 0 })
+  const showPanel = (part: PanelPart) => {
+    setPanel(true)
+    setPanelFocus((last) => ({ part, serial: last.serial + 1 }))
+  }
+  // The hatch dialog: Draw › Hatch… (then HATCH picks points), a double-click or Edit Hatch.
+  const [hatch, setHatch] = useState<HatchEdit | null>(null)
+  const startHatch = (entries: string[]) => {
+    const now = editor.session.doc ? describe(editor.session.doc.info) : null
+    if (now && (now.running != null || gripping(now))) tools.keyDown({ key: 'Escape', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false })
+    void entries.reduce<Promise<unknown>>((done, entry) => done.then(() => editor.run('command.runLine', { text: entry })), Promise.resolve()).then(async () => {
+      // HATCH starts where it was left: picking objects; points are picked here.
+      const after = editor.session.doc ? describe(editor.session.doc.info) : null
+      if (after?.drafting.commandLine.prompt.kind === 'select' && after.running === 'hatch.add') await editor.run('command.runLine', { text: 'k' })
+      tools.refresh()
+    })
+  }
   const commandInput = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<string[]>([])
   useEffect(() => setHistory([]), [doc])
@@ -73,8 +93,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const tabs: FrameTab[] = [
-    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => setPanel((open) => !open)} /> : null },
-    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} /> })),
+    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} /> : null },
+    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} onHatch={() => setHatch({ mode: 'new' })} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
 
@@ -181,9 +201,10 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
               </span>
             ) : null
           }
-          panels={panel && state ? <LayersPanel info={state} /> : null}
+          panels={panel && state ? <LayersPanel info={state} focus={panelFocus} onClose={() => setPanel(false)} /> : null}
         >
-          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => setPanel(true)} />
+          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => showPanel('properties')} onHatch={setHatch} />
+          {hatch ? <HatchDialog edit={hatch} onClose={() => setHatch(null)} start={startHatch} /> : null}
           {state ? (
             <FrameChrome>
               <CommandLine

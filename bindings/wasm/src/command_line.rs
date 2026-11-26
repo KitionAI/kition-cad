@@ -71,14 +71,21 @@ impl CadDocument {
             return parts;
         }
         match (&self.session.running, self.session.current_prompt()) {
-            (Some(running), Some(prompt)) => json!({
-                "command": kition_cad_engine::cmd::typed_name(&running.id).to_ascii_uppercase(),
-                "message": prompt.message,
-                "keywords": prompt.keywords,
-                "default": prompt.default,
-                "kind": prompt.kind(),
-                "base": prompt.base.filter(|base| base.is_finite()).map(|base| [base.x, base.y]),
-            }),
+            (Some(running), Some(prompt)) => {
+                let mut parts = json!({
+                    "command": kition_cad_engine::cmd::typed_name(&running.id).to_ascii_uppercase(),
+                    "message": prompt.message,
+                    "keywords": prompt.keywords,
+                    "default": prompt.default,
+                    "kind": prompt.kind(),
+                    "base": prompt.base.filter(|base| base.is_finite()).map(|base| [base.x, base.y]),
+                });
+                // Where TEXT's and MTEXT's text goes: the editor types it there ([`in_place`]).
+                if let Some(place) = &prompt.text_box {
+                    parts["textBox"] = in_place::text_box(place);
+                }
+                parts
+            }
             _ => json!({ "command": null, "message": "Command", "keywords": [], "default": null, "kind": "command" }),
         }
     }
