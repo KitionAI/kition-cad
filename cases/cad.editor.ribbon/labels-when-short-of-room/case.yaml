@@ -4,7 +4,7 @@ feature: cad.editor.ribbon
 intent: >-
   The Classic ribbon in a real browser keeps its labels when it runs out of room: at 1600, 1440, 1165
   and 1024 px no button of Home or of any menu tab is drawn as an icon alone and the editor stays
-  Classic; at 1440 px Home shows every group whole (Radius, Single Line Text, the layer field, Layer
+  Classic; at 1600 px Home shows every group whole (Radius, Single Line Text, the layer field, Layer
   Properties, Zoom Extents, Stretch) with no More; at 1280 px Annotation keeps Multiline Text and
   Linear labelled and its More opens Single Line Text, Aligned and Radius with their labels, Aligned
   chosen there starts and the panel closes; at 1440 px the Draw tab keeps Donut in view and its Arc

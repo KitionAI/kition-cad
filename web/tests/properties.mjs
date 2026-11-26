@@ -7,7 +7,8 @@
 // says why it cannot be deleted; a double-click on a text edits it where it is, MTEXT types two lines
 // that are stored with \P, TEXT types in place (Space a space), a composed Chinese entry commits
 // only after its composition ends; Hatch… asks the pattern, then picks points with the area under
-// the cursor previewed, and a double-click on the hatch opens it again.
+// the cursor previewed, and a double-click on the hatch opens it again; when the box closes the
+// keyboard is the drawing's again (Escape clears the selection, Delete erases).
 // node tests/properties.mjs [chromium|webkit]; prints PASS or FAIL per step, exits 1 on any FAIL.
 import { mkdir } from 'node:fs/promises'
 import { chromium, webkit } from 'playwright'
@@ -325,6 +326,28 @@ try {
     await kit.getByTestId('cad-hatch-scale').fill('5')
     await kit.getByTestId('cad-hatch-dialog-ok').click()
     step('OK changes the hatch', await until(async () => (await query('hatch')).find((item) => item.handle === hatch?.handle)?.geometry.scale === 5))
+  })
+
+  // 6. Regression issue-in-place-focus: when the box closes the keyboard is the drawing's again, so
+  //    Escape then clears the selection and Delete erases it (the stage 7 walkthrough found both
+  //    keys lost: the focus stayed on the page after the box was gone).
+  await section('focus', async () => {
+    const [made] = await agent(['text.add', { at: [330, 200], height: 8, text: 'Hall' }])
+    await doubleClick(340, 203)
+    step('the box opens on the text', await until(async () => (await box.count()) === 1))
+    await page.keyboard.press('Escape')
+    await until(async () => (await box.count()) === 0)
+    step('Escape closes it and the text stays selected', (await details()).selection === 1)
+    await page.keyboard.press('Escape')
+    step('Escape after the box closes clears the selection', await until(async () => (await details()).selection === 0), `${(await details()).selection} selected`)
+    await doubleClick(340, 203)
+    await until(async () => (await box.count()) === 1)
+    await page.keyboard.type('Hallway')
+    await page.keyboard.press('Enter')
+    await until(async () => (await entity('text', made.handle))?.geometry.value === 'Hallway')
+    await page.waitForTimeout(300)
+    await page.keyboard.press('Delete')
+    step('Delete after Enter erases the selected text', await until(async () => (await entity('text', made.handle)) == null))
   })
 
   step('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '))

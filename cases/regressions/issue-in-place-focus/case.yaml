@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-in-place-focus
+feature: cad.editor.properties
+intent: >-
+  After a text is edited in place, the keyboard is the drawing's again: a double-click opens the box
+  on a text, Escape closes it with the text still selected, and a second Escape clears the
+  selection; edited again and written with Enter, Delete then erases the selected text. Before, the
+  box took the keyboard with it when it closed (the focus fell to the page), so Escape and Delete did
+  nothing until the drawing was clicked (found by the stage 7 walkthrough).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough, stage 7 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/properties.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

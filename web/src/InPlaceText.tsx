@@ -51,12 +51,21 @@ export function InPlaceText({ edit, info, canvas, region, onDone }: { edit: InPl
   const paragraphs = edit.box.paragraphs
   const key = edit.source === 'object' ? `${edit.handle}` : edit.key
   useEffect(() => { setText(initial); settled.current = false }, [key, initial])
-  // Opened: the keyboard goes to the box, its text selected.
+  // Opened: the keyboard goes to the box, its text selected. Closed with the keyboard still in it
+  // (Enter, Escape), the keyboard goes back where it was, the drawing, so Escape and Delete reach
+  // it again (regression issue-in-place-focus); closed by a click elsewhere, it stays there.
   useLayoutEffect(() => {
     const element = field.current
     if (!element) return
+    const before = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
     element.focus({ preventScroll: true })
     element.select()
+    return () => {
+      const now = document.activeElement
+      if (now && now !== document.body && now !== element) return
+      const back = before?.isConnected ? before : document.querySelector<HTMLElement>('.kui-app')
+      back?.focus({ preventScroll: true })
+    }
   }, [key])
   // The view moved (zoom, pan, resize): the box follows on the next frame.
   useEffect(() => {
