@@ -64,10 +64,12 @@ impl CadDocument {
     /// The prompt as the command line draws it: the command (as typed, in capitals), the message,
     /// the options (clicked, each is typed as written), the default (clicked, it is Enter), and
     /// what it asks for (`point`, `distance`, `angle`, `select`, `text`, `keyword`; `command`
-    /// between commands).
+    /// between commands), and its base point (`[x, y]`, the last point the rubber band and the
+    /// dynamic input boxes measure from; `null` without one; not given between commands).
     fn prompt_parts(&self) -> Value {
         if self.hot_grip.is_some() {
-            return json!({ "command": "STRETCH", "message": "Specify stretch point", "keywords": [], "default": null, "kind": "point" });
+            let base = self.hot_grip.map(|grip| [grip.base.x, grip.base.y]);
+            return json!({ "command": "STRETCH", "message": "Specify stretch point", "keywords": [], "default": null, "kind": "point", "base": base });
         }
         match (&self.session.running, self.session.current_prompt()) {
             (Some(running), Some(prompt)) => json!({
@@ -76,6 +78,7 @@ impl CadDocument {
                 "keywords": prompt.keywords,
                 "default": prompt.default,
                 "kind": prompt.kind(),
+                "base": prompt.base.filter(|base| base.is_finite()).map(|base| [base.x, base.y]),
             }),
             _ => json!({ "command": null, "message": "Command", "keywords": [], "default": null, "kind": "command" }),
         }

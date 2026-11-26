@@ -118,6 +118,8 @@ export const PHRASES: Record<string, Record<string, string>> = {
     Osnap: '对象捕捉',
     Otrack: '对象追踪',
     Lineweight: '线宽',
+    DynInput: '动态输入',
+    Options: '选项',
     'Make Current': '置为当前',
     'Layer Properties': '图层特性',
     'Delete Duplicate Objects': '删除重复对象',

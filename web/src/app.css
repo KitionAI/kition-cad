@@ -249,3 +249,109 @@
   min-width: 22ch;
   font-variant-numeric: tabular-nums;
 }
+
+/* The dynamic input tooltip beside the cursor (F12, DynamicTooltip.tsx), styled like the command
+   line. The canvas places it (fixed, page pixels); only its options list takes the pointer. */
+.cad-dynamic {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--kit-text);
+}
+
+.cad-dynamic-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control);
+  background: var(--kit-surface);
+  box-shadow: var(--kit-shadow-card);
+  white-space: nowrap;
+}
+
+.cad-dynamic-message {
+  margin-right: 2px;
+  color: var(--kit-text-muted);
+}
+
+.cad-dynamic-label {
+  color: var(--kit-text-muted);
+  font-family: var(--kit-font-mono);
+}
+
+.cad-dynamic-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--kit-border);
+  border-radius: 3px;
+  background: var(--kit-canvas, var(--kit-surface));
+  font-family: var(--kit-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cad-dynamic-box[data-active='true'] {
+  border-color: var(--kit-primary);
+}
+
+.cad-dynamic-typed {
+  color: var(--kit-text);
+}
+
+.cad-dynamic-live {
+  color: var(--kit-text-muted);
+  opacity: 0.8;
+}
+
+.cad-dynamic-caret {
+  width: 1px;
+  height: 12px;
+  background: var(--kit-text);
+}
+
+.cad-dynamic-lock {
+  margin-left: auto;
+  color: var(--kit-primary);
+}
+
+.cad-dynamic-more {
+  flex: none;
+  color: var(--kit-text-muted);
+}
+
+.cad-dynamic-options {
+  margin: 2px 0 0;
+  padding: 2px;
+  list-style: none;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control);
+  background: var(--kit-surface);
+  box-shadow: var(--kit-shadow-card);
+  pointer-events: auto;
+}
+
+.cad-dynamic-option {
+  display: block;
+  width: 100%;
+  padding: 2px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--kit-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cad-dynamic-option[data-current='true'],
+.cad-dynamic-option:hover {
+  background: var(--kit-primary-soft);
+}

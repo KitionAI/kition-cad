@@ -109,6 +109,16 @@ impl CadDocument {
             }
         };
         let point = if point.is_finite() { point } else { raw };
+        // A value locked in the dynamic input boxes (`40,`, `40<`, or a Tab-locked second value)
+        // holds the point and wins over snaps and tracking ([`dynamic_input`]).
+        let point = match self.dynamic_hold(point) {
+            Some(held) => {
+                self.hit = None;
+                self.track = None;
+                held
+            }
+            None => point,
+        };
         self.snapped = self.hit.map(|hit| (hit.point, hit.name));
         self.aim = Some(point);
         self.session.cursor = point;
@@ -241,7 +251,7 @@ impl CadDocument {
         self.hover.filter(|_| self.shows_hover())
     }
 
-    /// The cursor, for the editor to draw (both overlays are fully transparent, [`CURSOR`]): an
+    /// The cursor, for the editor to draw (the overlays are fully transparent, [`CURSOR`]): an
     /// anchor where the crosshair goes, as large as the pick box (PICKBOX × 1.5 pixels each side
     /// of its centre, the pick range), and a label with the coordinate readout, the point a click
     /// gives in the drawing's units (LUNITS, LUPREC). The crosshair is on the pointer, or on the
@@ -255,10 +265,12 @@ impl CadDocument {
         let (x, y) = place.to_doc(if held { aim } else { raw });
         let size = (settings.pickbox.max(1.0) * 3.0).min(300.0) as f32;
         let (ax, ay) = place.to_doc(aim);
-        vec![
-            ToolOverlay::Anchor { x, y, color: CURSOR, filled: true, size },
-            ToolOverlay::Label { x: ax, y: ay, text: self.coordinates(aim), color: CURSOR },
-        ]
+        // The dynamic input boxes' live values come first: the editor shows them where it draws
+        // the crosshair's anchor, next.
+        let mut out: Vec<ToolOverlay> = self.dynamic_overlay().into_iter().collect();
+        out.push(ToolOverlay::Anchor { x, y, color: CURSOR, filled: true, size });
+        out.push(ToolOverlay::Label { x: ax, y: ay, text: self.coordinates(aim), color: CURSOR });
+        out
     }
 
     /// "120.0000, 45.5000, 0.0000": a point in the drawing's units (LUNITS, LUPREC), as the status

@@ -1,5 +1,6 @@
 import { canvasColor, type OverlayDrawer, type RasterDecoration } from '@kition/sdk/editor'
 import type { CadInfo } from './cad'
+import { DynamicInput } from './dynamicInput'
 
 /**
  * The cursor and the canvas chrome CAD draws itself, never into the drawing's pixels: the
@@ -60,18 +61,26 @@ export class CadCursor {
   /** The status bar's coordinate readout, written as the canvas draws (no React render per move). */
   readout: HTMLElement | null = null
   readonly palette = new Palette()
+  /** The dynamic input tooltip, placed where the crosshair is (F12). */
+  readonly dynamic = new DynamicInput()
 
-  /** The engine overlays only CAD draws: the crosshair's anchor and the readout's label (transparent). */
-  readonly drawOverlay: OverlayDrawer = (overlay, { context, toScreen }) => {
+  /**
+   * The engine overlays only CAD draws (all transparent): the crosshair's anchor, the readout's
+   * label (black) and the dynamic input's live values (a white label, read where the anchor is).
+   */
+  readonly drawOverlay: OverlayDrawer = (overlay, { context, toScreen, overlays }) => {
     if (!('color' in overlay) || overlay.color[3] !== 0) return false
     if (overlay.kind === 'label') {
+      if (overlay.color[0] !== 0) return true
       if (this.readout && this.readout.textContent !== overlay.text) this.readout.textContent = overlay.text
       return true
     }
     if (overlay.kind !== 'anchor') return false
+    const at = toScreen(overlay.x, overlay.y)
+    this.dynamic.inside = this.inside
+    this.dynamic.place(at.x, at.y, context.canvas, overlays)
     const state = this.state
     if (!this.inside || !state) return true
-    const at = toScreen(overlay.x, overlay.y)
     const x = crisp(at.x)
     const y = crisp(at.y)
     const length = Math.max(12, (context.canvas.clientHeight * this.size) / 100)

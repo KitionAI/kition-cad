@@ -15,6 +15,8 @@ export type Drafting = {
   gridMajor: number
   /** CURSORSIZE: the crosshair's arms as a percentage of the canvas height. */
   cursorSize: number
+  /** DYNMODE: the dynamic input tooltip beside the cursor (F12). */
+  dynamicInput: boolean
   /** The command line's prompt taken apart and its history (the engine's `/drafting/commandLine`). */
   commandLine: CommandLineState
 }
@@ -26,7 +28,15 @@ export type PromptKind = 'command' | 'point' | 'distance' | 'angle' | 'select' |
  * The prompt as the command line draws it: the command (as typed, in capitals), the message, the
  * options (each typed as written to choose it), the default (Enter takes it) and what it asks for.
  */
-export type PromptParts = { command: string | null; message: string; keywords: string[]; default: string | null; kind: PromptKind }
+export type PromptParts = {
+  command: string | null
+  message: string
+  keywords: string[]
+  default: string | null
+  kind: PromptKind
+  /** The base point the rubber band and the dynamic input boxes measure from (drawing units). */
+  base?: [number, number] | null
+}
 
 /** The command line's history: its last lines, and how many lines it has ever had. */
 export type CommandHistory = { serial: number; lines: string[] }
@@ -36,7 +46,7 @@ export type CommandLineState = { prompt: PromptParts; history: CommandHistory }
 export const IDLE_PROMPT: PromptParts = { command: null, message: 'Command', keywords: [], default: null, kind: 'command' }
 
 /** The status bar's on/off drafting modes. */
-export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay'
+export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay' | 'dynamicInput'
 
 /** The canvas's drawing units per document pixel, and the document pixel of the drawing's origin. */
 export type Units = { perPixel: number; origin: [number, number] }
@@ -71,7 +81,7 @@ export function describe(info: KitEngineInfo): CadInfo {
     prompt: inspected.prompt ?? '',
     running: inspected.running ?? null,
     drafting: {
-      ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
+      ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, dynamicInput: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
       ...inspected.drafting,
       commandLine: { prompt: inspected.drafting?.commandLine?.prompt ?? IDLE_PROMPT, history: inspected.drafting?.commandLine?.history ?? { serial: 0, lines: [] } },
     },
@@ -107,4 +117,5 @@ export const DRAFTING: Array<{ id: DraftingMode; command: string; label: string 
   { id: 'osnap', command: 'drafting.objectSnap', label: 'Osnap' },
   { id: 'otrack', command: 'drafting.objectSnapTracking', label: 'Otrack' },
   { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
+  { id: 'dynamicInput', command: 'drafting.dynamicInput', label: 'DynInput' },
 ]

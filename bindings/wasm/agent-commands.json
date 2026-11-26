@@ -2415,6 +2415,27 @@
    "type": "object"
   }
  },
+ "drafting.setDynamicEntry": {
+  "description": "Tells the engine what the person has typed in the editor's dynamic input boxes beside the cursor, so a value locked there holds the cursor and the preview, and answers whether the text reads as a box entry and the command-line text Enter would send for it now (`complete`; null sends the text as typed). The editor calls it; it changes neither the drawing nor the running command.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "entry": {
+     "type": "boolean"
+    },
+    "format": {
+     "type": "string"
+    },
+    "holds": {
+     "type": "boolean"
+    },
+    "relative": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  }
+ },
  "drafting.settings": {
   "description": "Sets drafting settings (snap and grid spacing, polar angle, major grid lines) and answers every drafting setting.",
   "output": {

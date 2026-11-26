@@ -3,6 +3,7 @@ import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, TerminalIco
 import { useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { CommandLineState, PromptKind } from './cad'
 import { namesExactly, suggest, useCatalog, type Suggestion } from './commands'
+import type { DynamicInput } from './dynamicInput'
 
 /** The history lines shown above the command line by default, and the most it can be dragged to. */
 export const HISTORY_ROWS = 3
@@ -31,7 +32,7 @@ type Line = { text: string; error: boolean; key: string }
  * buttons, the history of what commands wrote (the last lines, or the whole of it with F2), and the
  * commands a typed name may mean. What the person types runs as a command-line entry.
  */
-export function CommandLine({ prompt, line, running, input, history, onCommand, expanded, onExpanded }: {
+export function CommandLine({ prompt, line, running, input, history, onCommand, expanded, onExpanded, dynamic }: {
   prompt: string
   line: CommandLineState
   running: string | null
@@ -40,6 +41,8 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
   onCommand: (text: string) => void
   expanded: boolean
   onExpanded: (open: boolean) => void
+  /** The dynamic input boxes beside the cursor, a view of what is typed here (`dynamicInput.ts`). */
+  dynamic: DynamicInput
 }) {
   const { session, run, enabled, t, phrase, commands } = useKitEditor()
   // What is typed runs as a command that may edit: a viewer cannot type here.
@@ -88,6 +91,14 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
     if (input.current) input.current.value = ''
     setTyped('')
     setHistoryIndex(null)
+    dynamic.reset()
+  }
+  /** Puts `text` on the line, the caret at its end: a key of the dynamic input boxes or a recalled entry. */
+  const replace = (element: HTMLInputElement, text: string, origin: 'boxes' | 'line') => {
+    element.value = text
+    setTyped(text)
+    dynamic.setText(text, origin)
+    element.setSelectionRange(text.length, text.length)
   }
   /** Sends an entry to the command line; an entry the engine refuses goes on the history. */
   const send = (text: string) => {
@@ -119,6 +130,8 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
     clear()
     send(text)
   }
+  // An option picked from the dynamic input's list answers the prompt as a click on it here does.
+  dynamic.pick = answer
   const dragRows = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault()
     const start = event.clientY
@@ -139,6 +152,14 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
       onSubmit={(event) => {
         event.preventDefault()
         const text = input.current?.value ?? ''
+        // What the dynamic input boxes show goes as they show it: an empty box from the cursor,
+        // measured from the last point (`@40<30`).
+        if (dynamic.completes(text)) {
+          const done = dynamic.finish(text)
+          clear()
+          void done.then(send)
+          return
+        }
         // Enter on a part of a name runs the first command it may mean (an exact name runs as typed).
         const first = suggestions[0]
         const completed = first && pending.current === 0 && !namesExactly(catalog, text) ? first.entry.name : text
@@ -233,9 +254,21 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
         aria-label={t('commandLine')}
         spellCheck={false}
         disabled={disabled}
-        onChange={(event) => { setHistoryIndex(null); setTyped(event.currentTarget.value) }}
+        onFocus={() => dynamic.focused()}
+        onChange={(event) => { setHistoryIndex(null); setTyped(event.currentTarget.value); dynamic.setText(event.currentTarget.value) }}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return
+          // The dynamic input's keys first: its options list (Down Arrow), Tab between its boxes,
+          // typing in its first box after Tab went back to it.
+          if (!event.metaKey && !event.ctrlKey && !event.altKey && !(event.key === 'Tab' && event.shiftKey)) {
+            const taken = dynamic.key(event.key, historyIndex !== null)
+            if (taken !== false) {
+              event.preventDefault()
+              event.stopPropagation()
+              if (typeof taken === 'string') replace(event.currentTarget, taken, 'boxes')
+              return
+            }
+          }
           // Space enters the line, as Enter does, except at a prompt that takes free text (the
           // engine shows the text cursor there) and inside a command's JSON parameters.
           if (event.key === ' ' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
@@ -265,9 +298,7 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
             if (historyIndex === null) draft.current = event.currentTarget.value
             const next = Math.max(0, Math.min(history.length, (historyIndex ?? history.length) + (event.key === 'ArrowUp' ? -1 : 1)))
             setHistoryIndex(next)
-            event.currentTarget.value = history[next] ?? draft.current
-            setTyped(event.currentTarget.value)
-            event.currentTarget.setSelectionRange(event.currentTarget.value.length, event.currentTarget.value.length)
+            replace(event.currentTarget, history[next] ?? draft.current, 'line')
             return
           }
           // Escape clears the line and cancels the running command, as on the canvas. It is taken

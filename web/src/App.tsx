@@ -90,6 +90,25 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         }
         if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('command.runLine')) return
         if (!(event.target instanceof Element) || !event.target.matches('.kui-app, canvas, .kui-text-sink')) return
+        // The dynamic input's keys on the canvas: its options list (Down Arrow opens it; the arrows,
+        // Enter, Space and Escape work it), and Tab into its boxes (F12, dynamicInput.ts).
+        const dynamic = cursor.dynamic
+        if ((dynamic.menu || event.key === 'Tab' || event.key === 'ArrowDown') && !(event.key === 'Tab' && event.shiftKey)) {
+          const taken = dynamic.key(event.key, false)
+          if (taken !== false) {
+            event.preventDefault()
+            event.stopPropagation()
+            if (typeof taken === 'string' && commandInput.current) {
+              dynamic.focusFromCanvas = true
+              commandInput.current.focus()
+              dynamic.focusFromCanvas = false
+              commandInput.current.value = taken
+              dynamic.fromCanvas = true
+              commandInput.current.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+            return
+          }
+        }
         // Space is Enter, as in CAD (it does not pan here: the middle button, the trackpad and the
         // Pan tool do): it ends the input of a running command, and between commands repeats the
         // last one. At a prompt that takes free text (the engine shows the text cursor) it is a
@@ -110,8 +129,12 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         // CAD collects a whole command in its input, even immediately after a canvas click.
         event.preventDefault()
         event.stopPropagation()
+        cursor.dynamic.focusFromCanvas = true
         commandInput.current.focus()
+        cursor.dynamic.focusFromCanvas = false
         commandInput.current.setRangeText(event.key, 0, commandInput.current.value.length, 'end')
+        // Typed on the canvas, it is typed in the dynamic input boxes beside the cursor.
+        cursor.dynamic.fromCanvas = true
         commandInput.current.dispatchEvent(new Event('input', { bubbles: true }))
       }}>
         <EditorFrame
@@ -172,6 +195,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
                 onCommand={(text) => setHistory((items) => [...items.filter((item) => item !== text), text].slice(-100))}
                 expanded={historyOpen}
                 onExpanded={setHistoryOpen}
+                dynamic={cursor.dynamic}
               />
             </FrameChrome>
           ) : null}

@@ -67,6 +67,7 @@ impl CadDocument {
         self.sync_view(zoom);
         self.hot_grip = None;
         self.forget_aim();
+        self.forget_dynamic_entry();
         *self.reported.borrow_mut() = id.to_owned();
         // Already so: the host following a switch this engine asked for.
         if self.tool() == id {
@@ -131,6 +132,8 @@ impl CadDocument {
                         Some(hit) if !dragged => hit.input(),
                         _ => Input::Point(target),
                     };
+                    // The click places the point: what the dynamic input boxes held is used up.
+                    self.forget_dynamic_entry();
                     self.feed(input)?;
                 } else if !shift
                     && self.session.pending_window.is_none()
@@ -168,6 +171,7 @@ impl CadDocument {
                 self.session.execute("object.delete", &json!({})).map_err(engine_error)?;
             }
             "Escape" => {
+                self.forget_dynamic_entry();
                 let cancelled_grip = self.hot_grip.take().is_some();
                 self.press = None;
                 self.press_hit = None;

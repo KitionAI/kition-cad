@@ -1,0 +1,24 @@
+format: 1
+id: cad.editor.dynamic-input/entry-and-live-values
+feature: cad.editor.dynamic-input
+intent: >-
+  What the engine does for the dynamic input boxes: inspect gives the mode (DYNMODE) and the
+  prompt's base point; a value locked in the boxes (`50<`, `20,`, a Tab-locked `<90`, both values)
+  holds the cursor, wins over object snaps, and the click that places it uses the entry up; Enter's
+  text is measured from the last point (`@50<30`, `@40<<90`, an empty box from the cursor), a plain
+  number stays direct distance, `@`/`#` entries and options go as typed, a first point is absolute;
+  the live values (X and Y, distance and angle from the base) come with the cursor's overlays at a
+  point prompt and not between commands or with dynamic input off; off, nothing typed holds the
+  cursor; a hot grip stays hot; hostile entries do not panic.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 4 (bindings/wasm/src/dynamic_input_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "dynamic_input_tests::" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

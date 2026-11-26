@@ -31,6 +31,9 @@ mod cursor_tests;
 pub mod document_text;
 #[cfg(test)]
 mod drafting_tests;
+mod dynamic_input;
+#[cfg(test)]
+mod dynamic_input_tests;
 mod files;
 mod interaction;
 pub mod links;
@@ -206,6 +209,9 @@ pub struct CadDocument {
     /// ever had.
     history: std::collections::VecDeque<String>,
     history_serial: u64,
+    /// What is typed in the dynamic input boxes ([`dynamic_input`]): a locked value holds the
+    /// cursor.
+    dynamic_entry: dynamic_input::DynamicEntry,
 }
 
 /// The parameter names of commands that read or write files outside the document, as
@@ -379,6 +385,7 @@ impl CadDocument {
             batch_entities: Default::default(),
             history: std::collections::VecDeque::new(),
             history_serial: 0,
+            dynamic_entry: dynamic_input::DynamicEntry::default(),
         }
     }
 
@@ -477,6 +484,8 @@ impl CadDocument {
     /// the running command refused it and asks again (the reason is on the history).
     pub fn command_line(&mut self, text: &str) -> Result<Value, String> {
         self.echo_entry(text);
+        // The entry is sent: what the dynamic input boxes held is used up.
+        self.forget_dynamic_entry();
         if let Some(grip) = self.hot_grip {
             let point = kition_cad_engine::prompt::parse_point(text, grip.base)
                 .filter(|p| p.is_finite())
@@ -910,6 +919,7 @@ impl KitDocument for CadDocument {
             );
             commands.push(render::command());
             commands.push(command_line::command());
+            commands.push(dynamic_input::command());
             commands.push(
                 KitCommand {
                     id: "viewport.sync".into(),
@@ -1084,6 +1094,10 @@ impl CadDocument {
         if command == "viewport.sync" {
             return self.sync_viewport(&params);
         }
+        // What is typed in the dynamic input boxes: nothing the person holds (a hot grip) ends.
+        if command == dynamic_input::SET_ENTRY {
+            return self.set_dynamic_entry(&params);
+        }
         // A read of the engine's catalogue: nothing the person holds (a hot grip) ends.
         if command == command_line::LIST {
             return Ok(command_line::list(&params));
@@ -1217,6 +1231,8 @@ impl CadDocument {
                 "gridMajor": settings.gridmajor.max(1),
                 // CURSORSIZE: the crosshair's arms, as a percentage of the canvas height.
                 "cursorSize": settings.cursorsize,
+                // DYNMODE: the value boxes beside the cursor (F12).
+                "dynamicInput": settings.dynmode,
                 // The command line: the prompt taken apart and the history (command_line.rs).
                 "commandLine": self.command_line_state(),
             },

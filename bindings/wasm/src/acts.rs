@@ -435,6 +435,7 @@ pub const BINDING_COMMANDS: &[(&str, &[EditorState], Option<&str>)] = &[
     ("file.render", &[], None),
     ("viewport.sync", &[], None),
     ("command.list", &[], None),
+    ("drafting.setDynamicEntry", &[], None),
 ];
 
 /// [`reads`] for any listed command: the binding's own from [`BINDING_COMMANDS`].

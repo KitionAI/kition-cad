@@ -3,6 +3,7 @@ import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, 
 import { describe, type CadInfo } from './cad'
 import { cursorState, gridDecoration, ucsDecoration, type CadCursor } from './cursor'
 import { startsPrompt, useCatalog, useStartCommand } from './commands'
+import { DynamicTooltip } from './DynamicTooltip'
 
 /** A right press shorter than this is Enter; a longer one opens the command menu (as CAD does). */
 const QUICK_RIGHT_MS = 250
@@ -55,6 +56,14 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   const drawn = cursorState(tools?.canvasTool.cursor)
   cursor.state = drawn
   cursor.size = info?.drafting.cursorSize ?? 5
+  // The dynamic input tooltip follows the prompt (F12, `dynamicInput.ts`).
+  const dynamic = cursor.dynamic
+  dynamic.on = info?.drafting.dynamicInput ?? false
+  dynamic.running = info?.running != null
+  dynamic.prompt = info?.drafting.commandLine.prompt ?? null
+  dynamic.execute = doc ? (command, params) => doc.execute(command, params) : null
+  dynamic.refresh = () => tools?.refresh()
+  if (dynamic.menu && dynamic.menu.keywords.join('/') !== (dynamic.prompt?.keywords ?? []).join('/')) dynamic.menu = null
   const gridKey = info ? JSON.stringify([info.drafting.grid, info.drafting.gridUnit, info.drafting.gridMajor, info.units]) : ''
   const grid = useMemo(() => gridDecoration(info, cursor.palette), [gridKey, cursor])
   const ucs = useMemo(() => ucsDecoration(cursor.palette), [cursor])
@@ -80,6 +89,14 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
     const typed = input.current?.value ?? ''
     if (typed.trim()) {
       if (input.current) input.current.value = ''
+      // What the dynamic input boxes show is sent, as Enter sends it.
+      if (dynamic.completes(typed)) {
+        const done = dynamic.finish(typed)
+        dynamic.reset()
+        void done.then(typeLine)
+        return
+      }
+      dynamic.reset()
       typeLine(typed)
       return
     }
@@ -88,6 +105,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   }
   const cancel = () => {
     if (input.current) input.current.value = ''
+    dynamic.reset()
     const sent = tools?.keyDown({ key: 'Escape', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false }) ?? false
     if (!sent) typeLine('')
   }
@@ -184,6 +202,12 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
         }
       }}
       onPointerUpCapture={(event) => {
+        // A click places the point: what was typed in the dynamic input boxes is used up (the
+        // engine forgets its copy as it takes the click).
+        if (event.button === 0 && event.target instanceof HTMLCanvasElement && dynamic.dynamic && dynamic.text && prompting()) {
+          if (input.current) input.current.value = ''
+          dynamic.reset()
+        }
         const press = rightPress.current
         if (event.button !== 2 || !press) return
         rightPress.current = null
@@ -217,6 +241,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
       }}
     >
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} decorateUnder={grid} decorate={ucs} />
+      <DynamicTooltip dynamic={dynamic} />
       <ContextMenu at={menu?.kind === 'drawing' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Drawing')} testId="cad-context-menu">
         <MenuItem label={editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine('')} testId="cad-context-repeat" />
         {history.slice(-5).reverse().map((text) => <MenuItem key={text} label={text} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine(text)} />)}

@@ -463,6 +463,16 @@ features:
     paths: [bindings/wasm/src/command_line.rs, bindings/wasm/src/command_line_tests.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/lib.rs, web/src/CommandLine.tsx, web/src/commands.ts, web/src/ribbon/CommandTab.tsx, web/src/ribbon/HomeTab.tsx, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/command-line.mjs, kit.json]
     cases: [cad.editor.command-line/command-line-by-hand, cad.editor.command-line/history-and-prompt, regressions/issue-buttons-start-prompts]
     since: "2026-11-26"
+  - id: cad.editor.dynamic-input
+    title: "Dynamic input in the editor (F12): the prompt and value boxes beside the cursor, X and Y at a first point and distance and angle after it with live values, typing on the canvas filling them, Tab and the separators locking a value that holds the cursor, Enter sending the point measured from the last point, one box for a value prompt, Down Arrow listing the options, F12 and a status bar button"
+    gap: "No DYNPIFORMAT, DYNPICOORDS or DYNPROMPT settings (later points are always polar and relative, the prompt always shows); no grip dimension fields; the angle box is a box, not drawn on an arc; Tab does not cycle object snap candidates; a coordinate pasted or typed after a click in the command line goes as typed (absolute), as a command window does."
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [drafting.setDynamicEntry, drafting.dynamicInput]
+    paths: [bindings/wasm/src/dynamic_input.rs, bindings/wasm/src/dynamic_input_tests.rs, bindings/wasm/src/interaction.rs, bindings/wasm/src/command_line.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, web/src/dynamicInput.ts, web/src/DynamicTooltip.tsx, web/src/cursor.ts, web/src/CadCanvas.tsx, web/src/CommandLine.tsx, web/src/App.tsx, web/tests/dynamic-input.mjs]
+    cases: [cad.editor.dynamic-input/dynamic-input-by-hand, cad.editor.dynamic-input/entry-and-live-values]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

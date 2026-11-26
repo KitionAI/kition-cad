@@ -1,0 +1,31 @@
+format: 1
+id: cad.editor.dynamic-input/dynamic-input-by-hand
+feature: cad.editor.dynamic-input
+intent: >-
+  Dynamic input in a real browser: the tooltip beside the cursor with the prompt, X and Y boxes at
+  a first point and @ distance < angle after it, their live values following the cursor, right of
+  the cursor and below it, the pointer passing through it; 50 Tab 30 Enter at LINE's second point
+  drawing 50 at 30° and sending @50<30, a plain number staying direct distance, 15,-5 relative to the
+  last point; a distance locked with Tab keeping the preview's length wherever the pointer goes and
+  a click placing it; Down Arrow listing the options, Escape closing the list, Down and Up moving,
+  Enter picking Undo and a click picking Close; one box for CIRCLE's radius; coordinates typed in the
+  command line itself staying absolute; the tooltip going above the cursor at the canvas's bottom,
+  clear of the command line; F12 and the status bar turning it off and on, typed points absolute
+  while it is off.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 4 (web/tests/dynamic-input.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/dynamic-input.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"
