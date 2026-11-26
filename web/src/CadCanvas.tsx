@@ -133,9 +133,12 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
     const at = menu
     if (at) window.setTimeout(() => setMenu({ kind, x: at.x, y: at.y }), 0)
   }
-  /** The grip menu's choice on a grip that is not hot: the grip goes hot in `mode`, or answers `option`. */
-  const editGrip = (grip: GripUnder, choice: { mode?: string; option?: string }) => {
-    void editor.run('grip.edit', { handle: grip.handle, index: grip.index, ...choice }).then(refresh)
+  /**
+   * The grip menu's choice on a grip that is not hot: the grip goes hot in `mode`, or answers
+   * `option`; an option that changes the drawing at once (Remove vertex) is answered at the prompt.
+   */
+  const editGrip = (grip: GripUnder, choice: { mode?: string; option?: string }, answer?: string) => {
+    void editor.run('grip.edit', { handle: grip.handle, index: grip.index, ...choice }).then(() => (answer ? typeLine(answer) : refresh()))
   }
 
   const synchronize = (view: KitCanvasView) => {
@@ -333,7 +336,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
         {grip ? (
           <>
             <MenuItem label={editor.phrase(grip.actions.some((option) => option.keyword === 'Remove vertex') ? 'Stretch Vertex' : 'Stretch')} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, {})} testId="cad-grip-menu-stretch" />
-            {grip.actions.map((option) => <MenuItem key={option.keyword} label={editor.phrase(option.label)} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, { option: option.keyword })} testId={`cad-grip-menu-${dashed(option.keyword)}`} />)}
+            {grip.actions.map((option) => <MenuItem key={option.keyword} label={editor.phrase(option.label)} disabled={!editor.enabled('grip.edit')} onSelect={() => (option.immediate ? editGrip(grip, {}, option.keyword) : editGrip(grip, { option: option.keyword }))} testId={`cad-grip-menu-${dashed(option.keyword)}`} />)}
             <MenuSeparator />
             {GRIP_MODES.slice(1).map(([mode, label]) => <MenuItem key={mode} label={editor.phrase(label)} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, { mode })} testId={`cad-grip-menu-${mode}`} />)}
           </>

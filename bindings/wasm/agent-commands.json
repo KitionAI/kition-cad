@@ -3108,7 +3108,7 @@
   }
  },
  "grip.edit": {
-  "description": "Starts editing a grip of a selected object in the editor, as a click on the grip does: the grip goes hot and the next point given places it. `mode` picks the grip mode (stretch, the default; move, rotate, scale or mirror, which act on the whole selection about the grip), and `option` answers the hot-grip prompt at once with one of its options (Base point, Copy, Reference, or the grip's own: Lengthen at a line's or an arc's end, Add vertex or Remove vertex at a polyline's vertex, Add vertex at its segment's midpoint). The editor's grip menu calls it; an agent edits grips with the grip.* commands. Answers the prompt the edit asks now (no prompt when the option finished it).",
+  "description": "Starts editing a grip of a selected object in the editor, as a click on the grip does: the grip goes hot and the next point given places it. `mode` picks the grip mode (stretch, the default; move, rotate, scale or mirror, which act on the whole selection about the grip), and `option` answers the hot-grip prompt at once with one of its options that changes nothing yet (Base point, Copy, Reference, or the grip's own Lengthen at a line's or an arc's end, Add vertex at a polyline's vertex or segment midpoint; Remove vertex is answered at the prompt). It changes no drawing, only what the editor holds. The editor's grip menu calls it; an agent edits grips with the grip.* commands. Answers the prompt the edit asks now (no prompt when the option finished it).",
   "output": {
    "additionalProperties": true,
    "properties": {

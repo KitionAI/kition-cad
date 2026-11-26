@@ -681,13 +681,15 @@ impl CadDocument {
     }
 
     /// The grip under the pointer between edits, for the editor's grip menu: a transparent label at
-    /// the grip with its object, index and options (`{"handle","index","actions":[{"label","keyword"}]}`).
+    /// the grip with its object, index and options (`{"handle","index","actions":[{"label","keyword",
+    /// "immediate"}]}`; an immediate option, Remove vertex, changes the drawing as soon as it is
+    /// answered, so the menu answers it at the prompt rather than through [`EDIT`]).
     fn grip_info(&self) -> Option<ToolOverlay> {
         let grip = self.hover_grip?;
         let doc = self.session.doc().ok()?;
         let actions: Vec<Value> = grip_actions(&doc.entity(grip.handle)?.kind, grip.index)
             .into_iter()
-            .map(|action| json!({ "label": action.label(), "keyword": action.keyword() }))
+            .map(|action| json!({ "label": action.label(), "keyword": action.keyword(), "immediate": !action.needs_point() }))
             .collect();
         let (x, y) = self.placement().to_doc(grip.point);
         let text = json!({ "handle": grip.handle.hex(), "index": grip.index, "actions": actions }).to_string();
@@ -695,8 +697,10 @@ impl CadDocument {
     }
 
     /// [`EDIT`]: starts editing grip `index` of the selected object `handle`, as a click on it does,
-    /// in `mode`, and answers `option` (one of the prompt's options: Copy, Lengthen, Remove vertex…).
-    /// It answers the prompt the edit asks now (`{}` when the option ended it).
+    /// in `mode`, and answers `option` (one of the prompt's options that changes nothing yet: Base
+    /// point, Copy, Reference, Lengthen, Add vertex; not Remove vertex, which is answered at the
+    /// prompt). It changes no drawing, only what the editor holds; it answers the prompt the edit
+    /// asks now (`{}` when the option ended it, eXit).
     pub(super) fn grip_edit_command(&mut self, params: &Value) -> Result<Value, String> {
         let handle = params.get("handle").and_then(Value::as_str).and_then(Handle::parse_hex).ok_or("grip.edit needs `handle`, a selected object")?;
         let index =
@@ -725,7 +729,14 @@ impl CadDocument {
         }
         if let Some(option) = params.get("option").and_then(Value::as_str) {
             let keyword = self.grip_prompt().and_then(|prompt| prompt.match_keyword(option));
+            let immediate = self.hot_grip.as_ref().is_some_and(|edit| {
+                self.grip_actions(edit).iter().any(|action| Some(action.keyword()) == keyword.as_deref() && !action.needs_point())
+            });
             match keyword {
+                Some(keyword) if immediate => {
+                    self.end_grip_edit();
+                    return Err(format!("{keyword} changes the drawing: start the grip edit, then answer it at the prompt"));
+                }
                 Some(keyword) => self.grip_keyword(&keyword)?,
                 None => {
                     self.end_grip_edit();
@@ -749,7 +760,7 @@ pub(super) fn command() -> KitCommand {
         id: EDIT.into(),
         title: "Edit Grip".into(),
         params: Some(r#"{handle: string, index: number, mode?: "stretch"|"move"|"rotate"|"scale"|"mirror", option?: string}"#.into()),
-        mutates: true,
+        mutates: false,
         enabled: true,
         ..Default::default()
     }

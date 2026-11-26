@@ -54,8 +54,11 @@ class Palette {
 /** The fully transparent red label the engine puts at the grip under the pointer (`GRIP_INFO`). */
 const GRIP_TAG = [255, 0, 0, 0]
 
-/** An option of a grip's own (a line's end: Lengthen): its menu label and the prompt's keyword. */
-export type GripOption = { label: string; keyword: string }
+/**
+ * An option of a grip's own (a line's end: Lengthen): its menu label, the prompt's keyword, and
+ * whether answering it changes the drawing at once (Remove vertex).
+ */
+export type GripOption = { label: string; keyword: string; immediate: boolean }
 
 /** The grip under the pointer, for its menu: its object and number, its options, where it is on the page. */
 export type GripUnder = { handle: string; index: number; actions: GripOption[]; x: number; y: number }

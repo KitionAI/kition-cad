@@ -305,7 +305,7 @@ fn grip_options_and_the_grip_menu() {
     let mut doc = drawing(&[("line.add", json!({ "points": [[0, 0], [100, 0]] }))]);
     click(&mut doc, Vec2::new(50.0, 0.0));
     let info = grip_info(&hover(&mut doc, Vec2::new(100.0, 0.0))).unwrap();
-    assert_eq!(info["actions"], json!([{ "label": "Lengthen", "keyword": "Lengthen" }]));
+    assert_eq!(info["actions"], json!([{ "label": "Lengthen", "keyword": "Lengthen", "immediate": false }]));
     let handle = info["handle"].as_str().unwrap().to_owned();
     click(&mut doc, Vec2::new(100.0, 0.0));
     assert!(doc.prompt().contains("[Base point/Copy/Undo/Lengthen/eXit]"), "{}", doc.prompt());
@@ -336,7 +336,13 @@ fn grip_options_and_the_grip_menu() {
         info["actions"].as_array().unwrap().iter().map(|a| a["keyword"].as_str().unwrap()).collect::<Vec<_>>(),
         ["Add vertex", "Remove vertex"]
     );
-    doc.execute(grip_edit::EDIT, json!({ "handle": handle, "index": 2, "option": "Remove vertex" })).unwrap();
+    // Remove vertex changes the drawing at once: grip.edit (which changes none) refuses it, and the
+    // menu starts the edit and answers it at the prompt.
+    assert!(doc.execute(grip_edit::EDIT, json!({ "handle": handle, "index": 2, "option": "Remove vertex" })).is_err());
+    assert!(doc.hot_grip.is_none() && !doc.dirty());
+    assert!(!doc.commands().into_iter().find(|c| c.id == grip_edit::EDIT).unwrap().mutates);
+    doc.execute(grip_edit::EDIT, json!({ "handle": handle, "index": 2 })).unwrap();
+    doc.command_line("Remove vertex").unwrap();
     assert_eq!(polyline_vertices(&doc), vec![Vec2::new(0.0, 0.0), Vec2::new(100.0, 100.0)]);
     assert!(doc.hot_grip.is_none());
     doc.execute("edit.undo", json!({})).unwrap();
@@ -351,8 +357,9 @@ fn grip_options_and_the_grip_menu() {
     let mut doc = drawing(&[("polyline.add", json!({ "points": [[0, 0], [100, 0]] }))]);
     click(&mut doc, Vec2::new(50.0, 0.0));
     let handle = doc.session.selection()[0].hex();
-    assert!(doc.execute(grip_edit::EDIT, json!({ "handle": handle, "index": 0, "option": "Remove vertex" })).is_err());
-    assert!(doc.hot_grip.is_none() && !doc.dirty());
+    doc.execute(grip_edit::EDIT, json!({ "handle": handle, "index": 0 })).unwrap();
+    assert!(doc.command_line("Remove vertex").is_err());
+    assert!(doc.hot_grip.is_some() && !doc.dirty());
 }
 
 /// The grip menu's command refuses what is not a selected, unlocked object's grip, and nothing

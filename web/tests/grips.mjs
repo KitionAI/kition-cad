@@ -2,7 +2,7 @@
 // pointer turns warm and a clicked grip hot; a drag from a grip opens no window and the release
 // makes it hot; Space twice goes to ROTATE and a typed 90 turns the circle about the grip; Ctrl (Cmd
 // on a Mac) held while placing places a copy; the grip menu (right-click on a grip) offers the
-// modes and the grip's options (Lengthen); the menu of a hot grip switches its mode; with objects
+// modes and the grip's options (Lengthen, Remove Vertex); the menu of a hot grip switches its mode; with objects
 // selected the right-click menu edits them (Move asks for the base point at once) and opens the
 // properties; with nothing selected it offers Repeat, Recent, Paste, Zoom.
 // node tests/grips.mjs [chromium|webkit]; prints PASS or FAIL per step, exits 1 on any FAIL.
@@ -234,6 +234,24 @@ try {
     step('choosing Rotate switches the mode', await until(async () => (await prompt()).command === '** ROTATE **'))
     await page.keyboard.press('Escape')
     step('Escape cools the grip', await until(async () => (await prompt()).command !== '** ROTATE **'))
+    // A polyline's vertex: Remove Vertex from its menu (answered at the prompt).
+    await page.waitForTimeout(300)
+    await page.keyboard.press('Escape')
+    await until(async () => (await details()).selection === 0)
+    await command('pline', '320,140', '350,140', '350,170', '')
+    await idle()
+    const segment = await toScreen(335, 140)
+    await page.mouse.click(segment.x + 4, segment.y)
+    await until(async () => (await details()).selection === 1)
+    const corner = await toScreen(350, 140)
+    await page.mouse.move(corner.x + 1, corner.y + 1, { steps: 3 })
+    await page.waitForTimeout(300)
+    await rightClick(corner)
+    step('a polyline vertex\'s menu offers Stretch Vertex and Remove Vertex', await until(async () => (await kit.getByTestId('cad-grip-menu-Remove-vertex').count()) === 1) && /Vertex/.test(await kit.getByTestId('cad-grip-menu-stretch').innerText()))
+    await kit.getByTestId('cad-grip-menu-Remove-vertex').click()
+    await until(async () => !(await gripping()))
+    const polyline = (await query('polyline')).find((item) => item.geometry.vertices.some((vertex) => near(vertex.p.x, 320, 1e-6) && near(vertex.p.y, 140, 1e-6)))
+    step('Remove Vertex removes the corner', polyline && polyline.geometry.vertices.length === 2, JSON.stringify(polyline?.geometry.vertices.map((vertex) => vertex.p)))
   })
 
   // 5. N9: the right-click menu by state. With objects selected it edits them (Move asks for the base

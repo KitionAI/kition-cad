@@ -8,7 +8,8 @@ intent: >-
   command line and its history showing the modes, and 90 Enter turns the circle 90° about the grip;
   Ctrl (Cmd on a Mac) held while placing adds a copy and the edit goes on placing copies until
   Space; right-click on a grip opens its menu with Stretch, the modes and the grip's Lengthen, which
-  lengthens the line along itself; a held right-click on a hot grip opens its menu and Rotate
+  lengthens the line along itself; a polyline vertex's menu offers Stretch Vertex and Remove Vertex,
+  which removes it; a held right-click on a hot grip opens its menu and Rotate
   switches the mode; with objects selected the drawing menu offers Erase, Move, Copy, Scale, Rotate,
   Mirror, Draw Order, Deselect All and Properties, Move asking for the base point at once and
   Properties opening the panel; with nothing selected it offers Repeat (naming the last command),
