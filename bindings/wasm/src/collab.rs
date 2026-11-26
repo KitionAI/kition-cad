@@ -573,6 +573,11 @@ mod tests {
         doc.execute("line.add", json!({ "points": [[0, 0], [50, 0]] })).unwrap();
         let (prior_hash, prior_view) = (doc.session.state_hash().unwrap(), view(&doc));
         assert_eq!(model_types(&doc), ["Line", "Line"]);
+        let held = |doc: &CadDocument, scope: UndoScope| -> usize {
+            doc.session.state().unwrap().undo.iter().filter(|step| step.scope == scope).map(|step| step.steps as usize).sum()
+        };
+        let depth = |doc: &CadDocument, scope: UndoScope| doc.session.kdm().unwrap().replica().undo_depth(scope);
+        let before = [UndoScope::Person, UndoScope::Agent].map(|scope| (depth(&doc, scope), held(&doc, scope)));
         let agent = Origin::agent("agent:drafter");
         let answer = doc.merge_changes(&changes, &agent).unwrap();
         assert_eq!(answer["scope"], json!("person"), "the answer names the person's scope: {answer}");
@@ -585,10 +590,9 @@ mod tests {
         let kdm = doc.session.kdm().unwrap();
         assert!(kdm.can_undo_in(UndoScope::Person), "the replica's history: a step of the person");
         assert!(!kdm.can_undo_in(UndoScope::Agent), "the replica's history: no step of the agent");
-        let held = |scope: UndoScope| -> usize { st.undo.iter().filter(|step| step.scope == scope).map(|step| step.steps as usize).sum() };
-        for scope in [UndoScope::Person, UndoScope::Agent] {
-            assert_eq!(kdm.replica().undo_depth(scope), held(scope), "the replica's and the engine's histories hold the same steps of {scope:?}");
-        }
+        let after = [UndoScope::Person, UndoScope::Agent].map(|scope| (depth(&doc, scope), held(&doc, scope)));
+        assert_eq!(after[0], (before[0].0 + 1, before[0].1 + 1), "the replica's and the engine's histories each gain one step of the person");
+        assert_eq!(after[1], before[1], "and none of the agent");
         let _ = doc.session.undo_in(UndoScope::Agent);
         assert_eq!(doc.session.state_hash().unwrap(), merged_hash, "the agent's undo leaves the draft");
         assert_eq!(view(&doc), merged_view);
