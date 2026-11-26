@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-command-cursor-pipeline
+feature: cad.editor.drafting-input
+intent: >-
+  While a command asks for a point, the pointer goes through the whole cursor pipeline (object snap,
+  grid snap, tracking paths, Ortho), the same one a hot grip uses: with Ortho (F8) on, LINE's second
+  point is level with the first; with grid snap (F9) on, both points fall on the grid; with polar
+  tracking at 45 degrees a line drawn near that angle is exactly 45 degrees, and its dashed path
+  and "Polar: d < 45°" tooltip show before the click. Before, only object snap applied during a
+  command, so F8 lit up and the line stayed slanted (walkthrough B2).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B2)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_command_cursor_pipeline" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

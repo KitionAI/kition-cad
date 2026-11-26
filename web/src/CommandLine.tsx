@@ -34,6 +34,14 @@ export function CommandLine({ prompt, running, input, history, onCommand }: { pr
         onChange={() => setHistoryIndex(null)}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return
+          // Space enters the line, as Enter does, except at a prompt that takes free text (the
+          // engine shows the text cursor there) and inside a command's JSON parameters.
+          if (event.key === ' ' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
+            && tools?.canvasTool.cursor !== 'text' && !event.currentTarget.value.includes('{')) {
+            event.preventDefault()
+            event.currentTarget.form?.requestSubmit()
+            return
+          }
           const shortcut = commands.find((command) => /^F\d+$/.test(command.shortcut ?? '') && command.shortcut === event.key)
           if (shortcut && enabled(shortcut.id)) {
             event.preventDefault()

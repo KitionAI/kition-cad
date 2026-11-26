@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-direct-distance-cursor
+feature: cad.editor.drafting-input
+intent: >-
+  Direct distance entry goes toward the cursor: LINE, first point picked, the pointer to the right
+  of it, `60` typed and entered: the line ends 60 units to the right; with Ortho on and the pointer
+  10 degrees above the horizontal it still ends 60 to the right; off every tracking path the
+  distance goes along the rubber band. Before, the editor never told the session where the cursor
+  was, so a typed distance went toward the drawing's origin (walkthrough B1).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B1)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_direct_distance_follows_the_cursor" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

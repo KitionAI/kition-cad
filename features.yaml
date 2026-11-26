@@ -435,6 +435,15 @@ features:
     paths: [web/src/App.tsx, web/src/CommandLine.tsx, web/src/ribbon/HomeTab.tsx, web/tests/modes.mjs, web/tests/focus.mjs]
     cases: [cad.editor.display-modes/mode-smoke, regressions/issue-focus-keys]
     since: "2026-11-17"
+  - id: cad.editor.drafting-input
+    title: "Drafting by hand in the editor: the cursor pipeline in commands (object snap, grid snap, polar and object snap tracking with their guides, Ortho), direct distance toward the cursor, Space and a quick right-click as Enter, the command and object snap menus, double middle click to the extents, trackpad pan"
+    gap: "Shift does not invert Ortho while held (no modifier event reaches the engine without a pointer move); the in-command menu has no Recent Input; Tab does not cycle snap candidates."
+    dimension: [function]
+    priority: P1
+    status: partial
+    paths: [bindings/wasm/src/interaction.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/drafting_tests.rs, web/src/App.tsx, web/src/CadCanvas.tsx, web/src/CommandLine.tsx, web/tests/drafting.mjs]
+    cases: [cad.editor.drafting-input/drafting-by-hand, cad.editor.drafting-input/tracking, regressions/issue-direct-distance-cursor, regressions/issue-command-cursor-pipeline, regressions/issue-enter-with-selection, regressions/issue-space-and-right-click-enter]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

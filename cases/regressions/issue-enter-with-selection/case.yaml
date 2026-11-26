@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-enter-with-selection
+feature: cad.editor.drafting-input
+intent: >-
+  Enter between commands repeats the last command also while objects are selected: CIRCLE drawn,
+  everything selected, Enter starts CIRCLE again. Before, the editor handed Enter to the engine
+  because something was selected, and the engine ignored it (walkthrough B5).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B5)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_enter_repeats_with_a_selection" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

@@ -74,9 +74,22 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       <div className="cad-editor-root" onKeyDownCapture={(event) => {
         if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey || !editor.enabled('command.runLine')) return
         if (!(event.target instanceof Element) || !event.target.matches('.kui-app, canvas, .kui-text-sink')) return
+        // Space is Enter, as in CAD (it does not pan here: the middle button, the trackpad and the
+        // Pan tool do): it ends the input of a running command, and between commands repeats the
+        // last one. At a prompt that takes free text (the engine shows the text cursor) it is a
+        // space typed on the command line, below.
+        const freeText = tools.canvasTool.cursor === 'text' && commandInput.current != null
+        if (event.key === ' ' && !event.shiftKey && !freeText) {
+          event.preventDefault()
+          event.stopPropagation()
+          if (event.repeat) return
+          const sent = tools.keyDown({ key: 'Enter', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false })
+          if (!sent) void editor.run('command.runLine', { text: '' }).then(() => tools.refresh())
+          return
+        }
         // In Focus the command line is not drawn (it is in FrameChrome), so its input is unmounted
         // and this capture is off: a letter then picks its tool, as everywhere else.
-        if (event.key.length !== 1 || event.key === ' ' || !commandInput.current) return
+        if (event.key.length !== 1 || (event.key === ' ' && !freeText) || !commandInput.current) return
         // Capture before the shared engine tool queues single-letter shortcuts during pointer work.
         // CAD collects a whole command in its input, even immediately after a canvas click.
         event.preventDefault()
@@ -126,7 +139,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           }
           panels={panel && state ? <LayersPanel info={state} /> : null}
         >
-          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} history={history} onZoom={setZoom} />
+          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} history={history} input={commandInput} onZoom={setZoom} />
           {state ? (
             <FrameChrome>
               <CommandLine prompt={state.prompt} running={state.running} input={commandInput} history={history} onCommand={(text) => setHistory((items) => [...items.filter((item) => item !== text), text].slice(-100))} />

@@ -23,6 +23,8 @@ mod collab;
 mod conformance;
 mod context;
 pub mod document_text;
+#[cfg(test)]
+mod drafting_tests;
 mod files;
 mod interaction;
 pub mod links;
@@ -145,6 +147,21 @@ pub struct CadDocument {
     /// Where the pointer is, in drawing units, and what it snapped to.
     cursor: Option<Vec2>,
     snapped: Option<(Vec2, &'static str)>,
+    /// What the cursor pipeline made of the pointer ([`interaction`]): the point a click there
+    /// gives, the object snap behind it and the tracking path it lies on.
+    aim: Option<Vec2>,
+    hit: Option<kition_cad_engine::snap::SnapHit>,
+    track: Option<kition_cad_engine::snap::tracking::Track>,
+    /// The object snap under the press not yet released (a deferred tangent goes in as one).
+    press_hit: Option<kition_cad_engine::snap::SnapHit>,
+    /// Whether Shift was held at the last pointer event.
+    shift: bool,
+    /// The tracking clock, in seconds ([`interaction`]): only a pointer move repeated where the
+    /// last one was (the page sends one when the pointer rests) moves it on.
+    clock: f64,
+    rest: Option<(f64, f64)>,
+    /// What the acquired tracking points belong to (the running command, or a hot grip).
+    tracking_for: Option<String>,
     /// A press not yet released: where it went down (drawing units, document pixels).
     press: Option<(Vec2, (f64, f64))>,
     dragging: bool,
@@ -313,6 +330,14 @@ impl CadDocument {
             built: RefCell::new(None),
             cursor: None,
             snapped: None,
+            aim: None,
+            hit: None,
+            track: None,
+            press_hit: None,
+            shift: false,
+            clock: 0.0,
+            rest: None,
+            tracking_for: None,
             press: None,
             dragging: false,
             hot_grip: None,
@@ -397,20 +422,6 @@ impl CadDocument {
         }
     }
 
-    /// The point a click at `p` gives: the object snap when a command runs and one is near.
-    fn snap(&self, p: Vec2) -> Option<(Vec2, &'static str)> {
-        let (base, deferred) = if let Some(grip) = self.hot_grip {
-            (Some(grip.base), false)
-        } else {
-            let prompt = self.session.current_prompt()?;
-            (prompt.base, prompt.deferred)
-        };
-        let state = self.session.state().ok()?;
-        let aperture = self.session.pixel_size() * 10.0;
-        let hit = kition_cad_engine::snap::osnap(&state.doc, &state.edit_space(), p, aperture, self.session.settings.osmode, base, deferred)?;
-        Some((hit.point, hit.name))
-    }
-
     /// Runs a typed command-line entry (`line`, `l`, a coordinate such as `10,20`, a keyword,
     /// or an empty line for Enter), as the command line does.
     pub fn command_line(&mut self, text: &str) -> Result<Value, String> {
@@ -474,7 +485,7 @@ impl CadDocument {
             }
         }
         // What the running command would draw at the cursor.
-        if let Some(cursor) = self.snapped.map(|(p, _)| p).or(self.cursor) {
+        if let Some(cursor) = self.aim.or(self.cursor) {
             let preview = self.session.preview(cursor);
             if !preview.is_empty() {
                 let list = kition_cad_render::build_entities(
@@ -499,6 +510,7 @@ impl CadDocument {
             out.push(ToolOverlay::Anchor { x, y, color: SNAP, filled: false, size: 11.0 });
             out.push(ToolOverlay::Label { x: x + 8.0, y: y - 8.0, text: name.to_owned(), color: SNAP });
         }
+        out.extend(self.tracking_overlays());
         out.extend(self.grip_overlays());
         out
     }
@@ -518,12 +530,28 @@ impl CadDocument {
         ToolResponse {
             requests,
             overlays: self.overlays(),
-            cursor: if running { "crosshair" } else { "default" }.to_owned(),
+            // `text` at a prompt that takes free text (a text string, a name): there Space types a
+            // space on the command line instead of entering it (`web/src/App.tsx`).
+            cursor: if self.free_text_prompt() {
+                "text"
+            } else if running {
+                "crosshair"
+            } else {
+                "default"
+            }
+            .to_owned(),
             // Editing keys come here while a command runs, a window is open, or objects are
             // selected (Escape clears the selection, Delete erases it).
             busy: running || self.session.pending_window.is_some() || !self.session.selection().is_empty(),
             wants_text: false,
         }
+    }
+
+    /// Whether the running command's prompt takes free text and no point or number (TEXT's
+    /// "Enter text", a name): the prompts where the command line keeps a typed space, as
+    /// [`Session::cmdline`] does.
+    fn free_text_prompt(&self) -> bool {
+        self.hot_grip.is_none() && self.session.current_prompt().is_some_and(|p| p.accept.text && !p.accept.point && !p.accept.number)
     }
 
     fn feed(&mut self, input: Input) -> Result<(), String> {
@@ -979,7 +1007,7 @@ impl CadDocument {
         let transparent = kition_cad_engine::cmd::find_command(command).is_some_and(|spec| spec.transparent);
         if command != "command.runLine" && !transparent {
             self.hot_grip = None;
-            self.snapped = None;
+            self.forget_aim();
         }
         let result = match command {
             // The history as the engine keeps it; a running command ends first, as UNDO ends it.
@@ -1009,10 +1037,9 @@ impl CadDocument {
         }
         if command != "command.runLine" && result.is_ok() {
             self.record_view(before);
-            if self.hot_grip.is_some()
-                && let Some(cursor) = self.cursor
-            {
-                self.cursor_point(cursor);
+            // A drafting mode or the view changed: the pointer resolves anew where it is.
+            if self.hot_grip.is_some() || self.session.running.is_some() {
+                self.resolve_cursor();
             }
         }
         result

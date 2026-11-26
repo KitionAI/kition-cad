@@ -15,6 +15,7 @@
     "test:precision": "node tests/precision.mjs chromium && node tests/precision.mjs webkit",
     "test:rapid-commands": "node tests/rapid-commands.mjs chromium && node tests/rapid-commands.mjs webkit",
     "test:polar": "node tests/polar.mjs chromium && node tests/polar.mjs webkit",
+    "test:drafting": "node tests/drafting.mjs chromium && node tests/drafting.mjs webkit",
     "test:cancellation": "node tests/cancellation.mjs chromium && node tests/cancellation.mjs webkit",
     "test:interruption": "node tests/interruption.mjs chromium && node tests/interruption.mjs webkit",
     "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit",

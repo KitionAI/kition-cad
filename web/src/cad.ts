@@ -65,3 +65,12 @@ export const DRAFTING: Array<{ id: keyof Drafting; command: string; label: strin
   { id: 'otrack', command: 'drafting.objectSnapTracking', label: 'Otrack' },
   { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
 ]
+
+/**
+ * The options of a prompt as the command line shows them ("Specify next point or [Undo/Close]
+ * <0>:" offers Undo and Close): each is typed as it is written to choose it.
+ */
+export function promptOptions(prompt: string): string[] {
+  const match = /\[([^\]]+)\][^[]*$/.exec(prompt)
+  return match ? match[1].split('/').map((option) => option.trim()).filter(Boolean) : []
+}

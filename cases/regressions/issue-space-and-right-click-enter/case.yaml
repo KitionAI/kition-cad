@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-space-and-right-click-enter
+feature: cad.editor.drafting-input
+intent: >-
+  Space and a quick right-click are Enter, as in CAD: Space on the canvas ends LINE and, between
+  commands, repeats it; Space on the command line enters what was typed (LINE, a point) except at a
+  prompt that takes free text, where it types a space; a right-click shorter than 250 ms in a
+  command enters what was typed or ends the input, without a menu; held, it opens the command menu
+  (Enter, Cancel, the prompt's options, Snap Overrides, Pan, Zoom), and Shift+right-click opens the
+  object snap menu. Before, Space panned and a right-click in a command opened the generic drawing
+  menu (walkthrough B3, B4).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (B3, B4, N8)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/drafting.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-26"

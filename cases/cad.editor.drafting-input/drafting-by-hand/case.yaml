@@ -1,0 +1,27 @@
+format: 1
+id: cad.editor.drafting-input/drafting-by-hand
+feature: cad.editor.drafting-input
+intent: >-
+  Drafting by hand in the editor, in a real browser: Ortho, grid snap and 45-degree polar tracking
+  hold the clicked points; a typed 60 goes 60 toward the pointer; a rested endpoint sends an
+  alignment guide the click follows; Space and a quick right-click are Enter; a held right-click
+  opens the command menu, whose option (Undo) and Cancel run; Shift+right-click's Endpoint snaps the
+  next pick; Enter with objects selected repeats the last command; a double middle click zooms to
+  the extents without ending the command; a trackpad scroll pans and a wheel notch zooms.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 1 (web/tests/drafting.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/drafting.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-26"

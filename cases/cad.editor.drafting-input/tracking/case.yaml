@@ -1,0 +1,23 @@
+format: 1
+id: cad.editor.drafting-input/tracking
+feature: cad.editor.drafting-input
+intent: >-
+  Object snap tracking in a command: resting the pointer on an endpoint (the page repeats the move
+  after 400 ms) acquires it and marks it with a small +; moving off along its horizontal shows the
+  dashed alignment path and "Endpoint: 60.0000 < 180°", and the click lands exactly level with the
+  endpoint. Passing over the endpoint without resting acquires nothing. A one-pick snap override
+  (END typed or chosen from the snap menu) holds the cursor on that snap alone; NON frees it.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/src/drafting_tests.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "tracking_acquires_a_rested_point_and_aligns_with_it" }
+  - cargo-test: { package: "kition-cad-kit", filter: "a_snap_override_holds_the_cursor_for_one_pick" }
+  - cargo-test: { package: "kition-cad-kit", filter: "hostile_pointers_never_panic_the_pipeline" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"
