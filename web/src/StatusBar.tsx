@@ -100,3 +100,34 @@ export function DraftingStatus({ info }: { info: CadInfo }) {
     </span>
   )
 }
+
+/**
+ * The status bar's left end: the Model tab and a tab per layout, in the drawing's tab order (N16).
+ * Choosing one shows that space (layout.set, which ends a command running in the space left).
+ */
+export function LayoutTabs({ info, onSwitched }: { info: CadInfo; onSwitched: () => void }) {
+  const { run, enabled, phrase } = useKitEditor()
+  const spaces = info.layouts.length ? info.layouts : ['Model']
+  return (
+    <span className="cad-layout-tabs" role="tablist" aria-label={phrase('Layout')} data-testid="cad-layout-tabs">
+      {spaces.map((name) => {
+        const current = name.toLowerCase() === info.space.toLowerCase()
+        return (
+          <button
+            key={name}
+            type="button"
+            role="tab"
+            className="cad-layout-tab"
+            aria-selected={current}
+            title={name === 'Model' ? phrase('Model') : name}
+            disabled={!current && !enabled('layout.set')}
+            onClick={() => { if (!current) void run('layout.set', { name }).then(onSwitched) }}
+            data-testid={`cad-layout-${name}`}
+          >
+            {name === 'Model' ? phrase('Model') : name}
+          </button>
+        )
+      })}
+    </span>
+  )
+}

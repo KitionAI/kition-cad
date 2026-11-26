@@ -1,5 +1,9 @@
-import { COMMAND_FALLBACK_ICON, CommandButton, RibbonButton, RibbonGroup, commandGroups, commandIcon, useKitEditor, useUi, type IconComponent, type KitCommand } from '@kition/sdk/editor'
+import { COMMAND_FALLBACK_ICON, CommandButton, RibbonButton, commandGroups, commandIcon, useKitEditor, useUi, type IconComponent, type KitCommand } from '@kition/sdk/editor'
 import { startsPrompt, useCatalog, useStartCommand } from '../commands'
+import { FitGroup } from './FitGroup'
+
+/** How many of a menu group's commands a compact group shows before More (two columns with it). */
+const COMPACT_SHOWN = 5
 
 /**
  * A ribbon button for a command that asks for its input in prompts: it starts them on the command
@@ -63,13 +67,17 @@ export function CadCommandTab({ menu, exclude = [], primary = [], onHatch }: { m
   const groups = commandGroups(commands.filter((command) => !exclude.includes(command.id)), [menu])
   return (
     <>
-      {[...groups].map(([name, { path, items }]) => (
-        <RibbonGroup key={name} id={`menu:${path}`} label={phrase(name)} icon={items[0] ? commandIcon(items[0]) : undefined}>
-          <div className="kui-command-grid">
-            {items.map((command) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} onHatch={onHatch} />)}
-          </div>
-        </RibbonGroup>
-      ))}
+      {[...groups].map(([name, { path, items }], index) => {
+        const button = (command: KitCommand) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} onHatch={onHatch} />
+        // Short of room: the tab's first group shows its first commands with their labels and the
+        // rest under More; the others become one labelled button each, from the last (FitGroup).
+        const kept = items.length > COMPACT_SHOWN + 1 ? COMPACT_SHOWN : items.length
+        return (
+          <FitGroup key={name} id={`menu:${path}`} label={phrase(name)} icon={items[0] ? commandIcon(items[0]) : undefined} name={path.replace(/[^A-Za-z0-9]+/g, '-')} collapse={index > 0} shown={items.slice(0, kept).map(button)} more={items.slice(kept).map(button)}>
+            <div className="kui-command-grid">{items.map(button)}</div>
+          </FitGroup>
+        )
+      })}
     </>
   )
 }

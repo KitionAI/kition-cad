@@ -3,7 +3,7 @@
 // rows and object types the engine's describe command and documents name, the engine's command
 // titles and menu groups (ribbon tabs, menus and the command line's completions), and what the page
 // actually draws in zh-CN: every ribbon tab's groups and buttons, the status bar and its menus, the
-// layout tabs, the drawing menu with and without a selection, and the Properties panel. Command
+// Model tab (a layout's name is the drawing's own), the drawing menu with and without a selection, and the Properties panel. Command
 // prompts stay English (owner's decision), so the command line's prompt is not checked.
 // node tests/phrases.mjs [chromium|webkit]; prints PASS or FAIL per step (naming what is untranslated), exits 1 on any FAIL.
 import { readdir, readFile } from 'node:fs/promises'
@@ -100,9 +100,9 @@ try {
   step('the engine lists its commands', commands.length > 200, `${commands.length} commands`)
   report('command titles and menu groups', missing(commands.flatMap((command) => [command.title, ...command.menu.slice(0, -1)])))
 
-  const tabs = await kit.locator('[role=tab]').evaluateAll((elements) => elements.map((element) => element.dataset.tab))
+  const tabs = await kit.locator('.kui-ribbon-tabs [role=tab]').evaluateAll((elements) => elements.map((element) => element.dataset.tab))
   step('the ribbon has its tabs', tabs.length >= 10, tabs.join(', '))
-  report('tab names', await english('[role=tab]'))
+  report('tab names', await english('.kui-ribbon-tabs [role=tab]'))
   const ribbon = []
   for (const tab of tabs) {
     await kit.getByTestId(`ribbon-tab-${tab}`).click()
@@ -112,7 +112,8 @@ try {
   report('every ribbon tab\'s groups and buttons', [...new Set(ribbon)])
   await kit.getByTestId('ribbon-tab-home').click()
 
-  const status = [...await english('.kui-status-bar button'), ...await english('.kui-status-bar button', 'title'), ...await english('.kui-status-bar button', 'aria-label'), ...await english('.kui-status-bar [role=tab]')]
+  const chrome = '.kui-status-bar button:not(.cad-layout-tab)'
+  const status = [...await english(chrome), ...await english(chrome, 'title'), ...await english(chrome, 'aria-label'), ...await english('[data-testid=cad-layout-Model]')]
   report('the status bar', status)
   for (const menu of ['osnap', 'polar']) {
     const arrow = kit.getByTestId(`cad-mode-${menu}-menu`)

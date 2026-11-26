@@ -531,5 +531,7 @@ export const PHRASES: Record<string, Record<string, string>> = {
     Insertion: '插入点',
     'Apparent Intersection': '外观交点',
     'Clear All': '全部清除',
+    More: '更多',
+    Model: '模型',
   },
 }

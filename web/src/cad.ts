@@ -89,6 +89,10 @@ export type CadInfo = {
   running: string | null
   drafting: Drafting
   units: Units | null
+  /** The drawing's spaces in tab order: Model, then its layouts (the status bar's layout tabs). */
+  layouts: string[]
+  /** The space the editor shows: `Model` or a layout's name. */
+  space: string
 }
 
 export function describe(info: KitEngineInfo): CadInfo {
@@ -109,6 +113,8 @@ export function describe(info: KitEngineInfo): CadInfo {
       commandLine: { prompt: inspected.drafting?.commandLine?.prompt ?? IDLE_PROMPT, history: inspected.drafting?.commandLine?.history ?? { serial: 0, lines: [] } },
     },
     units: inspected.units?.origin ? inspected.units : null,
+    layouts: ((info.inspected as { layouts?: Array<{ name?: string }> }).layouts ?? []).map((layout) => layout.name ?? '').filter(Boolean),
+    space: typeof (info.inspected as { space?: unknown }).space === 'string' ? (info.inspected as { space: string }).space : 'Model',
   }
 }
 

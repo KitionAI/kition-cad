@@ -520,3 +520,35 @@ textarea.cad-in-place {
 .cad-dynamic-option:hover {
   background: var(--kit-primary-soft);
 }
+
+/* A compact ribbon group's More button (ribbon/FitGroup.tsx): a small button in the group's last column. */
+.cad-ribbon-more {
+  display: inline-flex;
+}
+
+/* The status bar's Model and layout tabs (StatusBar.tsx, N16). */
+.cad-layout-tabs {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.cad-layout-tab {
+  height: 20px;
+  max-width: 14ch;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kit-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cad-layout-tab[aria-selected='true'] {
+  border-color: var(--kit-border);
+  background: var(--kit-surface);
+  color: var(--kit-text);
+}

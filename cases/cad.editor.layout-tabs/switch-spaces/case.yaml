@@ -1,0 +1,26 @@
+format: 1
+id: cad.editor.layout-tabs/switch-spaces
+feature: cad.editor.layout-tabs
+intent: >-
+  The Model and layout tabs in a real browser: the status bar shows Model, selected; a layout an
+  agent adds (Plan) shows as a tab after Model and the drawing's own layouts; choosing it shows the
+  layout (the engine's space is Plan, its tab is selected, the view moves to the sheet); a LINE typed
+  there goes into the layout and not into the model; choosing Model comes back to the model with its
+  seven objects; in Chinese the Model tab reads 模型.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 7 (web/tests/layouts.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/layouts.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

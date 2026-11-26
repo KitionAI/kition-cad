@@ -512,6 +512,25 @@ features:
     paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, bindings/wasm/src/lib.rs, bindings/wasm/src/status_bar_tests.rs, web/tests/status-bar.mjs]
     cases: [cad.editor.status-bar/modes-and-menus]
     since: "2026-11-26"
+  - id: cad.editor.ribbon
+    title: "The Classic ribbon keeps its labels when it runs out of room: Home fits whole and labelled at 1440 px (Delete Duplicate Objects left Home for the Modify tab); a Home group short of room shows its first commands labelled with a More button that opens the rest with their labels; a menu tab's first group does the same and its later groups give way first, each as one labelled button that opens the group; no button is an icon alone at 1600, 1440, 1165 or 1024 px"
+    gap: "The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own."
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/ribbon/FitGroup.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/CommandTab.tsx, web/src/app.css, web/tests/ribbon.mjs]
+    cases: [cad.editor.ribbon/labels-when-short-of-room]
+    since: "2026-11-26"
+  - id: cad.editor.layout-tabs
+    title: "Model and layout tabs at the status bar's left: Model, then each layout in the drawing's tab order; choosing one shows that space (layout.set), a line drawn there goes into it, and Model comes back to the model"
+    gap: "No + tab for a new layout and no right-click menu on the tabs (new, rename, delete, copy and page setup are commands only); a long list of layouts does not fold into an overflow list; switching ends a command running in the space left; the paper is drawn on the canvas colour, not as a white sheet; the describe command and double-click editing work in the shown space only."
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [layout.set]
+    paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, web/tests/layouts.mjs]
+    cases: [cad.editor.layout-tabs/switch-spaces]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

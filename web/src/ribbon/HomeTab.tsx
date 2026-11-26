@@ -1,9 +1,12 @@
-import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, ShrinkIcon as Shrink, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera/icons/react'
-import { CommandButton, RibbonButton, RibbonGroup, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools, type IconComponent } from '@kition/sdk/editor'
+import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera/icons/react'
+import { CommandButton, RibbonButton, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools, type IconComponent } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
 import { startsPrompt, useCatalog } from '../commands'
 import { PromptButton } from './CommandTab'
+import { FitGroup } from './FitGroup'
 
+/** The Draw group's four large tools. */
+const DRAW_TOOLS = ['line.add', 'polyline.add', 'circle.add', 'arc.add']
 /** The Draw group's small buttons after its four large ones, in stacks of three: tools and commands. */
 const DRAW = ['rectangle.add', 'polygon.add', 'ellipse.add', 'spline.add', 'hatch.add', 'point.add']
 /** The Modify group, in stacks of three: the common edits, so none needs the Modify tab. */
@@ -14,6 +17,8 @@ const MODIFY = [
   'object.chamfer', 'object.break', 'object.join',
   'object.delete', 'object.explode', 'object.stretch',
 ]
+/** The Modify commands a compact Modify group still shows; the rest wait under More. */
+const MODIFY_SHOWN = ['object.move', 'object.copy', 'object.rotate', 'object.trim', 'object.offset']
 const ANNOTATION = ['multilineText.add', 'text.add', 'dimension.addLinear', 'dimension.addAligned', 'dimension.addRadius']
 
 /** The tools Single line's row shows. */
@@ -48,71 +53,89 @@ function HomeCommand({ id, icon, primary }: { id: string; icon?: IconComponent; 
 
 export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () => void; onLayers: () => void }) {
   const { run, enabled, phrase: p, t } = useKitEditor()
+  const modifyIcon = (id: string) => (id === 'object.explode' ? Ungroup : id === 'object.stretch' ? SquareSplitHorizontal : undefined)
+  const layerProperties = (size: 'large' | 'small') => <RibbonButton key="cad-layer-properties" icon={Layers3} size={size} label={p('Layer Properties')} onClick={onLayers} data-testid="cad-layer-properties" primary />
+  const layerField = (
+    <RibbonRow key="cad-layer">
+      <RibbonItem primary>
+        <select
+          className="kui-ribbon-field"
+          style={{ width: 132 }}
+          value={info.currentLayer}
+          aria-label={t('layers')}
+          disabled={!enabled('layer.setCurrent')}
+          onChange={(event) => void run('layer.setCurrent', { name: event.target.value })}
+          data-testid="cad-layer"
+        >
+          {info.layers.map((layer) => (
+            <option key={layer.name} value={layer.name}>
+              {layer.name}
+            </option>
+          ))}
+        </select>
+      </RibbonItem>
+    </RibbonRow>
+  )
+  const zoomExtents = (size: 'large' | 'small') => <RibbonButton key="cad-zoom-extents" icon={Maximize} size={size} label={t('zoomExtents')} onClick={onFit} data-testid="cad-zoom-extents" primary />
   return (
     <>
-      <RibbonGroup label={p('Draw')} icon={Pencil}>
-        <Tool id="line.add" primary={PRIMARY.has('line.add')} size="large" />
-        <Tool id="polyline.add" primary={PRIMARY.has('polyline.add')} size="large" />
-        <Tool id="circle.add" primary={PRIMARY.has('circle.add')} size="large" />
-        <Tool id="arc.add" primary={PRIMARY.has('arc.add')} size="large" />
+      {/* Where the ribbon runs out of room each group keeps its labels: its first commands, then More (FitGroup). */}
+      <FitGroup
+        label={p('Draw')}
+        icon={Pencil}
+        name="draw"
+        shown={[...DRAW_TOOLS.map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} />), <HomeCommand key={DRAW[0]} id={DRAW[0]} primary={PRIMARY.has(DRAW[0])} />]}
+        more={DRAW.slice(1).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
+      >
+        {DRAW_TOOLS.slice(0, 4).map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} size="large" />)}
         {[0, 3].map((start) => (
           <RibbonStack key={start}>
             {DRAW.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
           </RibbonStack>
         ))}
-      </RibbonGroup>
+      </FitGroup>
 
-      <RibbonGroup label={p('Modify')} icon={Move}>
+      <FitGroup
+        label={p('Modify')}
+        icon={Move}
+        name="modify"
+        shown={MODIFY_SHOWN.map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
+        more={MODIFY.filter((id) => !MODIFY_SHOWN.includes(id)).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
+      >
         {[0, 3, 6, 9, 12].map((start) => (
           <RibbonStack key={start}>
-            {MODIFY.slice(start, start + 3).map((id) => (
-              <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={id === 'object.explode' ? Ungroup : id === 'object.stretch' ? SquareSplitHorizontal : undefined} />
-            ))}
+            {MODIFY.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
           </RibbonStack>
         ))}
-      </RibbonGroup>
+      </FitGroup>
 
-      <RibbonGroup label={p('Annotation')} icon={Ruler}>
+      <FitGroup
+        label={p('Annotation')}
+        icon={Ruler}
+        name="annotation"
+        shown={['multilineText.add', 'dimension.addLinear'].map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} />)}
+        more={['text.add', 'dimension.addAligned', 'dimension.addRadius'].map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} />)}
+      >
         <Tool id="multilineText.add" primary={PRIMARY.has('multilineText.add')} size="large" />
         <RibbonStack>
           {ANNOTATION.slice(1).map((id) => (
             <Tool key={id} id={id} primary={PRIMARY.has(id)} />
           ))}
         </RibbonStack>
-      </RibbonGroup>
+      </FitGroup>
 
-      <RibbonGroup label={p('Layers')} icon={Layers3}>
-        <RibbonButton icon={Layers3} size="large" label={p('Layer Properties')} onClick={onLayers} data-testid="cad-layer-properties" primary />
-        <RibbonStack>
-          <RibbonRow>
-            <RibbonItem primary>
-              <select
-                className="kui-ribbon-field"
-                style={{ width: 150 }}
-                value={info.currentLayer}
-                aria-label={t('layers')}
-                disabled={!enabled('layer.setCurrent')}
-                onChange={(event) => void run('layer.setCurrent', { name: event.target.value })}
-                data-testid="cad-layer"
-              >
-                {info.layers.map((layer) => (
-                  <option key={layer.name} value={layer.name}>
-                    {layer.name}
-                  </option>
-                ))}
-              </select>
-            </RibbonItem>
-          </RibbonRow>
-        </RibbonStack>
-      </RibbonGroup>
+      {/* Compact: the layer field over Layer Properties, both labelled. */}
+      <FitGroup label={p('Layers')} icon={Layers3} name="layers" shown={[layerField, layerProperties('small')]}>
+        {layerProperties('large')}
+        <RibbonStack>{layerField}</RibbonStack>
+      </FitGroup>
 
-      <RibbonGroup label={p('Utilities')} icon={Wrench}>
-        <RibbonButton icon={Maximize} size="large" label={t('zoomExtents')} onClick={onFit} data-testid="cad-zoom-extents" primary />
+      <FitGroup label={p('Utilities')} icon={Wrench} name="utilities" shown={[zoomExtents('small'), <HomeCommand key="view.zoomWindow" id="view.zoomWindow" icon={ScanSearch} />]}>
+        {zoomExtents('large')}
         <RibbonStack>
           <HomeCommand id="view.zoomWindow" icon={ScanSearch} />
-          <CommandButton command="object.deleteDuplicates" icon={Shrink} label={p('Delete Duplicate Objects')} />
         </RibbonStack>
-      </RibbonGroup>
+      </FitGroup>
     </>
   )
 }

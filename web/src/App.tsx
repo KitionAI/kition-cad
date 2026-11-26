@@ -30,7 +30,7 @@ import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
 import { CadCursor } from './cursor'
-import { DraftingStatus } from './StatusBar'
+import { DraftingStatus, LayoutTabs } from './StatusBar'
 
 /** The view tools are the host's; the engine's other tools run in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
@@ -173,6 +173,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           status={
             state ? (
               <>
+                <LayoutTabs info={state} onSwitched={() => tools.refresh()} />
                 {/* Written as the canvas draws the engine's answer (cursor.ts), not by React. */}
                 <span className="cad-coordinates" data-testid="cad-coordinates" ref={(element) => { cursor.readout = element }} />
                 <span data-testid="cad-status">{t('objects', { count: state.entities })}</span>
