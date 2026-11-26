@@ -2072,7 +2072,7 @@ pub fn derived(d: &Drawing, ids: &[Value], names: &[String]) -> Result<Vec<Deriv
         if wanted("audit") {
             values.insert("audit".into(), crate::scan::effects(d, Space::Model, vec![], "file.audit", &json!({"fix":true}))?);
         }
-        if wanted("object.deleteDuplicates") {
+        if wanted("overkill") {
             let facts = std::iter::once(Space::Model)
                 .chain(d.layouts.iter().map(|l| Space::Paper(l.name.clone())))
                 .map(|space| crate::scan::effects(d, space, vec![], "object.deleteDuplicates", &json!({})))

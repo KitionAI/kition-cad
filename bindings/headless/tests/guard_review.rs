@@ -788,7 +788,7 @@ async fn default_named_records_hold_identity_when_header_names_do_not_change() {
         for relevant in [false, true] {
             let mut d = drawing();
             for name in ["A", "B"] {
-                d.execute(if ty == "layer.open" { "layer.add" } else { "textStyle.open" }, json!({"name":name})).unwrap();
+                d.execute(if ty == "layer" { "layer.add" } else { "textStyle.open" }, json!({"name":name})).unwrap();
             }
             if ty == "linetype" {
                 d.execute("property.linetype", json!({"load":"*"})).unwrap();

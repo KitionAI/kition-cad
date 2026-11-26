@@ -104,9 +104,7 @@ pub(crate) fn target_fields(command: &str, p: &Value, e: &Entity) -> Option<Vec<
         "hatch.add" | "hatch.addGradient" if p.get("points").is_none() => curve_fields(e),
         // modify2.rs:259-351 clones preserved fields; these flags assign only one
         // field (CLOSE additionally reads whether there are at least two vertices).
-        "polyline.edit"
-            if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "object.join" | "j")) =>
-        {
+        "polyline.edit" if !p.get("option").and_then(Value::as_str).is_some_and(|o| matches!(o.to_ascii_lowercase().as_str(), "join" | "j")) => {
             let option = p.get("option").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
             match (&e.kind, option.as_str()) {
                 (EntityKind::LwPolyline(_), "open" | "o") => fields(&["kind.type", "kind.closed"]),

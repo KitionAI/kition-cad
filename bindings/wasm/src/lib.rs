@@ -997,7 +997,7 @@ impl CadDocument {
                 let scope = kition_kit::session::history_scope(&params, &self.session.origin()).map_err(|e| e.to_string())?;
                 self.session.redo_in(scope).map(|label| json!({ "redone": label })).map_err(engine_error)
             }
-            "commandLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
+            "command.runLine" => self.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default()),
             "file.export" => self.export_command(&params),
             render::RENDER => self.render_view(&params),
             _ => self.session.execute(command, &params).map_err(engine_error),

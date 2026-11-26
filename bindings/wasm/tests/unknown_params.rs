@@ -41,7 +41,7 @@ fn properties_set_declares_every_field_it_reads() {
         "color",
         "linetype",
         "lineweight",
-        "property.linetypeScale",
+        "ltscale",
         "transparency",
         "visible",
         "dimStyle",
