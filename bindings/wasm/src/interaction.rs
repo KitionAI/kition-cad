@@ -386,10 +386,10 @@ impl CadDocument {
     /// top-left is document pixel (`x`, `y`), at `sx` × `sy` pixels per document pixel. Only for
     /// renders without the editor's canvas colour (previews, a host's thumbnails); the on-screen
     /// editor draws the grid over its whole canvas itself (`web/src/cursor.ts`), outside the
-    /// drawing's area too. The spacing adapts as the grid display does: GRIDUNIT (SNAPUNIT when it
-    /// is 0) times 5 until lines are [`GRID_PX`] apart, with every GRIDMAJOR line solid and the
-    /// others dotted, so it stays light however far the view zooms out. Work is bounded by the
-    /// pixel count, even for hostile spacing or viewport values.
+    /// drawing's area too and at the size shown. The spacing adapts as the grid display does:
+    /// GRIDUNIT (SNAPUNIT when it is 0) times 5 until lines are [`GRID_PX`] apart, with every
+    /// GRIDMAJOR line solid and the others dotted. Work is bounded by the pixel count, even for
+    /// hostile spacing or viewport values.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn draw_grid(&self, pixels: &mut [u8], x: f64, y: f64, sx: f64, sy: f64, width: u32, height: u32) {
         let settings = &self.session.settings;

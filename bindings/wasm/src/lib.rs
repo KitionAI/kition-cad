@@ -721,12 +721,11 @@ impl KitDocument for CadDocument {
     fn render_area(&self, x0: i32, y0: i32, x1: i32, y1: i32, width: u32, height: u32) -> Result<Vec<u8>, String> {
         let w = u32::try_from(x1.saturating_sub(x0).max(1)).unwrap_or(1).min(MAX_RENDER_SIDE);
         let h = u32::try_from(y1.saturating_sub(y0).max(1)).unwrap_or(1).min(MAX_RENDER_SIDE);
-        let full = self.draw(f64::from(x0), f64::from(y0), 1.0, w, h)?;
-        let mut pixels = raster::render_area(Frame { rgba: &full, width: w, height: h }, 0, 0, w as i32, h as i32, width, height);
-        // The grid at the size shown, so a reduction does not blur it into grey.
-        let (sx, sy) = (f64::from(width.max(1)) / f64::from(w), f64::from(height.max(1)) / f64::from(h));
-        self.draw_grid(&mut pixels, f64::from(x0), f64::from(y0), sx, sy, width, height);
-        Ok(pixels)
+        // The reduction is the box mean of the 1:1 pixels (the kit contract), grid included; the
+        // editor, which gives its canvas colour, draws the grid itself at the size shown.
+        let mut full = self.draw(f64::from(x0), f64::from(y0), 1.0, w, h)?;
+        self.draw_grid(&mut full, f64::from(x0), f64::from(y0), 1.0, 1.0, w, h);
+        Ok(raster::render_area(Frame { rgba: &full, width: w, height: h }, 0, 0, w as i32, h as i32, width, height))
     }
 
     /// Runs `command`. An agent's command leaves the space shown, MSPACE, the views and the

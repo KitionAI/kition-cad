@@ -191,22 +191,26 @@ fn window_fills_and_preview_guides() {
     assert!(paths.contains(&ACCENT) && !paths.contains(&GUIDE), "{paths:?}");
 }
 
-/// Walkthrough N17: zoomed far out, the grid the drawing is rendered with stayed drawn at full
-/// size and was shrunk with the drawing, so it turned the paper grey. It is drawn at the size
-/// shown, its lines at least 8 pixels apart: most of the paper stays paper, and the grid still shows.
+/// Walkthrough N17: zoomed far out, the editor showed the grid shrunk with the drawing, so the
+/// paper turned grey (and outside the drawing's area there was none). The editor now gives its
+/// canvas colour and draws the grid itself over the whole canvas at the size shown; the drawing's
+/// pixels carry no grid at any zoom. A render without that colour (a preview) keeps its grid, its
+/// lines at least 8 pixels apart.
 #[test]
 fn issue_grid_zoomed_out() {
     let mut doc = blank();
     doc.execute("drafting.grid", json!({ "on": true })).unwrap();
-    doc.execute("setvar", json!({ "name": "GRIDUNIT", "value": "1,1" })).unwrap();
+    doc.session.settings.gridunit = Vec2::new(1.0, 1.0);
     let (width, height) = (doc.width(), doc.height());
-    for scale in [1.0 / 16.0, 1.0 / 64.0] {
+    let plain = doc.render(0.0, 0.0, 1.0, 200, 40).unwrap();
+    let row: Vec<bool> = plain.as_chunks::<4>().0.iter().take(200).map(|p| *p != [255, 255, 255, 255]).collect();
+    let lines: Vec<usize> = (1..row.len()).filter(|&i| row[i] && !row[i - 1]).collect();
+    assert!(lines.len() > 1 && lines.windows(2).all(|pair| pair[1] - pair[0] >= 8), "a preview's grid lines: {lines:?}");
+    doc.set_backdrop("#f6f5f4").unwrap();
+    for scale in [1.0, 1.0 / 16.0, 1.0 / 64.0] {
         let (w, h) = (((f64::from(width) * scale).ceil() as u32).max(8), ((f64::from(height) * scale).ceil() as u32).max(8));
         let pixels = doc.render(0.0, 0.0, scale, w, h).unwrap();
-        let all = pixels.as_chunks::<4>().0;
-        let paper = all.iter().filter(|p| **p == [255, 255, 255, 255]).count();
-        assert!(paper * 10 > all.len() * 6, "scale {scale}: {paper} of {} pixels are paper", all.len());
-        assert!(paper < all.len(), "scale {scale}: the grid still shows");
+        assert!(pixels.as_chunks::<4>().0.iter().all(|p| *p == [0xf6, 0xf5, 0xf4, 255]), "scale {scale}: only the canvas colour");
     }
 }
 
@@ -226,7 +230,7 @@ fn the_backdrop_is_the_editors_canvas() {
     let all = pixels.as_chunks::<4>().0;
     let canvas = all.iter().filter(|p| **p == [0x15, 0x17, 0x1b, 255]).count();
     assert!(canvas * 10 > all.len() * 9, "the canvas colour, not paper: {canvas} of {}", all.len());
-    assert!(!all.iter().any(|p| *p == [255, 255, 255, 255] || *p == [235, 233, 229, 255]), "no paper and no grid in the pixels");
+    assert!(!all.contains(&[235, 233, 229, 255]), "no grid in the pixels");
     assert!(all.iter().any(|p| p[0] > 200 && p[1] > 200 && p[2] > 200), "colour 7 draws light on a dark canvas");
     let inspected = doc.inspect().unwrap();
     assert_eq!(inspected["drafting"]["gridMajor"], json!(5));
