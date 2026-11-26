@@ -38,6 +38,9 @@ pub struct DimGeometry {
     pub value: String,
     /// The text as MTEXT contents (stacked fractions and tolerances).
     pub mtext: String,
+    /// What the dimension measures, before formatting and override text: a length, or an angle in
+    /// radians for an angular dimension (the Properties panel's Measurement).
+    pub measured: f64,
 }
 
 impl DimGeometry {
@@ -427,6 +430,7 @@ pub fn dimension_geometry_with(d: &Dimension, st: &DimStyle, dimscale: f64, font
             let f1 = foot(p1);
             let f2 = foot(p2);
             let meas = f1.dist(f2);
+            g.measured = meas;
             g.mtext = linear_text(meas, d, st, "");
             if !st.suppress_ext1 {
                 g.lines.extend(ext_line(p1, f1, st, k));
@@ -545,6 +549,7 @@ pub fn dimension_geometry_with(d: &Dimension, st: &DimStyle, dimscale: f64, font
             let radius = matches!(d.kind, DimKind::Radius);
             let (center, r) = if radius { (a, a.dist(b)) } else { (a.mid(b), a.dist(b) / 2.0) };
             let meas = if radius { r } else { 2.0 * r };
+            g.measured = meas;
             g.mtext = linear_text(meas, d, st, if radius { "R" } else { "%%c" });
             let (tw, tht) = measure(&g.mtext);
             let u = (b - center).normalized();
@@ -621,6 +626,7 @@ pub fn dimension_geometry_with(d: &Dimension, st: &DimStyle, dimscale: f64, font
             let arc =
                 if kition_cad_geom::angle_in_sweep(vertex.angle_to(arc_pt), s, e) { Arc::new(vertex, r, s, e) } else { Arc::new(vertex, r, e, s) };
             let sweep = ccw_sweep(arc.start, arc.end);
+            g.measured = sweep;
             let txt = format_angle(sweep, st.angular_unit, st.angular_decimals, st.zero_suppression & 12);
             // DIMPOST is a linear-dimension prefix/suffix; angles have their own format only.
             g.mtext = apply_override(&txt, d);
@@ -659,6 +665,7 @@ pub fn dimension_geometry_with(d: &Dimension, st: &DimStyle, dimscale: f64, font
             let leader_end = d.p14.xy();
             let origin = d.defpt.xy();
             let meas = if x_type { (feature.x - origin.x).abs() } else { (feature.y - origin.y).abs() };
+            g.measured = meas;
             g.mtext = linear_text(meas, d, st, "");
             let (tw, _) = measure(&g.mtext);
             g.dim(vec![feature, leader_end]);
@@ -676,6 +683,7 @@ pub fn dimension_geometry_with(d: &Dimension, st: &DimStyle, dimscale: f64, font
             let r = c.dist(d.p13.xy());
             let arc = Arc::new(c, c.dist(d.defpt.xy()).max(1e-9), c.angle_to(d.p13.xy()), c.angle_to(d.p14.xy()));
             let meas = r * arc.sweep();
+            g.measured = meas;
             g.mtext = linear_text(meas, d, st, "⌒");
             let mut pts = Vec::new();
             arc.tessellate(arc.radius * 1e-3, &mut pts);

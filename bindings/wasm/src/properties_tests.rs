@@ -225,3 +225,28 @@ fn a_locked_member_makes_every_row_read_only() {
     assert_eq!(described["locked"], true);
     assert!(described["rows"].as_array().unwrap().iter().all(|row| row["editable"] == false));
 }
+
+/// Regression issue-dimension-measurement-zero: a dimension drawn by hand (DIMLINEAR's prompts, or
+/// dimension.addLinear) stores no measurement; the Properties panel showed 0 for a 60 long one. The
+/// row shows what the dimension measures, an angle in the angle units for an angular one.
+#[test]
+fn issue_dimension_measurement_zero() {
+    let mut doc = blank();
+    for entry in ["dimlinear", "40,240", "100,240", "70,260"] {
+        doc.command_line(entry).unwrap();
+    }
+    let dims: Vec<String> =
+        doc.session.doc().unwrap().model.iter().filter(|e| matches!(e.kind, EntityKind::Dimension(_))).map(|e| e.handle.hex()).collect();
+    assert_eq!(dims.len(), 1);
+    select(&mut doc, &[dims[0].as_str()]);
+    let described = describe(&mut doc);
+    assert_eq!(row(&described, "measurement")["value"], json!(60.0), "{described}");
+    assert_eq!(row(&described, "measurement")["display"], json!("60"));
+
+    let angular = added(&mut doc, "dimension.addAngular", json!({ "vertex": [0, 0], "p1": [10, 0], "p2": [0, 10], "at": [5, 5] }));
+    select(&mut doc, &[angular.as_str()]);
+    let described = describe(&mut doc);
+    let measured = row(&described, "measurement");
+    assert_eq!(measured["unit"], json!("angle"), "{measured}");
+    assert!((measured["value"].as_f64().unwrap() - 90.0).abs() < 1e-9, "{measured}");
+}

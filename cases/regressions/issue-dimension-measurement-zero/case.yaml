@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-dimension-measurement-zero
+feature: cad.editor.properties
+intent: >-
+  The Properties panel shows what a dimension measures: a linear dimension drawn with DIMLINEAR's
+  prompts from 40,240 to 100,240 reads Measurement 60 (it read 0: a dimension drawn in the editor
+  stores no measurement, and the row read the stored field), and an angular dimension reads 90 in
+  the drawing's angle units. Found by the stage 7 acceptance drawing.
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting acceptance drawing, stage 7 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_dimension_measurement_zero" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

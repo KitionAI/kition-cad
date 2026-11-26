@@ -315,7 +315,14 @@ fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
         }
         EntityKind::Dimension(k) => {
             rows.choice("Text", "dimStyle", "Dimension style", json!(k.style), Some("dimStyle"));
-            rows.number("Text", "measurement", "Measurement", Unit::Length, k.measurement, None);
+            // What it measures, from its geometry: a dimension drawn here stores no measurement
+            // (regression issue-dimension-measurement-zero).
+            let measured = kition_cad_render::dimension_in(d, k).measured;
+            if matches!(k.kind, kition_cad_doc::DimKind::Angular | kition_cad_doc::DimKind::Angular3P) {
+                rows.number("Text", "measurement", "Measurement", Unit::Angle, measured.to_degrees(), None);
+            } else {
+                rows.number("Text", "measurement", "Measurement", Unit::Length, measured, None);
+            }
             rows.text("Text", "textOverride", "Text override", &k.text, Some("textOverride"));
         }
         EntityKind::Hatch(h) => {
