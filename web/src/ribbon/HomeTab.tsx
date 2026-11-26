@@ -1,8 +1,9 @@
-import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch, SquareSplitHorizontalIcon as SquareSplitHorizontal, UngroupIcon as Ungroup } from '@kition/tessera/icons/react'
+import { LayersIcon as Layers3, MaximizeIcon as Maximize, MoveIcon as Move, PencilIcon as Pencil, RulerIcon as Ruler, WrenchIcon as Wrench, ScanSearchIcon as ScanSearch } from '@kition/tessera/icons/react'
 import { CommandButton, RibbonButton, RibbonItem, RibbonRow, RibbonStack, ToolButton, toolIcon, useKitEditor, useKitTools, type IconComponent } from '@kition/sdk/editor'
 import type { CadInfo } from '../cad'
 import { startsPrompt, useCatalog } from '../commands'
 import { PromptButton } from './CommandTab'
+import { CAD_ICONS } from '../commandIcons'
 import { FitGroup } from './FitGroup'
 
 /** The Draw group's four large tools. */
@@ -30,7 +31,7 @@ function Tool({ id, size = 'small', primary }: { id: string; size?: 'large' | 's
   const { phrase: p } = useKitEditor()
   const tool = tools?.tools.find((item) => item.id === id)
   if (!tool) return null
-  return <ToolButton tool={id} icon={toolIcon(tool.icon, id)} label={p(tool.label)} size={size} title={tool.shortcut ? `${p(tool.label)} (${tool.shortcut})` : p(tool.label)} primary={primary} />
+  return <ToolButton tool={id} icon={CAD_ICONS[id] ?? toolIcon(tool.icon, id)} label={p(tool.label)} size={size} title={tool.shortcut ? `${p(tool.label)} (${tool.shortcut})` : p(tool.label)} primary={primary} />
 }
 
 /**
@@ -53,7 +54,6 @@ function HomeCommand({ id, icon, primary }: { id: string; icon?: IconComponent; 
 
 export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () => void; onLayers: () => void }) {
   const { run, enabled, phrase: p, t } = useKitEditor()
-  const modifyIcon = (id: string) => (id === 'object.explode' ? Ungroup : id === 'object.stretch' ? SquareSplitHorizontal : undefined)
   const layerProperties = (size: 'large' | 'small') => <RibbonButton key="cad-layer-properties" icon={Layers3} size={size} label={p('Layer Properties')} onClick={onLayers} data-testid="cad-layer-properties" primary />
   const layerField = (
     <RibbonRow key="cad-layer">
@@ -99,12 +99,12 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
         label={p('Modify')}
         icon={Move}
         name="modify"
-        shown={MODIFY_SHOWN.map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
-        more={MODIFY.filter((id) => !MODIFY_SHOWN.includes(id)).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
+        shown={MODIFY_SHOWN.map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
+        more={MODIFY.filter((id) => !MODIFY_SHOWN.includes(id)).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
       >
         {[0, 3, 6, 9, 12].map((start) => (
           <RibbonStack key={start}>
-            {MODIFY.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} icon={modifyIcon(id)} />)}
+            {MODIFY.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
           </RibbonStack>
         ))}
       </FitGroup>

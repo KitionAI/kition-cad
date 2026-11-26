@@ -16,7 +16,8 @@ Generated-in-code assets are original and have no file to list:
 - the standard linetype and hatch-pattern libraries (`crates/engine/doc/src/library.rs`; industry-common
   names, our own dash/spacing values);
 - the colour index palette, generated from its structure (`crates/support/color/src/lib.rs`);
-- the sample drawings (`crates/engine/engine/src/sample.rs`).
+- the sample drawings (`crates/engine/engine/src/sample.rs`);
+- the editor's own command icons (`web/src/cadIcons.ts`, listed below).
 
 | Asset | Author | Source | License | Notes |
 |---|---|---|---|---|
@@ -60,3 +61,4 @@ Generated-in-code assets are original and have no file to list:
 | `assets/readme/made-2.png` | The Kition authors | Rendered by Kition CAD from the showcase sample spur-gear-m4-z24 (its `thumb.png` in kition-showcase) | Apache-2.0 | A README picture |
 | `assets/readme/made-3.png` | The Kition authors | Rendered by Kition CAD from the showcase sample garden-house-site-plan (its `thumb.png` in kition-showcase) | Apache-2.0 | A README picture |
 | `assets/readme/made-4.png` | The Kition authors | Rendered by Kition CAD from the showcase sample office-car-park-layout (its `thumb.png` in kition-showcase) | Apache-2.0 | A README picture |
+| `web/src/cadIcons.ts` | The Kition authors | Original drawings made for Kition CAD (plain geometry written as SVG path data on a 24 px grid: the ways to draw a circle, an arc, an ellipse, a point and a revision cloud, a spline by control vertices, paragraph text, a gradient, copy with a base point, break at a point, zoom previous); no other product's icons were copied or traced | Apache-2.0 | Command icons in code, no image file; the editor's other command icons are Tessera's, the shared icon set of the `@kition/tessera` dependency |

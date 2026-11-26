@@ -513,13 +513,13 @@ features:
     cases: [cad.editor.status-bar/modes-and-menus]
     since: "2026-11-26"
   - id: cad.editor.ribbon
-    title: "The Classic ribbon keeps its labels when it runs out of room: Home fits whole and labelled at 1440 px (Delete Duplicate Objects left Home for the Modify tab); a Home group short of room shows its first commands labelled with a More button that opens the rest with their labels; a menu tab's first group does the same and its later groups give way first, each as one labelled button that opens the group; no button is an icon alone at 1600, 1440, 1165 or 1024 px"
-    gap: "The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own."
+    title: "Every command on the ribbon has an icon of its own (none draws the neutral command mark, no two commands of a group share one; Kition CAD's own drawings for the ways to draw a circle, an arc, an ellipse, a point and a revision cloud), and the Classic ribbon keeps its labels when it runs out of room: Home fits whole and labelled at 1440 px (Delete Duplicate Objects left Home for the Modify tab); a Home group short of room shows its first commands labelled with a More button that opens the rest with their labels; a menu tab's first group does the same and its later groups give way first, each as one labelled button that opens the group; no button is an icon alone at 1600, 1440, 1165 or 1024 px"
+    gap: "The frame's order of giving way is the shared editor's (from the last group); a group's More is a panel, not a menu with keys of its own. Commands with the same meaning in different groups share an icon (Copy on Edit and Modify, Radius on Dimension and Parametric); the arc variants tell their points apart by small dots, crosses and arrows, which read best at the large size."
     dimension: [function]
     priority: P1
     status: has
-    paths: [web/src/ribbon/FitGroup.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/CommandTab.tsx, web/src/app.css, web/tests/ribbon.mjs]
-    cases: [cad.editor.ribbon/labels-when-short-of-room]
+    paths: [web/src/ribbon/FitGroup.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/CommandTab.tsx, web/src/commandIcons.ts, web/src/cadIcons.ts, docs/attribution.md, web/src/app.css, web/tests/ribbon.mjs]
+    cases: [cad.editor.ribbon/labels-when-short-of-room, cad.editor.ribbon/every-command-its-icon]
     since: "2026-11-26"
   - id: cad.editor.layout-tabs
     title: "Model and layout tabs at the status bar's left: Model, then each layout in the drawing's tab order; choosing one shows that space (layout.set), a line drawn there goes into it, and Model comes back to the model"

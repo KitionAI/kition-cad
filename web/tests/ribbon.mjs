@@ -3,11 +3,16 @@
 // labelled; where a group is short of room it shows its first commands labelled and a More button
 // that opens the rest with their labels, and a command chosen there starts (Home's Annotation at
 // 1280, the Draw tab's Draw group at 1165); a menu tab's later groups give way first, each as one
-// labelled button that opens the group (the Draw tab's Arc at 1440), so Donut stays in view.
+// labelled button that opens the group (the Draw tab's Arc at 1440), so Donut stays in view. Every
+// command button draws an icon of its own: none draws kit-editor's neutral mark, and no two buttons
+// of a group share one (Home and every menu tab, every group whole at 3000 px).
 // node tests/ribbon.mjs [chromium|webkit]; prints PASS or FAIL per step, exits 1 on any FAIL.
 import { mkdir } from 'node:fs/promises'
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { CommandGenericIcon } from '@kition/tessera/icons/react'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -126,6 +131,42 @@ try {
     step('its panel lists Donut with its label', (await panel.getByTestId('cad-cmd-donut.add').textContent()).includes('Donut'))
     await panel.getByTestId('cad-cmd-donut.add').click()
     step('Donut under More starts its prompts', await until(page, async () => (await details()).running === 'donut.add'), String((await details()).running))
+    await page.close()
+  }
+
+  // 6. Every command its own icon: no neutral mark, no icon shared within a group.
+  {
+    const neutral = [...renderToStaticMarkup(createElement(CommandGenericIcon)).matchAll(/ d="([^"]+)"/g)].map((match) => match[1]).join('|')
+    const { page, kit } = await open(3000)
+    const shared = []
+    const marks = []
+    let buttons = 0
+    for (const tab of TABS) {
+      await kit.getByTestId(`ribbon-tab-${tab}`).click()
+      await page.waitForTimeout(400)
+      const groups = await kit.locator('.kui-ribbon-panel [data-ribbon-group]').evaluateAll((elements) => elements.map((group) => ({
+        group: group.dataset.ribbonGroup,
+        buttons: [...group.querySelectorAll('button.kui-ribbon-button[data-testid^="cad-"]')].map((button) => {
+          const svg = button.querySelector('svg')
+          return { label: button.getAttribute('aria-label'), icon: svg ? `${svg.getAttribute('style') ?? ''}${[...svg.querySelectorAll('path, circle, line, rect, polyline, polygon, ellipse')].map((shape) => shape.getAttribute('d') ?? shape.outerHTML).join('|')}` : '' }
+        }),
+      })))
+      for (const { group, buttons: list } of groups) {
+        const seen = new Map()
+        for (const { label, icon } of list) {
+          buttons += 1
+          if (!icon || icon === neutral) marks.push(`${tab} ${group}: ${label}`)
+          if (seen.has(icon)) shared.push(`${tab} ${group}: ${seen.get(icon)} = ${label}`)
+          else seen.set(icon, label)
+        }
+      }
+    }
+    step('the ribbon\'s command buttons are read', buttons > 220, `${buttons} buttons`)
+    step('no command draws the neutral mark', marks.length === 0, marks.slice(0, 12).join(' | '))
+    step('no two commands of a group share an icon', shared.length === 0, shared.slice(0, 12).join(' | '))
+    await kit.getByTestId('ribbon-tab-Draw').click()
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: new URL(`${which}-draw-icons.png`, output).pathname, clip: { x: 0, y: 0, width: 3000, height: 200 } })
     await page.close()
   }
 } catch (error) {

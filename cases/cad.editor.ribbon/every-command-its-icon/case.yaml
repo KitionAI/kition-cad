@@ -1,0 +1,27 @@
+format: 1
+id: cad.editor.ribbon/every-command-its-icon
+feature: cad.editor.ribbon
+intent: >-
+  Every command button on Home and every menu tab draws an icon of its own: at 3000 px, where every
+  group shows whole, no button draws kit-editor's neutral command mark and no two buttons of a group
+  draw the same icon (the circle's six ways, the arc's eleven, the ellipse's three, the points, the
+  revision clouds, Home's Rectangle and Polygon, Rotate and Mirror, Linear, Aligned and Radius). It
+  failed before: Home's Draw, Modify and Annotation and the Edit, Draw, Format, Modify, Tools and
+  View tabs had groups sharing icons, and the Inquiry group drew the neutral mark.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 7 (web/tests/ribbon.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/ribbon.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"
