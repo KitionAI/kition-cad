@@ -209,33 +209,35 @@ impl CadSession {
     }
 
     /// Takes a draft's changes (made on a replica forked from this one) in as one transaction of
-    /// `origin` (`KitSession::merge_changes`), one undo step of the person who accepts it whatever
-    /// `origin`'s kind (the replica's rule, data model D9): the edits made here since the fork
-    /// stay, the result is repaired and the view patched as an import does. Answers the undo steps
-    /// it made (1, or 0 when nothing changed or `origin` is a `system`/`import` one) and the
-    /// damage; a failed repair
-    /// or view load is the damage's error, the transaction staying ([`CadSession::view_loaded`]
-    /// tells whether the view followed). A refused merge changes nothing.
-    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> (u32, Result<Damage>) {
+    /// `origin` (`KitSession::merge_changes`), repaired inside it (one undo step), with the edits
+    /// made here since the fork kept and the view patched as an import does. Answers the undo
+    /// steps it made (1, or 0 when nothing changed or `origin` is a `system`/`import` one) and the
+    /// scope the replica put the step in (the person's who accepts it, whoever made the draft:
+    /// data model D9) with the damage. A refused merge (a collision, or a repair that fails)
+    /// changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> (u32, Result<(Option<UndoScope>, Damage)>) {
         let before = self.inner.version();
         let result = self.inner.merge_changes(bytes, origin);
-        (self.took_in(&before, origin), result)
+        let scope = result.as_ref().ok().and_then(|(scope, _)| *scope);
+        (self.took_in(&before, scope), result)
     }
 
     /// Writes the state `snapshot` holds (a checkpoint's snapshot of this document) over the
     /// replica by object id as one transaction of `origin` (`KitSession::restore_state`), so every
-    /// object the two share keeps its id; answers as [`CadSession::merge_changes`] does. Nothing
-    /// changes when the states are equal; another document's snapshot is refused.
-    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> (u32, Result<Damage>) {
+    /// object the two share keeps its id; answers as [`CadSession::merge_changes`] does, the step
+    /// in `origin`'s scope. Nothing changes when the states are equal; another document's snapshot
+    /// is refused.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> (u32, Result<(Option<UndoScope>, Damage)>) {
         let before = self.inner.version();
-        let result = self.inner.restore_state(snapshot, origin);
-        (self.took_in(&before, origin), result)
+        let scope = UndoScope::of(origin.kind);
+        let result = self.inner.restore_state(snapshot, origin).map(|damage| (scope, damage));
+        (self.took_in(&before, scope), result)
     }
 
-    /// After a merge or a restore since `before`: counts what it wrote as one undo step, as
-    /// [`CadSession::record`] does (the person's for a merge, `origin`'s scope for a restore).
-    fn took_in(&mut self, before: &Version, origin: &Origin) -> u32 {
-        let undoable = self.inner.version() != *before && !matches!(origin.kind, OriginKind::System | OriginKind::Import);
+    /// After a merge or a restore since `before`: counts what it wrote as one undo step when it
+    /// went to an undo scope, as [`CadSession::record`] does.
+    fn took_in(&mut self, before: &Version, scope: Option<UndoScope>) -> u32 {
+        let undoable = self.inner.version() != *before && scope.is_some();
         if undoable {
             self.undo_steps = self.undo_steps.saturating_add(1);
             self.redo_steps = 0;

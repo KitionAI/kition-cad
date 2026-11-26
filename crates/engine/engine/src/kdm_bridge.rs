@@ -33,7 +33,7 @@
 use std::sync::Arc;
 
 use kdm_model::CadSession;
-use kdm_model::kition_kit::kdm::{Origin, OriginKind, UndoScope, Version};
+use kdm_model::kition_kit::kdm::{Origin, UndoScope, Version};
 use kdm_model::kition_kit::session::Damage;
 use kition_cad_doc::{Drawing, Space};
 
@@ -500,13 +500,13 @@ impl Session {
     }
 
     /// Takes a draft's changes (made on a replica forked from this one, `mergeChanges`) into the
-    /// active drawing as one undo step of the person who accepts it (KitModel M12a, data model
-    /// D9), whoever made the draft: the replica records it in the person's history whatever
-    /// `origin`'s kind, so the drawing's history does too, and the person's Undo takes the whole
-    /// draft back while an agent's does not. Local edits not written yet are written first, and
-    /// the drawing and its selection follow the replica. A refused merge changes nothing.
-    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage> {
-        self.take_in(UndoScope::Person, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
+    /// active drawing as one undo step of the scope the replica put it in: the person's who
+    /// accepts it, whoever made the draft (KitModel M12a, data model D9), so the person's Undo
+    /// takes the whole draft back while an agent's does not. Local edits not written yet are
+    /// written first, and the drawing and its selection follow the replica. Answers that scope
+    /// and the damage. A refused merge changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Damage)> {
+        self.take_in("Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
     }
 
     /// Writes the state a snapshot holds (a checkpoint of this drawing, `replica/restore`) over the
@@ -514,23 +514,22 @@ impl Session {
     /// a transaction of `origin`), taken in as a merged draft is ([`Session::merge_changes`]).
     /// Nothing changes when the states are equal.
     pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage> {
-        let scope = if matches!(origin.kind, OriginKind::Agent) { UndoScope::Agent } else { UndoScope::Person };
-        self.take_in(scope, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
+        self.take_in("Restore Version", |kdm| kdm.restore_state(snapshot, origin)).map(|(_, damage)| damage)
     }
 
     /// One transaction `write` makes on the active drawing's replica, taken into the drawing as a
-    /// command's step of `scope`: the drawing follows the replica (as after an import), and the
-    /// history gets the step, its replica undo steps the transaction's, when it is one.
+    /// command's step of the scope the replica put it in: the drawing follows the replica (as
+    /// after an import), and the history gets the step, its replica undo steps the transaction's,
+    /// when it is one.
     ///
     /// A running command ends first, as starting another command ends it (what it drew stays, as
     /// its own step): the replica's history would otherwise hold the command's steps on both sides
     /// of this one, and the command's Undo would take this one back with it.
     fn take_in(
         &mut self,
-        scope: UndoScope,
         label: &str,
-        write: impl FnOnce(&mut CadSession) -> (u32, kdm_model::kition_kit::session::Result<Damage>),
-    ) -> Result<Damage> {
+        write: impl FnOnce(&mut CadSession) -> (u32, kdm_model::kition_kit::session::Result<(Option<UndoScope>, Damage)>),
+    ) -> Result<(Option<UndoScope>, Damage)> {
         if self.running.is_some() {
             self.cancel();
         }
@@ -546,7 +545,10 @@ impl Session {
         } else if changed {
             st.detach_kdm();
         }
-        if follow && steps > 0 {
+        if follow
+            && steps > 0
+            && let Some(scope) = result.as_ref().ok().and_then(|(scope, _)| *scope)
+        {
             st.push_undo(crate::Snapshot { label: label.to_owned(), doc: before, selection, steps, scope });
             // The step is written already: the bridge has nothing of it left to record.
             st.link.mark = st.pushed;

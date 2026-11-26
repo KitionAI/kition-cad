@@ -162,14 +162,19 @@ impl CadDocument {
     /// Takes a draft's changes (from a replica forked from this one) in as one undo step of the
     /// person who accepts it, whoever made the draft (`mergeChanges`, as `kition-sdk`'s
     /// `export_kit_session!` answers it; KitModel M12a): the engine's drawing follows, and one
-    /// Undo of the person takes the whole draft back. Answers `{"damage",
-    /// "summary"}`, `summary` the `StateDiff` of the replicated state before and after. A refused
+    /// Undo of the person takes the whole draft back. Answers `{"damage", "summary", "scope"}`,
+    /// `summary` the `StateDiff` of the replicated state before and after, `scope` the undo scope
+    /// the replica put the step in (`"person"`). A refused
     /// merge changes nothing and fails with the KDM's message.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
         let before = self.replicated_state()?;
-        let damage = self.session.merge_changes(bytes, origin).map_err(engine_error)?;
+        let (scope, damage) = self.session.merge_changes(bytes, origin).map_err(engine_error)?;
         let after = self.replicated_state()?;
-        Ok(json!({ "damage": damage, "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json() }))
+        Ok(json!({
+            "damage": damage,
+            "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json(),
+            "scope": scope.map(|scope| scope.as_str()),
+        }))
     }
 
     /// What merging a draft's changes would change in the drawing now, as `StateDiff` JSON;
@@ -569,7 +574,8 @@ mod tests {
         let (prior_hash, prior_view) = (doc.session.state_hash().unwrap(), view(&doc));
         assert_eq!(model_types(&doc), ["Line", "Line"]);
         let agent = Origin::agent("agent:drafter");
-        doc.merge_changes(&changes, &agent).unwrap();
+        let answer = doc.merge_changes(&changes, &agent).unwrap();
+        assert_eq!(answer["scope"], json!("person"), "the answer names the person's scope: {answer}");
         assert_eq!(model_types(&doc), ["Circle", "Line", "Line"], "the draft's circle and the line drawn here");
         let (merged_hash, merged_view) = (doc.session.state_hash().unwrap(), view(&doc));
         let st = doc.session.state().unwrap();
@@ -579,6 +585,10 @@ mod tests {
         let kdm = doc.session.kdm().unwrap();
         assert!(kdm.can_undo_in(UndoScope::Person), "the replica's history: a step of the person");
         assert!(!kdm.can_undo_in(UndoScope::Agent), "the replica's history: no step of the agent");
+        let held = |scope: UndoScope| -> usize { st.undo.iter().filter(|step| step.scope == scope).map(|step| step.steps as usize).sum() };
+        for scope in [UndoScope::Person, UndoScope::Agent] {
+            assert_eq!(kdm.replica().undo_depth(scope), held(scope), "the replica's and the engine's histories hold the same steps of {scope:?}");
+        }
         let _ = doc.session.undo_in(UndoScope::Agent);
         assert_eq!(doc.session.state_hash().unwrap(), merged_hash, "the agent's undo leaves the draft");
         assert_eq!(view(&doc), merged_view);

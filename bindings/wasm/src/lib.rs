@@ -1204,7 +1204,7 @@ pub mod web {
         }
 
         /// A draft's changes taken in as one undo step, recorded with `origin` (`[kind, principal,
-        /// label]`): `{"damage", "summary"}`. A refusal fails with the KDM's message.
+        /// label]`): `{"damage", "summary", "scope"}`. A refusal fails with the KDM's message.
         #[wasm_bindgen(js_name = mergeChanges)]
         pub fn merge_changes(&mut self, changes: &[u8], origin: &str) -> Result<String, JsError> {
             let origin = origin_of(origin)?;
