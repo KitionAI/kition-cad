@@ -53,6 +53,8 @@ fn the_prompt_is_taken_apart() {
     line(&mut doc, "line");
     line(&mut doc, "0,0");
     line(&mut doc, "10,0");
+    assert_eq!(state(&doc)["prompt"]["keywords"], json!(["Undo"]), "one segment: nothing to close yet");
+    line(&mut doc, "10,10");
     let prompt = &state(&doc)["prompt"];
     assert_eq!((prompt["command"].clone(), prompt["kind"].clone()), (json!("LINE"), json!("point")), "{prompt}");
     let keywords: Vec<&str> = prompt["keywords"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
