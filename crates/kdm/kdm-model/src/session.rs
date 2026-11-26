@@ -222,6 +222,19 @@ impl CadSession {
         (self.took_in(&before, scope), result)
     }
 
+    /// What merging a draft's changes would change in the replica now, the drawing's repair
+    /// included as [`CadSession::merge_changes`] runs it (`KitSession::compare_changes`), so a
+    /// draft's preview is what accepting it gives; nothing changes.
+    pub fn compare_changes(&self, bytes: &[u8]) -> Result<kition_kit::kdm::diff::StateDiff> {
+        self.inner.compare_changes(bytes)
+    }
+
+    /// The replicated state merging a draft's changes would give, the drawing's repair included
+    /// (`KitSession::merged_state`); nothing changes.
+    pub fn merged_state(&self, bytes: &[u8]) -> Result<serde_json::Value> {
+        self.inner.merged_state(bytes)
+    }
+
     /// Writes the state `snapshot` holds (a checkpoint's snapshot of this document) over the
     /// replica by object id as one transaction of `origin` (`KitSession::restore_state`), so every
     /// object the two share keeps its id; answers as [`CadSession::merge_changes`] does, the step

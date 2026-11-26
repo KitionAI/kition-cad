@@ -123,7 +123,8 @@ mod tests {
         let machine = Guarded::create("panictest", factory, s)?;
         let st = s.state()?;
         let (before, selection_before) = (st.doc.clone(), st.selection.clone());
-        s.running = Some(Running { id: "panictest".into(), machine, before, selection_before });
+        let origin = s.origin();
+        s.running = Some(Running { id: "panictest".into(), machine, before, selection_before, origin });
         s.feed(None)
     }
 

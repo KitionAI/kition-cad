@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-draft-preview-repaired
+feature: cad.collab.drafts
+intent: >-
+  A draft's preview (compareChanges) runs the drawing's repair as accepting the draft does: the
+  draft draws a circle on layer Walls while the drawing deletes Walls, the merge's repair moves the
+  circle to layer 0, and the preview names that; the merged state it previews is the state after
+  accepting. Before, the preview compared with the merge without the repair (kition-sdk 7466039).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/src/collab.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "a_drafts_preview_is_what_accepting_it_gives_the_repair_included" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

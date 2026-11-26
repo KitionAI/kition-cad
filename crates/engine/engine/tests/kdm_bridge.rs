@@ -893,6 +893,62 @@ fn a_draft_merged_in_the_middle_of_a_command_ends_the_command_first() {
     assert_eq!(a.kdm_resets(), 0);
 }
 
+fn counts(s: &Session) -> (usize, usize) {
+    let lines = doc(s).model.iter().filter(|e| matches!(e.kind, EntityKind::Line(_))).count();
+    let circles = doc(s).model.iter().filter(|e| matches!(e.kind, EntityKind::Circle(_))).count();
+    (lines, circles)
+}
+
+/// The person starts LINE and types `points` (the first one picked, maybe segments drawn), an
+/// agent's command draws a circle in the middle of it, then the person picks one more point and
+/// ends the LINE. Answers the session and the counts (lines, circles) before the LINE.
+fn line_around_an_agents_circle(points: &[&str]) -> (Session, (usize, usize)) {
+    let mut a = new_session();
+    let start = counts(&a);
+    a.cmdline("line").unwrap();
+    for p in points {
+        a.cmdline(p).unwrap();
+    }
+    a.execute_as("circle.add", &json!({"center": [60, 60], "radius": 2}), &Origin::agent("agent:drafter")).unwrap();
+    assert!(a.running.is_some(), "the agent's command leaves the person's LINE running");
+    assert_holds(&a, "after the agent's circle");
+    a.cmdline("50,40").unwrap();
+    a.cmdline("").unwrap();
+    assert!(a.running.is_none(), "the LINE ended");
+    assert_holds(&a, "after the LINE");
+    (a, start)
+}
+
+/// An agent's command run while the person is in the middle of an interactive command (LINE)
+/// is the agent's step, and the LINE stays the person's one step, whether the LINE had drawn a
+/// segment before the agent's command or only its first point was picked: the person's Undo
+/// takes back the whole LINE and leaves the circle; the agent's Undo takes back the circle and
+/// leaves the whole LINE. Before, the segments drawn before the agent's command were written
+/// with it, as the agent's step: the person's Undo left them, the agent's took them.
+#[test]
+fn an_agents_command_in_the_middle_of_the_persons_line_keeps_each_ones_step() {
+    use kition_cad_engine::UndoScope;
+    for (points, segments) in [(&["30,30"][..], 1), (&["30,30", "40,30"][..], 2)] {
+        let (mut a, (lines, circles)) = line_around_an_agents_circle(points);
+        assert_eq!(counts(&a), (lines + segments, circles + 1), "{points:?}: the LINE's segments and the agent's circle");
+        a.undo_in(UndoScope::Person).unwrap();
+        assert_eq!(counts(&a), (lines, circles + 1), "{points:?}: the person's Undo takes back the whole LINE, the circle stays");
+        assert_holds(&a, "after the person's undo");
+        a.redo_in(UndoScope::Person).unwrap();
+        assert_eq!(counts(&a), (lines + segments, circles + 1), "{points:?}: the person's Redo draws the whole LINE again");
+        assert_holds(&a, "after the person's redo");
+
+        let (mut b, (lines, circles)) = line_around_an_agents_circle(points);
+        b.undo_in(UndoScope::Agent).unwrap();
+        assert_eq!(counts(&b), (lines + segments, circles), "{points:?}: the agent's Undo takes back the circle, the whole LINE stays");
+        assert_holds(&b, "after the agent's undo");
+        b.undo_in(UndoScope::Person).unwrap();
+        assert_eq!(counts(&b), (lines, circles), "{points:?}: then the person's Undo takes back the whole LINE");
+        assert_holds(&b, "after both undos");
+        assert_eq!(b.kdm_resets(), 0);
+    }
+}
+
 fn group_names(s: &Session) -> Vec<String> {
     doc(s).groups.iter().map(|g| g.name.clone()).collect()
 }

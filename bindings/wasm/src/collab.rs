@@ -177,13 +177,13 @@ impl CadDocument {
         }))
     }
 
-    /// What merging a draft's changes would change in the drawing now, as `StateDiff` JSON;
-    /// nothing changes. Refuses what [`CadDocument::merge_changes`] refuses.
+    /// What merging a draft's changes would change in the drawing now, as `StateDiff` JSON, the
+    /// drawing's repair included as [`CadDocument::merge_changes`] runs it (an entity on a layer
+    /// deleted meanwhile goes to `0`), so the preview is what accepting the draft gives; nothing
+    /// changes. Refuses what [`CadDocument::merge_changes`] refuses.
     pub fn compare_changes(&self, bytes: &[u8]) -> Result<Value, String> {
         let kdm = self.session.kdm().ok_or("the drawing has no replica, so no draft of it")?;
-        let before = kdm.replica().state_json().map_err(engine_error)?;
-        let after = kdm.replica().merged_state(bytes).map_err(engine_error)?;
-        Ok(kition_kit::kdm::diff::diff_states(&before, &after).to_json())
+        kdm.compare_changes(bytes).map(|diff| diff.to_json()).map_err(engine_error)
     }
 
     /// Writes the state a snapshot holds (a checkpoint of this drawing, the Kit UI protocol's
@@ -700,6 +700,37 @@ mod tests {
         let answer = doc.merge_changes(&changes, &Origin::person("person:local")).unwrap();
         assert_eq!(answer["summary"], preview, "the comparison named what the merge did: {answer}");
         assert!(doc.compare_changes(b"not changes").is_err());
+    }
+
+    /// A draft's preview runs the drawing's repair as accepting it does: the draft draws a circle
+    /// on layer Walls while the drawing deletes Walls, the merge's repair moves the circle to
+    /// layer `0`, and the preview names that, not the bare merge. Its merged state is the state
+    /// accepting the draft gives. Before, the preview compared with the merge without the repair.
+    #[test]
+    fn a_drafts_preview_is_what_accepting_it_gives_the_repair_included() {
+        let mut doc = CadDocument::open("Plan.dxf", &fixture()).unwrap();
+        doc.execute("layer.add", json!({ "name": "Walls" })).unwrap();
+        let base = doc.version().unwrap();
+        let mut draft = CadDocument::open_with_replica("Plan.dxf", &[], &doc.snapshot().unwrap(), &[]).unwrap();
+        draft.execute("layer.setCurrent", json!({ "name": "Walls" })).unwrap();
+        draft.execute("circle.add", json!({ "center": [300, 200], "radius": 10 })).unwrap();
+        let changes = draft.export_changes(&base).unwrap();
+        doc.execute("layer.delete", json!({ "name": "Walls" })).unwrap();
+        let version = doc.version().unwrap();
+        let kdm = doc.session.kdm().unwrap();
+        let before = kdm.replica().state_json().unwrap();
+        let bare = kition_kit::kdm::diff::diff_states(&before, &kdm.replica().merged_state(&changes).unwrap()).to_json();
+        let merged = kdm.merged_state(&changes).unwrap();
+        let preview = doc.compare_changes(&changes).unwrap();
+        assert_ne!(preview, bare, "the repair changes what the merge gives: {preview}");
+        assert_eq!(doc.version().unwrap(), version, "comparing changes nothing");
+        let answer = doc.merge_changes(&changes, &Origin::person("person:local")).unwrap();
+        assert_eq!(answer["summary"], preview, "the preview named what accepting did: {answer}");
+        assert_eq!(doc.replicated_state().unwrap(), merged, "the preview's merged state is the state after accepting");
+        let d = doc.session.doc().unwrap();
+        assert!(d.layer("Walls").is_none(), "the layer stays deleted");
+        let circle = d.model.iter().find(|e| e.kind.type_name() == "Circle").unwrap();
+        assert_eq!(circle.common.layer, "0", "the draft's circle is on layer 0");
     }
 
     /// An earlier state (a checkpoint's snapshot) is written over the drawing by object id as one

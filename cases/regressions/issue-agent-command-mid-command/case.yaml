@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-agent-command-mid-command
+feature: cad.collab.drafts
+intent: >-
+  An agent's command run while the person is in the middle of LINE is the agent's own step, and
+  the LINE stays the person's one step, whether a segment was drawn before the agent's command or
+  only the first point picked: the person's Undo takes back the whole LINE and leaves the agent's
+  circle, the agent's Undo takes back the circle and leaves the whole LINE, and the drawing is what
+  its replica holds throughout. Before, the segments drawn before the agent's command were written
+  with it as the agent's step, so the person's step was split.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/kdm_bridge.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "an_agents_command_in_the_middle_of_the_persons_line_keeps_each_ones_step" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

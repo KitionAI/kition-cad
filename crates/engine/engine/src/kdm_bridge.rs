@@ -66,6 +66,10 @@ pub struct Link {
     /// Replica steps written for a running command before it ended (an import in the middle of
     /// it): they belong to the step it pushes.
     pub(crate) pending: u32,
+    /// Replica steps of a running command written before another origin's command ran in the
+    /// middle of it ([`Session::hold_running_edits`]): kept from that command's step, they go back
+    /// to `pending` when it returns.
+    pub(crate) held: u32,
     /// The drawing could not be held in a replica (it holds a number that is not finite, or a
     /// handle twice): edits do not try again until a host asks for the replica.
     pub(crate) refused: bool,
@@ -73,7 +77,7 @@ pub struct Link {
 
 impl Link {
     pub(crate) fn new(doc: &Arc<Drawing>) -> Self {
-        Self { kdm: None, synced: doc.clone(), resets: 0, mark: 0, pending: 0, refused: false }
+        Self { kdm: None, synced: doc.clone(), resets: 0, mark: 0, pending: 0, held: 0, refused: false }
     }
 }
 
@@ -236,6 +240,7 @@ impl DocState {
         self.link.resets = self.link.resets.saturating_add(1);
         self.link.synced = self.doc.clone();
         self.link.pending = 0;
+        self.link.held = 0;
         for e in self.undo.iter_mut().chain(self.redo.iter_mut()) {
             e.steps = 0;
         }
@@ -244,7 +249,7 @@ impl DocState {
     /// Lets the replica forget the steps the history can no longer take.
     pub(crate) fn trim_kdm(&mut self) {
         let sum = |v: &[crate::Snapshot]| v.iter().map(|e| e.steps as usize).sum::<usize>();
-        let undo = sum(&self.undo).saturating_add(self.link.pending as usize);
+        let undo = sum(&self.undo).saturating_add(self.link.pending as usize).saturating_add(self.link.held as usize);
         let redo = sum(&self.redo);
         if let Some(kdm) = self.link.kdm.as_mut() {
             kdm.retain_steps(undo, redo);
@@ -429,6 +434,36 @@ impl Session {
     /// setting, to put back.
     pub fn set_origin(&mut self, origin: Option<Origin>) -> Option<Origin> {
         std::mem::replace(&mut self.origin, origin)
+    }
+
+    /// Before a top-level command of another origin than the running interactive command's (an
+    /// agent's command while the person is in the middle of LINE): writes the running command's
+    /// edits so far to the replica as its origin's, and holds those replica steps away from the
+    /// other command's step. Without this, the segments the person had drawn were written with the
+    /// agent's command, as the agent's step: the person's Undo of the LINE left them, the agent's
+    /// took them. Answers the drawing whose steps are held, for
+    /// [`Session::give_back_running_edits`].
+    pub(crate) fn hold_running_edits(&mut self) -> Option<u64> {
+        if self.depth != 0 {
+            return None;
+        }
+        let origin = self.origin();
+        let running = self.running.as_ref().filter(|run| run.origin != origin)?.origin.clone();
+        let st = self.state_mut().ok()?;
+        st.sync_kdm(&running, true, true);
+        let pending = std::mem::take(&mut st.link.pending);
+        st.link.held = st.link.held.saturating_add(pending);
+        Some(st.uid)
+    }
+
+    /// After the command [`Session::hold_running_edits`] ran before: the held replica steps are
+    /// the running command's again, for the step it pushes when it ends.
+    pub(crate) fn give_back_running_edits(&mut self, held: Option<u64>) {
+        let Some(uid) = held else { return };
+        if let Some(st) = self.docs.iter_mut().find(|d| d.uid == uid) {
+            let held = std::mem::take(&mut st.link.held);
+            st.link.pending = st.link.pending.saturating_add(held);
+        }
     }
 
     /// [`Session::execute`] as `origin` (a person, an agent): the replica records the edit as

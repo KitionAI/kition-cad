@@ -419,6 +419,9 @@ pub struct Running {
     pub machine: Box<dyn Interactive>,
     pub before: Arc<Drawing>,
     pub selection_before: Vec<Handle>,
+    /// Who started it (the session's origin then): its edits are theirs, also when another
+    /// origin's command runs before it ends.
+    pub origin: Origin,
 }
 
 /// A pending window/crossing selection started by a click on empty space.
@@ -761,8 +764,15 @@ impl Session {
 
     /// Run a command with JSON parameters (no dialogs). Records undo when the drawing changes.
     /// Afterwards (at the top level) what it changed is written to the drawing's replica.
+    ///
+    /// Run by another origin (an agent's command) while an interactive command is running, the
+    /// running command's edits so far are written first as its own origin's, and its undo step
+    /// keeps them (`Session::hold_running_edits`).
     pub fn execute(&mut self, id: &str, params: &Value) -> Result<Value> {
-        self.top(|s| s.execute_inner(id, params))
+        let held = self.hold_running_edits();
+        let result = self.top(|s| s.execute_inner(id, params));
+        self.give_back_running_edits(held);
+        result
     }
 
     fn execute_inner(&mut self, id: &str, params: &Value) -> Result<Value> {
@@ -861,7 +871,8 @@ impl Session {
                 let st = self.state()?;
                 let before = st.doc.clone();
                 let selection_before = st.selection.clone();
-                self.running = Some(Running { id: spec.id.to_string(), machine, before, selection_before });
+                let origin = self.origin();
+                self.running = Some(Running { id: spec.id.to_string(), machine, before, selection_before, origin });
                 self.pending_window = None;
                 // Some commands complete immediately (e.g. ERASE with a pickfirst selection).
                 self.feed(None)?;

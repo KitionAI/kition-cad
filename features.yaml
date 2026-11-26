@@ -134,7 +134,7 @@ features:
     paths: [bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/kdm_bridge.rs, crates/kdm/kdm-model/src/session.rs]
     target: "Kit UI protocol section 7 (replica/restore); engine contract members mergeChanges, compareChanges, restoreState, changesSince, modelReply, modelBatch, modelDescribe (K3a)"
     gap: Engine tests merge a draft (also one whose entity and the drawing's later one both append to model space), compare it first, restore a version, answer receipts, name reply ids and serve the object model; no case drives a draft or a restore in the editor yet.
-    cases: [regressions/issue-undo-passed-over-history, regressions/issue-agent-draft-person-undo, regressions/issue-draft-merge-mid-command, regressions/issue-file-caches-person-step]
+    cases: [regressions/issue-undo-passed-over-history, regressions/issue-agent-draft-person-undo, regressions/issue-draft-merge-mid-command, regressions/issue-file-caches-person-step, regressions/issue-draft-preview-repaired, regressions/issue-agent-command-mid-command]
     since: "2026-11-25"
   - id: cad.document.identity
     title: "A host asks the document id a .dxf carries and forks a copied drawing (document.identity, document.fork; Kit Process Protocol 5.6): a .dxf embeds no replica, so it carries none and forks into the same bytes"
