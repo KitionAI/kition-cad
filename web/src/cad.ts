@@ -17,6 +17,10 @@ export type Drafting = {
   cursorSize: number
   /** DYNMODE: the dynamic input tooltip beside the cursor (F12). */
   dynamicInput: boolean
+  /** OSMODE: the running object snap modes' bits (without F3's off bit), as the Osnap menu checks them. */
+  osmode?: number
+  /** POLARANG: polar tracking's increment angle in degrees, as the Polar menu checks it. */
+  polarAngle?: number
   /** The command line's prompt taken apart and its history (the engine's `/drafting/commandLine`). */
   commandLine: CommandLineState
   /** The last double-click's request to edit an object in place (`in_place.rs`), or null. */

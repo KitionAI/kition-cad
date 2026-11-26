@@ -502,6 +502,16 @@ features:
     paths: [web/src/strings.ts, web/tests/phrases.mjs]
     cases: [cad.editor.translation/every-label-in-chinese]
     since: "2026-11-26"
+  - id: cad.editor.status-bar
+    title: "The status bar's drafting modes: each mode's tooltip names it and its key (F3, F7, F8, F9, F10, F11, F12); a small arrow beside Osnap lists the running object snap modes with the ones on checked (choosing one changes OSMODE and turns object snaps on; Select All, Clear All), and one beside Polar sets polar tracking's increment angle; both work in the middle of a command without ending it"
+    gap: "No toggles for isometric drafting, transparency, quick properties or annotation scale, and no gear (Drafting Settings dialog); polar's menu offers the usual increments only (no additional angles, no relative-to-last-segment); no right-click menus on the toggles."
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [drafting.objectSnap, drafting.polar, variable.set]
+    paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, bindings/wasm/src/lib.rs, bindings/wasm/src/status_bar_tests.rs, web/tests/status-bar.mjs]
+    cases: [cad.editor.status-bar/modes-and-menus]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

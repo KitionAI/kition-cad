@@ -1,0 +1,29 @@
+format: 1
+id: cad.editor.status-bar/modes-and-menus
+feature: cad.editor.status-bar
+intent: >-
+  The status bar in a real browser: Grid, Snap, Ortho, Polar, Osnap, Otrack and DynInput keep their
+  test ids and their tooltips name them with their keys (F7, F9, F8, F10, F3, F11, F12); the arrow
+  beside Osnap opens the running object snap modes with the ones on checked, choosing Nearest switches
+  only its bit, Clear All turns every mode off (the Osnap button shows off) and Select All every mode
+  on; during LINE choosing Endpoint sets OSMODE to Endpoint and turns object snaps on, the arrow beside
+  Polar sets the increment angle to 45° and turns polar on, its menu then checks 45°, and LINE keeps
+  running. In Rust, inspect() reports OSMODE's mode bits and POLARANG under /drafting, and the
+  commands the menus run change them during LINE without ending it or adding an undo step.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 7 (web/tests/status-bar.mjs, bindings/wasm/src/status_bar_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/status-bar.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

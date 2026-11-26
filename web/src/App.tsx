@@ -20,7 +20,7 @@ import {
 } from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { CATALOGS } from './strings'
-import { CAD_PRIMARY, DRAFTING, HOST_FILE_COMMANDS, MENU_TABS, describe, gripping } from './cad'
+import { CAD_PRIMARY, HOST_FILE_COMMANDS, MENU_TABS, describe, gripping } from './cad'
 import { HomeTab } from './ribbon/HomeTab'
 import { CadCommandTab } from './ribbon/CommandTab'
 import { CatalogProvider } from './commands'
@@ -30,6 +30,7 @@ import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
 import { CadCursor } from './cursor'
+import { DraftingStatus } from './StatusBar'
 
 /** The view tools are the host's; the engine's other tools run in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
@@ -179,28 +180,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
               </>
             ) : null
           }
-          statusEnd={
-            state ? (
-              <span className="cad-drafting">
-                <button type="button" className="cad-mode" disabled={!editor.enabled('view.zoomToFit')} onClick={() => void editor.run('view.zoomToFit', {})} data-testid="cad-status-zoom-extents">
-                  {t('zoomExtents')}
-                </button>
-                {DRAFTING.map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    className="cad-mode"
-                    aria-pressed={state.drafting[mode.id]}
-                    disabled={!editor.enabled(mode.command)}
-                    onClick={() => void editor.run(mode.command, { on: !state.drafting[mode.id] })}
-                    data-testid={`cad-mode-${mode.id}`}
-                  >
-                    {phrase(mode.label)}
-                  </button>
-                ))}
-              </span>
-            ) : null
-          }
+          statusEnd={state ? <DraftingStatus info={state} /> : null}
           panels={panel && state ? <LayersPanel info={state} focus={panelFocus} onClose={() => setPanel(false)} /> : null}
         >
           <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => showPanel('properties')} onHatch={setHatch} />

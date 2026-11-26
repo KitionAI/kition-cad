@@ -522,5 +522,14 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'Write Block': '写块',
     'Zoom Object': '对象缩放',
     'Zoom Previous': '缩放上一个',
+    // The status bar's menus.
+    'Object Snap Settings': '对象捕捉设置',
+    'Polar Angle Settings': '极轴增量角',
+    'Geometric Center': '几何中心',
+    Node: '节点',
+    Extension: '延长线',
+    Insertion: '插入点',
+    'Apparent Intersection': '外观交点',
+    'Clear All': '全部清除',
   },
 }

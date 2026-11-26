@@ -52,6 +52,8 @@ mod query;
 mod read_fields;
 mod render;
 mod scan;
+#[cfg(test)]
+mod status_bar_tests;
 mod tools;
 
 use std::cell::RefCell;
@@ -1267,6 +1269,10 @@ impl CadDocument {
                 "cursorSize": settings.cursorsize,
                 // DYNMODE: the value boxes beside the cursor (F12).
                 "dynamicInput": settings.dynmode,
+                // The status bar's menus: the running object snap modes (OSMODE's bits without
+                // 16384, F3's off) and polar tracking's increment angle (POLARANG, in degrees).
+                "osmode": settings.osmode & 0x3fff,
+                "polarAngle": settings.polarang.to_degrees(),
                 // The command line: the prompt taken apart and the history (command_line.rs).
                 "commandLine": self.command_line_state(),
                 // The last double-click's in-place edit ([`in_place`]).

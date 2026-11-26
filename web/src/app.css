@@ -372,6 +372,30 @@ textarea.cad-in-place {
   cursor: pointer;
 }
 
+.cad-mode-pair {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The small arrow beside Osnap and Polar that opens their settings (StatusBar.tsx). */
+.cad-mode-arrow {
+  height: 20px;
+  width: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--kit-text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.cad-mode-arrow:hover:not(:disabled),
+.cad-mode-arrow[aria-expanded='true'] {
+  background: var(--kit-surface-muted);
+  color: var(--kit-text);
+}
+
 .cad-mode[aria-pressed='true'] {
   border-color: var(--kit-primary);
   background: var(--kit-primary-soft);
