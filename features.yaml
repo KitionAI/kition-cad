@@ -493,6 +493,15 @@ features:
     paths: [bindings/wasm/src/properties.rs, bindings/wasm/src/properties_tests.rs, bindings/wasm/src/in_place.rs, bindings/wasm/src/in_place_tests.rs, bindings/wasm/src/command_line.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/acts.rs, bindings/wasm/agent-commands.json, crates/engine/engine/src/prompt.rs, crates/engine/engine/src/cmd/draw.rs, crates/engine/engine/src/cmd/hatch.rs, web/src/PropertiesPanel.tsx, web/src/LayersPanel.tsx, web/src/properties.ts, web/src/InPlaceText.tsx, web/src/HatchDialog.tsx, web/src/CadCanvas.tsx, web/src/App.tsx, web/src/ribbon/CommandTab.tsx, web/src/cad.ts, web/src/strings.ts, web/src/app.css, web/tests/properties.mjs]
     cases: [cad.editor.properties/properties-by-hand, cad.editor.properties/describe-properties, cad.editor.properties/in-place-text, regressions/issue-layer-properties-hides-panel, regressions/issue-unrounded-properties]
     since: "2026-11-26"
+  - id: cad.editor.translation
+    title: "The editor in Chinese: every label it shows has its zh-CN text (the engine's command titles and menu groups on every ribbon tab, menu and completion, the editor's own labels and menus, the status bar, the Properties rows and object types, the grip menu), checked by a test that names any label left in English"
+    gap: "Command prompts and their options stay English (\"Specify next point or [Close/Undo]\"), by the owner's decision; option letters are typed as in English. Layer, style and block names are the drawing's own and are shown as they are."
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/strings.ts, web/tests/phrases.mjs]
+    cases: [cad.editor.translation/every-label-in-chinese]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

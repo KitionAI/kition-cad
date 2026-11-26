@@ -1,0 +1,29 @@
+format: 1
+id: cad.editor.translation/every-label-in-chinese
+feature: cad.editor.translation
+intent: >-
+  The editor in zh-CN has no label left in English: every string of the editor's own catalog has its
+  Chinese; every label written in the editor's code (phrase keys, the context menus' and the status
+  bar's tables), every row and group of the Properties panel the describe command names, every
+  object type, every grip menu option, and every command title and menu group the engine lists
+  (ribbon tabs, menus, the command line's completions) has a zh-CN phrase; and in a real browser in
+  Chinese every ribbon tab's group names and button labels, the status bar with its menus, the
+  drawing menu with and without a selection and the Properties panel show Chinese. Command prompts
+  stay English by the owner's decision and are not checked.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 7 (web/tests/phrases.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/phrases.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"
