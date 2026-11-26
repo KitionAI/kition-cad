@@ -35,6 +35,9 @@ mod dynamic_input;
 #[cfg(test)]
 mod dynamic_input_tests;
 mod files;
+mod grip_edit;
+#[cfg(test)]
+mod grip_edit_tests;
 mod interaction;
 pub mod links;
 mod params;
@@ -190,7 +193,14 @@ pub struct CadDocument {
     /// A press not yet released: where it went down (drawing units, document pixels).
     press: Option<(Vec2, (f64, f64))>,
     dragging: bool,
-    hot_grip: Option<interaction::HotGrip>,
+    /// The grip edit going on ([`grip_edit`]): hot grips, their mode and options.
+    hot_grip: Option<grip_edit::GripEdit>,
+    /// Grips made hot with Shift+click, waiting for the click that starts their edit.
+    marked: Vec<grip_edit::HotGrip>,
+    /// The grip under the pointer (warm), and the grip a press not yet released went down on (the
+    /// release clicks it however far the pointer went).
+    hover_grip: Option<grip_edit::HotGrip>,
+    press_grip: Option<grip_edit::HotGrip>,
     viewport_synced: bool,
     view_request: Option<Value>,
     view_serial: u64,
@@ -376,6 +386,9 @@ impl CadDocument {
             press: None,
             dragging: false,
             hot_grip: None,
+            marked: Vec::new(),
+            hover_grip: None,
+            press_grip: None,
             viewport_synced: false,
             view_request: None,
             view_serial: 0,
@@ -486,11 +499,8 @@ impl CadDocument {
         self.echo_entry(text);
         // The entry is sent: what the dynamic input boxes held is used up.
         self.forget_dynamic_entry();
-        if let Some(grip) = self.hot_grip {
-            let point = kition_cad_engine::prompt::parse_point(text, grip.base)
-                .filter(|p| p.is_finite())
-                .ok_or("Specify a point, or press Escape to cancel")?;
-            self.commit_grip(point)?;
+        if self.hot_grip.is_some() {
+            self.grip_text(text)?;
             return Ok(json!({ "prompt": self.prompt(), "running": null, "rejected": false }));
         }
         let before = self.current_view();
@@ -541,11 +551,12 @@ impl CadDocument {
                 &kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() },
             );
             out.extend(self.paths(&list, &place, SELECTED, 2.0, true));
+            // Grips: hot ones red, the one under the pointer warm ([`grip_edit`]).
             if self.session.running.is_none() {
                 for handle in &selection {
-                    for grip in self.session.grips_of(*handle).unwrap_or_default() {
+                    for (index, grip) in self.session.grips_of(*handle).unwrap_or_default().into_iter().enumerate() {
                         let (x, y) = place.to_doc(grip);
-                        out.push(ToolOverlay::Anchor { x, y, color: SELECTED, filled: true, size: 7.0 });
+                        out.push(ToolOverlay::Anchor { x, y, color: self.grip_color(*handle, index), filled: true, size: 7.0 });
                     }
                 }
             }
@@ -920,6 +931,7 @@ impl KitDocument for CadDocument {
             commands.push(render::command());
             commands.push(command_line::command());
             commands.push(dynamic_input::command());
+            commands.push(grip_edit::command());
             commands.push(
                 KitCommand {
                     id: "viewport.sync".into(),
@@ -1102,11 +1114,16 @@ impl CadDocument {
         if command == command_line::LIST {
             return Ok(command_line::list(&params));
         }
+        // The grip menu's choice: a grip edit starts (and the person's history gets what it wrote).
+        if command == grip_edit::EDIT {
+            return self.echoed(|doc| doc.grip_edit_command(&params));
+        }
         let before = self.current_view();
         let document_uid = self.session.state().ok().map(|state| state.uid);
         let transparent = kition_cad_engine::cmd::find_command(command).is_some_and(|spec| spec.transparent);
         if command != "command.runLine" && !transparent {
             self.hot_grip = None;
+            self.marked.clear();
             self.forget_aim();
         }
         let result = match command {

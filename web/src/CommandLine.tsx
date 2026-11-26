@@ -32,7 +32,7 @@ type Line = { text: string; error: boolean; key: string }
  * buttons, the history of what commands wrote (the last lines, or the whole of it with F2), and the
  * commands a typed name may mean. What the person types runs as a command-line entry.
  */
-export function CommandLine({ prompt, line, running, input, history, onCommand, expanded, onExpanded, dynamic }: {
+export function CommandLine({ line, running, input, history, onCommand, expanded, onExpanded, dynamic }: {
   prompt: string
   line: CommandLineState
   running: string | null
@@ -63,7 +63,7 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
   // typed word is sent as it is rather than completed.
   const pending = useRef(0)
   const log = useRef<HTMLDivElement>(null)
-  const gripping = prompt.startsWith('STRETCH ')
+  const gripping = line.prompt.grip != null
   const idle = !running && !gripping
   const suggestions = useMemo(() => (idle && historyIndex === null ? suggest(catalog, typed) : []), [catalog, typed, idle, historyIndex])
 
@@ -144,7 +144,7 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
 
   const parts = line.prompt
   const shown = expanded ? lines : rows > 0 ? lines.slice(-rows) : []
-  const placeholder = disabled ? t('commandLine') : gripping ? t('waitPoint') : t(WAITING[idle ? 'command' : parts.kind] ?? 'commandLine')
+  const placeholder = disabled ? t('commandLine') : t(WAITING[idle ? 'command' : parts.kind] ?? 'commandLine')
   return (
     <form
       className="kui-bar cad-command-line"
@@ -200,9 +200,7 @@ export function CommandLine({ prompt, line, running, input, history, onCommand, 
           </div>
         )}
         <div className="cad-prompt" data-testid="cad-prompt">
-          {gripping ? (
-            <span>{phrase(tools?.status ?? prompt)}</span>
-          ) : idle ? (
+          {idle ? (
             <span className="kui-muted">{phrase('Command:')}</span>
           ) : (
             <>

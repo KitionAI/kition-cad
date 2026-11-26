@@ -1,0 +1,32 @@
+format: 1
+id: cad.editor.grips/grips-by-hand
+feature: cad.editor.grips
+intent: >-
+  Grips and the right-click menus in a real browser: the grip under the pointer turns warm and a
+  clicked grip hot (canvas pixels); a drag from a grip opens no selection window and its release
+  makes the grip hot, the next click placing it; Space twice goes from STRETCH to ROTATE, the
+  command line and its history showing the modes, and 90 Enter turns the circle 90° about the grip;
+  Ctrl (Cmd on a Mac) held while placing adds a copy and the edit goes on placing copies until
+  Space; right-click on a grip opens its menu with Stretch, the modes and the grip's Lengthen, which
+  lengthens the line along itself; a held right-click on a hot grip opens its menu and Rotate
+  switches the mode; with objects selected the drawing menu offers Erase, Move, Copy, Scale, Rotate,
+  Mirror, Draw Order, Deselect All and Properties, Move asking for the base point at once and
+  Properties opening the panel; with nothing selected it offers Repeat (naming the last command),
+  Recent Commands, Undo, Redo, Paste, Select All, Pan and Zoom.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 5 (web/tests/grips.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/grips.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

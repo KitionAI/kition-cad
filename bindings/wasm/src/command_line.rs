@@ -67,9 +67,8 @@ impl CadDocument {
     /// between commands), and its base point (`[x, y]`, the last point the rubber band and the
     /// dynamic input boxes measure from; `null` without one; not given between commands).
     fn prompt_parts(&self) -> Value {
-        if self.hot_grip.is_some() {
-            let base = self.hot_grip.map(|grip| [grip.base.x, grip.base.y]);
-            return json!({ "command": "STRETCH", "message": "Specify stretch point", "keywords": [], "default": null, "kind": "point", "base": base });
+        if let Some(parts) = self.grip_prompt_parts() {
+            return parts;
         }
         match (&self.session.running, self.session.current_prompt()) {
             (Some(running), Some(prompt)) => json!({

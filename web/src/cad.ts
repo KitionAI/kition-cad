@@ -36,6 +36,8 @@ export type PromptParts = {
   kind: PromptKind
   /** The base point the rubber band and the dynamic input boxes measure from (drawing units). */
   base?: [number, number] | null
+  /** A hot grip's edit: its mode (`stretch`, `move`, `rotate`, `scale`, `mirror`) and whether it places copies. */
+  grip?: { mode: string; copy: boolean } | null
 }
 
 /** The command line's history: its last lines, and how many lines it has ever had. */
@@ -119,3 +121,8 @@ export const DRAFTING: Array<{ id: DraftingMode; command: string; label: string 
   { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
   { id: 'dynamicInput', command: 'drafting.dynamicInput', label: 'DynInput' },
 ]
+
+/** Whether a hot grip is being edited (its prompt is on the command line; no command runs). */
+export function gripping(info: CadInfo | null): boolean {
+  return info?.drafting.commandLine.prompt.grip != null
+}

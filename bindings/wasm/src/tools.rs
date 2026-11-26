@@ -66,6 +66,7 @@ impl CadDocument {
     fn select_tool_inner(&mut self, id: &str, zoom: f64) -> Result<ToolResponse, String> {
         self.sync_view(zoom);
         self.hot_grip = None;
+        self.marked.clear();
         self.forget_aim();
         self.forget_dynamic_entry();
         *self.reported.borrow_mut() = id.to_owned();
@@ -105,10 +106,15 @@ impl CadDocument {
                 self.press = Some((point, (event.x, event.y)));
                 self.press_hit = self.hit;
                 self.dragging = false;
+                // A press on a grip between commands is a click on it when it comes up, however far
+                // the pointer went meanwhile: a drag from a grip opens no window.
+                let idle = self.hot_grip.is_none() && self.session.running.is_none() && self.session.pending_window.is_none();
+                self.press_grip = if idle { self.pick_grip(point, event.zoom) } else { None };
             }
             PointerAction::Drag => {
                 if let Some((from, (dx, dy))) = self.press
                     && self.hot_grip.is_none()
+                    && self.press_grip.is_none()
                     && !self.dragging
                     && ((event.x - dx).hypot(event.y - dy)) * event.zoom > DRAG_PX
                 {
@@ -120,11 +126,13 @@ impl CadDocument {
                 // Escape discards the press. Its later release is not a new click.
                 let Some((from, _)) = self.press.take() else { return Ok(self.respond()) };
                 let hit = self.press_hit.take();
+                let pressed_grip = self.press_grip.take();
                 let target = if self.dragging { at } else { from };
                 let dragged = self.dragging;
                 self.dragging = false;
                 if self.hot_grip.is_some() {
-                    self.commit_grip(target)?;
+                    // Ctrl (Cmd on a Mac) held while placing places a copy.
+                    self.grip_point(target, event.mods.command || event.mods.control)?;
                 } else if self.session.running.is_some() {
                     // A snap goes in as the snap (a deferred tangent stays deferred until the
                     // line's other end is known), a plain point as the point.
@@ -135,11 +143,8 @@ impl CadDocument {
                     // The click places the point: what the dynamic input boxes held is used up.
                     self.forget_dynamic_entry();
                     self.feed(input)?;
-                } else if !shift
-                    && self.session.pending_window.is_none()
-                    && let Some(grip) = self.pick_grip(target, event.zoom)
-                {
-                    self.hot_grip = Some(grip);
+                } else if let Some(grip) = pressed_grip {
+                    self.click_grip(grip, shift);
                 } else {
                     self.session.idle_click(target, shift).map_err(engine_error)?;
                 }
@@ -150,6 +155,7 @@ impl CadDocument {
         }
         if matches!(event.action, PointerAction::Move | PointerAction::Up) {
             self.update_hover(at);
+            self.update_hover_grip(at, event.zoom);
         }
         Ok(self.respond())
     }
@@ -160,6 +166,10 @@ impl CadDocument {
             "Enter" if self.session.running.is_some() => {
                 self.feed(Input::Enter)?;
             }
+            // Space and Enter cycle a hot grip's modes ([`grip_edit`]).
+            "Enter" if self.hot_grip.is_some() => {
+                self.grip_enter()?;
+            }
             // Enter between commands repeats the last one, also with objects selected (when the
             // page hands editing keys to the engine); a hot grip keeps it.
             "Enter" if self.hot_grip.is_none() => {
@@ -167,13 +177,17 @@ impl CadDocument {
             }
             "Delete" | "Backspace" if self.session.running.is_none() && !self.session.selection().is_empty() => {
                 self.hot_grip = None;
+                self.marked.clear();
+                self.hover_grip = None;
                 self.forget_aim();
                 self.session.execute("object.delete", &json!({})).map_err(engine_error)?;
             }
             "Escape" => {
                 self.forget_dynamic_entry();
-                let cancelled_grip = self.hot_grip.take().is_some();
+                // Hot grips go cold first (the edit, or those Shift made hot).
+                let cancelled_grip = self.hot_grip.take().is_some() | !std::mem::take(&mut self.marked).is_empty();
                 self.press = None;
+                self.press_grip = None;
                 self.press_hit = None;
                 self.dragging = false;
                 self.forget_aim();

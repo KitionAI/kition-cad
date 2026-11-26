@@ -1,0 +1,26 @@
+format: 1
+id: cad.editor.grips/hot-grip-modes
+feature: cad.editor.grips
+intent: >-
+  What the engine does with hot grips: the grip under the pointer is warm and tells the editor its
+  options, a hot grip is red, a locked object's grips are drawn but never warm or picked; a press on
+  a grip clicks it however far it was dragged; Enter cycles STRETCH, MOVE, ROTATE, SCALE, MIRROR
+  (the prompt "STRETCH Specify stretch point or [Base point/Copy/Undo/eXit]:", the command line's
+  "** ROTATE **", the history's mode lines), a mode by name, ROTATE's typed angle and SCALE's factor
+  about the grip in one undo step; MOVE's guide; Base point; Reference; Ctrl or Cmd placing copies
+  and the Copy option, Undo taking the last copy back, Enter after copies and eXit ending the edit;
+  Shift making several grips hot and a click stretching them together; Lengthen, Add vertex and
+  Remove vertex at the prompt and from the grip menu's grip.edit; hostile calls and entries refused
+  without panics or edits.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 5 (bindings/wasm/src/grip_edit_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "grip_edit_tests::" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

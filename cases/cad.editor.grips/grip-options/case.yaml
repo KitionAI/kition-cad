@@ -1,0 +1,22 @@
+format: 1
+id: cad.editor.grips/grip-options
+feature: cad.editor.grips
+intent: >-
+  The grips' own options in the engine: a line's or an arc's end offers Lengthen, a polyline's
+  vertex Add vertex and Remove vertex (Add vertex only with two vertices left), its segment's
+  midpoint Add vertex; what the preview shows is what Session::grip_act commits through
+  object.lengthen and polyline.edit (whose vertex action now also removes a vertex), in one undo
+  step; a line shortened past zero, an option a grip does not have and hostile values are refused
+  without panics. The modes cycle STRETCH, MOVE, ROTATE, SCALE, MIRROR and a typed word names one.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 5 (crates/engine/engine/src/grips_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "grips::tests::grip_" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

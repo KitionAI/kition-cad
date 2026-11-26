@@ -1,15 +1,7 @@
 //! The embedded editor's grips, selected properties, grid and viewport synchronization.
 use super::*;
 use kition_cad_doc::{EntityKind, Handle};
-use kition_cad_engine::grips::{GripMode, stretch_selection};
 use kition_cad_engine::snap::tracking::{CursorQuery, PathShape};
-
-#[derive(Clone, Copy)]
-pub(super) struct HotGrip {
-    handle: Handle,
-    index: usize,
-    pub base: Vec2,
-}
 
 /// How close (screen pixels) the cursor slides onto a tracking path.
 const TRACK_PX: f64 = 6.0;
@@ -129,8 +121,8 @@ impl CadDocument {
     /// The base point and deferred-snap flag of the pipeline's query, when it runs: a hot grip,
     /// or a prompt that asks for a point (not an object pick) with no selection window open.
     fn point_query(&self) -> Option<(Option<Vec2>, bool)> {
-        if let Some(grip) = self.hot_grip {
-            return Some((Some(grip.base), false));
+        if let Some(base) = self.grip_base() {
+            return Some((base, false));
         }
         if self.session.pending_window.is_some() {
             return None;
@@ -281,68 +273,9 @@ impl CadDocument {
         format!("{}, {}, {}", format(point.x), format(point.y), format(0.0))
     }
 
+    /// The prompt as the command line shows it: the hot grip's, or the running command's.
     pub(super) fn prompt(&self) -> String {
-        if self.hot_grip.is_some() { "STRETCH Specify stretch point:".into() } else { self.session.prompt_text() }
-    }
-
-    pub(super) fn pick_grip(&self, point: Vec2, zoom: f64) -> Option<HotGrip> {
-        let doc = self.session.doc().ok()?;
-        let aperture = 6.0 / (self.placement().k * zoom.max(1e-9));
-        self.session
-            .selection()
-            .into_iter()
-            .filter_map(|handle| {
-                let entity = doc.entity(handle)?;
-                if doc.layer(&entity.common.layer).is_some_and(|layer| layer.locked || layer.frozen || !layer.on) {
-                    return None;
-                }
-                entity
-                    .kind
-                    .grips()
-                    .into_iter()
-                    .enumerate()
-                    .filter(|(_, base)| base.dist(point) <= aperture)
-                    .min_by(|(_, a), (_, b)| a.dist(point).total_cmp(&b.dist(point)))
-                    .map(|(index, base)| HotGrip { handle, index, base })
-            })
-            .min_by(|a, b| a.base.dist(point).total_cmp(&b.base.dist(point)))
-    }
-
-    pub(super) fn commit_grip(&mut self, point: Vec2) -> Result<(), String> {
-        let Some(grip) = self.hot_grip else { return Ok(()) };
-        self.session.grip_edit(grip.handle, grip.index, point, GripMode::Stretch).map_err(engine_error)?;
-        self.hot_grip = None;
-        self.forget_aim();
-        Ok(())
-    }
-
-    pub(super) fn grip_overlays(&self) -> Vec<ToolOverlay> {
-        let (Some(grip), Some(destination), Ok(doc)) = (self.hot_grip, self.aim, self.session.doc()) else { return Vec::new() };
-        let Some(edits) = stretch_selection(doc, grip.handle, grip.index, destination, self.session.selection()) else {
-            return Vec::new();
-        };
-        let previews: Vec<_> = edits
-            .into_iter()
-            .filter_map(|(handle, kind)| {
-                let mut entity = (**doc.entity(handle)?).clone();
-                entity.kind = kind;
-                Some(entity)
-            })
-            .collect();
-        let list =
-            kition_cad_render::build_entities(doc, &previews, &kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() });
-        let place = self.placement();
-        let mut overlays = self.paths(&list, &place, ACCENT, 1.5, false);
-        let (x, y) = place.to_doc(grip.base);
-        overlays.push(ToolOverlay::Anchor { x, y, color: ACCENT, filled: true, size: 9.0 });
-        // The tracking path itself is drawn with the command's ([`CadDocument::tracking_overlays`]);
-        // the grip names what holds its point.
-        if let Some(track) = &self.track {
-            let (tx, ty) = place.to_doc(track.point);
-            let name = track.object.or_else(|| track.paths.first().map(|path| path.name)).unwrap_or("Polar");
-            overlays.push(ToolOverlay::Label { x: tx + 8.0, y: ty - 8.0, text: name.to_owned(), color: SNAP });
-        }
-        overlays
+        self.grip_prompt_text().unwrap_or_else(|| self.session.prompt_text())
     }
 
     pub(super) fn selected_objects(&self) -> Vec<Value> {

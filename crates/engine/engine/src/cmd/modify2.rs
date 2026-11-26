@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .alias(&["pe"])
             .params(
                 "{handle | handles, option: close|open|join|width|fit|spline|decurve|reverse|ltypegen|vertex, width?, handles2? (join), fuzz?, \
-                 action?: move|insert|straighten|width, index?, to?, startWidth?, endWidth?, convert?: bool}",
+                 action?: move|insert|remove|straighten|width, index?, to?, startWidth?, endWidth?, convert?: bool}",
             )
             .interactive(|_| Ok(Box::new(PeditM::default()))),
         CommandSpec::new("spline.edit", "Spline", run_splinedit)
@@ -332,6 +332,19 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
                         v.bulge = 0.0;
                     }
                 }
+                // The vertex goes; the segments either side of it become one straight segment.
+                "remove" => {
+                    if n <= 2 {
+                        return Err(bad("polyline.edit", "a polyline keeps at least two vertices"));
+                    }
+                    let before = if i == 0 && pl.closed { n - 1 } else { i.saturating_sub(1) };
+                    if before != i
+                        && let Some(v) = pl.vertices.get_mut(before)
+                    {
+                        v.bulge = 0.0;
+                    }
+                    pl.vertices.remove(i);
+                }
                 "width" => {
                     let sw = f64_or(p, "startWidth", 0.0).max(0.0);
                     let ew = f64_or(p, "endWidth", sw).max(0.0);
@@ -340,7 +353,7 @@ fn pedit_apply(s: &mut Session, h: Handle, opt: &str, p: &Value) -> Result<Value
                         v.end_width = ew;
                     }
                 }
-                _ => return Err(bad("polyline.edit", "action must be move, insert, straighten or width")),
+                _ => return Err(bad("polyline.edit", "action must be move, insert, remove, straighten or width")),
             }
         }
         _ => return Err(bad("polyline.edit", "unknown option")),
@@ -832,6 +845,19 @@ fn measure_len(k: &EntityKind) -> Option<(f64, Option<f64>)> {
         }
         _ => Chain::of(k).map(|c| (c.len(), None)),
     }
+}
+
+/// A line, arc or open polyline lengthened at its end nearest `pick` (a grip there): to the point
+/// `to` (projected along the object), or by `delta` when given; `None` when that would make it
+/// zero length, negative or a full circle. The `Lengthen` grip option previews with this and
+/// commits through `object.lengthen`, which shapes the object the same way.
+pub fn lengthened(k: &EntityKind, pick: Vec2, to: Option<Vec2>, delta: Option<f64>) -> Option<EntityKind> {
+    let mode = match (delta.filter(|d| d.is_finite()), to.filter(|p| p.is_finite())) {
+        (Some(d), _) => LenMode::Delta(d),
+        (None, Some(q)) => LenMode::To(q),
+        (None, None) => return None,
+    };
+    lengthen_kind(k, Some(pick), mode).ok()
 }
 
 /// Lengthen a line, arc or open polyline at the end nearest `pick`.

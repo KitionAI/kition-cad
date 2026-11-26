@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-drag-from-a-grip
+feature: cad.editor.grips
+intent: >-
+  A press on a selected circle's grip dragged away and released makes the grip hot (the next click
+  places it) and opens no selection window. Before, the drag opened a window from the grip and the
+  release selected by it, so a person who tried to drag a grip lost the grip and the selection
+  (walkthrough 别扭 4).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (别扭 4)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_drag_from_a_grip" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

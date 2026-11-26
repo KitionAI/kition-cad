@@ -223,3 +223,82 @@ fn grips_on_locked_layers_and_hostile_values() {
         }
     }
 }
+
+/// The grip options (N11): a line's or an arc's end lengthens, a polyline's vertex is removed or
+/// gets a vertex after it, its segment's midpoint gets one on the segment. What the preview shows
+/// (`grip_action_result`) is what `Session::grip_act` commits, in one undo step.
+#[test]
+fn grip_options_preview_what_they_commit() {
+    let mut s = Session::new();
+    let l = h(&s.execute("line.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
+    let line = kind(&s, l);
+    assert_eq!(grip_actions(&line, 0), vec![GripAction::Lengthen]);
+    assert!(grip_actions(&line, 1).is_empty(), "the midpoint has no options");
+    assert_eq!(grip_actions(&line, 2), vec![GripAction::Lengthen]);
+    let preview = grip_action_result(&line, 2, GripAction::Lengthen, Some(v(14.0, 3.0)), None).unwrap();
+    s.grip_act(l, 2, GripAction::Lengthen, Some(v(14.0, 3.0)), None).unwrap();
+    assert_eq!(kind(&s, l), preview);
+    assert!(matches!(kind(&s, l), EntityKind::Line(x) if near(x.b.xy(), 14.0, 0.0) && near(x.a.xy(), 0.0, 0.0)));
+    s.grip_act(l, 0, GripAction::Lengthen, None, Some(2.0)).unwrap();
+    assert!(matches!(kind(&s, l), EntityKind::Line(x) if near(x.a.xy(), -2.0, 0.0)));
+    assert!(s.grip_act(l, 0, GripAction::Lengthen, None, Some(-100.0)).is_err(), "too short");
+    assert!(s.grip_act(l, 1, GripAction::Lengthen, Some(v(1.0, 1.0)), None).is_err(), "not an option of the midpoint");
+    assert!(s.grip_act(l, 0, GripAction::AddVertex, Some(v(1.0, 1.0)), None).is_err(), "a line has no vertices to add");
+    let a = h(&s.execute("arc.add", &json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})).unwrap());
+    let arc = kind(&s, a);
+    assert_eq!(grip_actions(&arc, 2), vec![GripAction::Lengthen]);
+    assert!(grip_actions(&arc, 3).is_empty(), "the centre");
+    let preview = grip_action_result(&arc, 2, GripAction::Lengthen, Some(v(-5.0, 0.0)), None).unwrap();
+    s.grip_act(a, 2, GripAction::Lengthen, Some(v(-5.0, 0.0)), None).unwrap();
+    assert_eq!(kind(&s, a), preview);
+
+    let p = h(&s.execute("polyline.add", &json!({"points": [[0, 0], [10, 0], [10, 10]]})).unwrap());
+    let poly = kind(&s, p);
+    // Grips: vertex 0, mid 0, vertex 1, mid 1, vertex 2.
+    assert_eq!(grip_actions(&poly, 2), vec![GripAction::AddVertex, GripAction::RemoveVertex]);
+    assert_eq!(grip_actions(&poly, 1), vec![GripAction::AddVertex]);
+    let preview = grip_action_result(&poly, 1, GripAction::AddVertex, Some(v(5.0, -2.0)), None).unwrap();
+    s.grip_act(p, 1, GripAction::AddVertex, Some(v(5.0, -2.0)), None).unwrap();
+    assert_eq!(kind(&s, p), preview);
+    let points = |s: &Session| match kind(s, p) {
+        EntityKind::LwPolyline(x) => x.vertices.iter().map(|q| q.p).collect::<Vec<_>>(),
+        _ => Vec::new(),
+    };
+    assert_eq!(points(&s), vec![v(0.0, 0.0), v(5.0, -2.0), v(10.0, 0.0), v(10.0, 10.0)]);
+    let now = kind(&s, p);
+    let preview = grip_action_result(&now, 2, GripAction::RemoveVertex, None, None).unwrap();
+    s.grip_act(p, 2, GripAction::RemoveVertex, None, None).unwrap();
+    assert_eq!(kind(&s, p), preview);
+    assert_eq!(points(&s), vec![v(0.0, 0.0), v(10.0, 0.0), v(10.0, 10.0)]);
+    s.undo().unwrap();
+    assert_eq!(points(&s).len(), 4, "one undo step");
+    // Two vertices left: none is removed.
+    let two = h(&s.execute("polyline.add", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
+    assert_eq!(grip_actions(&kind(&s, two), 0), vec![GripAction::AddVertex]);
+    assert!(s.grip_act(two, 0, GripAction::RemoveVertex, None, None).is_err());
+    assert!(s.execute("polyline.edit", &json!({"handle": two.hex(), "option": "vertex", "action": "remove", "index": 0})).is_err());
+    // Hostile values and indices do not panic.
+    for (index, to, value) in
+        [(usize::MAX, Some(v(1.0, 1.0)), None), (0, Some(v(f64::NAN, 0.0)), None), (0, None, Some(f64::INFINITY)), (0, None, None)]
+    {
+        for action in [GripAction::AddVertex, GripAction::RemoveVertex, GripAction::Lengthen] {
+            let _ = s.grip_act(p, index, action, to, value);
+            let _ = grip_action_result(&kind(&s, p), index, action, to, value);
+        }
+    }
+}
+
+/// The modes cycle STRETCH, MOVE, ROTATE, SCALE, MIRROR and round; a typed word names one.
+#[test]
+fn grip_modes_cycle_and_are_named() {
+    let mut mode = GripMode::Stretch;
+    let mut seen = Vec::new();
+    for _ in 0..5 {
+        seen.push(mode.name());
+        mode = mode.next();
+    }
+    assert_eq!(seen, ["STRETCH", "MOVE", "ROTATE", "SCALE", "MIRROR"]);
+    assert_eq!(mode, GripMode::Stretch);
+    assert_eq!(GripMode::named(" rotate "), Some(GripMode::Rotate));
+    assert_eq!(GripMode::named("ro"), None, "whole words only (RO is an option's shortcut)");
+}

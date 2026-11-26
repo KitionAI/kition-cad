@@ -1,6 +1,6 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useKitEditor, useKitTools } from '@kition/sdk/editor'
-import { describe } from './cad'
+import { describe, gripping } from './cad'
 
 /**
  * One of the commands the command line knows (the engine's `command.list`): the name typed for it
@@ -57,7 +57,7 @@ export function useStartCommand(): (id: string) => void {
   return useCallback((id: string) => {
     const name = catalog.byId.get(id)?.name ?? id
     const now = editor.session.doc ? describe(editor.session.doc.info) : null
-    if (now && (now.running != null || now.prompt.startsWith('STRETCH '))) {
+    if (now && (now.running != null || gripping(now))) {
       tools?.keyDown({ key: 'Escape', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false })
     }
     void editor.run('command.runLine', { text: name }).then(() => tools?.refresh())

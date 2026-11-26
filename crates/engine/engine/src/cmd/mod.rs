@@ -29,7 +29,7 @@ mod mleader_content;
 mod modify;
 pub use modify::cutting_edge_handles;
 mod modify2;
-pub use modify2::chspace_context;
+pub use modify2::{chspace_context, lengthened};
 mod mtext_opts;
 pub mod names;
 mod pline_opts;

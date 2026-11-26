@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
-import { describe, type CadInfo } from './cad'
-import { cursorState, gridDecoration, ucsDecoration, type CadCursor } from './cursor'
+import { describe, gripping as isGripping, type CadInfo } from './cad'
+import { cursorState, gridDecoration, ucsDecoration, type CadCursor, type GripUnder } from './cursor'
 import { startsPrompt, useCatalog, useStartCommand } from './commands'
 import { DynamicTooltip } from './DynamicTooltip'
 
@@ -9,6 +9,8 @@ import { DynamicTooltip } from './DynamicTooltip'
 const QUICK_RIGHT_MS = 250
 /** Two middle presses closer than this (and within a few pixels) are a double click: Zoom Extents. */
 const DOUBLE_MIDDLE_MS = 400
+/** How near (page pixels) a right press is to a grip to open the grip's menu (the engine's pick range). */
+const GRIP_PX = 8
 /** The pointer resting this long on the canvas acquires the object snap under it for tracking. */
 const DWELL_MS = 400
 /** One wheel notch (100 pixels of delta) zooms by e^0.2, about 1.22 times. */
@@ -32,12 +34,29 @@ const SNAPS: Array<[string, string]> = [
 const PANS: Array<[string, string]> = [['pan.left', 'Left'], ['pan.right', 'Right'], ['pan.up', 'Up'], ['pan.down', 'Down']]
 const ZOOMS: Array<[string, string]> = [['zoom.extents', 'Extents'], ['zoom.in', 'In'], ['zoom.out', 'Out'], ['zoom.previous', 'Previous']]
 
-type MenuKind = 'drawing' | 'command' | 'snap' | 'pan' | 'zoom'
-type Menu = { kind: MenuKind; x: number; y: number }
-type Press = { time: number; x: number; y: number; shift: boolean; running: boolean }
+/** Zoom in the drawing menu between commands: the view commands themselves. */
+const VIEW_ZOOMS: Array<[string, string]> = [['view.zoomToFit', 'Extents'], ['view.zoomIn', 'In'], ['view.zoomOut', 'Out'], ['view.zoomPrevious', 'Previous']]
+/** The grip modes, in the order Space cycles them: the word typed for each, and its label. */
+const GRIP_MODES: Array<[string, string]> = [['stretch', 'Stretch'], ['move', 'Move'], ['rotate', 'Rotate'], ['scale', 'Scale'], ['mirror', 'Mirror']]
+/** The edit each kind of object offers in the drawing menu when everything selected is of it. */
+const TYPE_EDITS: Array<[string[], string, string]> = [
+  [['Text', 'MText'], 'text.edit', 'Edit Text'],
+  [['Hatch'], 'hatch.edit', 'Edit Hatch'],
+  [['Polyline'], 'polyline.edit', 'Edit Polyline'],
+  [['Dimension'], 'dimension.editText', 'Edit Dimension Text'],
+]
+/** The most recent commands the drawing menu lists. */
+const RECENT = 8
+
+type MenuKind = 'drawing' | 'command' | 'snap' | 'pan' | 'zoom' | 'grip' | 'recent' | 'viewZoom' | 'drawOrder'
+type Menu = { kind: MenuKind; x: number; y: number; grip?: GripUnder | null }
+type Press = { time: number; x: number; y: number; shift: boolean; running: boolean; grip: GripUnder | null }
+
+/** A test id part for an option: `Base point` is `Base-point`. */
+const dashed = (text: string) => text.replace(/\s+/g, '-')
 
 /** CAD keeps its model view and the raster viewport in agreement without changing other kits. */
-export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void }) {
+export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom, onProperties }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void; onProperties: () => void }) {
   const editor = useKitEditor()
   const tools = useKitTools()
   const catalog = useCatalog()
@@ -80,7 +99,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   /** A command or a hot grip is waiting for input. */
   const prompting = () => {
     const now = fresh()
-    return now != null && (now.running != null || now.prompt.startsWith('STRETCH '))
+    return now != null && (now.running != null || isGripping(now))
   }
   const refresh = () => tools?.refresh()
   const typeLine = (text: string) => { void editor.run('command.runLine', { text }).then(refresh) }
@@ -113,6 +132,10 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   const open = (kind: MenuKind) => {
     const at = menu
     if (at) window.setTimeout(() => setMenu({ kind, x: at.x, y: at.y }), 0)
+  }
+  /** The grip menu's choice on a grip that is not hot: the grip goes hot in `mode`, or answers `option`. */
+  const editGrip = (grip: GripUnder, choice: { mode?: string; option?: string }) => {
+    void editor.run('grip.edit', { handle: grip.handle, index: grip.index, ...choice }).then(refresh)
   }
 
   const synchronize = (view: KitCanvasView) => {
@@ -169,14 +192,33 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   useEffect(() => () => { if (dwell.current != null) window.clearTimeout(dwell.current) }, [])
 
   // A command with prompts starts them, as a CAD menu does; one without runs.
+  const run = (id: string) => { if (startsPrompt(catalog.byId.get(id))) start(id); else void editor.run(id, {}).then(refresh) }
   const command = (id: string, label: string) => (
-    <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => { if (startsPrompt(catalog.byId.get(id))) start(id); else void editor.run(id, {}) }} testId={`cad-context-${id}`} />
+    <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => run(id)} testId={`cad-context-${id}`} />
   )
+  // An object's own edit starts its prompts on the selection (its dialog-like title notwithstanding).
+  const edit = (id: string, label: string) => {
+    const entry = catalog.byId.get(id)
+    return (
+      <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => { if (entry?.interactive && entry.commandLine) start(id); else void editor.run(id, {}).then(refresh) }} testId={`cad-context-${id}`} />
+    )
+  }
   const unanswerable = () => !prompting() || !editor.enabled('command.runLine')
   const now = fresh()
   // The prompt's options, as the engine gives them (the command line draws the same).
   const options = now?.drafting.commandLine.prompt.keywords ?? []
-  const gripping = now?.prompt.startsWith('STRETCH ') ?? false
+  const gripping = isGripping(now)
+  const selected = now?.selectedObjects ?? []
+  const types = new Set(selected.map((object) => object.type))
+  // The commands run from the command line lately, newest first ("Command: LINE" on the history),
+  // then those typed here; Repeat names the newest.
+  const recent: string[] = []
+  for (const line of [...(now?.drafting.commandLine.history.lines ?? [])].reverse()) {
+    const name = /^Command:\s+'?([A-Za-z][\w.-]*)\s*$/.exec(line)?.[1]
+    if (name && !recent.includes(name.toUpperCase())) recent.push(name.toUpperCase())
+  }
+  for (const text of [...history].reverse()) if (/^[A-Za-z][\w.-]*$/.test(text) && !recent.includes(text.toUpperCase())) recent.push(text.toUpperCase())
+  const grip = menu?.kind === 'grip' ? menu.grip ?? null : null
   return (
     <div
       ref={region}
@@ -188,7 +230,11 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
         if (!(event.target instanceof HTMLCanvasElement)) return
         if (dwell.current != null) window.clearTimeout(dwell.current)
         if (event.button === 2) {
-          const press = { time: event.timeStamp, x: event.clientX, y: event.clientY, shift: event.shiftKey || event.ctrlKey, running: prompting() }
+          const running = prompting()
+          // The grip under the pointer, when the last frame's is still where the press is.
+          const under = cursor.grip
+          const onGrip = !running && under != null && Math.hypot(under.x - event.clientX, under.y - event.clientY) <= GRIP_PX
+          const press = { time: event.timeStamp, x: event.clientX, y: event.clientY, shift: event.shiftKey || event.ctrlKey, running, grip: onGrip ? under : null }
           rightPress.current = press
           menuPress.current = press
         } else if (event.button === 1) {
@@ -212,8 +258,11 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
         if (event.button !== 2 || !press) return
         rightPress.current = null
         if (press.shift) setMenu({ kind: 'snap', x: event.clientX, y: event.clientY })
+        // On a grip between edits: the grip's menu (its modes and options), however long the press.
+        else if (press.grip) setMenu({ kind: 'grip', x: event.clientX, y: event.clientY, grip: press.grip })
         else if (press.running && event.timeStamp - press.time < QUICK_RIGHT_MS) enter()
-        else if (press.running) setMenu({ kind: 'command', x: event.clientX, y: event.clientY })
+        // Held with a hot grip: the grip's menu; in a command: the command menu.
+        else if (press.running) setMenu({ kind: isGripping(fresh()) ? 'grip' : 'command', x: event.clientX, y: event.clientY })
       }}
       onPointerMove={(event) => {
         // The page tells the engine when the pointer rests: one repeated move after the dwell,
@@ -236,21 +285,69 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
         // snap menu, when the button comes up; between commands it is the drawing menu.
         const press = menuPress.current
         menuPress.current = null
-        if (press && (press.shift || press.running)) return
+        if (press && (press.shift || press.running || press.grip)) return
+        // Ctrl+click on a Mac is the system's right-click: during an edit it is a click (a copy).
+        if (!press && event.ctrlKey && prompting()) return
         setMenu({ kind: 'drawing', x: event.clientX, y: event.clientY })
       }}
     >
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} decorateUnder={grid} decorate={ucs} />
       <DynamicTooltip dynamic={dynamic} />
       <ContextMenu at={menu?.kind === 'drawing' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Drawing')} testId="cad-context-menu">
-        <MenuItem label={editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine('')} testId="cad-context-repeat" />
-        {history.slice(-5).reverse().map((text) => <MenuItem key={text} label={text} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine(text)} />)}
+        <MenuItem label={recent[0] ? `${editor.phrase('Repeat')} ${recent[0]}` : editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine('')} testId="cad-context-repeat" />
+        <MenuItem label={`${editor.phrase('Recent Commands')} ▸`} disabled={!recent.length || !editor.enabled('command.runLine')} onSelect={() => open('recent')} testId="cad-context-recent" />
         <MenuSeparator />
-        {command('edit.undo', 'Undo')}{command('edit.redo', 'Redo')}
-        {command('edit.delete', 'Erase')}{command('edit.selectAll', 'Select All')}
+        {selected.length ? (
+          <>
+            {command('edit.delete', 'Erase')}{command('object.move', 'Move')}{command('object.copy', 'Copy Selection')}
+            {command('object.scale', 'Scale')}{command('object.rotate', 'Rotate')}{command('object.mirror', 'Mirror')}
+            <MenuItem label={`${editor.phrase('Draw Order')} ▸`} onSelect={() => open('drawOrder')} testId="cad-context-draworder" />
+            {command('arrange.group', 'Group')}{command('arrange.ungroup', 'Ungroup')}
+            {TYPE_EDITS.filter(([kinds]) => [...types].every((type) => kinds.includes(type))).map(([, id, label]) => edit(id, label))}
+            <MenuSeparator />
+            {command('edit.deselectAll', 'Deselect All')}
+            <MenuItem label={editor.phrase('Properties')} onSelect={onProperties} testId="cad-context-properties" />
+            <MenuSeparator />
+            {command('edit.undo', 'Undo')}{command('edit.redo', 'Redo')}
+          </>
+        ) : (
+          <>
+            {command('edit.undo', 'Undo')}{command('edit.redo', 'Redo')}
+            {command('edit.paste', 'Paste')}{command('edit.selectAll', 'Select All')}
+          </>
+        )}
         <MenuSeparator />
-        <MenuItem label={editor.phrase('Pan')} onSelect={() => tools?.select('hand')} />
-        {command('view.zoomToFit', 'Zoom Extents')}{command('view.zoomIn', 'Zoom In')}{command('view.zoomOut', 'Zoom Out')}
+        <MenuItem label={editor.phrase('Pan')} onSelect={() => tools?.select('hand')} testId="cad-context-pan" />
+        <MenuItem label={`${editor.phrase('Zoom')} ▸`} onSelect={() => open('viewZoom')} testId="cad-context-zoom" />
+      </ContextMenu>
+      <ContextMenu at={menu?.kind === 'recent' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Recent Commands')} testId="cad-recent-menu">
+        {recent.slice(0, RECENT).map((name) => <MenuItem key={name} label={name} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine(name)} testId={`cad-recent-menu-${name}`} />)}
+      </ContextMenu>
+      <ContextMenu at={menu?.kind === 'viewZoom' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Zoom')} testId="cad-view-zoom-menu">
+        {VIEW_ZOOMS.map(([id, label]) => <MenuItem key={id} label={editor.phrase(label)} disabled={!editor.enabled(id)} onSelect={() => void editor.run(id, {}).then(refresh)} testId={`cad-view-zoom-menu-${id}`} />)}
+      </ContextMenu>
+      <ContextMenu at={menu?.kind === 'drawOrder' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Draw Order')} testId="cad-draworder-menu">
+        {command('arrange.bringToFront', 'Bring to Front')}{command('arrange.sendToBack', 'Send to Back')}
+      </ContextMenu>
+      <ContextMenu at={menu?.kind === 'grip' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Grip')} testId="cad-grip-menu">
+        {grip ? (
+          <>
+            <MenuItem label={editor.phrase(grip.actions.some((option) => option.keyword === 'Remove vertex') ? 'Stretch Vertex' : 'Stretch')} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, {})} testId="cad-grip-menu-stretch" />
+            {grip.actions.map((option) => <MenuItem key={option.keyword} label={editor.phrase(option.label)} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, { option: option.keyword })} testId={`cad-grip-menu-${dashed(option.keyword)}`} />)}
+            <MenuSeparator />
+            {GRIP_MODES.slice(1).map(([mode, label]) => <MenuItem key={mode} label={editor.phrase(label)} disabled={!editor.enabled('grip.edit')} onSelect={() => editGrip(grip, { mode })} testId={`cad-grip-menu-${mode}`} />)}
+          </>
+        ) : (
+          <>
+            <MenuItem label={editor.phrase('Enter')} onSelect={enter} testId="cad-grip-menu-enter" />
+            <MenuSeparator />
+            {GRIP_MODES.map(([mode, label]) => <MenuItem key={mode} label={editor.phrase(label)} disabled={unanswerable()} onSelect={() => typeLine(mode)} testId={`cad-grip-menu-${mode}`} />)}
+            <MenuSeparator />
+            {options.map((option) => <MenuItem key={option} label={editor.phrase(option)} disabled={unanswerable()} onSelect={() => typeLine(option)} testId={`cad-grip-menu-${dashed(option)}`} />)}
+            <MenuSeparator />
+            <MenuItem label={editor.phrase('Cancel')} onSelect={cancel} testId="cad-grip-menu-cancel" />
+          </>
+        )}
       </ContextMenu>
       <ContextMenu at={menu?.kind === 'command' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Command')} testId="cad-command-menu">
         <MenuItem label={editor.phrase('Enter')} onSelect={enter} testId="cad-command-menu-enter" />

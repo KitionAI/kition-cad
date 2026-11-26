@@ -473,6 +473,16 @@ features:
     paths: [bindings/wasm/src/dynamic_input.rs, bindings/wasm/src/dynamic_input_tests.rs, bindings/wasm/src/interaction.rs, bindings/wasm/src/command_line.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, web/src/dynamicInput.ts, web/src/DynamicTooltip.tsx, web/src/cursor.ts, web/src/CadCanvas.tsx, web/src/CommandLine.tsx, web/src/App.tsx, web/tests/dynamic-input.mjs]
     cases: [cad.editor.dynamic-input/dynamic-input-by-hand, cad.editor.dynamic-input/entry-and-live-values]
     since: "2026-11-26"
+  - id: cad.editor.grips
+    title: "Grips and the right-click menus by state in the editor: the grip under the pointer warm and a hot grip red, a drag from a grip clicking it, Space and Enter cycling STRETCH, MOVE, ROTATE, SCALE and MIRROR with Base point, Copy, Undo, Reference and eXit, Ctrl to place copies, Shift for several hot grips, the grip menu with the modes and the grip's own options (Lengthen, Add vertex, Remove vertex), and the drawing menu by selection (Erase, Move, Copy, Scale, Rotate, Mirror, Draw Order, Group, the object's edit, Deselect All, Properties; or Repeat, Recent Commands, Undo, Redo, Paste, Select All, Pan, Zoom)"
+    gap: "Each copy is its own undo step (a STRETCH copy two), and several hot grips stretch in one step each, not one step for the whole grip edit; the one-line prompt says STRETCH, not ** STRETCH ** (the command line shows ** STRETCH **); no Convert to Arc or Line, no arc midpoint Radius, no polyline end Lengthen; no grip dimension fields and no angle or factor box for ROTATE and SCALE; Ctrl changes the preview only at the next pointer move; no Select Similar, Add Selected, Quick Select or Find in the drawing menu; a command an agent runs, a read included, ends a person's hot grip."
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [grip.edit, grip.move, grip.rotate, grip.scale, grip.mirror, object.lengthen, polyline.edit]
+    paths: [bindings/wasm/src/grip_edit.rs, bindings/wasm/src/grip_edit_tests.rs, bindings/wasm/src/interaction.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/command_line.rs, bindings/wasm/src/acts.rs, bindings/wasm/agent-commands.json, crates/engine/engine/src/grips.rs, crates/engine/engine/src/grips_tests.rs, crates/engine/engine/src/cmd/modify2.rs, web/src/CadCanvas.tsx, web/src/cursor.ts, web/src/cad.ts, web/src/commands.ts, web/src/CommandLine.tsx, web/src/App.tsx, web/src/strings.ts, web/tests/grips.mjs]
+    cases: [cad.editor.grips/grips-by-hand, cad.editor.grips/hot-grip-modes, cad.editor.grips/grip-options, regressions/issue-drag-from-a-grip]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

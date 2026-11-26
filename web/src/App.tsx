@@ -183,7 +183,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           }
           panels={panel && state ? <LayersPanel info={state} /> : null}
         >
-          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} />
+          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => setPanel(true)} />
           {state ? (
             <FrameChrome>
               <CommandLine

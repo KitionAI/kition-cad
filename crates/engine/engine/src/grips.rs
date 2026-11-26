@@ -28,6 +28,146 @@ pub enum GripMode {
     Mirror,
 }
 
+impl GripMode {
+    /// The mode Space or Enter goes to next: STRETCH, MOVE, ROTATE, SCALE, MIRROR, and round.
+    pub fn next(self) -> Self {
+        match self {
+            GripMode::Stretch => GripMode::Move,
+            GripMode::Move => GripMode::Rotate,
+            GripMode::Rotate => GripMode::Scale,
+            GripMode::Scale => GripMode::Mirror,
+            GripMode::Mirror => GripMode::Stretch,
+        }
+    }
+
+    /// The mode's name as the command line shows it ("STRETCH").
+    pub fn name(self) -> &'static str {
+        match self {
+            GripMode::Stretch => "STRETCH",
+            GripMode::Move => "MOVE",
+            GripMode::Rotate => "ROTATE",
+            GripMode::Scale => "SCALE",
+            GripMode::Mirror => "MIRROR",
+        }
+    }
+
+    /// The mode a typed word names (`move`, `ROTATE`), whole and in any case.
+    pub fn named(word: &str) -> Option<Self> {
+        let word = word.trim();
+        [GripMode::Stretch, GripMode::Move, GripMode::Rotate, GripMode::Scale, GripMode::Mirror]
+            .into_iter()
+            .find(|mode| mode.name().eq_ignore_ascii_case(word))
+    }
+}
+
+/// What a hot grip can do besides its modes (the options of a multifunctional grip): offered at the
+/// hot-grip prompt and in the grip's menu.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GripAction {
+    /// Polyline: a new vertex after this vertex, or on this segment (its midpoint grip).
+    AddVertex,
+    /// Polyline: this vertex goes (a polyline keeps two at least).
+    RemoveVertex,
+    /// Line or arc end: the object lengthened or shortened along itself at this end.
+    Lengthen,
+}
+
+impl GripAction {
+    /// The option as the hot-grip prompt offers it (typed by its capital or whole).
+    pub fn keyword(self) -> &'static str {
+        match self {
+            GripAction::AddVertex => "Add vertex",
+            GripAction::RemoveVertex => "Remove vertex",
+            GripAction::Lengthen => "Lengthen",
+        }
+    }
+
+    /// The grip menu's label.
+    pub fn label(self) -> &'static str {
+        match self {
+            GripAction::AddVertex => "Add Vertex",
+            GripAction::RemoveVertex => "Remove Vertex",
+            GripAction::Lengthen => "Lengthen",
+        }
+    }
+
+    /// The command line's title while the option asks for its point ("ADD VERTEX").
+    pub fn title(self) -> &'static str {
+        match self {
+            GripAction::AddVertex => "ADD VERTEX",
+            GripAction::RemoveVertex => "REMOVE VERTEX",
+            GripAction::Lengthen => "LENGTHEN",
+        }
+    }
+
+    /// Whether the option asks for a point (Remove vertex acts at once).
+    pub fn needs_point(self) -> bool {
+        !matches!(self, GripAction::RemoveVertex)
+    }
+}
+
+/// The options of grip `index` of an object: a line's or an arc's ends lengthen; a polyline's
+/// vertex adds a vertex after it or is removed (when more than two are left), its segment midpoint
+/// adds a vertex on the segment.
+pub fn grip_actions(kind: &EntityKind, index: usize) -> Vec<GripAction> {
+    match kind {
+        EntityKind::Line(_) | EntityKind::Arc(_) if index == 0 || index == 2 => vec![GripAction::Lengthen],
+        EntityKind::LwPolyline(p) => match poly_grip(p, index) {
+            Some(PolyGrip::Vertex(_)) if p.vertices.len() > 2 => vec![GripAction::AddVertex, GripAction::RemoveVertex],
+            Some(PolyGrip::Vertex(_) | PolyGrip::Mid(_)) => vec![GripAction::AddVertex],
+            None => Vec::new(),
+        },
+        _ => Vec::new(),
+    }
+}
+
+/// The polyline vertex an option of grip `index` works on: the one a new vertex goes after (the
+/// grip's vertex, or the start of the grip's segment), or the one removed.
+fn action_vertex(p: &LwPolyline, index: usize) -> Option<usize> {
+    match poly_grip(p, index)? {
+        PolyGrip::Vertex(i) | PolyGrip::Mid(i) => Some(i),
+    }
+}
+
+/// The object after option `action` of grip `index`, with the point `to` (Add vertex, Lengthen) or
+/// the length change `value` (Lengthen); `None` when the option does not apply or the result would
+/// be degenerate. The preview uses it; [`Session::grip_act`] commits the same shape.
+pub fn grip_action_result(kind: &EntityKind, index: usize, action: GripAction, to: Option<Vec2>, value: Option<f64>) -> Option<EntityKind> {
+    if !grip_actions(kind, index).contains(&action) {
+        return None;
+    }
+    match (action, kind) {
+        (GripAction::Lengthen, _) => {
+            let pick = *kind.grips().get(index)?;
+            crate::cmd::lengthened(kind, pick, to, value)
+        }
+        (GripAction::AddVertex, EntityKind::LwPolyline(p)) => {
+            let at = to.filter(|q| q.is_finite())?;
+            let i = action_vertex(p, index)?;
+            let mut p = p.clone();
+            if let Some(v) = p.vertices.get_mut(i) {
+                v.bulge = 0.0;
+            }
+            p.vertices.insert(i.checked_add(1)?.min(p.vertices.len()), kition_cad_geom::PolyVertex::new(at));
+            Some(EntityKind::LwPolyline(p))
+        }
+        (GripAction::RemoveVertex, EntityKind::LwPolyline(p)) => {
+            let i = action_vertex(p, index)?;
+            let n = p.vertices.len();
+            let mut p = p.clone();
+            let before = if i == 0 && p.closed { n.checked_sub(1)? } else { i.saturating_sub(1) };
+            if before != i
+                && let Some(v) = p.vertices.get_mut(before)
+            {
+                v.bulge = 0.0;
+            }
+            (i < n).then(|| p.vertices.remove(i))?;
+            Some(EntityKind::LwPolyline(p))
+        }
+        _ => None,
+    }
+}
+
 fn set_xy(p: &mut Vec3, q: Vec2) {
     p.x = q.x;
     p.y = q.y;
@@ -339,6 +479,38 @@ impl Session {
             GripMode::Rotate => self.execute("grip.rotate", &json!({ "handles": hs, "baseHandle": handle.hex(), "index": grip_index, "to": to })),
             GripMode::Scale => self.execute("grip.scale", &json!({ "handles": hs, "baseHandle": handle.hex(), "index": grip_index, "to": to })),
             GripMode::Mirror => self.execute("grip.mirror", &json!({ "handles": hs, "baseHandle": handle.hex(), "index": grip_index, "to": to })),
+        };
+        r.map(|_| ())
+    }
+
+    /// Option `action` of grip `grip_index` of `handle` with the point `to` or the length change
+    /// `value` (one undo step), through the commands that do it: `object.lengthen` from the grip's
+    /// end, `polyline.edit`'s vertex insert or remove.
+    pub fn grip_act(&mut self, handle: Handle, grip_index: usize, action: GripAction, to: Option<Vec2>, value: Option<f64>) -> Result<()> {
+        let entity = self.doc()?.entity(handle).cloned().ok_or_else(|| EngineError::Other("no such object".into()))?;
+        if !grip_actions(&entity.kind, grip_index).contains(&action) {
+            return Err(EngineError::Other(format!("{} is not an option of that grip", action.label())));
+        }
+        let (h, at) = (handle.hex(), to.filter(|p| p.is_finite()).map(|p| [p.x, p.y]));
+        let r = match (action, &entity.kind) {
+            (GripAction::Lengthen, kind) => {
+                let pick = kind.grips().get(grip_index).map(|p| [p.x, p.y]);
+                match (value.filter(|v| v.is_finite()), at) {
+                    (Some(delta), _) => self.execute("object.lengthen", &json!({ "handle": h, "pick": pick, "delta": delta })),
+                    (None, Some(to)) => self.execute("object.lengthen", &json!({ "handle": h, "pick": pick, "to": to })),
+                    (None, None) => return Err(EngineError::Other("Lengthen needs a point or a length change".into())),
+                }
+            }
+            (GripAction::AddVertex | GripAction::RemoveVertex, EntityKind::LwPolyline(p)) => {
+                let index = action_vertex(p, grip_index).ok_or_else(|| EngineError::Other("no such grip".into()))?;
+                if action == GripAction::AddVertex {
+                    let to = at.ok_or_else(|| EngineError::Other("Add vertex needs a point".into()))?;
+                    self.execute("polyline.edit", &json!({ "handle": h, "option": "vertex", "action": "insert", "index": index, "to": to }))
+                } else {
+                    self.execute("polyline.edit", &json!({ "handle": h, "option": "vertex", "action": "remove", "index": index }))
+                }
+            }
+            _ => return Err(EngineError::Other("no such grip option".into())),
         };
         r.map(|_| ())
     }
