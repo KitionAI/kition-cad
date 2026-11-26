@@ -145,6 +145,9 @@ impl CadDocument {
             }
             PointerAction::DoubleClick => {}
         }
+        if matches!(event.action, PointerAction::Move | PointerAction::Up) {
+            self.update_hover(at);
+        }
         Ok(self.respond())
     }
 

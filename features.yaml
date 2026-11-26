@@ -1,6 +1,6 @@
 format: 1
 kit: cad
-updated: "2026-11-20"
+updated: "2026-11-26"
 gate_budget_s: 600
 protected: []
 features:
@@ -443,6 +443,15 @@ features:
     status: partial
     paths: [bindings/wasm/src/interaction.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/drafting_tests.rs, web/src/App.tsx, web/src/CadCanvas.tsx, web/src/CommandLine.tsx, web/tests/drafting.mjs]
     cases: [cad.editor.drafting-input/drafting-by-hand, cad.editor.drafting-input/tracking, regressions/issue-direct-distance-cursor, regressions/issue-command-cursor-pipeline, regressions/issue-enter-with-selection, regressions/issue-space-and-right-click-enter]
+    since: "2026-11-26"
+  - id: cad.editor.cursor
+    title: "The cursor and the canvas in the editor: a drawn crosshair and pick box by prompt, the rollover highlight, the coordinate readout, the pick box as the pick range, the canvas colour with colour 7 against it, an adaptive grid over the whole canvas, the UCS icon, filled selection windows, preview guides in their own colour"
+    gap: "TRIM and EXTEND highlight the whole object under the pick box, not only the part that changes (the engine has no such hook); there is no selection cycling; the status bar keeps the zoom percentage beside Zoom Extents (existing browser tests read it); the crosshair is not drawn along isometric axes."
+    dimension: [function]
+    priority: P1
+    status: partial
+    paths: [bindings/wasm/src/interaction.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/cursor_tests.rs, crates/engine/engine/src/select.rs, web/src/cursor.ts, web/src/CadCanvas.tsx, web/src/App.tsx, web/tests/cursor.mjs]
+    cases: [cad.editor.cursor/cursor-and-highlight, cad.editor.cursor/cursor-by-hand, regressions/issue-grid-zoomed-out]
     since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"

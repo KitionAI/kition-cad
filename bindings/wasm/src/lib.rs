@@ -11,7 +11,8 @@
 //! scale that puts the longer side between half of [`DOC_SIDE`] and [`DOC_SIDE`] pixels. The scale
 //! follows the drawing alone, so a saved drawing reopens to the same pixels, and it changes only
 //! when the drawing doubles or halves in size. Model space is drawn on
-//! white paper; colour 7 draws black, as on a plot.
+//! white paper, colour 7 black, as on a plot; the on-screen editor gives its canvas colour instead
+//! (`setBackdrop`), colour 7 then black or white against it, and draws the grid itself.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -22,6 +23,8 @@ mod collab;
 #[cfg(test)]
 mod conformance;
 mod context;
+#[cfg(test)]
+mod cursor_tests;
 pub mod document_text;
 #[cfg(test)]
 mod drafting_tests;
@@ -79,6 +82,16 @@ const SELECTED: [u8; 4] = [37, 99, 235, 255];
 const SNAP: [u8; 4] = [234, 140, 0, 255];
 const WINDOW: [u8; 4] = [37, 99, 235, 255];
 const CROSSING: [u8; 4] = [22, 163, 74, 255];
+/// The selection window's see-through fill, blue for a window and green for a crossing.
+const WINDOW_FILL: [u8; 4] = [37, 99, 235, 38];
+const CROSSING_FILL: [u8; 4] = [22, 163, 74, 38];
+/// A preview's guide that is not part of the result (MOVE's line from the base point to the
+/// cursor), so it does not read as a line being drawn.
+const GUIDE: [u8; 4] = [47, 107, 255, 255];
+/// The cursor's own overlays (the crosshair's anchor and the coordinate readout's label) are fully
+/// transparent: the editor draws the crosshair and the readout itself (`web/src/cursor.ts`), and a
+/// host that draws overlays plainly shows nothing for them.
+pub const CURSOR: [u8; 4] = [0, 0, 0, 0];
 
 /// The drawing tools on the rail, in AutoCAD's order: (command, group, icon). Icon names are
 /// `tool-<kind>`, which Kition's editor maps to its own icons.
@@ -156,6 +169,12 @@ pub struct CadDocument {
     press_hit: Option<kition_cad_engine::snap::SnapHit>,
     /// Whether Shift was held at the last pointer event.
     shift: bool,
+    /// The object under the pick box, for the rollover highlight: picked again only when the
+    /// pointer moves ([`interaction`]).
+    hover: Option<kition_cad_doc::Handle>,
+    /// The editor's canvas colour (`setBackdrop`): drawn behind the drawing instead of white paper,
+    /// and the editor then draws the grid itself over the whole canvas.
+    backdrop: Option<Rgb>,
     /// The tracking clock, in seconds ([`interaction`]): only a pointer move repeated where the
     /// last one was (the page sends one when the pointer rests) moves it on.
     clock: f64,
@@ -335,6 +354,8 @@ impl CadDocument {
             track: None,
             press_hit: None,
             shift: false,
+            hover: None,
+            backdrop: None,
             clock: 0.0,
             rest: None,
             tracking_for: None,
@@ -399,12 +420,29 @@ impl CadDocument {
         let view = cad_raster::View { center, scale: place.k * scale, width, height };
         // Hairlines are two pixels wide at 1:1, so they stay visible in the exact reductions Kition
         // shows below 1:1, and thin to one screen pixel as the view zooms in.
-        let options = RasterOptions { background: PAPER, hairline: (HAIRLINE / scale).max(1.0) as f32, ..RasterOptions::default() };
+        let options = RasterOptions { background: self.background(), hairline: (HAIRLINE / scale).max(1.0) as f32, ..RasterOptions::default() };
         let pixmap = cad_raster::render(&built.list, &view, &options).ok_or("the drawing could not be drawn")?;
-        // Paper is opaque, so premultiplied and straight alpha are the same.
-        let mut pixels = pixmap.take();
-        self.draw_grid(&mut pixels, x, y, scale, width, height);
-        Ok(pixels)
+        // The background is opaque, so premultiplied and straight alpha are the same.
+        Ok(pixmap.take())
+    }
+
+    /// What the drawing is drawn on: the editor's canvas colour, or white paper.
+    fn background(&self) -> Rgb {
+        self.backdrop.unwrap_or(PAPER)
+    }
+
+    /// Draws the drawing on `color` (`#rrggbb`, the editor's canvas colour) from now on, colour 7
+    /// black or white against it, and leaves the grid to the editor ([`CadDocument::draw_grid`]).
+    pub fn set_backdrop(&mut self, color: &str) -> Result<(), String> {
+        let hex = color.trim().trim_start_matches('#');
+        let channel = |at: usize| hex.get(at..at + 2).and_then(|part| u8::from_str_radix(part, 16).ok());
+        match (hex.len(), channel(0), channel(2), channel(4)) {
+            (6, Some(r), Some(g), Some(b)) => {
+                self.backdrop = Some(Rgb(r, g, b));
+                Ok(())
+            }
+            _ => Err(format!("{color} is not a #rrggbb colour")),
+        }
     }
 
     /// Tells the engine how many drawing units a screen pixel covers, so pick boxes and snap
@@ -484,25 +522,40 @@ impl CadDocument {
                 }
             }
         }
-        // What the running command would draw at the cursor.
+        // The object under the pick box (the rollover highlight), thinner than the selection.
+        if let Some(entity) = self.hovered().and_then(|handle| state.doc.entity(handle)).filter(|entity| !selection.contains(&entity.handle)) {
+            let list = kition_cad_render::build_entities(
+                &state.doc,
+                std::iter::once(&**entity),
+                &kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() },
+            );
+            out.extend(self.paths(&list, &place, SELECTED, 1.0, true));
+        }
+        // What the running command would draw at the cursor, and its guide (MOVE's line from the
+        // base point to the cursor) in a colour of its own: it is not drawn.
         if let Some(cursor) = self.aim.or(self.cursor) {
-            let preview = self.session.preview(cursor);
+            let mut preview = self.session.preview(cursor);
+            let guide = self.preview_guide(&preview, cursor).then(|| preview.pop()).flatten();
+            let options = kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() };
             if !preview.is_empty() {
-                let list = kition_cad_render::build_entities(
-                    &state.doc,
-                    preview.iter(),
-                    &kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() },
-                );
+                let list = kition_cad_render::build_entities(&state.doc, preview.iter(), &options);
                 out.extend(self.paths(&list, &place, ACCENT, 1.5, false));
             }
+            if let Some(guide) = guide {
+                let list = kition_cad_render::build_entities(&state.doc, std::iter::once(&guide), &options);
+                out.extend(self.paths(&list, &place, GUIDE, 1.5, false));
+            }
         }
-        // The selection window being dragged: blue left to right, green (crossing) right to left.
+        // The selection window being dragged: a see-through blue window left to right with a solid
+        // edge, a green crossing right to left with a dashed one.
         if let (Some(window), Some(cursor)) = (self.session.pending_window.as_ref(), self.cursor) {
             let (ax, ay) = place.to_doc(window.corner);
             let (bx, by) = place.to_doc(cursor);
-            let color = if cursor.x < window.corner.x { CROSSING } else { WINDOW };
+            let crossing = cursor.x < window.corner.x;
+            let (color, fill) = if crossing { (CROSSING, CROSSING_FILL) } else { (WINDOW, WINDOW_FILL) };
+            out.push(ToolOverlay::Highlight { quad: [[ax, ay], [bx, ay], [bx, by], [ax, by]], color: fill });
             let d = format!("M{ax:.2},{ay:.2} L{bx:.2},{ay:.2} L{bx:.2},{by:.2} L{ax:.2},{by:.2} Z");
-            out.push(ToolOverlay::Path { d, color, width: 1.0, dashed: cursor.x < window.corner.x });
+            out.push(ToolOverlay::Path { d, color, width: 1.0, dashed: crossing });
         }
         // The object snap the next click will use.
         if let Some((point, name)) = self.snapped {
@@ -512,7 +565,19 @@ impl CadDocument {
         }
         out.extend(self.tracking_overlays());
         out.extend(self.grip_overlays());
+        out.extend(self.cursor_overlays());
         out
+    }
+
+    /// Whether the preview's last object is only a guide: a line from the prompt's base point to
+    /// the cursor after the objects the command moves, turns or scales (MOVE, COPY, ROTATE, SCALE,
+    /// MIRROR, STRETCH), where the result is those objects. A line alone (LINE's rubber band) is
+    /// what the command draws.
+    fn preview_guide(&self, preview: &[kition_cad_doc::Entity], cursor: Vec2) -> bool {
+        let [_, .., last] = preview else { return false };
+        let kition_cad_doc::EntityKind::Line(line) = &last.kind else { return false };
+        let base = self.session.current_prompt().and_then(|prompt| prompt.base);
+        line.b.xy().near(cursor, 1e-9) && base.is_none_or(|base| line.a.xy().near(base, 1e-9))
     }
 
     fn respond(&self) -> ToolResponse {
@@ -530,16 +595,8 @@ impl CadDocument {
         ToolResponse {
             requests,
             overlays: self.overlays(),
-            // `text` at a prompt that takes free text (a text string, a name): there Space types a
-            // space on the command line instead of entering it (`web/src/App.tsx`).
-            cursor: if self.free_text_prompt() {
-                "text"
-            } else if running {
-                "crosshair"
-            } else {
-                "default"
-            }
-            .to_owned(),
+            // What the cursor is now ([`CadDocument::cursor_state`]), which the editor draws.
+            cursor: self.cursor_state().to_owned(),
             // Editing keys come here while a command runs, a window is open, or objects are
             // selected (Escape clears the selection, Delete erases it).
             busy: running || self.session.pending_window.is_some() || !self.session.selection().is_empty(),
@@ -650,7 +707,9 @@ impl KitDocument for CadDocument {
         let (width, height) = (width.clamp(1, MAX_RENDER_SIDE), height.clamp(1, MAX_RENDER_SIDE));
         let scale = if scale.is_finite() && scale > 0.0 { scale } else { 1.0 };
         if scale >= 1.0 {
-            return self.draw(x, y, scale, width, height);
+            let mut pixels = self.draw(x, y, scale, width, height)?;
+            self.draw_grid(&mut pixels, x, y, scale, scale, width, height);
+            return Ok(pixels);
         }
         let x0 = x.floor() as i32;
         let y0 = y.floor() as i32;
@@ -663,7 +722,11 @@ impl KitDocument for CadDocument {
         let w = u32::try_from(x1.saturating_sub(x0).max(1)).unwrap_or(1).min(MAX_RENDER_SIDE);
         let h = u32::try_from(y1.saturating_sub(y0).max(1)).unwrap_or(1).min(MAX_RENDER_SIDE);
         let full = self.draw(f64::from(x0), f64::from(y0), 1.0, w, h)?;
-        Ok(raster::render_area(Frame { rgba: &full, width: w, height: h }, 0, 0, w as i32, h as i32, width, height))
+        let mut pixels = raster::render_area(Frame { rgba: &full, width: w, height: h }, 0, 0, w as i32, h as i32, width, height);
+        // The grid at the size shown, so a reduction does not blur it into grey.
+        let (sx, sy) = (f64::from(width.max(1)) / f64::from(w), f64::from(height.max(1)) / f64::from(h));
+        self.draw_grid(&mut pixels, f64::from(x0), f64::from(y0), sx, sy, width, height);
+        Ok(pixels)
     }
 
     /// Runs `command`. An agent's command leaves the space shown, MSPACE, the views and the
@@ -1122,13 +1185,23 @@ impl CadDocument {
                 "grid": settings.gridmode,
                 "snap": settings.snapmode,
                 "lwdisplay": settings.lwdisplay,
+                // The grid the editor draws: GRIDUNIT (SNAPUNIT where it is 0) and GRIDMAJOR.
+                "gridUnit": [
+                    if settings.gridunit.x == 0.0 { settings.snapunit.x } else { settings.gridunit.x },
+                    if settings.gridunit.y == 0.0 { settings.snapunit.y } else { settings.gridunit.y },
+                ],
+                "gridMajor": settings.gridmajor.max(1),
+                // CURSORSIZE: the crosshair's arms, as a percentage of the canvas height.
+                "cursorSize": settings.cursorsize,
             },
             "selection": self.session.selection().len(),
             "selectedObjects": self.selected_objects(),
             "viewRequest": self.view_request,
             "prompt": self.prompt(),
             "running": self.session.running.as_ref().map(|running| running.id.clone()),
-            "units": { "perPixel": 1.0 / place.k },
+            // The canvas's drawing units per document pixel, and the document pixel of the
+            // drawing's origin (where the editor's grid lines meet).
+            "units": { "perPixel": 1.0 / place.k, "origin": [place.to_doc(Vec2::ZERO).0, place.to_doc(Vec2::ZERO).1] },
             // The person's (engine rule E14a).
             "canUndo": self.session.can_undo_in(kition_cad_engine::UndoScope::Person),
             "canRedo": self.session.can_redo_in(kition_cad_engine::UndoScope::Person),
@@ -1206,6 +1279,13 @@ pub mod web {
             let origin =
                 kition_cad_engine::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))?;
             self.0.execute_as(command, params, &origin).map(|value| value.to_string()).map_err(error)
+        }
+
+        /// Draws the drawing on the editor's canvas colour (`#rrggbb`) from now on, and leaves the
+        /// grid to the editor (`kit.json` `extras`; kit-editor's `useEngineBackdrop` calls it).
+        #[wasm_bindgen(js_name = setBackdrop)]
+        pub fn set_backdrop(&mut self, color: &str) -> Result<(), JsError> {
+            self.0.set_backdrop(color).map_err(error)
         }
 
         /// Every blob the replica references (a drawing references none), for a peer's `addBlobs`.

@@ -57,6 +57,15 @@
     "engine-tools",
     "kdm"
   ],
+  "extras": {
+    "setBackdrop": {
+      "params": [
+        "color: string"
+      ],
+      "returns": "void",
+      "description": "Draws the drawing on the editor's canvas colour (#rrggbb) from now on, colour 7 black or white against it, and leaves the grid to the editor, which draws it over its whole canvas."
+    }
+  },
   "ui": {
     "mode": "embedded",
     "display": "menus",

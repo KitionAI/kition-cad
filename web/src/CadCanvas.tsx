@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
 import { describe, promptOptions, type CadInfo } from './cad'
+import { cursorState, gridDecoration, ucsDecoration, type CadCursor } from './cursor'
 
 /** A right press shorter than this is Enter; a longer one opens the command menu (as CAD does). */
 const QUICK_RIGHT_MS = 250
@@ -34,7 +35,7 @@ type Menu = { kind: MenuKind; x: number; y: number }
 type Press = { time: number; x: number; y: number; shift: boolean; running: boolean }
 
 /** CAD keeps its model view and the raster viewport in agreement without changing other kits. */
-export function CadCanvas({ canvas, viewMemory, info, history, input, onZoom }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void }) {
+export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, onZoom }: { canvas: RefObject<KitCanvasHandle | null>; viewMemory: RefObject<RasterView | null>; info: CadInfo | null; cursor: CadCursor; history: string[]; input: RefObject<HTMLInputElement | null>; onZoom: (zoom: number) => void }) {
   const editor = useKitEditor()
   const tools = useKitTools()
   const region = useRef<HTMLDivElement>(null)
@@ -46,6 +47,20 @@ export function CadCanvas({ canvas, viewMemory, info, history, input, onZoom }: 
   const middle = useRef<{ time: number; x: number; y: number } | null>(null)
   const dwell = useRef<number | null>(null)
   const { doc } = editor.session
+  // The drawn cursor's state, read by the overlay hook when the canvas draws (set while rendering:
+  // the canvas, a child, draws in its effects, which run before this component's).
+  const drawn = cursorState(tools?.canvasTool.cursor)
+  cursor.state = drawn
+  cursor.size = info?.drafting.cursorSize ?? 5
+  const gridKey = info ? JSON.stringify([info.drafting.grid, info.drafting.gridUnit, info.drafting.gridMajor, info.units]) : ''
+  const grid = useMemo(() => gridDecoration(info, cursor.palette), [gridKey, cursor])
+  const ucs = useMemo(() => ucsDecoration(cursor.palette), [cursor])
+  /** The pointer came onto the canvas or left it (for a menu, a panel): the crosshair follows. */
+  const over = (inside: boolean) => {
+    if (cursor.inside === inside) return
+    cursor.inside = inside
+    tools?.refresh()
+  }
   useEffect(() => { applied.current = 0; lastView.current = '' }, [doc])
 
   /** The engine's state now (the tool calls bring it up to date before React renders it). */
@@ -140,7 +155,10 @@ export function CadCanvas({ canvas, viewMemory, info, history, input, onZoom }: 
   return (
     <div
       ref={region}
-      className="kui-row"
+      className="kui-row cad-canvas"
+      data-cursor={drawn ? 'drawn' : undefined}
+      onPointerOver={(event) => over(event.target instanceof HTMLCanvasElement)}
+      onPointerOut={(event) => { if (event.target instanceof HTMLCanvasElement && !(event.relatedTarget instanceof HTMLCanvasElement)) over(false) }}
       onPointerDownCapture={(event) => {
         if (!(event.target instanceof HTMLCanvasElement)) return
         if (dwell.current != null) window.clearTimeout(dwell.current)
@@ -191,7 +209,7 @@ export function CadCanvas({ canvas, viewMemory, info, history, input, onZoom }: 
         setMenu({ kind: 'drawing', x: event.clientX, y: event.clientY })
       }}
     >
-      <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} />
+      <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} decorateUnder={grid} decorate={ucs} />
       <ContextMenu at={menu?.kind === 'drawing' ? menu : null} onClose={() => setMenu(null)} label={editor.phrase('Drawing')} testId="cad-context-menu">
         <MenuItem label={editor.phrase('Repeat last command')} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine('')} testId="cad-context-repeat" />
         {history.slice(-5).reverse().map((text) => <MenuItem key={text} label={text} disabled={!editor.enabled('command.runLine')} onSelect={() => typeLine(text)} />)}

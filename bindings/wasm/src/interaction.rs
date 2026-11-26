@@ -17,6 +17,32 @@ const TRACK_PX: f64 = 6.0;
 const PATH_PX: f64 = 3000.0;
 /// Half the arms of an acquired point's `+` and a crossing's `x` (screen pixels).
 const MARK_PX: f64 = 4.0;
+/// The fewest screen pixels between grid lines: closer, the spacing is multiplied by 5.
+pub(super) const GRID_PX: f64 = 8.0;
+/// The grid's colour on white paper.
+const GRID: [u8; 4] = [235, 233, 229, 255];
+
+/// GRIDUNIT along one axis, or SNAPUNIT's when it is 0 (the grid follows the snap spacing).
+fn grid_unit(grid: f64, snap: f64) -> f64 {
+    if grid == 0.0 { snap.abs() } else { grid.abs() }
+}
+
+/// Screen pixels between grid lines of `unit` drawing units at `scale` pixels per unit: the unit
+/// times 5 until they are [`GRID_PX`] apart (at most 40 times), or `None` when there is no such
+/// spacing.
+fn grid_step(unit: f64, scale: f64) -> Option<f64> {
+    let mut step = unit * scale;
+    if !step.is_finite() || step <= 0.0 {
+        return None;
+    }
+    for _ in 0..40 {
+        if step >= GRID_PX {
+            break;
+        }
+        step *= 5.0;
+    }
+    (step.is_finite() && step >= GRID_PX).then_some(step)
+}
 
 impl CadDocument {
     /// The pointer at `raw` (drawing units), with Shift held or not: runs the cursor pipeline
@@ -177,6 +203,72 @@ impl CadDocument {
         format!("{distance} < {degrees}°")
     }
 
+    /// What the cursor is now, as the tool answer's CSS cursor, which the editor draws as CAD does
+    /// (`web/src/cursor.ts`): `text` at a prompt that takes free text (there Space types a space
+    /// on the command line, `web/src/App.tsx`); `pointer` at a prompt that picks objects, where
+    /// the pick box alone shows; `crosshair` at any other prompt, for a hot grip, while a selection
+    /// window is open, and between commands with PICKFIRST off (the crosshair alone); `default`
+    /// between commands (the crosshair with the pick box).
+    pub(super) fn cursor_state(&self) -> &'static str {
+        if self.free_text_prompt() {
+            "text"
+        } else if self.hot_grip.is_some() || self.session.pending_window.is_some() {
+            "crosshair"
+        } else if let Some(prompt) = self.session.current_prompt() {
+            if prompt.picks_objects() { "pointer" } else { "crosshair" }
+        } else if self.session.settings.pickfirst {
+            "default"
+        } else {
+            "crosshair"
+        }
+    }
+
+    /// Whether the object under the pick box is highlighted now: where the cursor picks objects
+    /// (between commands with PICKFIRST, at "Select objects"), and not while a selection window is
+    /// open, a drag goes on or a grip is hot.
+    fn shows_hover(&self) -> bool {
+        self.hot_grip.is_none() && self.session.pending_window.is_none() && !self.dragging && self.session.picking_objects()
+    }
+
+    /// Picks the object under the pointer at `at` again (on a pointer move or release), for the
+    /// rollover highlight; nothing where the highlight does not show.
+    pub(super) fn update_hover(&mut self, at: Vec2) {
+        self.hover = if self.shows_hover() { self.session.hover(at, self.session.pick_aperture()) } else { None };
+    }
+
+    /// The object the rollover highlight shows, if any.
+    pub(super) fn hovered(&self) -> Option<Handle> {
+        self.hover.filter(|_| self.shows_hover())
+    }
+
+    /// The cursor, for the editor to draw (both overlays are fully transparent, [`CURSOR`]): an
+    /// anchor where the crosshair goes, as large as the pick box (PICKBOX × 1.5 pixels each side
+    /// of its centre, the pick range), and a label with the coordinate readout, the point a click
+    /// gives in the drawing's units (LUNITS, LUPREC). The crosshair is on the pointer, or on the
+    /// object snap or grid snap holding the point; tracking and Ortho move only the rubber band.
+    pub(super) fn cursor_overlays(&self) -> Vec<ToolOverlay> {
+        let Some(raw) = self.cursor.filter(|point| point.is_finite()) else { return Vec::new() };
+        let aim = self.aim.filter(|point| point.is_finite()).unwrap_or(raw);
+        let settings = &self.session.settings;
+        let held = self.hit.is_some() || (settings.snapmode && !settings.orthomode && self.track.is_none() && self.point_query().is_some());
+        let place = self.placement();
+        let (x, y) = place.to_doc(if held { aim } else { raw });
+        let size = (settings.pickbox.max(1.0) * 3.0).min(300.0) as f32;
+        let (ax, ay) = place.to_doc(aim);
+        vec![
+            ToolOverlay::Anchor { x, y, color: CURSOR, filled: true, size },
+            ToolOverlay::Label { x: ax, y: ay, text: self.coordinates(aim), color: CURSOR },
+        ]
+    }
+
+    /// "120.0000, 45.5000, 0.0000": a point in the drawing's units (LUNITS, LUPREC), as the status
+    /// bar shows the cursor.
+    fn coordinates(&self, point: Vec2) -> String {
+        let (lunits, luprec) = self.session.doc().map(|doc| (doc.header.i64("LUNITS", 2), doc.header.i64("LUPREC", 4))).unwrap_or((2, 4));
+        let format = |value: f64| kition_cad_engine::units::format_distance(value, lunits, luprec);
+        format!("{}, {}, {}", format(point.x), format(point.y), format(0.0))
+    }
+
     pub(super) fn prompt(&self) -> String {
         if self.hot_grip.is_some() { "STRETCH Specify stretch point:".into() } else { self.session.prompt_text() }
     }
@@ -290,31 +382,47 @@ impl CadDocument {
         Ok(json!({}))
     }
 
-    /// Draw a restrained grid behind opaque geometry. Work is bounded by the output pixel count,
-    /// even for hostile spacing or viewport values; the grid gets coarser as the person zooms out.
-    pub(super) fn draw_grid(&self, pixels: &mut [u8], x: f64, y: f64, scale: f64, width: u32, height: u32) {
-        if !self.session.settings.gridmode {
+    /// Draws the grid behind the drawing in pixels already rendered: `width × height` pixels whose
+    /// top-left is document pixel (`x`, `y`), at `sx` × `sy` pixels per document pixel. Only for
+    /// renders without the editor's canvas colour (previews, a host's thumbnails); the on-screen
+    /// editor draws the grid over its whole canvas itself (`web/src/cursor.ts`), outside the
+    /// drawing's area too. The spacing adapts as the grid display does: GRIDUNIT (SNAPUNIT when it
+    /// is 0) times 5 until lines are [`GRID_PX`] apart, with every GRIDMAJOR line solid and the
+    /// others dotted, so it stays light however far the view zooms out. Work is bounded by the
+    /// pixel count, even for hostile spacing or viewport values.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn draw_grid(&self, pixels: &mut [u8], x: f64, y: f64, sx: f64, sy: f64, width: u32, height: u32) {
+        let settings = &self.session.settings;
+        if !settings.gridmode || self.backdrop.is_some() || width == 0 || height == 0 {
             return;
         }
         let place = self.placement();
-        let step = |unit: f64| {
-            let pixels = unit * place.k * scale;
-            if !pixels.is_finite() || pixels <= 0.0 {
-                return None;
-            }
-            let factor = 10.0_f64.powf((12.0 / pixels).max(1.0).log10().ceil());
-            let step = pixels * factor;
-            (step.is_finite() && step >= 1.0).then_some(step)
+        let (Some(sx_step), Some(sy_step)) = (
+            grid_step(grid_unit(settings.gridunit.x, settings.snapunit.x), place.k * sx),
+            grid_step(grid_unit(settings.gridunit.y, settings.snapunit.y), place.k * sy),
+        ) else {
+            return;
         };
-        let (Some(sx), Some(sy)) = (step(self.session.settings.gridunit.x), step(self.session.settings.gridunit.y)) else { return };
+        let major = i64::from(settings.gridmajor.max(1));
         let (ox, oy) = place.to_doc(Vec2::ZERO);
-        let on_line = |pixel: f64, origin: f64, step: f64| (((pixel - origin) / step).round().mul_add(step, origin) - pixel).abs() < 0.5;
-        let columns: Vec<bool> = (0..width).map(|i| on_line(f64::from(i), (ox - x) * scale, sx)).collect();
+        // Which grid line a pixel is on, if any: its index from the origin's line.
+        let line = |pixel: f64, origin: f64, step: f64| {
+            let index = ((pixel - origin) / step).round();
+            ((index.mul_add(step, origin) - pixel).abs() < 0.5 && index.is_finite()).then_some(index as i64)
+        };
+        let columns: Vec<Option<i64>> = (0..width).map(|i| line(f64::from(i), (ox - x) * sx, sx_step)).collect();
+        let background = self.background();
+        let paper = [background.0, background.1, background.2, 255];
         for (row, rgba) in pixels.chunks_exact_mut(width as usize * 4).take(height as usize).enumerate() {
-            let horizontal = on_line(row as f64, (oy - y) * scale, sy);
+            let horizontal = line(row as f64, (oy - y) * sy, sy_step);
             for (col, pixel) in rgba.as_chunks_mut::<4>().0.iter_mut().enumerate() {
-                if (horizontal || columns.get(col).copied().unwrap_or(false)) && *pixel == [255, 255, 255, 255] {
-                    pixel.copy_from_slice(&[235, 233, 229, 255]);
+                if *pixel != paper {
+                    continue;
+                }
+                // A major line is solid; a minor one dotted (every other pixel along it).
+                let on = |index: Option<i64>, along: usize| index.is_some_and(|i| i.rem_euclid(major) == 0 || along.is_multiple_of(2));
+                if on(horizontal, col) || on(columns.get(col).copied().flatten(), row) {
+                    pixel.copy_from_slice(&GRID);
                 }
             }
         }

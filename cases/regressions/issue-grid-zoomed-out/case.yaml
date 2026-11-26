@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-grid-zoomed-out
+feature: cad.editor.cursor
+intent: >-
+  Zoomed far out, the grid stays a grid: its spacing grows by 5 until lines are 8 pixels apart,
+  drawn at the size shown, so most of the canvas keeps its colour and the grid still shows. Before,
+  the grid was drawn at full size and shrunk with the drawing, which turned the paper grey, and the
+  editor showed it only inside the drawing's area, so at 1% it was gone (walkthrough N17).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting walkthrough 2026-11-25 (N17)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_grid_zoomed_out" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

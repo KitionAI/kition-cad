@@ -105,3 +105,14 @@
 }
 
 .cad-editor-root { display: contents; }
+
+/* The canvas draws its own crosshair and pick box (cursor.ts): no system cursor over it. Menus and
+   panels keep theirs. */
+.cad-canvas[data-cursor='drawn'] canvas {
+  cursor: none !important;
+}
+
+.cad-coordinates {
+  min-width: 22ch;
+  font-variant-numeric: tabular-nums;
+}

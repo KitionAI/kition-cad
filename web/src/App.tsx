@@ -9,6 +9,7 @@ import {
   createKitStrings,
   kitLeases,
   toast,
+  useEngineBackdrop,
   useEngineTools,
   useKitEditorState,
   useKitSession,
@@ -26,6 +27,7 @@ import { LayersPanel } from './LayersPanel'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
+import { CadCursor } from './cursor'
 
 /** The view tools are the host's; the engine's other tools run in the engine. */
 const HOST_TOOLS = { hand: HAND_TOOL, zoom: ZOOM_TOOL }
@@ -53,8 +55,12 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const leasedRun = useMemo(() => withConstraintLease(session.run, constraintLease), [session.run, constraintLease])
   const editor = useKitEditorState({ ...session, run: leasedRun }, host, t, 'cad', phrase)
   const { doc, change, state } = session
-  const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', hostTools: HOST_TOOLS })
+  // The crosshair, pick box and coordinate readout CAD draws from the engine's cursor overlays.
+  const cursor = useMemo(() => new CadCursor(), [])
+  const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', hostTools: HOST_TOOLS, drawOverlay: cursor.drawOverlay })
   const canvas = useRef<KitCanvasHandle>(null)
+  // Model space is drawn on the host's canvas colour, not on paper (the engine's `setBackdrop`).
+  useEngineBackdrop(doc, canvas)
   const viewMemory = useRef<RasterView | null>(null)
   const [zoom, setZoom] = useState(1)
   const [tab, setTab] = useState('home')
@@ -113,6 +119,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           status={
             state ? (
               <>
+                {/* Written as the canvas draws the engine's answer (cursor.ts), not by React. */}
+                <span className="cad-coordinates" data-testid="cad-coordinates" ref={(element) => { cursor.readout = element }} />
                 <span data-testid="cad-status">{t('objects', { count: state.entities })}</span>
                 <span>{t('layer', { name: state.currentLayer })}</span>
               </>
@@ -121,6 +129,9 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           statusEnd={
             state ? (
               <span className="cad-drafting">
+                <button type="button" className="cad-mode" disabled={!editor.enabled('view.zoomToFit')} onClick={() => void editor.run('view.zoomToFit', {})} data-testid="cad-status-zoom-extents">
+                  {t('zoomExtents')}
+                </button>
                 {DRAFTING.map((mode) => (
                   <button
                     key={mode.id}
@@ -139,7 +150,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
           }
           panels={panel && state ? <LayersPanel info={state} /> : null}
         >
-          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} history={history} input={commandInput} onZoom={setZoom} />
+          <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} />
           {state ? (
             <FrameChrome>
               <CommandLine prompt={state.prompt} running={state.running} input={commandInput} history={history} onCommand={(text) => setHistory((items) => [...items.filter((item) => item !== text), text].slice(-100))} />

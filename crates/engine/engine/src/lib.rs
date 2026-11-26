@@ -1097,6 +1097,19 @@ impl Session {
         }
     }
 
+    /// The object a pick at `p` would take, for the rollover highlight: the topmost visible object
+    /// within `aperture` (drawing units; [`Session::pick_aperture`] is the pick box's) in the space
+    /// being edited. Objects on frozen or off layers are not picked, and the highlight leaves out
+    /// those on locked layers. It does not ask whether the cursor picks objects right now
+    /// ([`Session::picking_objects`]); the UI does, and recomputes this only when the pointer moves.
+    pub fn hover(&self, p: Vec2, aperture: f64) -> Option<Handle> {
+        if !p.is_finite() || !aperture.is_finite() || aperture <= 0.0 {
+            return None;
+        }
+        let state = self.state().ok()?;
+        select::pick_unlocked(&state.doc, &state.edit_space(), p, aperture)
+    }
+
     /// The text shown on the command line: the active prompt, or "Command:".
     pub fn prompt_text(&self) -> String {
         match &self.running {

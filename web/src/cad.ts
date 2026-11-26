@@ -2,7 +2,26 @@ import type { KitEngineInfo } from '@kition/sdk/editor'
 
 export type Layer = { name: string; on: boolean; frozen: boolean; locked: boolean }
 
-export type Drafting = { ortho: boolean; polar: boolean; osnap: boolean; otrack: boolean; grid: boolean; snap: boolean; lwdisplay: boolean }
+export type Drafting = {
+  ortho: boolean
+  polar: boolean
+  osnap: boolean
+  otrack: boolean
+  grid: boolean
+  snap: boolean
+  lwdisplay: boolean
+  /** The grid's spacing in drawing units (GRIDUNIT, or SNAPUNIT where it is 0) and its major lines (GRIDMAJOR). */
+  gridUnit: [number, number]
+  gridMajor: number
+  /** CURSORSIZE: the crosshair's arms as a percentage of the canvas height. */
+  cursorSize: number
+}
+
+/** The status bar's on/off drafting modes. */
+export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay'
+
+/** The canvas's drawing units per document pixel, and the document pixel of the drawing's origin. */
+export type Units = { perPixel: number; origin: [number, number] }
 
 export type SelectedObject = { handle: string; type: string; layer: string; color: string; locked: boolean; radius?: number; center?: [number, number] }
 export type ViewRequest = { serial: number; x: number; y: number; height: number }
@@ -19,6 +38,7 @@ export type CadInfo = {
   prompt: string
   running: string | null
   drafting: Drafting
+  units: Units | null
 }
 
 export function describe(info: KitEngineInfo): CadInfo {
@@ -32,7 +52,8 @@ export function describe(info: KitEngineInfo): CadInfo {
     viewRequest: inspected.viewRequest ?? null,
     prompt: inspected.prompt ?? '',
     running: inspected.running ?? null,
-    drafting: { ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, ...inspected.drafting },
+    drafting: { ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5, ...inspected.drafting },
+    units: inspected.units?.origin ? inspected.units : null,
   }
 }
 
@@ -56,7 +77,7 @@ export const CAD_PRIMARY: Record<string, readonly string[]> = {
 }
 
 /** The status bar's drafting modes, in AutoCAD's order: the key of each in `Drafting` and the command that sets it. */
-export const DRAFTING: Array<{ id: keyof Drafting; command: string; label: string }> = [
+export const DRAFTING: Array<{ id: DraftingMode; command: string; label: string }> = [
   { id: 'grid', command: 'drafting.grid', label: 'Grid' },
   { id: 'snap', command: 'drafting.snap', label: 'Snap' },
   { id: 'ortho', command: 'drafting.ortho', label: 'Ortho' },

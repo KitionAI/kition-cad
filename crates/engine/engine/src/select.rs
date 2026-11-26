@@ -127,11 +127,30 @@ pub fn pick(d: &Drawing, space: &Space, p: Vec2, aperture: f64) -> Option<Handle
     pick_with(d, space, &ix, p, aperture)
 }
 
+/// The topmost entity within `aperture` of `p` whose layer is not locked: what the rollover
+/// highlight shows (objects on locked layers are not highlighted, so they read as not editable).
+pub fn pick_unlocked(d: &Drawing, space: &Space, p: Vec2, aperture: f64) -> Option<Handle> {
+    let ix = spatial::index(d, space);
+    pick_where(d, space, &ix, p, aperture, &|e: &Entity| d.layer(&e.common.layer).is_none_or(|l| !l.locked))
+}
+
 pub(crate) fn pick_with(d: &Drawing, space: &Space, ix: &Option<std::sync::Arc<SpatialIndex>>, p: Vec2, aperture: f64) -> Option<Handle> {
+    pick_where(d, space, ix, p, aperture, &|_: &Entity| true)
+}
+
+/// The topmost entity within `aperture` of `p` among those `keep` accepts.
+fn pick_where(
+    d: &Drawing,
+    space: &Space,
+    ix: &Option<std::sync::Arc<SpatialIndex>>,
+    p: Vec2,
+    aperture: f64,
+    keep: &dyn Fn(&Entity) -> bool,
+) -> Option<Handle> {
     let probe = Bounds2::new(p, p).expand(aperture);
     let mut best: Option<(f64, Handle)> = None;
     for (e, known) in candidates(d, space, ix, &probe.expand(aperture), true, true)? {
-        if !selectable(d, e) {
+        if !selectable(d, e) || !keep(e) {
             continue;
         }
         let infinite = is_infinite(e);

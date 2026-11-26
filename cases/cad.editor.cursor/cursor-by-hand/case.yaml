@@ -1,0 +1,30 @@
+format: 1
+id: cad.editor.cursor/cursor-by-hand
+feature: cad.editor.cursor
+intent: >-
+  The cursor and the canvas in a real browser: a drawn crosshair with the pick box between
+  commands, the crosshair alone at a point prompt and the pick box alone at "Select objects", the
+  system cursor hidden over the canvas and back off it; the object under the pick box highlighted
+  and no longer once the pointer moves off; the status bar's coordinates following the pointer and
+  equal to an endpoint it snaps to, with the crosshair there; a click within the pick box picks
+  and one outside does not; the canvas colour inside and around the drawing's area, a grid over
+  the whole canvas that stays visible and light far out, the UCS icon; a filled selection window,
+  blue or green by direction; MOVE's base-to-cursor line in a guide colour; a dark theme's dark
+  canvas with colour 7 in white.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 2 (web/tests/cursor.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/cursor.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-26"

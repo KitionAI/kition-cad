@@ -1086,3 +1086,26 @@ fn press_and_drag_selection_window() {
     assert!(!s.begin_window(Vec2::new(f64::NAN, 0.0)));
     assert!(s.pending_window.is_none());
 }
+
+/// The rollover highlight's pick ([`Session::hover`]): the object under the pick box, not one on
+/// a locked, frozen or off layer, and nothing for a hostile point or aperture.
+#[test]
+fn hover_picks_what_a_click_would_and_skips_locked_layers() {
+    let mut s = Session::new();
+    s.execute("circle.add", &json!({"center": [0, 0], "radius": 10})).unwrap();
+    s.execute("layer.add", &json!({"name": "Held", "current": true})).unwrap();
+    s.execute("line.add", &json!({"points": [[100, 0], [200, 0]]})).unwrap();
+    s.execute("layer.setCurrent", &json!({"name": "0"})).unwrap();
+    let circle = s.doc().unwrap().model.iter().next().unwrap().handle;
+    let line = s.doc().unwrap().model.iter().last().unwrap().handle;
+    assert_eq!(s.hover(Vec2::new(10.2, 0.0), 0.5), Some(circle));
+    assert_eq!(s.hover(Vec2::new(11.0, 0.0), 0.5), None, "outside the pick box");
+    assert_eq!(s.hover(Vec2::new(150.0, 0.3), 0.5), Some(line));
+    s.execute("layer.set", &json!({"name": "Held", "locked": true})).unwrap();
+    assert_eq!(s.hover(Vec2::new(150.0, 0.3), 0.5), None, "a locked layer's objects are not highlighted");
+    s.execute("layer.set", &json!({"name": "Held", "locked": false, "frozen": true})).unwrap();
+    assert_eq!(s.hover(Vec2::new(150.0, 0.3), 0.5), None, "a frozen layer's objects are not there to pick");
+    for (p, aperture) in [(Vec2::new(f64::NAN, 0.0), 0.5), (Vec2::new(10.0, 0.0), f64::INFINITY), (Vec2::new(10.0, 0.0), -1.0)] {
+        assert_eq!(s.hover(p, aperture), None);
+    }
+}
