@@ -26,7 +26,7 @@ shaping and right-to-left text through TrueType, vertical SHX text styles.
   **973 rows**, covering menus, command labels, tool groups and tooltips, status controls,
   object snaps, drafting prompts and property labels. Engine diagnostics and command history
   stay English, and uncatalogued text falls back to English.
-- **Simplified Chinese** (`PHRASES['zh-CN']` and the zh-CN catalog in `web/src/strings.ts`): 456
+- **Simplified Chinese** (`PHRASES['zh-CN']` and the zh-CN catalog in `web/src/strings.ts`): 491
   phrases and 31 editor strings, every label the editor shows: the engine's command titles and
   menu groups (ribbon tabs, menus, the command line's completions), the editor's menus, the status
   bar and its menus, the Properties rows and object types, the grip menu. `web/tests/phrases.mjs`
@@ -51,7 +51,7 @@ plus native review by a human; extending the catalog to the remaining English-on
 | Language | Code | UI strings translated | Dialogs / tooltips / help | Script support | Native review | Status | Estimate to `full` |
 |---|---|---|---|---|---|---|---|
 | English | en | source (100%) | 100% (help is a command reference, not AutoCAD-sized help) | Latin: yes | n/a | full | — |
-| Simplified Chinese | zh-Hans | 456 phrases + 31 editor strings: every label the editor shows (measured by `web/tests/phrases.mjs`); command prompts, diagnostics and history English | labels and tooltips yes; the hatch and colour dialogs yes; no help | CJK glyphs render via fallback; the IME types into the command line and in-place text; no vertical text | no | partial | 6–10 h (a prompt translation table in the engine for about 150 interactive commands, keeping the option letters) |
+| Simplified Chinese | zh-Hans | 491 phrases + 31 editor strings: every label the editor shows (measured by `web/tests/phrases.mjs`); command prompts, diagnostics and history English | labels and tooltips yes; the hatch and colour dialogs yes; no help | CJK glyphs render via fallback; the IME types into the command line and in-place text; no vertical text | no | partial | 6–10 h (a prompt translation table in the engine for about 150 interactive commands, keeping the option letters) |
 | Spanish | es | 0 (0%) | 0% | Latin: yes | no | none | 3–5 h |
 | Hindi | hi | 0 (0%) | 0% | Devanagari: no shaping | no | none | 3–5 h + 15–25 h shaping (shared with Arabic) |
 | Arabic | ar | 0 (0%) | 0% | No shaping, no RTL layout or bidi text | no | none | 3–5 h + shaping + 15–25 h RTL UI |
@@ -78,3 +78,4 @@ each language, which needs humans. Translations parallelise fully once the catal
 |---|---|---|
 | 2026-11-17 | major | First public version |
 | 2026-11-26 | minor | Simplified Chinese: every label the editor shows, checked by a test; prompts stay English |
+| 2026-11-26 | minor | Simplified Chinese: the labels of the second round's dialogs and menus (Insert, Drafting Settings, the layout tabs' and the history window's menus, the polyline vertex row) |

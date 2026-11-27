@@ -558,7 +558,12 @@ textarea.cad-in-place {
 
 /* Drafting Settings (DraftingSettings.tsx): the object snap modes in two columns. */
 .cad-settings {
-  min-width: 340px;
+  min-width: 360px;
+}
+
+/* Its labels are longer than the panel's ("Snap X spacing", "Major line every"). */
+.cad-settings .cad-property {
+  grid-template-columns: 130px minmax(0, 1fr);
 }
 
 .cad-settings-snaps {
