@@ -532,6 +532,16 @@ features:
     paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, web/tests/layouts.mjs]
     cases: [cad.editor.layout-tabs/switch-spaces]
     since: "2026-11-26"
+  - id: cad.editor.insert-block
+    title: "The insert dialog in the editor: Home › Insert and typed INSERT open it with the drawing's blocks listed, a scale and a rotation; with the insertion point specified on-screen OK starts INSERT with the block, the scale and the rotation answered at its prompts and the block's ghost follows the cursor until the click places it, and with an X and a Y typed it inserts the block at once (one undo step); a block reference is picked, and highlighted, by what it draws and the boxes of its texts, not by its bounding box"
+    gap: "One uniform scale in the dialog (INSERT's own prompts take separate X and Y factors); no preview image of the block, no Explode option, no Blocks palette; Insert › Block... on the menu tab still opens the shared parameter dialog (web/tests/ribbon.mjs, regression issue-dialog-commands-run-bare, clicks it and fills its fields); the command line itself still refuses INSERT (bindings/wasm the_command_line_cannot_read_or_write_files), so the page opens the dialog for a typed INSERT; text inside a nested block is not hit."
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [block.insert, block.list]
+    paths: [web/src/InsertDialog.tsx, web/src/ribbon/HomeTab.tsx, web/src/CommandLine.tsx, web/src/App.tsx, web/src/app.css, web/src/strings.ts, crates/engine/engine/src/select.rs, crates/engine/engine/tests/picking.rs, web/tests/shell.mjs]
+    cases: [cad.editor.insert-block/insert-dialog, regressions/issue-block-pick-outline]
+    since: "2026-11-26"
   - id: cad.draw.basic-geometry
     title: "Lines, circles, arcs, closed polylines and rectangles"
     dimension: [function, conversion]

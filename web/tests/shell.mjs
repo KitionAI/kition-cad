@@ -1,0 +1,207 @@
+// Panels and the shell by hand (stage 9): the insert dialog (the block list, a scale, a rotation,
+// the insertion point clicked on the drawing with the block's ghost under the cursor; typed INSERT
+// opens it) and a block reference picked by what it draws; more of the Properties panel writes
+// (a polyline's vertices one by one, the positions of an ellipse, a point and a block reference,
+// a block's scale and rotation) and its linetype list loads every library linetype; the status
+// bar's Transparency toggle and the Drafting Settings dialog behind its gear; the layout tabs' "+"
+// and their menu (rename, delete); clicked points on the command history and Copy on its menu.
+// node tests/shell.mjs [chromium|webkit]; prints PASS or FAIL per step, exits 1 on any FAIL.
+import { mkdir } from 'node:fs/promises'
+import { chromium, webkit } from 'playwright'
+import { createServer } from 'vite'
+
+const which = process.argv[2] ?? 'chromium'
+const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
+await server.listen()
+const origin = `http://127.0.0.1:${server.httpServer.address().port}`
+const browser = await (which === 'webkit' ? webkit : chromium).launch()
+const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } })
+page.setDefaultTimeout(10_000)
+const kit = page.frameLocator('#kit')
+const input = kit.getByTestId('cad-command-line')
+const surface = kit.getByTestId('kit-canvas-surface')
+const output = new URL('../test-results/shell/', import.meta.url)
+const errors = []
+let failures = 0
+page.on('pageerror', (error) => errors.push(error.message))
+const step = (name, ok, detail = '') => {
+  if (!ok) failures += 1
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${which} ${name}${detail ? ` - ${detail}` : ''}`)
+}
+const until = async (check, tries = 50) => {
+  for (let i = 0; i < tries; i += 1) {
+    if (await check().catch(() => false)) return true
+    await page.waitForTimeout(100)
+  }
+  return false
+}
+const wait = (ms) => page.waitForTimeout(ms)
+const inspect = () => page.evaluate(async () => window.devHost.connection().ai.inspect())
+const details = async () => (await inspect()).details
+const prompt = async () => (await details()).drafting?.commandLine?.prompt ?? {}
+const history = async () => (await details()).drafting?.commandLine?.history?.lines ?? []
+const command = async (...entries) => {
+  for (const text of entries) { await input.fill(text); await input.press('Enter'); await wait(150) }
+}
+const idle = () => until(async () => (await details()).running == null)
+/** An agent's commands: the setup a step does not test, and the test's eyes (never while a grip is hot). */
+const agent = async (...steps) => {
+  const run = await page.evaluate(async (steps) => window.devHost.connection().ai.run(steps.map(([command, params]) => ({ command, params })), false), steps)
+  return (run.completed ?? []).map((done) => done?.result ?? done?.value ?? done)
+}
+const query = async (type) => (await agent(['object.query', type ? { type } : {}]))[0]?.entities ?? []
+const text = async (testId) => (await kit.getByTestId(testId).innerText({ timeout: 1000 })).trim()
+// Drawing units to page pixels: measured with the coordinate readout (the point under the pointer
+// between commands) at two whole pixels, after every change of view.
+let scale = null
+const calibrate = async () => {
+  const box = await surface.boundingBox()
+  const probes = [[Math.round(box.x + box.width * 0.3), Math.round(box.y + box.height * 0.3)], [Math.round(box.x + box.width * 0.6), Math.round(box.y + box.height * 0.7)]]
+  const world = []
+  for (const [x, y] of probes) {
+    await page.mouse.move(x + 1, y)
+    await page.mouse.move(x, y)
+    await wait(200)
+    world.push((await text('cad-coordinates')).split(',').map((part) => Number(part.trim())))
+  }
+  const sx = (probes[1][0] - probes[0][0]) / (world[1][0] - world[0][0])
+  const sy = (probes[1][1] - probes[0][1]) / (world[1][1] - world[0][1])
+  scale = { sx, sy, x0: probes[0][0] - world[0][0] * sx, y0: probes[0][1] - world[0][1] * sy }
+}
+const toScreen = (x, y) => ({ x: scale.x0 + x * scale.sx, y: scale.y0 + y * scale.sy })
+const perPixel = () => 1 / Math.abs(scale.sy)
+const near = (a, b, tolerance) => Math.abs(a - b) <= tolerance
+const screenshot = async (name) => page.screenshot({ path: new URL(`${which}-${name}.png`, output).pathname }).catch(() => {})
+const click = async (x, y) => {
+  const at = toScreen(x, y)
+  await page.mouse.move(at.x, at.y, { steps: 3 })
+  await page.mouse.click(at.x, at.y)
+  await wait(300)
+}
+const rightClick = async (locator) => {
+  const box = await locator.boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down({ button: 'right' })
+  await page.mouse.up({ button: 'right' })
+  await wait(300)
+}
+// The canvas pixels of a window around page point (x, y) that are not the canvas's colour there
+// before anything was drawn (`blank`): how much is drawn in it.
+const drawn = async (x, y, half, blank) => {
+  const bounds = await surface.boundingBox()
+  return surface.evaluate((canvas, { x, y, half, blank }) => {
+    const ratio = canvas.width / canvas.clientWidth
+    const data = canvas.getContext('2d').getImageData(Math.round((x - half) * ratio), Math.round((y - half) * ratio), Math.max(1, Math.round(2 * half * ratio)), Math.max(1, Math.round(2 * half * ratio))).data
+    let count = 0
+    for (let i = 0; i < data.length; i += 4) if (Math.abs(data[i] - blank[0]) + Math.abs(data[i + 1] - blank[1]) + Math.abs(data[i + 2] - blank[2]) > 60) count += 1
+    return count
+  }, { x: x - bounds.x, y: y - bounds.y, half, blank })
+}
+const colourAt = async (x, y) => {
+  const bounds = await surface.boundingBox()
+  return surface.evaluate((canvas, { x, y }) => {
+    const ratio = canvas.width / canvas.clientWidth
+    const data = canvas.getContext('2d').getImageData(Math.round(x * ratio), Math.round(y * ratio), 1, 1).data
+    return [data[0], data[1], data[2]]
+  }, { x: x - bounds.x, y: y - bounds.y })
+}
+const open = async () => {
+  await page.goto(`${origin}/dev.html?modes=classic&locale=en-US`)
+  await page.waitForFunction(() => window.devHost?.connection(), null, { timeout: 60_000 })
+  await until(async () => (await details()).entities === 7, 100)
+  // Only the pointer moves the cursor: no running snaps, no polar tracking (a section turns on
+  // what it tests).
+  await command('osnap {"on":false}', 'polar {"on":false}', 'ortho {"on":false}', 'grid {"on":false}')
+  await wait(1000)
+  await calibrate()
+}
+const section = async (name, body) => {
+  try {
+    await open()
+    await body()
+  } catch (error) {
+    step(`${name} (threw)`, false, error instanceof Error ? error.message.split('\n')[0] : String(error))
+    await screenshot(`failure-${name.replace(/\W+/g, '-')}`)
+  }
+}
+
+await mkdir(output, { recursive: true })
+try {
+  // 1. The insert dialog: Home › Insert lists the drawing's blocks; OK with "Specify on-screen"
+  //    starts INSERT with the block, the scale and the rotation answered; the block's ghost follows
+  //    the cursor and a click places it. Typed INSERT opens the dialog; a typed point inserts at
+  //    once. The block reference is picked by what it draws, not by its box.
+  await section('insert', async () => {
+    const [circle] = await agent(['circle.add', { center: [450, 220], radius: 4 }])
+    await agent(['block.add', { name: 'Chair', base: [450, 220], handles: [circle.handle] }], ['block.add', { name: 'Bed', base: [0, 0], handles: [(await agent(['rectangle.add', { p1: [0, 0], p2: [18, 14] }]))[0].handle] }])
+    await calibrate()
+    await kit.getByTestId('cad-insert-block').click()
+    step('Home › Insert opens the insert dialog', await until(async () => (await kit.getByTestId('cad-insert-dialog').count()) === 1))
+    const names = await kit.getByTestId('cad-insert-name').locator('option').allInnerTexts()
+    step('it lists the drawing\'s blocks', names.map((name) => name.trim()).join(',') === 'Bed,Chair', names.join(','))
+    await kit.getByTestId('cad-insert-name').selectOption('Chair')
+    await kit.getByTestId('cad-insert-scale').fill('2')
+    step('the insertion point is specified on the drawing by default', await kit.getByTestId('cad-insert-on-screen').isChecked() && await kit.getByTestId('cad-insert-x').isDisabled())
+    await screenshot('insert-dialog')
+    await kit.getByTestId('cad-insert-ok').click()
+    step('OK starts INSERT at its insertion point', await until(async () => (await details()).running === 'block.insert' && /insertion point/.test((await prompt()).message ?? '')), JSON.stringify(await prompt()))
+    const lines = await history()
+    step('the history shows the block, the scale and the rotation answered', lines.some((line) => /Chair$/.test(line)) && lines.some((line) => /scale factor.* 2$/.test(line)), JSON.stringify(lines.slice(-6)))
+    // The ghost: a circle of radius 8 around the cursor.
+    const where = toScreen(480, 220)
+    const ring = { x: where.x + 8 / perPixel(), y: where.y }
+    const blank = await colourAt(ring.x, ring.y - 30)
+    const before = await drawn(ring.x, ring.y, 4, blank)
+    await page.mouse.move(where.x - 3, where.y, { steps: 2 })
+    await page.mouse.move(where.x, where.y)
+    step('the block\'s ghost follows the cursor', await until(async () => (await drawn(ring.x, ring.y, 4, blank)) > before + 3), `${before} pixels before`)
+    await screenshot('insert-ghost')
+    await page.mouse.click(where.x, where.y)
+    await idle()
+    const placed = (await query('insert')).filter((ref) => ref.geometry.block === 'Chair')
+    const at = placed[0]?.geometry.insert
+    step('the click places the block there, at the scale chosen', placed.length === 1 && near(at.x, 480, 2 * perPixel()) && near(at.y, 220, 2 * perPixel()) && near(placed[0].geometry.scale.x, 2, 1e-9), JSON.stringify(placed.map((ref) => ref.geometry)))
+    // Typed INSERT: the dialog, with the last block; a point typed inserts at once.
+    await command('insert')
+    step('typed INSERT opens the dialog', await until(async () => (await kit.getByTestId('cad-insert-dialog').count()) === 1), JSON.stringify((await history()).slice(-2)))
+    step('with the block inserted last', (await kit.getByTestId('cad-insert-name').inputValue()) === 'Chair')
+    await kit.getByTestId('cad-insert-on-screen').uncheck()
+    await kit.getByTestId('cad-insert-x').fill('520')
+    await kit.getByTestId('cad-insert-y').fill('240')
+    await kit.getByTestId('cad-insert-scale').fill('1')
+    await kit.getByTestId('cad-insert-rotation').fill('30')
+    await kit.getByTestId('cad-insert-ok').click()
+    const typed = async () => (await query('insert')).find((ref) => ref.geometry.block === 'Chair' && near(ref.geometry.insert.x, 520, 1e-9))
+    step('a typed insertion point inserts the block at once', await until(async () => (await typed()) != null))
+    step('turned as asked', near((await typed())?.geometry.rotation ?? 0, Math.PI / 6, 1e-9), JSON.stringify((await typed())?.geometry))
+    step('the dialog closed and nothing runs', (await kit.getByTestId('cad-insert-dialog').count()) === 0 && (await details()).running == null)
+    // Picked by what it draws: the corner of the first chair's box (radius 8 at 480,220) is empty.
+    await calibrate()
+    await click(480 + 7.9, 220 + 7.9)
+    step('a click by the corner of the block\'s box picks nothing', (await details()).selection === 0, `${(await details()).selection} selected`)
+    // (The click on empty paper opened a selection window: Escape drops it.)
+    await page.keyboard.press('Escape')
+    await wait(300)
+    await click(488, 220)
+    step('a click on its circle picks it', await until(async () => (await details()).selection === 1 && (await details()).selectedObjects[0]?.type === 'Block Reference'), JSON.stringify((await details()).selectedObjects))
+    await page.keyboard.press('Escape')
+    await wait(300)
+    // Escape closes the dialog and the keys go back to the drawing.
+    await kit.getByTestId('cad-insert-block').click()
+    await until(async () => (await kit.getByTestId('cad-insert-dialog').count()) === 1)
+    await wait(300)
+    await page.keyboard.press('Escape')
+    step('Escape closes the dialog', await until(async () => (await kit.getByTestId('cad-insert-dialog').count()) === 0))
+    await wait(300)
+    await page.keyboard.type('line')
+    await page.keyboard.press('Enter')
+    step('and what is typed next goes to the drawing', await until(async () => (await details()).running === 'line.add'), JSON.stringify(await prompt()))
+    await page.keyboard.press('Escape')
+  })
+} finally {
+  if (errors.length) step('no page errors', false, errors.join(' | '))
+  await browser.close()
+  await server.close()
+}
+console.log(failures ? `${failures} step(s) failed` : 'all steps passed')
+process.exit(failures ? 1 : 0)

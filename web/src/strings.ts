@@ -536,5 +536,9 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'Clear All': '全部清除',
     More: '更多',
     Model: '模型',
+    // The insert dialog.
+    'Insertion point': '插入点',
+    'Specify On-screen': '在屏幕上指定',
+    'This drawing has no blocks yet: make one with Block first.': '图中还没有块：先用“创建块”定义一个。',
   },
 }

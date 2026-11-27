@@ -30,15 +30,22 @@ pub fn hit_polylines(d: &Drawing, e: &Entity, tol: f64) -> Vec<Vec<Vec2>> {
                     &kition_cad_render::Options { tolerance: tol, text: false, ..Default::default() },
                 );
                 v = list.prims.iter().map(|p| list.points(p).to_vec()).collect();
-                // A dimension's text is hit in its box; the bounding box, which keeps room for text
-                // and arrows around the definition points, is not drawn and is not hit.
-                let text = match &e.kind {
-                    EntityKind::Dimension(dm) => dimension_text_box(d, dm),
-                    _ => b,
-                };
-                if !text.is_empty() {
-                    let c = text.corners();
-                    v.push(vec![c[0], c[1], c[2], c[3], c[0]]);
+                // A dimension's text is hit in its box, a block reference's texts in theirs; the
+                // bounding box, which is not drawn (for a dimension it keeps room for text and
+                // arrows around the definition points), is not hit.
+                match &e.kind {
+                    EntityKind::Dimension(dm) => {
+                        let text = dimension_text_box(d, dm);
+                        if !text.is_empty() {
+                            let c = text.corners();
+                            v.push(vec![c[0], c[1], c[2], c[3], c[0]]);
+                        }
+                    }
+                    EntityKind::Insert(ins) => v.extend(insert_text_boxes(d, ins).into_iter().map(|c| vec![c[0], c[1], c[2], c[3], c[0]])),
+                    _ => {
+                        let c = b.corners();
+                        v.push(vec![c[0], c[1], c[2], c[3], c[0]]);
+                    }
                 }
             }
             v
@@ -71,6 +78,35 @@ pub fn hit_polylines(d: &Drawing, e: &Entity, tol: f64) -> Vec<Vec<Vec2>> {
     }
 }
 
+/// The most texts of one block reference hit by their boxes; a block with more is hit by its
+/// other geometry only past them.
+const MOST_BLOCK_TEXTS: usize = 500;
+
+/// The boxes, in drawing coordinates, of the texts a block reference shows: the single-line and
+/// paragraph texts of its block (at its first copy) and its visible attributes. Text inside
+/// nested blocks is not included.
+fn insert_text_boxes(d: &Drawing, ins: &kition_cad_doc::Insert) -> Vec<[Vec2; 4]> {
+    let mut out = Vec::new();
+    if let Some(block) = d.block(&ins.block) {
+        let xf = ins.transform(block.base.xy());
+        for sub in block.entities.iter().filter(|sub| matches!(sub.kind, EntityKind::Text(_) | EntityKind::MText(_))).take(MOST_BLOCK_TEXTS) {
+            let b = entity_bounds(d, sub, 0);
+            if !b.is_empty() {
+                out.push(b.corners().map(|c| xf.apply(c)));
+            }
+        }
+    }
+    for attrib in ins.attribs.iter().filter(|a| !a.invisible).take(MOST_BLOCK_TEXTS) {
+        let shown = Entity::new(kition_cad_doc::Handle(0), EntityKind::Text(attrib.text.clone()));
+        let b = entity_bounds(d, &shown, 0);
+        if !b.is_empty() {
+            out.push(b.corners());
+        }
+    }
+    out.retain(|c| c.iter().all(|p| p.is_finite()));
+    out
+}
+
 /// The box a dimension's text takes, from its strokes or glyphs (empty without text).
 fn dimension_text_box(d: &Drawing, dm: &kition_cad_doc::Dimension) -> Bounds2 {
     let g = kition_cad_render::dimension_in(d, dm);
@@ -95,6 +131,11 @@ pub fn entity_distance(d: &Drawing, e: &Entity, p: Vec2, tol: f64) -> f64 {
     }
     if let EntityKind::Dimension(dm) = &e.kind
         && dimension_text_box(d, dm).contains(p)
+    {
+        best = 0.0;
+    }
+    if let EntityKind::Insert(ins) = &e.kind
+        && insert_text_boxes(d, ins).iter().any(|c| kition_cad_geom::point_in_polygon(c, p))
     {
         best = 0.0;
     }

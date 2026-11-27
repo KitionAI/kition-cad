@@ -24,6 +24,9 @@ const WAITING: Record<PromptKind, string> = {
   keyword: 'waitKeyword',
 }
 
+/** The names INSERT is typed by: they open the insert dialog (the command line never starts INSERT, which may read a file). */
+const INSERT_NAMES = new Set(['insert', 'i', '-insert', 'ddinsert', '_insert', '.insert'])
+
 /** A line of the history: the engine's, or an error of an entry the engine refused outright. */
 type Line = { text: string; error: boolean; key: string }
 
@@ -32,7 +35,7 @@ type Line = { text: string; error: boolean; key: string }
  * buttons, the history of what commands wrote (the last lines, or the whole of it with F2), and the
  * commands a typed name may mean. What the person types runs as a command-line entry.
  */
-export function CommandLine({ line, running, input, history, onCommand, expanded, onExpanded, dynamic }: {
+export function CommandLine({ line, running, input, history, onCommand, expanded, onExpanded, dynamic, onInsert }: {
   prompt: string
   line: CommandLineState
   running: string | null
@@ -43,6 +46,8 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
   onExpanded: (open: boolean) => void
   /** The dynamic input boxes beside the cursor, a view of what is typed here (`dynamicInput.ts`). */
   dynamic: DynamicInput
+  /** Opens the insert dialog: typed INSERT between commands. */
+  onInsert?: () => void
 }) {
   const { session, run, enabled, t, phrase, commands } = useKitEditor()
   // What is typed runs as a command that may edit: a viewer cannot type here.
@@ -158,6 +163,13 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
           const done = dynamic.finish(text)
           clear()
           void done.then(send)
+          return
+        }
+        // INSERT typed between commands opens its dialog, as the reference's INSERT does.
+        if (idle && onInsert && INSERT_NAMES.has(text.trim().toLowerCase())) {
+          onCommand(text.trim())
+          clear()
+          onInsert()
           return
         }
         // Enter on a part of a name runs the first command it may mean (an exact name runs as typed).

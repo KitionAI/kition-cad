@@ -552,3 +552,17 @@ textarea.cad-in-place {
   background: var(--kit-surface);
   color: var(--kit-text);
 }
+
+/* A checkbox line in the editor's dialogs (InsertDialog.tsx, DraftingSettings.tsx). */
+.cad-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.cad-dialog-note {
+  font-size: 12px;
+  max-width: 280px;
+}

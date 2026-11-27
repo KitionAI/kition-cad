@@ -1,0 +1,28 @@
+format: 1
+id: cad.editor.insert-block/insert-dialog
+feature: cad.editor.insert-block
+intent: >-
+  Inserting a block by hand, in a real browser: Home › Insert opens the insert dialog with the
+  drawing's blocks listed; with "Specify on-screen" (the default) OK starts INSERT with the block,
+  the scale and the rotation answered at its prompts (the history shows them), the block's ghost
+  follows the cursor, and a click places it at the scale chosen; typed INSERT opens the dialog with
+  the block inserted last, and an X and Y typed there insert the block at once, turned as asked; a
+  click by the corner of the block's box picks nothing and a click on its circle picks it; Escape
+  closes the dialog and what is typed next goes to the drawing.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (web/tests/shell.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

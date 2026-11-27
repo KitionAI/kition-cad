@@ -26,6 +26,7 @@ import { CadCommandTab } from './ribbon/CommandTab'
 import { CatalogProvider } from './commands'
 import { LayersPanel, type PanelPart } from './LayersPanel'
 import { HatchDialog, type HatchEdit } from './HatchDialog'
+import { InsertDialog, type InsertChoice } from './InsertDialog'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
@@ -88,6 +89,9 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       tools.refresh()
     })
   }
+  // The insert dialog (Home › Insert, typed INSERT) and what it inserted last.
+  const [inserting, setInserting] = useState(false)
+  const [lastInsert, setLastInsert] = useState<InsertChoice | null>(null)
   const commandInput = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<string[]>([])
   useEffect(() => setHistory([]), [doc])
@@ -97,7 +101,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const tabs: FrameTab[] = [
-    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} /> : null },
+    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} onInsert={() => setInserting(true)} /> : null },
     ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} onHatch={() => setHatch({ mode: 'new' })} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
@@ -189,6 +193,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => showPanel('properties')} onHatch={setHatch} />
           {hatch ? <HatchDialog edit={hatch} onClose={() => setHatch(null)} start={startHatch} /> : null}
+          {inserting ? <InsertDialog last={lastInsert} onClose={() => setInserting(false)} onChosen={setLastInsert} /> : null}
           {state ? (
             <FrameChrome>
               <CommandLine
@@ -201,6 +206,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
                 expanded={historyOpen}
                 onExpanded={setHistoryOpen}
                 dynamic={cursor.dynamic}
+                onInsert={() => setInserting(true)}
               />
             </FrameChrome>
           ) : null}

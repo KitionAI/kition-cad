@@ -52,7 +52,7 @@ function HomeCommand({ id, icon, primary }: { id: string; icon?: IconComponent; 
   return <CommandButton command={id} icon={icon} label={label} primary={primary} ask />
 }
 
-export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () => void; onLayers: () => void }) {
+export function HomeTab({ info, onFit, onLayers, onInsert }: { info: CadInfo; onFit: () => void; onLayers: () => void; onInsert: () => void }) {
   const { run, enabled, phrase: p, t } = useKitEditor()
   const layerProperties = (size: 'large' | 'small') => <RibbonButton key="cad-layer-properties" icon={Layers3} size={size} label={p('Layer Properties')} onClick={onLayers} data-testid="cad-layer-properties" primary />
   const layerField = (
@@ -77,6 +77,8 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
     </RibbonRow>
   )
   const zoomExtents = (size: 'large' | 'small') => <RibbonButton key="cad-zoom-extents" icon={Maximize} size={size} label={t('zoomExtents')} onClick={onFit} data-testid="cad-zoom-extents" primary />
+  // Insert opens the insert dialog (block list, scale, rotation, the point clicked on the drawing).
+  const insert = <RibbonButton key="cad-insert-block" icon={CAD_ICONS['block.insert']} size="small" label={p('Insert')} title={`${p('Insert')} (INSERT)`} disabled={!enabled('block.insert') || !enabled('command.runLine')} onClick={onInsert} data-testid="cad-insert-block" />
   return (
     <>
       {/* Where the ribbon runs out of room each group keeps its labels: its first commands, then More (FitGroup). */}
@@ -130,10 +132,11 @@ export function HomeTab({ info, onFit, onLayers }: { info: CadInfo; onFit: () =>
         <RibbonStack>{layerField}</RibbonStack>
       </FitGroup>
 
-      <FitGroup label={p('Utilities')} icon={Wrench} name="utilities" shown={[zoomExtents('small'), <HomeCommand key="view.zoomWindow" id="view.zoomWindow" icon={ScanSearch} />]}>
+      <FitGroup label={p('Utilities')} icon={Wrench} name="utilities" shown={[zoomExtents('small'), <HomeCommand key="view.zoomWindow" id="view.zoomWindow" icon={ScanSearch} />, insert]}>
         {zoomExtents('large')}
         <RibbonStack>
           <HomeCommand id="view.zoomWindow" icon={ScanSearch} />
+          {insert}
         </RibbonStack>
       </FitGroup>
     </>

@@ -52,3 +52,37 @@ fn issue_webkit_block_pick_takes_the_object_under_the_cursor() {
     s.input(Input::Point(at)).unwrap();
     assert_eq!(s.selection(), vec![bed]);
 }
+
+/// A block reference is hit by what it draws: its lines and arcs, and the box of each text in it
+/// (stage 9's insert dialog places blocks by hand). Before, it was also hit along the outline of
+/// its bounding box, which is not drawn: a round chair's box corner, far from the chair, took the
+/// pick from the wall line next to it, and on empty paper near the corner the chair was picked.
+#[test]
+fn issue_block_pick_outline_takes_what_is_drawn() {
+    let mut s = Session::new();
+    let made = s.execute("circle.add", &json!({ "center": [400, 250], "radius": 4 })).unwrap();
+    let chair = made["handle"].as_str().unwrap().to_owned();
+    let label = s.execute("text.add", &json!({ "at": [398, 249], "height": 1, "text": "CH" })).unwrap();
+    let label = label["handle"].as_str().unwrap().to_owned();
+    s.execute("block.add", &json!({ "name": "Chair", "base": [400, 250], "handles": [chair, label] })).unwrap();
+    s.execute("block.insert", &json!({ "name": "Chair", "at": [400, 250] })).unwrap();
+    let doc = s.doc().unwrap();
+    let insert = doc.model.iter().find(|e| matches!(e.kind, EntityKind::Insert(_))).unwrap().clone();
+    let corner = entity_bounds(doc, &insert, 0).max;
+    assert!((corner.x - 404.0).abs() < 0.5 && (corner.y - 254.0).abs() < 0.5, "the box's corner: {corner:?}");
+    // Nothing is drawn at the box's corner: the circle is (4·√2 − 4) ≈ 1.66 away.
+    let at = Vec2::new(corner.x - 0.1, corner.y - 0.1);
+    let aperture = 1.0;
+    assert!(select::entity_distance(doc, &insert, at, 0.01) > 1.0, "nothing of the block is drawn there");
+    assert_eq!(select::pick(doc, &s.space(), at, aperture), None, "empty paper by the corner");
+    assert_eq!(s.hover(at, aperture), None, "no rollover there either");
+    // A wall line just outside the box's corner is what the pick takes.
+    s.execute("line.add", &json!({ "points": [[corner.x + 0.6, 240], [corner.x + 0.6, 270]] })).unwrap();
+    let doc = s.doc().unwrap();
+    let wall = doc.model.iter().find(|e| matches!(e.kind, EntityKind::Line(_))).unwrap().handle;
+    assert_eq!(select::pick(doc, &s.space(), at, aperture), Some(wall), "the wall beside the corner");
+    assert_eq!(s.hover(at, aperture), Some(wall), "the rollover shows the wall");
+    // The chair's circle and the text inside it still pick the chair.
+    assert_eq!(select::pick(doc, &s.space(), Vec2::new(404.0, 250.0), 0.1), Some(insert.handle), "on the circle");
+    assert_eq!(select::pick(doc, &s.space(), Vec2::new(399.0, 249.5), 0.05), Some(insert.handle), "inside the text's box");
+}

@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-block-pick-outline
+feature: cad.editor.insert-block
+intent: >-
+  A block reference is hit by what it draws (its lines, arcs and circles) and by the box of each
+  text it shows, not by the outline of its bounding box, which is not drawn. Before, a round
+  chair's box corner, 1.66 units from the chair, took the pick from a wall line just outside it,
+  and a click on empty paper by the corner picked the chair; the rollover highlight showed the same
+  wrong object (stage 8 fixed the same flaw for dimensions, regressions/issue-webkit-block-pick).
+  The chair's circle and the text inside it still pick the chair.
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting stage 8 notes for stage 9 (block references picked by their box)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "issue_block_pick_outline" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"
