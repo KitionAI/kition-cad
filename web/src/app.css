@@ -608,7 +608,31 @@ textarea.cad-in-place {
     gap: 0;
   }
 
+  .cad-layout-tab {
+    padding: 0 5px;
+  }
+
   .cad-mode {
     padding: 0 2px;
   }
+}
+
+/* The layout tabs with "+" after them (StatusBar.tsx); a tab being renamed holds the name field. */
+.cad-layout-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cad-layout-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+.cad-layout-rename .kui-field {
+  height: 20px;
+  width: 12ch;
+  font-size: 11px;
 }

@@ -1,5 +1,6 @@
-import { SettingsIcon as Settings } from '@kition/tessera/icons/react'
-import { MenuButton, MenuItem, MenuSeparator, useKitEditor } from '@kition/sdk/editor'
+import { useState } from 'react'
+import { PlusIcon as Plus, SettingsIcon as Settings } from '@kition/tessera/icons/react'
+import { ContextMenu, MenuButton, MenuItem, MenuSeparator, RenameField, useKitEditor } from '@kition/sdk/editor'
 import { DRAFTING, type CadInfo, type DraftingMode } from './cad'
 
 /**
@@ -108,32 +109,70 @@ export function DraftingStatus({ info, onSettings }: { info: CadInfo; onSettings
 }
 
 /**
- * The status bar's left end: the Model tab and a tab per layout, in the drawing's tab order (N16).
- * Choosing one shows that space (layout.set, which ends a command running in the space left).
+ * The status bar's left end: the Model tab and a tab per layout, in the drawing's tab order (N16),
+ * and "+" for a new layout (layout.add, as the reference's "+": the new tab is not shown yet).
+ * Choosing a tab shows that space (layout.set, which ends a command running in the space left). A
+ * right-click on a tab opens its menu: New Layout, and for a layout Rename (in place, Enter
+ * renames with layout.rename), Copy (layout.duplicate) and Delete (layout.delete; the drawing
+ * keeps one layout at least, as the engine says).
  */
 export function LayoutTabs({ info, onSwitched }: { info: CadInfo; onSwitched: () => void }) {
   const { run, enabled, phrase } = useKitEditor()
   const spaces = info.layouts.length ? info.layouts : ['Model']
+  const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ from: string; to: string } | null>(null)
+  const changed = () => onSwitched()
+  const rename = (commit: boolean) => {
+    const edit = renaming
+    setRenaming(null)
+    const to = edit?.to.trim() ?? ''
+    if (commit && edit && to && to !== edit.from) void run('layout.rename', { from: edit.from, to }).then(changed)
+  }
+  const layout = menu && menu.name !== 'Model' ? menu.name : null
   return (
-    <span className="cad-layout-tabs" role="tablist" aria-label={phrase('Layout')} data-testid="cad-layout-tabs">
-      {spaces.map((name) => {
-        const current = name.toLowerCase() === info.space.toLowerCase()
-        return (
-          <button
-            key={name}
-            type="button"
-            role="tab"
-            className="cad-layout-tab"
-            aria-selected={current}
-            title={name === 'Model' ? phrase('Model') : name}
-            disabled={!current && !enabled('layout.set')}
-            onClick={() => { if (!current) void run('layout.set', { name }).then(onSwitched) }}
-            data-testid={`cad-layout-${name}`}
-          >
-            {name === 'Model' ? phrase('Model') : name}
-          </button>
-        )
-      })}
+    <span className="cad-layout-bar">
+      <span className="cad-layout-tabs" role="tablist" aria-label={phrase('Layout')} data-testid="cad-layout-tabs">
+        {spaces.map((name) => {
+          const current = name.toLowerCase() === info.space.toLowerCase()
+          if (renaming?.from === name) {
+            return (
+              <span key={name} className="cad-layout-rename" role="tab" aria-selected={current}>
+                <RenameField value={renaming.to} label={phrase('Rename Layout')} onChange={(to) => setRenaming({ from: name, to })} onDone={rename} testId="cad-layout-rename" />
+              </span>
+            )
+          }
+          return (
+            <button
+              key={name}
+              type="button"
+              role="tab"
+              className="cad-layout-tab"
+              aria-selected={current}
+              title={name === 'Model' ? phrase('Model') : name}
+              disabled={!current && !enabled('layout.set')}
+              onClick={() => { if (!current) void run('layout.set', { name }).then(onSwitched) }}
+              onContextMenu={(event) => { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY, name }) }}
+              data-testid={`cad-layout-${name}`}
+            >
+              {name === 'Model' ? phrase('Model') : name}
+            </button>
+          )
+        })}
+      </span>
+      <button type="button" className="cad-mode-arrow cad-layout-new" aria-label={phrase('New Layout')} title={phrase('New Layout')} disabled={!enabled('layout.add')} onClick={() => void run('layout.add', {}).then(changed)} data-testid="cad-layout-new">
+        <Plus size={13} aria-hidden="true" />
+      </button>
+      <ContextMenu at={menu} onClose={() => setMenu(null)} label={phrase('Layout')} testId="cad-layout-menu">
+        <MenuItem label={phrase('New Layout')} disabled={!enabled('layout.add')} onSelect={() => void run('layout.add', {}).then(changed)} testId="cad-layout-menu-new" />
+        {layout ? (
+          <>
+            <MenuSeparator />
+            <MenuItem label={phrase('Rename Layout')} disabled={!enabled('layout.rename')} onSelect={() => setRenaming({ from: layout, to: layout })} testId="cad-layout-menu-rename" />
+            <MenuItem label={phrase('Copy Layout')} disabled={!enabled('layout.duplicate')} onSelect={() => void run('layout.duplicate', { from: layout }).then(changed)} testId="cad-layout-menu-copy" />
+            <MenuItem label={phrase('Delete Layout')} disabled={!enabled('layout.delete') || info.layouts.length <= 2} onSelect={() => void run('layout.delete', { name: layout }).then(changed)} testId="cad-layout-menu-delete" />
+          </>
+        ) : null}
+      </ContextMenu>
     </span>
   )
 }

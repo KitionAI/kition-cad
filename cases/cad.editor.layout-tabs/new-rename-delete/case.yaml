@@ -1,0 +1,25 @@
+format: 1
+id: cad.editor.layout-tabs/new-rename-delete
+feature: cad.editor.layout-tabs
+intent: >-
+  The layout tabs by hand, in a real browser (stage 9): "+" after the tabs adds a layout tab and
+  the Model tab stays the one shown; a right-click on a layout tab opens its menu, Rename puts the
+  name in a field on the tab and Enter renames the layout in the drawing; Delete removes it; the
+  Model tab's menu offers New Layout only.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (web/tests/shell.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

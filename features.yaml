@@ -523,14 +523,14 @@ features:
     cases: [cad.editor.ribbon/labels-when-short-of-room, cad.editor.ribbon/every-command-its-icon, regressions/issue-dialog-commands-run-bare]
     since: "2026-11-26"
   - id: cad.editor.layout-tabs
-    title: "Model and layout tabs at the status bar's left: Model, then each layout in the drawing's tab order; choosing one shows that space (layout.set), a line drawn there goes into it, and Model comes back to the model"
-    gap: "No + tab for a new layout and no right-click menu on the tabs (new, rename, delete, copy and page setup are commands only); a long list of layouts does not fold into an overflow list; switching ends a command running in the space left; the paper is drawn on the canvas colour, not as a white sheet; the describe command and double-click editing work in the shown space only."
+    title: "Model and layout tabs at the status bar's left: Model, then each layout in the drawing's tab order; choosing one shows that space (layout.set), a line drawn there goes into it, and Model comes back to the model; \"+\" adds a layout, and a tab's right-click menu has New Layout and, for a layout, Rename (in place on the tab), Copy and Delete"
+    gap: "No From Template, Page Setup or Print on the tab menu (Page Setup and Print are on the File tab); a long list of layouts does not fold into an overflow list; switching ends a command running in the space left (the running command's points belong to that space; kept as it was); the paper is drawn on the canvas colour, not as a white sheet; the describe command and double-click editing work in the shown space only."
     dimension: [function]
     priority: P2
     status: partial
-    commands: [layout.set]
-    paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, web/tests/layouts.mjs]
-    cases: [cad.editor.layout-tabs/switch-spaces]
+    commands: [layout.set, layout.add, layout.rename, layout.duplicate, layout.delete]
+    paths: [web/src/StatusBar.tsx, web/src/App.tsx, web/src/cad.ts, web/src/app.css, web/tests/layouts.mjs, web/tests/shell.mjs]
+    cases: [cad.editor.layout-tabs/switch-spaces, cad.editor.layout-tabs/new-rename-delete]
     since: "2026-11-26"
   - id: cad.editor.insert-block
     title: "The insert dialog in the editor: Home › Insert and typed INSERT open it with the drawing's blocks listed, a scale and a rotation; with the insertion point specified on-screen OK starts INSERT with the block, the scale and the rotation answered at its prompts and the block's ghost follows the cursor until the click places it, and with an X and a Y typed it inserts the block at once (one undo step); a block reference is picked, and highlighted, by what it draws and the boxes of its texts, not by its bounding box"
