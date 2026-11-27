@@ -92,6 +92,9 @@ const MARGIN: f64 = 0.05;
 const VIEWPORT_PX: f64 = 1000.0;
 /// The width of zero-lineweight lines in document pixels at 1:1.
 const HAIRLINE: f64 = 2.0;
+/// Hairline widths per millimetre of lineweight while lineweights are shown (LWDISPLAY): a 0.25 mm
+/// line is drawn as a hairline, thinner ones too (a line is never thinner than a hairline).
+const LINEWEIGHT_PX_PER_MM: f32 = 4.0;
 /// A drag shorter than this (screen pixels) is a click.
 const DRAG_PX: f64 = 4.0;
 
@@ -170,6 +173,8 @@ impl Placement {
 struct Built {
     revision: u64,
     space: kition_cad_doc::Space,
+    /// Built with lineweights and transparency shown (LWDISPLAY, TRANSPARENCYDISPLAY).
+    shown: (bool, bool),
     list: DisplayList,
 }
 
@@ -423,12 +428,16 @@ impl CadDocument {
     fn list(&self) -> Result<std::cell::Ref<'_, Built>, String> {
         let state = self.session.state().map_err(engine_error)?;
         let (revision, space) = (state.revision, state.edit_space());
+        // The status bar's Lineweight and Transparency: the objects' lineweights and transparency
+        // are drawn while they are on.
+        let shown = (self.session.settings.lwdisplay, self.session.settings.transparency_display);
         // The space too: a call context changes it without a new revision.
-        let stale = self.built.borrow().as_ref().is_none_or(|built| built.revision != revision || built.space != space);
+        let stale = self.built.borrow().as_ref().is_none_or(|built| built.revision != revision || built.space != space || built.shown != shown);
         if stale {
-            let options = kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() };
+            let options =
+                kition_cad_render::Options { tolerance: self.tolerance(), lineweights: shown.0, transparency: shown.1, ..Default::default() };
             let list = kition_cad_render::build(&state.doc, &space, &options);
-            *self.built.borrow_mut() = Some(Built { revision, space, list });
+            *self.built.borrow_mut() = Some(Built { revision, space, shown, list });
         }
         std::cell::Ref::filter_map(self.built.borrow(), Option::as_ref).map_err(|_| "no display list".to_owned())
     }
@@ -467,7 +476,11 @@ impl CadDocument {
         let view = cad_raster::View { center, scale: place.k * scale, width, height };
         // Hairlines are two pixels wide at 1:1, so they stay visible in the exact reductions Kition
         // shows below 1:1, and thin to one screen pixel as the view zooms in.
-        let options = RasterOptions { background: self.background(), hairline: (HAIRLINE / scale).max(1.0) as f32, ..RasterOptions::default() };
+        let hairline = (HAIRLINE / scale).max(1.0) as f32;
+        // Lineweights (when shown) in screen pixels as hairlines are: 0.25 mm is a hairline at 1:1,
+        // a millimetre four of them.
+        let px_per_mm = if self.session.settings.lwdisplay { hairline * LINEWEIGHT_PX_PER_MM } else { 0.0 };
+        let options = RasterOptions { background: self.background(), hairline, px_per_mm, ..RasterOptions::default() };
         let pixmap = cad_raster::render(&built.list, &view, &options).ok_or("the drawing could not be drawn")?;
         // The background is opaque, so premultiplied and straight alpha are the same.
         Ok(pixmap.take())
@@ -1268,6 +1281,8 @@ impl CadDocument {
                 "grid": settings.gridmode,
                 "snap": settings.snapmode,
                 "lwdisplay": settings.lwdisplay,
+                // TRANSPARENCYDISPLAY: objects drawn with their transparency.
+                "transparency": settings.transparency_display,
                 // The grid the editor draws: GRIDUNIT (SNAPUNIT where it is 0) and GRIDMAJOR.
                 "gridUnit": [
                     if settings.gridunit.x == 0.0 { settings.snapunit.x } else { settings.gridunit.x },

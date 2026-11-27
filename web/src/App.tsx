@@ -27,6 +27,7 @@ import { CatalogProvider } from './commands'
 import { LayersPanel, type PanelPart } from './LayersPanel'
 import { HatchDialog, type HatchEdit } from './HatchDialog'
 import { InsertDialog, type InsertChoice } from './InsertDialog'
+import { DraftingSettings } from './DraftingSettings'
 import { CommandLine } from './CommandLine'
 import { CadCanvas } from './CadCanvas'
 import { ConstraintLease, constraintLeaseScope, withConstraintLease } from './constraintLease'
@@ -92,6 +93,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // The insert dialog (Home › Insert, typed INSERT) and what it inserted last.
   const [inserting, setInserting] = useState(false)
   const [lastInsert, setLastInsert] = useState<InsertChoice | null>(null)
+  // Drafting Settings (the status bar's gear, Tools › Drafting Settings...).
+  const [settings, setSettings] = useState(false)
   const commandInput = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<string[]>([])
   useEffect(() => setHistory([]), [doc])
@@ -102,7 +105,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
 
   const tabs: FrameTab[] = [
     { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} onInsert={() => setInserting(true)} /> : null },
-    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} onHatch={() => setHatch({ mode: 'new' })} /> })),
+    ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} onHatch={() => setHatch({ mode: 'new' })} onDraftingSettings={() => setSettings(true)} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
 
@@ -188,11 +191,12 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
               </>
             ) : null
           }
-          statusEnd={state ? <DraftingStatus info={state} /> : null}
+          statusEnd={state ? <DraftingStatus info={state} onSettings={() => setSettings(true)} /> : null}
           panels={panel && state ? <LayersPanel info={state} focus={panelFocus} onClose={() => setPanel(false)} /> : null}
         >
           <CadCanvas canvas={canvas} viewMemory={viewMemory} info={state} cursor={cursor} history={history} input={commandInput} onZoom={setZoom} onProperties={() => showPanel('properties')} onHatch={setHatch} />
           {hatch ? <HatchDialog edit={hatch} onClose={() => setHatch(null)} start={startHatch} /> : null}
+          {settings && state ? <DraftingSettings info={state} onClose={() => setSettings(false)} /> : null}
           {inserting ? <InsertDialog last={lastInsert} onClose={() => setInserting(false)} onChosen={setLastInsert} /> : null}
           {state ? (
             <FrameChrome>

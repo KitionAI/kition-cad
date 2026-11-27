@@ -1,0 +1,22 @@
+format: 1
+id: cad.editor.status-bar/lineweight-and-transparency
+feature: cad.editor.status-bar
+intent: >-
+  The status bar's Lineweight and Transparency are drawn, not only stored: with LWDISPLAY on a
+  1 mm line covers at least three times the pixels of its hairline and goes back to the hairline
+  when it is off; with TRANSPARENCYDISPLAY on a 70% transparent line is drawn faint and opaque
+  again when it is off. Show/Hide Transparency runs in the middle of LINE without ending it or
+  adding an undo step, and the editor reads it under /drafting/transparency. Before, both toggles
+  only changed a setting the canvas never read.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (bindings/wasm/src/status_bar_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "lineweight_and_transparency_are_drawn_while_their_toggles_are_on" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

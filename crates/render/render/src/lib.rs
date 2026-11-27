@@ -58,6 +58,9 @@ pub struct DPrim {
     pub aci7: bool,
     /// Lineweight in mm (0 = thinnest).
     pub lw: f32,
+    /// Opacity, 255 opaque: the object's transparency where the list shows transparency
+    /// ([`Options::transparency`]), else 255.
+    pub alpha: u8,
     pub kind: Kind,
     pub start: u32,
     pub len: u32,
@@ -139,6 +142,9 @@ pub struct Options {
     /// Highlighted (selected) handles are not special here; the canvas overlays them.
     pub fill: bool,
     pub lineweights: bool,
+    /// Show objects' transparency (TRANSPARENCYDISPLAY): each primitive's `alpha` from its
+    /// object's transparency, by layer or by block as it says; off, everything is opaque.
+    pub transparency: bool,
     /// Height of the visible area in world units of the space being built. Relative point
     /// sizes (`PDSIZE` <= 0) are a percentage of it; 0 = the height of the space's extents.
     pub view_height: f64,
@@ -149,7 +155,16 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Options { tolerance: 0.001, min_dash: 0.0, text: true, fill: true, lineweights: false, view_height: 0.0, plot_style_table: None }
+        Options {
+            tolerance: 0.001,
+            min_dash: 0.0,
+            text: true,
+            fill: true,
+            lineweights: false,
+            transparency: false,
+            view_height: 0.0,
+            plot_style_table: None,
+        }
     }
 }
 
@@ -194,6 +209,8 @@ struct Builder<'a> {
     styles: Option<&'a plotstyle::Styler>,
     /// Named plot style (table index) of the entity being drawn.
     named: Option<usize>,
+    /// The opacity of the entity being drawn (255 without [`Options::transparency`]).
+    alpha: u8,
 }
 
 /// Upper bound on the block contents drawn per display list (each block reference, MINSERT copy
@@ -221,7 +238,16 @@ impl Builder<'_> {
             self.list.bounds.add(q);
             self.list.verts.push(q);
         }
-        self.list.prims.push(DPrim { handle: ctx.top, color: color.rgb, aci7: color.aci7, lw, kind: Kind::Polyline, start, len: pts.len() as u32 });
+        self.list.prims.push(DPrim {
+            handle: ctx.top,
+            color: color.rgb,
+            aci7: color.aci7,
+            lw,
+            alpha: self.alpha,
+            kind: Kind::Polyline,
+            start,
+            len: pts.len() as u32,
+        });
     }
     fn tris(&mut self, ctx: &Ctx, color: Ink, tris: &[Vec2]) {
         if tris.len() < 3 {
@@ -234,7 +260,16 @@ impl Builder<'_> {
             self.list.bounds.add(q);
             self.list.tris.push(q);
         }
-        self.list.prims.push(DPrim { handle: ctx.top, color: color.rgb, aci7: color.aci7, lw: 0.0, kind: Kind::Tris, start, len: tris.len() as u32 });
+        self.list.prims.push(DPrim {
+            handle: ctx.top,
+            color: color.rgb,
+            aci7: color.aci7,
+            lw: 0.0,
+            alpha: self.alpha,
+            kind: Kind::Tris,
+            start,
+            len: tris.len() as u32,
+        });
     }
     /// Shaped text: strokes as polylines; TrueType glyphs filled (TEXTFILL) or outlined.
     fn shaped(&mut self, ctx: &Ctx, color: Ink, lw: f32, sh: &kition_cad_fonts::Shaped) {
@@ -262,14 +297,32 @@ impl Builder<'_> {
         self.list.bounds.add(q);
         let start = self.list.verts.len() as u32;
         self.list.verts.push(q);
-        self.list.prims.push(DPrim { handle: ctx.top, color: color.rgb, aci7: color.aci7, lw: 0.0, kind: Kind::Point, start, len: 1 });
+        self.list.prims.push(DPrim {
+            handle: ctx.top,
+            color: color.rgb,
+            aci7: color.aci7,
+            lw: 0.0,
+            alpha: self.alpha,
+            kind: Kind::Point,
+            start,
+            len: 1,
+        });
     }
     fn infinite(&mut self, ctx: &Ctx, color: Ink, base: Vec2, dir: Vec2, ray: bool) {
         let (color, _) = self.styled(color, 0.0);
         let start = self.list.verts.len() as u32;
         self.list.verts.push(ctx.xf.apply(base));
         self.list.verts.push(ctx.xf.apply_vec(dir).normalized());
-        self.list.prims.push(DPrim { handle: ctx.top, color: color.rgb, aci7: color.aci7, lw: 0.0, kind: Kind::Infinite { ray }, start, len: 2 });
+        self.list.prims.push(DPrim {
+            handle: ctx.top,
+            color: color.rgb,
+            aci7: color.aci7,
+            lw: 0.0,
+            alpha: self.alpha,
+            kind: Kind::Infinite { ray },
+            start,
+            len: 2,
+        });
     }
     /// Take one unit of the block-expansion budget; false once it is spent.
     fn expand(&mut self) -> bool {
@@ -317,7 +370,7 @@ fn build_space(d: &Drawing, space: &Space, opts: &Options, plotting: bool) -> Di
         _ => None,
     });
     let styler = table.map(|t| plotstyle::Styler::new(d, t));
-    let mut b = Builder { list: DisplayList::default(), opts, plotting, styles: styler.as_ref(), named: None };
+    let mut b = Builder { list: DisplayList::default(), opts, plotting, styles: styler.as_ref(), named: None, alpha: 255 };
     if let Space::Paper(name) = space {
         b.list.sheet = paper::sheet(d, name);
     }
@@ -383,7 +436,7 @@ fn viewport(b: &mut Builder, d: &Drawing, e: &Entity, vp: &kition_cad_doc::Viewp
     let mhalf = half / s;
     // Model window with slack: entity bounds are approximate (text, dimensions).
     let win = Bounds2::new(vp.view_center - mhalf, vp.view_center + mhalf).expand(mhalf.x.max(mhalf.y) * 0.1);
-    let mut sub = Builder { list: DisplayList::default(), opts: b.opts, plotting: b.plotting, styles: b.styles, named: None };
+    let mut sub = Builder { list: DisplayList::default(), opts: b.opts, plotting: b.plotting, styles: b.styles, named: None, alpha: 255 };
     // PSLTSCALE on: model-space dashes are scaled so they measure the same on paper as in
     // paper space, whatever the viewport scale.
     let lt_factor = if d.header.i64("PSLTSCALE", 1) != 0 { 1.0 / s } else { 1.0 };
@@ -454,7 +507,7 @@ fn push_raw(dst: &mut DisplayList, p: &DPrim, kind: Kind, pts: &[Vec2]) {
     } else {
         dst.verts.extend_from_slice(pts);
     }
-    dst.prims.push(DPrim { handle: p.handle, color: p.color, aci7: p.aci7, lw: p.lw, kind, start, len: pts.len() as u32 });
+    dst.prims.push(DPrim { handle: p.handle, color: p.color, aci7: p.aci7, lw: p.lw, alpha: p.alpha, kind, start, len: pts.len() as u32 });
 }
 
 /// Build the display list for a set of loose entities (previews, rubber bands).
@@ -468,7 +521,7 @@ pub fn build_entities<'a, I: IntoIterator<Item = &'a Entity>>(d: &Drawing, ents:
     } else {
         opts
     };
-    let mut b = Builder { list: DisplayList::default(), opts, plotting: false, styles: None, named: None };
+    let mut b = Builder { list: DisplayList::default(), opts, plotting: false, styles: None, named: None, alpha: 255 };
     for e in ents {
         entity(&mut b, &top_ctx(d, Mat3::IDENTITY, e.handle, &[], &[]), e);
     }
@@ -520,9 +573,30 @@ fn default_lineweight(d: &Drawing) -> f32 {
 fn entity(b: &mut Builder, ctx: &Ctx, e: &Entity) {
     // The entity's named plot style, for everything it draws (block contents set their own).
     let saved = b.named;
+    let saved_alpha = b.alpha;
     b.named = b.styles.and_then(|s| s.named_index(ctx, &e.common));
+    if b.opts.transparency {
+        b.alpha = opacity(ctx, &e.common, saved_alpha);
+    }
     entity_parts(b, ctx, e);
     b.named = saved;
+    b.alpha = saved_alpha;
+}
+
+/// How opaque an object draws (255 opaque): its transparency percentage, its layer's when
+/// ByLayer (layer 0 inside a block: the block reference's layer), the block reference's
+/// (`block`) when ByBlock.
+fn opacity(ctx: &Ctx, c: &kition_cad_doc::Common, block: u8) -> u8 {
+    let percent = match c.transparency {
+        kition_cad_doc::Transparency::Percent(p) => p,
+        kition_cad_doc::Transparency::ByBlock => return block,
+        kition_cad_doc::Transparency::ByLayer => {
+            let name = if c.layer == "0" { ctx.block_layer.as_deref().unwrap_or("0") } else { c.layer.as_str() };
+            ctx.d.layer(name).map_or(0, |l| l.transparency)
+        }
+    };
+    let percent = f32::from(percent.min(90));
+    (255.0 * (1.0 - percent / 100.0)).round().clamp(0.0, 255.0) as u8
 }
 
 fn entity_parts(b: &mut Builder, ctx: &Ctx, e: &Entity) {

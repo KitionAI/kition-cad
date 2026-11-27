@@ -1,0 +1,28 @@
+format: 1
+id: cad.editor.status-bar/drafting-settings
+feature: cad.editor.status-bar
+intent: >-
+  The status bar by hand, in a real browser (stage 9): Transparency draws an 80% transparent line
+  faint and, off again, solid; Lineweight draws a 1 mm line wider; the gear opens Drafting
+  Settings while LINE runs: Snap and Grid shows the snap spacing and sets it, Snap and the major
+  grid lines, Polar Tracking sets polar tracking on at 45 degrees, Object Snap clears the running
+  modes and checks Endpoint and Midpoint, Dynamic Input switches dynamic input; OK writes them
+  all and LINE keeps running; reopened it shows what it set, and Escape closes it without a
+  change; Tools › Drafting Settings... opens the same dialog.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (web/tests/shell.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

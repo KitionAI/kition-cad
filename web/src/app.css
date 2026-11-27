@@ -553,13 +553,28 @@ textarea.cad-in-place {
   color: var(--kit-text);
 }
 
-/* A checkbox line in the editor's dialogs (InsertDialog.tsx, DraftingSettings.tsx). */
-.cad-check {
+/* Drafting Settings (DraftingSettings.tsx): the object snap modes in two columns. */
+.cad-settings {
+  min-width: 340px;
+}
+
+.cad-settings-snaps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+}
+
+.cad-settings-buttons {
   display: flex;
-  align-items: center;
   gap: 6px;
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 6px;
+}
+
+.cad-mode-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
 }
 
 .cad-dialog-note {
@@ -578,4 +593,22 @@ textarea.cad-in-place {
   min-width: 3ch;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* Short of room (the status bar's modes grew Transparency and the gear in stage 9): the mode
+   buttons keep their words with less padding. */
+@media (max-width: 1440px) {
+  .cad-mode {
+    padding: 0 3px;
+  }
+}
+
+@media (max-width: 1366px) {
+  .cad-drafting {
+    gap: 0;
+  }
+
+  .cad-mode {
+    padding: 0 2px;
+  }
 }

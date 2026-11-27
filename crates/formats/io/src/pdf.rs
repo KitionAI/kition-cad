@@ -138,8 +138,16 @@ pub fn pdf(d: &Drawing, space: &Space, o: &PdfOptions) -> Result<Vec<u8>> {
         Space::Model => true,
     });
     let plot_style_table = kition_cad_doc::plot_style_table(d, &page.plot_style_table).map(std::sync::Arc::new);
-    let ropts =
-        kition_cad_render::Options { tolerance: 0.001, min_dash: 0.0, text: true, fill: true, lineweights, view_height: 0.0, plot_style_table };
+    let ropts = kition_cad_render::Options {
+        tolerance: 0.001,
+        min_dash: 0.0,
+        text: true,
+        fill: true,
+        lineweights,
+        transparency: false,
+        view_height: 0.0,
+        plot_style_table,
+    };
     let k = unit_mm * PT_PER_MM;
     let window = o.window.filter(|w| matches!(space, Space::Model) && !w.is_empty());
     let fit = window.is_some() || o.fit.unwrap_or(matches!(space, Space::Model));

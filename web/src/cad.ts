@@ -10,6 +10,8 @@ export type Drafting = {
   grid: boolean
   snap: boolean
   lwdisplay: boolean
+  /** TRANSPARENCYDISPLAY: objects drawn with their transparency. */
+  transparency: boolean
   /** The grid's spacing in drawing units (GRIDUNIT, or SNAPUNIT where it is 0) and its major lines (GRIDMAJOR). */
   gridUnit: [number, number]
   gridMajor: number
@@ -68,7 +70,7 @@ export type CommandLineState = { prompt: PromptParts; history: CommandHistory }
 export const IDLE_PROMPT: PromptParts = { command: null, message: 'Command', keywords: [], default: null, kind: 'command' }
 
 /** The status bar's on/off drafting modes. */
-export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay' | 'dynamicInput'
+export type DraftingMode = 'ortho' | 'polar' | 'osnap' | 'otrack' | 'grid' | 'snap' | 'lwdisplay' | 'transparency' | 'dynamicInput'
 
 /** The canvas's drawing units per document pixel, and the document pixel of the drawing's origin. */
 export type Units = { perPixel: number; origin: [number, number] }
@@ -107,7 +109,7 @@ export function describe(info: KitEngineInfo): CadInfo {
     prompt: inspected.prompt ?? '',
     running: inspected.running ?? null,
     drafting: {
-      ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, dynamicInput: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
+      ortho: false, polar: false, osnap: false, otrack: false, grid: false, snap: false, lwdisplay: false, transparency: false, dynamicInput: false, gridUnit: [10, 10], gridMajor: 5, cursorSize: 5,
       ...inspected.drafting,
       edit: inspected.drafting?.edit ?? null,
       commandLine: { prompt: inspected.drafting?.commandLine?.prompt ?? IDLE_PROMPT, history: inspected.drafting?.commandLine?.history ?? { serial: 0, lines: [] } },
@@ -146,6 +148,7 @@ export const DRAFTING: Array<{ id: DraftingMode; command: string; label: string 
   { id: 'osnap', command: 'drafting.objectSnap', label: 'Osnap' },
   { id: 'otrack', command: 'drafting.objectSnapTracking', label: 'Otrack' },
   { id: 'lwdisplay', command: 'drafting.lineweightDisplay', label: 'Lineweight' },
+  { id: 'transparency', command: 'drafting.transparencyDisplay', label: 'Transparency' },
   { id: 'dynamicInput', command: 'drafting.dynamicInput', label: 'DynInput' },
 ]
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Dialog, useKitEditor, useKitTools } from '@kition/sdk/editor'
+import { Button, Checkbox, Dialog, useKitEditor, useKitTools } from '@kition/sdk/editor'
 import { describe, gripping } from './cad'
 
 /** A block the drawing defines, as `block.list` answers it. */
@@ -77,10 +77,7 @@ export function InsertDialog({ last, onClose, onChosen }: { last: InsertChoice |
         </label>
         {blocks && !blocks.length ? <div className="kui-muted cad-dialog-note" data-testid="cad-insert-none">{phrase('This drawing has no blocks yet: make one with Block first.')}</div> : null}
         <div className="cad-property-group-title">{phrase('Insertion point')}</div>
-        <label className="cad-check">
-          <input type="checkbox" checked={onScreen} onChange={(event) => setOnScreen(event.target.checked)} data-testid="cad-insert-on-screen" />
-          <span>{phrase('Specify On-screen')}</span>
-        </label>
+        <Checkbox label={phrase('Specify On-screen')} checked={onScreen} onChange={setOnScreen} testId="cad-insert-on-screen" />
         <label className="cad-property"><span>X</span>
           <input className="kui-field" type="text" inputMode="decimal" value={x} disabled={onScreen} onChange={(event) => setX(event.target.value)} onKeyDown={enter} data-testid="cad-insert-x" />
         </label>

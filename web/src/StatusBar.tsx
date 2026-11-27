@@ -1,3 +1,4 @@
+import { SettingsIcon as Settings } from '@kition/tessera/icons/react'
 import { MenuButton, MenuItem, MenuSeparator, useKitEditor } from '@kition/sdk/editor'
 import { DRAFTING, type CadInfo, type DraftingMode } from './cad'
 
@@ -5,7 +6,7 @@ import { DRAFTING, type CadInfo, type DraftingMode } from './cad'
  * The running object snap modes the Osnap button's menu sets (OSMODE's bits), in the order of the
  * drafting settings' list: the bit, and its label.
  */
-const OBJECT_SNAPS: Array<{ bit: number; label: string }> = [
+export const OBJECT_SNAPS: Array<{ bit: number; label: string }> = [
   { bit: 1, label: 'Endpoint' },
   { bit: 2, label: 'Midpoint' },
   { bit: 4, label: 'Center' },
@@ -24,18 +25,20 @@ const OBJECT_SNAPS: Array<{ bit: number; label: string }> = [
 /** Every running object snap mode's bits together. */
 const ALL_SNAPS = OBJECT_SNAPS.reduce((bits, mode) => bits | mode.bit, 0)
 /** The increment angles the Polar button's menu offers (POLARANG), in degrees. */
-const POLAR_ANGLES = [90, 45, 30, 22.5, 18, 15, 10, 5]
+export const POLAR_ANGLES = [90, 45, 30, 22.5, 18, 15, 10, 5]
 
 /** Which status bar mode has a menu of its settings beside it. */
 const MENUS: Partial<Record<DraftingMode, 'osnap' | 'polar'>> = { osnap: 'osnap', polar: 'polar' }
 
 /**
- * The status bar's right end: Zoom Extents, then the drafting modes in CAD's order. Each mode's
- * tooltip names it and its key (F3, F8…); Osnap and Polar have a small arrow beside them that opens
- * their settings: the running object snap modes (checked ones on; choosing one turns object snaps
- * on), and polar tracking's increment angle. They run between and inside commands alike.
+ * The status bar's right end: Zoom Extents, then the drafting modes in CAD's order (Lineweight and
+ * Transparency show the objects' lineweights and transparency on the canvas). Each mode's tooltip
+ * names it and its key (F3, F8…); Osnap and Polar have a small arrow beside them that opens their
+ * settings: the running object snap modes (checked ones on; choosing one turns object snaps on),
+ * and polar tracking's increment angle. They run between and inside commands alike. The gear at the
+ * end opens Drafting Settings.
  */
-export function DraftingStatus({ info }: { info: CadInfo }) {
+export function DraftingStatus({ info, onSettings }: { info: CadInfo; onSettings: () => void }) {
   const { run, enabled, phrase, t, byId } = useKitEditor()
   const tip = (command: string, fallback: string) => {
     const known = byId.get(command)
@@ -97,6 +100,9 @@ export function DraftingStatus({ info }: { info: CadInfo }) {
           ) : null}
         </span>
       ))}
+      <button type="button" className="cad-mode-arrow cad-mode-gear" aria-label={phrase('Drafting Settings')} title={phrase('Drafting Settings')} onClick={onSettings} data-testid="cad-status-settings">
+        <Settings size={13} aria-hidden="true" />
+      </button>
     </span>
   )
 }

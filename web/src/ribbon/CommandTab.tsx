@@ -34,11 +34,13 @@ export function PromptButton({ command, icon, label, size = 'small', primary, li
 }
 
 /** One of a menu tab's commands: its prompts when it has them, else as the shared button runs it (a title ending in … asks its parameters first); Hatch… its dialog. */
-function MenuCommand({ command, primary, onHatch }: { command: KitCommand; primary: boolean; onHatch?: () => void }) {
+function MenuCommand({ command, primary, onHatch, onDraftingSettings }: { command: KitCommand; primary: boolean; onHatch?: () => void; onDraftingSettings?: () => void }) {
   const catalog = useCatalog()
   const editor = useKitEditor()
   const icon = commandIcon(command)
-  if (command.id === 'hatch.add' && onHatch) {
+  // Tools › Drafting Settings... opens the editor's own dialog (DraftingSettings.tsx).
+  const dialog = command.id === 'hatch.add' ? onHatch : command.id === 'drafting.settings' ? onDraftingSettings : undefined
+  if (dialog) {
     return (
       <RibbonButton
         icon={icon}
@@ -47,7 +49,7 @@ function MenuCommand({ command, primary, onHatch }: { command: KitCommand; prima
         primary={primary}
         lineLabel={icon === COMMAND_FALLBACK_ICON}
         disabled={!editor.enabled(command.id) || !editor.enabled('command.runLine')}
-        onClick={onHatch}
+        onClick={dialog}
         data-testid={`${editor.testId}-cmd-${command.id}`}
         data-kit-ui-id={`command:${command.id}`}
       />
@@ -65,13 +67,13 @@ function MenuCommand({ command, primary, onHatch }: { command: KitCommand; prima
  * `CommandTab` groups it, where a command that asks for its input in prompts starts them
  * ([`PromptButton`]). `primary` lists the commands Single line's row shows.
  */
-export function CadCommandTab({ menu, exclude = [], primary = [], onHatch }: { menu: string; exclude?: readonly string[]; primary?: readonly string[]; onHatch?: () => void }) {
+export function CadCommandTab({ menu, exclude = [], primary = [], onHatch, onDraftingSettings }: { menu: string; exclude?: readonly string[]; primary?: readonly string[]; onHatch?: () => void; onDraftingSettings?: () => void }) {
   const { commands, phrase } = useKitEditor()
   const groups = commandGroups(commands.filter((command) => !exclude.includes(command.id)), [menu])
   return (
     <>
       {[...groups].map(([name, { path, items }], index) => {
-        const button = (command: KitCommand) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} onHatch={onHatch} />
+        const button = (command: KitCommand) => <MenuCommand key={command.id} command={command} primary={primary.includes(command.id)} onHatch={onHatch} onDraftingSettings={onDraftingSettings} />
         // Short of room: the tab's first group shows its first commands with their labels and the
         // rest under More; the others become one labelled button each, from the last (FitGroup).
         const kept = items.length > COMPACT_SHOWN + 1 ? COMPACT_SHOWN : items.length

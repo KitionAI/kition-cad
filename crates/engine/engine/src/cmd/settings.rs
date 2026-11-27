@@ -66,7 +66,8 @@ pub fn specs() -> Vec<CommandSpec> {
         })
         .params("{on?: bool}")
         .enabled(always)
-        .noundo(),
+        .noundo()
+        .transparent(),
         CommandSpec::new("drafting.quickProperties", "Quick Properties", |s, p| toggle(s, p, |st| &mut st.qpmode, "Quick Properties"))
             .params("{on?: bool}")
             .enabled(always)

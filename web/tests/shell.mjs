@@ -258,6 +258,87 @@ try {
     step('its Rotation turns it', await until(async () => near((await stool())?.rotation ?? 0, Math.PI / 6, 1e-9)), JSON.stringify(await stool()))
     await screenshot('properties-block')
   })
+
+  // 3. The status bar: Transparency shows the objects' transparency; the gear opens Drafting
+  //    Settings (Snap and Grid, Polar Tracking, Object Snap, Dynamic Input), which reads the
+  //    drawing's settings and writes what changed, in the middle of a command too.
+  await section('status bar', async () => {
+    const drafting = async () => (await details()).drafting
+    // A thick, 80% transparent line where nothing else is.
+    const [line] = await agent(['line.add', { points: [[400, 230], [460, 230]] }])
+    await agent(['object.setProperties', { handles: [line.handle ?? line.handles?.[0]], color: 'Red', lineweight: 1, transparency: 80 }])
+    await calibrate()
+    const on = toScreen(430, 230)
+    const blank = await colourAt(on.x, on.y - 25)
+    const red = async () => surface.evaluate((canvas, { x, y }) => {
+      const ratio = canvas.width / canvas.clientWidth
+      const data = canvas.getContext('2d').getImageData(Math.round((x - 3) * ratio), Math.round((y - 3) * ratio), Math.round(6 * ratio), Math.round(6 * ratio)).data
+      let best = 0
+      for (let i = 0; i < data.length; i += 4) best = Math.max(best, data[i] - Math.max(data[i + 1], data[i + 2]))
+      return best
+    }, { x: on.x - (await surface.boundingBox()).x, y: on.y - (await surface.boundingBox()).y })
+    await until(async () => (await red()) > 100)
+    const solid = await red()
+    await kit.getByTestId('cad-mode-transparency').click()
+    step('Transparency turns on', await until(async () => (await drafting()).transparency === true))
+    step('and the 80% transparent line is drawn faint', await until(async () => (await red()) < solid / 2), `red ${solid} → ${await red()}`)
+    await screenshot('status-transparency')
+    await kit.getByTestId('cad-mode-transparency').click()
+    step('off again, it is drawn solid', await until(async () => (await drafting()).transparency === false && (await red()) > solid * 0.8), `red ${await red()}`)
+    // Lineweight: the 1 mm line is drawn wider.
+    const thin = await drawn(on.x, on.y, 6, blank)
+    await kit.getByTestId('cad-mode-lwdisplay').click()
+    step('Lineweight draws the 1 mm line wider', await until(async () => (await drawn(on.x, on.y, 6, blank)) > thin * 2), `${thin} → ${await drawn(on.x, on.y, 6, blank)} pixels`)
+    await kit.getByTestId('cad-mode-lwdisplay').click()
+    await until(async () => (await drafting()).lwdisplay === false)
+    // The gear, while LINE runs.
+    await command('line', '400,250')
+    await kit.getByTestId('cad-status-settings').click()
+    step('the gear opens Drafting Settings', await until(async () => (await kit.getByTestId('cad-drafting-settings').count()) === 1))
+    step('Snap and Grid shows the snap spacing', await until(async () => (await kit.getByTestId('cad-settings-snapX').inputValue()) !== ''), await kit.getByTestId('cad-settings-snapX').inputValue())
+    await kit.getByTestId('cad-settings-snapX').fill('5')
+    await kit.getByTestId('cad-settings-snapY').fill('5')
+    await kit.getByTestId('cad-settings-gridMajor').fill('4')
+    await kit.getByTestId('cad-settings-snap').check()
+    await screenshot('drafting-settings')
+    await kit.getByTestId('cad-settings-page-polar').click()
+    await kit.getByTestId('cad-settings-polarAngle').selectOption('45')
+    await kit.getByTestId('cad-settings-polar').check()
+    await kit.getByTestId('cad-settings-page-osnap').click()
+    await kit.getByTestId('cad-settings-snap-none').click()
+    await kit.getByTestId('cad-settings-snap-1').check()
+    await kit.getByTestId('cad-settings-snap-2').check()
+    await kit.getByTestId('cad-settings-osnap').check()
+    await kit.getByTestId('cad-settings-page-dynamic').click()
+    const dynamic = (await drafting()).dynamicInput
+    await kit.getByTestId('cad-settings-dynamicInput').setChecked(!dynamic)
+    await kit.getByTestId('cad-settings-ok').click()
+    step('OK closes it', await until(async () => (await kit.getByTestId('cad-drafting-settings').count()) === 0))
+    // (OK writes each change in turn; dynamic input is the last.)
+    step('dynamic input changed', await until(async () => (await drafting()).dynamicInput === !dynamic))
+    const after = await drafting()
+    const snap = (await agent(['variable.get', { name: 'SNAPUNIT' }]))[0]?.value
+    step('the snap spacing and Snap are set', await until(async () => JSON.stringify((await agent(['variable.get', { name: 'SNAPUNIT' }]))[0]?.value) === '[5,5]' && (await drafting()).snap === true), JSON.stringify(snap))
+    step('the major grid lines', after.gridMajor === 4, String(after.gridMajor))
+    step('polar tracking at 45°', after.polar === true && near(after.polarAngle, 45, 1e-9), `${after.polar} ${after.polarAngle}`)
+    step('the running object snaps: Endpoint and Midpoint, on', after.osmode === 3 && after.osnap === true, `${after.osmode} ${after.osnap}`)
+    step('and LINE is still running', (await details()).running === 'line.add', JSON.stringify(await prompt()))
+    // Reopened, it shows what it set; Cancel changes nothing.
+    await kit.getByTestId('cad-status-settings').click()
+    await until(async () => (await kit.getByTestId('cad-drafting-settings').count()) === 1)
+    step('reopened, it shows the settings', await until(async () => (await kit.getByTestId('cad-settings-snapX').inputValue()) === '5' && (await kit.getByTestId('cad-settings-snap').isChecked())))
+    await kit.getByTestId('cad-settings-snap').uncheck()
+    await page.keyboard.press('Escape')
+    step('Escape closes it without a change', await until(async () => (await kit.getByTestId('cad-drafting-settings').count()) === 0) && (await drafting()).snap === true)
+    await page.keyboard.press('Escape')
+    // Tools › Drafting Settings... opens the same dialog.
+    await idle()
+    await kit.getByTestId('ribbon-tab-Tools').click()
+    await wait(300)
+    await kit.getByTestId('cad-cmd-drafting.settings').click()
+    step('Tools › Drafting Settings... opens it too', await until(async () => (await kit.getByTestId('cad-drafting-settings').count()) === 1))
+    await page.keyboard.press('Escape')
+  })
 } finally {
   if (errors.length) step('no page errors', false, errors.join(' | '))
   await browser.close()
