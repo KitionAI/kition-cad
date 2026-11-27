@@ -54,6 +54,7 @@ mod query;
 mod read_fields;
 mod render;
 mod scan;
+mod selection;
 #[cfg(test)]
 mod status_bar_tests;
 mod tools;
@@ -577,11 +578,15 @@ impl CadDocument {
                 }
             }
         }
-        // The object under the pick box (the rollover highlight), thinner than the selection.
-        if let Some(entity) = self.hovered().and_then(|handle| state.doc.entity(handle)).filter(|entity| !selection.contains(&entity.handle)) {
+        // The object under the pick box (the rollover highlight), thinner than the selection; with
+        // the rest of its group, which a pick takes with it.
+        if let Some(hovered) = self.hovered().filter(|handle| !selection.contains(handle)) {
+            let picked = self.session.with_groups(vec![hovered]);
+            let entities: Vec<&kition_cad_doc::Entity> =
+                picked.iter().filter_map(|handle| state.doc.entity(*handle)).map(|entity| &**entity).collect();
             let list = kition_cad_render::build_entities(
                 &state.doc,
-                std::iter::once(&**entity),
+                entities,
                 &kition_cad_render::Options { tolerance: self.tolerance(), ..Default::default() },
             );
             out.extend(self.paths(&list, &place, SELECTED, 1.0, true));
@@ -949,6 +954,7 @@ impl KitDocument for CadDocument {
             commands.push(dynamic_input::command());
             commands.push(grip_edit::command());
             commands.push(properties::command());
+            commands.push(selection::command());
             commands.push(
                 KitCommand {
                     id: "viewport.sync".into(),
@@ -1166,6 +1172,7 @@ impl CadDocument {
             // The person's entry: what it and the commands it runs write goes on the history.
             "command.runLine" => self.echoed(|doc| doc.command_line(params.get("text").and_then(Value::as_str).unwrap_or_default())),
             "file.export" => self.export_command(&params),
+            selection::SIMILAR => self.select_similar(),
             render::RENDER => self.render_view(&params),
             _ => self.session.execute(command, &params).map_err(engine_error),
         };

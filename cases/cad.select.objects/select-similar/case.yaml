@@ -1,0 +1,20 @@
+format: 1
+id: cad.select.objects/select-similar
+feature: cad.select.objects
+intent: >-
+  Select Similar (the drawing menu's select.similar) selects every object shown in the space being
+  edited that has the type and the layer of one of the selected objects; it changes only the
+  selection (no undo step, the drawing stays clean, the command does not mutate), and with nothing
+  selected it says to select an example first.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "select_similar_takes_the_type_and_the_layer" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

@@ -1,0 +1,20 @@
+format: 1
+id: cad.select.objects/select-objects-modes
+feature: cad.select.objects
+intent: >-
+  A "Select objects" prompt offers the selection modes the engine knows as its options: ALL,
+  Last, Previous, Add and Remove, typed or clicked as before (ALL picks everything, r goes to
+  Remove objects, Add and l take the last object back in). W, C, F, WP and CP, which the engine
+  does not have, are not offered.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "select_objects_offers_its_modes" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

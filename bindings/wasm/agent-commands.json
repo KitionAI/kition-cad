@@ -5405,6 +5405,26 @@
    "type": "object"
   }
  },
+ "select.similar": {
+  "description": "Selects every object shown in the space being edited that has the type and the layer of one of the selected objects (Select Similar: a line on Walls selects every line on Walls). It changes only the selection, which it needs: select one or more examples first. Answers how many objects are selected and their handles.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "handles": {
+     "description": "the selected objects' handles",
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "selected": {
+     "description": "how many objects are selected",
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
  "spline.add": {
   "description": "Draws a spline through fit points with optional end tangents, from control vertices, or converts a polyline into a spline.",
   "params": {

@@ -304,3 +304,110 @@ fn hot_grips_have_the_dynamic_input_boxes() {
     doc.execute("drafting.dynamicInput", json!({ "on": false })).unwrap();
     assert!(live(&hover(&mut doc, Vec2::new(167.0, 100.0))).is_none());
 }
+
+fn selected(doc: &CadDocument) -> Vec<Handle> {
+    let mut out = doc.session.selection();
+    out.sort();
+    out
+}
+
+fn sorted(mut handles: Vec<Handle>) -> Vec<Handle> {
+    handles.sort();
+    handles
+}
+
+/// The drawing menu's Select Similar (`select.similar`): the objects of the selected ones' type and
+/// layer, in the space shown; only the selection changes (no undo step, the drawing clean); with
+/// nothing selected it says what to do.
+#[test]
+fn select_similar_takes_the_type_and_the_layer() {
+    let mut doc = drawing(&[
+        ("layer.add", json!({ "name": "Walls" })),
+        ("line.add", json!({ "points": [[0, 0], [10, 0]], "layer": "Walls" })),
+        ("line.add", json!({ "points": [[0, 20], [10, 20]], "layer": "Walls" })),
+        ("line.add", json!({ "points": [[0, 40], [10, 40]] })),
+        ("circle.add", json!({ "center": [50, 50], "radius": 5, "layer": "Walls" })),
+    ]);
+    let all: Vec<(Handle, String, String)> =
+        doc.session.doc().unwrap().model.iter().map(|e| (e.handle, e.kind.type_name().to_owned(), e.common.layer.clone())).collect();
+    let walls_lines: Vec<Handle> = all.iter().filter(|(_, t, l)| t == "Line" && l == "Walls").map(|(h, ..)| *h).collect();
+    assert_eq!(walls_lines.len(), 2);
+    assert!(doc.execute(selection::SIMILAR, json!({})).is_err(), "nothing selected");
+    click(&mut doc, Vec2::new(5.0, 0.0));
+    assert_eq!(doc.session.selection().len(), 1);
+    let steps = undo_steps(&doc);
+    let answer = doc.execute(selection::SIMILAR, json!({})).unwrap();
+    assert_eq!(answer["selected"], 2, "{answer}");
+    assert_eq!(selected(&doc), sorted(walls_lines.clone()));
+    assert_eq!(undo_steps(&doc), steps, "only the selection changes");
+    assert!(!doc.dirty());
+    assert!(!doc.commands().into_iter().find(|c| c.id == selection::SIMILAR).unwrap().mutates);
+    // A line and the circle: both kinds on Walls.
+    click(&mut doc, Vec2::new(55.0, 50.0));
+    doc.execute(selection::SIMILAR, json!({})).unwrap();
+    assert_eq!(doc.session.selection().len(), 3);
+}
+
+/// "Select objects" lists the selection modes it knows as options (ALL, Last, Previous, Add,
+/// Remove), typed as before; the engine has no W, C, F, WP or CP, which are not offered.
+#[test]
+fn select_objects_offers_its_modes() {
+    let mut doc = drawing(&[("line.add", json!({ "points": [[0, 0], [10, 0]] })), ("line.add", json!({ "points": [[0, 20], [10, 20]] }))]);
+    doc.command_line("move").unwrap();
+    assert_eq!(parts(&doc)["kind"], "select");
+    assert_eq!(parts(&doc)["keywords"], json!(["ALL", "Last", "Previous", "Add", "Remove"]));
+    doc.command_line("ALL").unwrap();
+    assert_eq!(doc.session.selection().len(), 2);
+    doc.command_line("r").unwrap();
+    assert_eq!(parts(&doc)["message"], "Remove objects");
+    click(&mut doc, Vec2::new(5.0, 20.0));
+    assert_eq!(doc.session.selection().len(), 1);
+    doc.command_line("Add").unwrap();
+    doc.command_line("l").unwrap();
+    assert_eq!(doc.session.selection().len(), 2, "{:?}", history(&doc));
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+}
+
+/// A group is picked as one (PICKSTYLE 1, the default): a click on a member selects the group, at
+/// "Select objects" too, Shift+click takes it out again, the rollover highlight shows the whole
+/// group, and an unselectable group or PICKSTYLE 0 picks the member alone.
+#[test]
+fn groups_are_picked_as_one() {
+    let mut doc = drawing(&[
+        ("line.add", json!({ "points": [[0, 0], [10, 0]] })),
+        ("line.add", json!({ "points": [[0, 20], [10, 20]] })),
+        ("line.add", json!({ "points": [[0, 40], [10, 40]] })),
+    ]);
+    let handles: Vec<Handle> = doc.session.doc().unwrap().model.iter().map(|e| e.handle).collect();
+    let pair = vec![handles[0].hex(), handles[1].hex()];
+    doc.execute("arrange.group", json!({ "name": "Pair", "handles": pair })).unwrap();
+    doc.session.set_selection(Vec::new());
+    // The highlight: the member under the pointer and the rest of its group.
+    let alone = hover(&mut doc, Vec2::new(5.0, 40.0)).overlays.iter().filter(|o| matches!(o, ToolOverlay::Path { .. })).count();
+    let group = hover(&mut doc, Vec2::new(5.0, 0.0)).overlays.iter().filter(|o| matches!(o, ToolOverlay::Path { .. })).count();
+    assert!(group > alone, "the group's two lines highlight: {group} paths against {alone}");
+    click(&mut doc, Vec2::new(5.0, 0.0));
+    assert_eq!(selected(&doc), sorted(handles[..2].to_vec()));
+    let shift = ToolMods { shift: true, ..ToolMods::default() };
+    // (Off the grips, which Shift makes hot.)
+    click_with(&mut doc, Vec2::new(2.0, 20.0), shift);
+    assert!(doc.session.selection().is_empty(), "Shift takes the group out");
+    // At "Select objects".
+    doc.command_line("erase").unwrap();
+    click(&mut doc, Vec2::new(5.0, 20.0));
+    assert_eq!(selected(&doc), sorted(handles[..2].to_vec()));
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(doc.session.doc().unwrap().model.iter().count(), 1, "the group erased together");
+    doc.execute("edit.undo", json!({})).unwrap();
+    // PICKSTYLE 0: the member alone.
+    doc.execute("variable.set", json!({ "name": "PICKSTYLE", "value": 0 })).unwrap();
+    doc.session.set_selection(Vec::new());
+    click(&mut doc, Vec2::new(5.0, 0.0));
+    assert_eq!(selected(&doc), vec![handles[0]]);
+    // A group made unselectable: the member alone too.
+    doc.execute("variable.set", json!({ "name": "PICKSTYLE", "value": 1 })).unwrap();
+    doc.execute("arrange.group", json!({ "name": "Loose", "handles": [handles[2].hex(), handles[1].hex()], "selectable": false })).unwrap();
+    doc.session.set_selection(Vec::new());
+    click(&mut doc, Vec2::new(5.0, 40.0));
+    assert_eq!(selected(&doc), vec![handles[2]]);
+}

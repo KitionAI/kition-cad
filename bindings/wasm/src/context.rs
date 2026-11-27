@@ -65,6 +65,7 @@ pub(crate) fn moves_the_editor(command: &str) -> bool {
             | "viewport.paperSpace"
             | "select.set"
             | "select.quick"
+            | "select.similar"
             | "edit.selectAll"
             | "edit.find"
             | "edit.deselectAll"

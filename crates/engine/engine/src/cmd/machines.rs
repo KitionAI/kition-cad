@@ -5,6 +5,10 @@ use serde_json::{Value, json};
 
 use crate::{Accept, EngineError, Input, Interactive, Prompt, Result, Session, Step};
 
+/// The selection modes a "Select objects" prompt offers: everything visible in the space, the last
+/// object drawn, the previous selection, and adding or removing what is picked next.
+pub const SELECT_MODES: [&str; 5] = ["ALL", "Last", "Previous", "Add", "Remove"];
+
 /// A "Select objects:" phase. Uses the pickfirst selection when there is one.
 #[derive(Clone, Debug, Default)]
 pub struct SelectPhase {
@@ -45,7 +49,12 @@ impl SelectPhase {
         } else {
             "Select objects"
         };
-        Prompt::new(msg, Accept::SELECT)
+        if self.single {
+            return Prompt::new(msg, Accept::SELECT);
+        }
+        // The selection modes this prompt knows, offered as its options (typed as ever: `all`,
+        // `l`, `p`, `a`, `r`).
+        Prompt::new(msg, Accept::SELECT).kw(&SELECT_MODES)
     }
     pub fn feed(&mut self, s: &mut Session, i: &Input) -> Result<SelOutcome> {
         match i {

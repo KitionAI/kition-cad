@@ -943,10 +943,10 @@ impl Session {
                 if let Some(pw) = self.pending_window.take() {
                     let crossing = p.x < pw.corner.x;
                     let hs = select::select_window(self.doc()?, &space, Bounds2::new(pw.corner, p), crossing);
-                    return Ok(Some(Input::Pick(hs)));
+                    return Ok(Some(Input::Pick(self.with_groups(hs))));
                 }
                 match select::pick(self.doc()?, &space, p, ap) {
-                    Some(h) => Ok(Some(Input::Pick(vec![h]))),
+                    Some(h) => Ok(Some(Input::Pick(self.with_groups(vec![h])))),
                     None => {
                         self.pending_window = Some(PendingWindow { corner: p, during_command: true });
                         Ok(None)
@@ -1114,6 +1114,32 @@ impl Session {
         }
         let state = self.state().ok()?;
         select::pick_unlocked(&state.doc, &state.edit_space(), p, aperture)
+    }
+
+    /// `picked` with the other members of the groups they are in, as a pick or a window takes them
+    /// with group selection on (PICKSTYLE 1 or 3, the default): selectable groups only, members in
+    /// the space being edited and shown. With PICKSTYLE 0 or 2, `picked` as it is.
+    pub fn with_groups(&self, picked: Vec<Handle>) -> Vec<Handle> {
+        let Ok(state) = self.state() else { return picked };
+        let d = &state.doc;
+        if d.groups.is_empty() || d.header.i64("PICKSTYLE", 1) & 1 == 0 {
+            return picked;
+        }
+        let Some(store) = d.space(&state.edit_space()) else { return picked };
+        let mut seen: std::collections::HashSet<Handle> = picked.iter().copied().collect();
+        let mut out = picked;
+        for group in d.groups.iter().filter(|g| g.selectable) {
+            if !group.members.iter().any(|m| seen.contains(m)) {
+                continue;
+            }
+            for member in &group.members {
+                if !seen.contains(member) && store.get(*member).is_some_and(|e| d.is_visible(e)) {
+                    seen.insert(*member);
+                    out.push(*member);
+                }
+            }
+        }
+        out
     }
 
     /// The text shown on the command line: the active prompt, or "Command:".
@@ -1406,7 +1432,7 @@ impl Session {
         let pickadd = self.settings.pickadd;
         if let Some(pw) = self.pending_window.take() {
             let crossing = p.x < pw.corner.x;
-            let hs = select::select_window(self.doc()?, &space, Bounds2::new(pw.corner, p), crossing);
+            let hs = self.with_groups(select::select_window(self.doc()?, &space, Bounds2::new(pw.corner, p), crossing));
             let mut sel = if pickadd || shift { self.selection() } else { Vec::new() };
             if shift && pickadd {
                 sel.retain(|h| !hs.contains(h));
@@ -1419,12 +1445,18 @@ impl Session {
         let ap = self.pick_aperture();
         match select::pick(self.doc()?, &space, p, ap) {
             Some(h) => {
+                // A member of a group is picked with its group.
+                let hs = self.with_groups(vec![h]);
                 let mut sel = if pickadd || shift { self.selection() } else { Vec::new() };
                 let had = sel.contains(&h);
                 if shift && (pickadd || had) {
-                    sel.retain(|x| *x != h);
+                    sel.retain(|x| !hs.contains(x));
                 } else if !had {
-                    sel.push(h);
+                    for x in hs {
+                        if !sel.contains(&x) {
+                            sel.push(x);
+                        }
+                    }
                 }
                 self.set_selection(sel);
             }

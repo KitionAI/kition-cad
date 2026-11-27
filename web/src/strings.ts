@@ -188,6 +188,7 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'Edit Hatch': '编辑图案填充',
     'Edit Polyline': '编辑多段线',
     'Edit Dimension Text': '编辑标注文字',
+    'Select Similar': '选择类似对象',
     'Deselect All': '全部不选',
     Properties: '特性',
     Paste: '粘贴',

@@ -155,15 +155,15 @@ features:
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
   - id: cad.select.objects
-    title: "Select, select all, quick select, find, and grips"
+    title: "Select, select all, select similar, quick select, find, groups picked as one, and grips"
     dimension: [function]
     priority: P1
     status: partial
-    commands: [edit.selectAll, edit.deselectAll, select.set, select.quick, select.quickInfo, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, drafting.selectionCycling, edit.find]
-    paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs, crates/engine/engine/src/select.rs, crates/engine/engine/tests/picking.rs]
+    commands: [edit.selectAll, edit.deselectAll, select.set, select.quick, select.quickInfo, select.similar, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, drafting.selectionCycling, edit.find]
+    paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs, crates/engine/engine/src/select.rs, crates/engine/engine/src/lib.rs, crates/engine/engine/src/cmd/machines.rs, crates/engine/engine/tests/picking.rs, bindings/wasm/src/selection.rs, bindings/wasm/src/handling_tests.rs, web/src/CadCanvas.tsx]
     target: "AutoCAD 2027"
-    gap: "In the editor (the cases of cad.editor.cursor, cad.editor.drafting-input and cad.editor.grips): the pick box at PICKBOX, hover highlight, window and crossing by drag direction, Shift to remove, select all, grips with modes, options, several hot grips and the grip menu. Not yet: selection cycling, the selection keywords beyond All, Last, Previous, Add and Remove (WP, CP, F typed), lasso, Select Similar, groups picked as one; Quick Select and Find are parameter dialogs."
-    cases: [regressions/issue-webkit-block-pick]
+    gap: "In the editor (the cases of cad.editor.cursor, cad.editor.drafting-input and cad.editor.grips): the pick box at PICKBOX, hover highlight, window and crossing by drag direction, Shift to remove, select all, Select Similar (type and layer) on the drawing menu, a group picked as one (PICKSTYLE 1) with its members highlighted together, "Select objects" offering ALL, Last, Previous, Add and Remove, grips with modes, options, several hot grips and the grip menu. Not yet: selection cycling, the selection keywords W, C, F, WP, CP, BOX, AU, SI, M and G (the engine has none of them), lasso, Ctrl+Shift+A to switch group selection (PICKSTYLE is set as a variable), SELECTSIMILAR typed or its settings (type and layer only); Quick Select and Find are parameter dialogs."
+    cases: [regressions/issue-webkit-block-pick, cad.select.objects/select-similar, cad.select.objects/select-objects-modes, cad.select.objects/groups-picked-as-one]
     since: "2026-11-17"
   - id: cad.view.navigation
     title: "Zoom, pan, regenerate, redraw and saved views"
@@ -476,7 +476,7 @@ features:
     since: "2026-11-26"
   - id: cad.editor.grips
     title: "Grips and the right-click menus by state in the editor: the grip under the pointer warm and a hot grip red, a drag from a grip clicking it, Space and Enter cycling STRETCH, MOVE, ROTATE, SCALE and MIRROR with Base point, Copy, Undo, Reference and eXit, Ctrl to place copies, Shift for several hot grips, the grip menu with the modes and the grip's own options (Lengthen, Radius at an arc's midpoint, Add vertex, Remove vertex, Convert to Line at a polyline arc segment's midpoint), one undo step per placement (several hot grips together, a STRETCH copy), and the drawing menu by selection (Erase, Move, Copy, Scale, Rotate, Mirror, Draw Order, Group, the object's edit, Deselect All, Properties; or Repeat, Recent Commands, Undo, Redo, Paste, Select All, Pan, Zoom)"
-    gap: "Each copy is its own undo step, as in CAD; the one-line prompt says STRETCH, not ** STRETCH ** (the command line shows ** STRETCH **); no Convert to Arc at a straight polyline segment and no Lengthen at a polyline's end (the engine's grip_options_preview_what_they_commit pins those grips' options to Add vertex alone); no grip dimension fields beside the object (a hot grip has the dynamic input boxes, cad.editor.dynamic-input); Ctrl changes the preview only at the next pointer move; no Select Similar, Add Selected, Quick Select or Find in the drawing menu; a command an agent runs, a read included, ends a person's hot grip."
+    gap: "Each copy is its own undo step, as in CAD; the one-line prompt says STRETCH, not ** STRETCH ** (the command line shows ** STRETCH **); no Convert to Arc at a straight polyline segment and no Lengthen at a polyline's end (the engine's grip_options_preview_what_they_commit pins those grips' options to Add vertex alone); no grip dimension fields beside the object (a hot grip has the dynamic input boxes, cad.editor.dynamic-input); Ctrl changes the preview only at the next pointer move; no Add Selected, Quick Select or Find in the drawing menu (Select Similar is there, cad.select.objects); a command an agent runs, a read included, ends a person's hot grip."
     dimension: [function]
     priority: P1
     status: partial

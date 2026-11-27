@@ -340,6 +340,7 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
             {command('arrange.group', 'Group')}{command('arrange.ungroup', 'Ungroup')}
             {TYPE_EDITS.filter(([kinds]) => [...types].every((type) => kinds.includes(type))).map(([, id, label]) => edit(id, label))}
             <MenuSeparator />
+            {command('select.similar', 'Select Similar')}
             {command('edit.deselectAll', 'Deselect All')}
             <MenuItem label={editor.phrase('Properties')} onSelect={onProperties} testId="cad-context-properties" />
             <MenuSeparator />

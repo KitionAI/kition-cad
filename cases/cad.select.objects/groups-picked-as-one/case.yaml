@@ -1,0 +1,20 @@
+format: 1
+id: cad.select.objects/groups-picked-as-one
+feature: cad.select.objects
+intent: >-
+  With group selection on (PICKSTYLE 1, the default) a click on a member of a selectable group
+  selects the whole group, between commands and at "Select objects" (ERASE erases the group
+  together); Shift+click takes the group out again; the rollover highlight shows the whole group;
+  PICKSTYLE 0 or an unselectable group picks the member alone.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "groups_are_picked_as_one" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

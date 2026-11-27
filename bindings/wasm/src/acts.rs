@@ -437,6 +437,7 @@ pub const BINDING_COMMANDS: &[(&str, &[EditorState], Option<&str>)] = &[
     ("command.list", &[], None),
     ("drafting.setDynamicEntry", &[], None),
     ("grip.edit", SELECTION, None),
+    ("select.similar", SELECTION_AND_PART, None),
     ("object.describeProperties", SELECTION, Some("handles")),
 ];
 
