@@ -269,7 +269,6 @@ try {
     await agent(['object.setProperties', { handles: [line.handle ?? line.handles?.[0]], color: 'Red', lineweight: 1, transparency: 80 }])
     await calibrate()
     const on = toScreen(430, 230)
-    const blank = await colourAt(on.x, on.y - 25)
     const red = async () => surface.evaluate((canvas, { x, y }) => {
       const ratio = canvas.width / canvas.clientWidth
       const data = canvas.getContext('2d').getImageData(Math.round((x - 3) * ratio), Math.round((y - 3) * ratio), Math.round(6 * ratio), Math.round(6 * ratio)).data
@@ -285,12 +284,23 @@ try {
     await screenshot('status-transparency')
     await kit.getByTestId('cad-mode-transparency').click()
     step('off again, it is drawn solid', await until(async () => (await drafting()).transparency === false && (await red()) > solid * 0.8), `red ${await red()}`)
-    // Lineweight: the 1 mm line is drawn wider.
-    const thin = await drawn(on.x, on.y, 6, blank)
+    // Lineweight: the 1 mm line is drawn four hairlines wide. Measured as ink (how red the pixels
+    // across the line are, summed), not as pixels touched: a hairline's antialiasing spreads about
+    // one pixel of ink over two rows, and how soft a wide line's edges are differs by browser
+    // (WebKit on Linux draws it as four solid rows, twice the rows a hairline touches).
+    const ink = async () => surface.evaluate((canvas, { x, y }) => {
+      const ratio = canvas.width / canvas.clientWidth
+      const data = canvas.getContext('2d').getImageData(Math.round((x - 6) * ratio), Math.round((y - 6) * ratio), Math.round(12 * ratio), Math.round(12 * ratio)).data
+      let sum = 0
+      for (let i = 0; i < data.length; i += 4) sum += Math.max(0, data[i] - Math.max(data[i + 1], data[i + 2]))
+      return sum / ratio / ratio
+    }, { x: on.x - (await surface.boundingBox()).x, y: on.y - (await surface.boundingBox()).y })
+    const thin = await ink()
     await kit.getByTestId('cad-mode-lwdisplay').click()
-    step('Lineweight draws the 1 mm line wider', await until(async () => (await drawn(on.x, on.y, 6, blank)) > thin * 2), `${thin} → ${await drawn(on.x, on.y, 6, blank)} pixels`)
+    step('Lineweight draws the 1 mm line wider', await until(async () => (await ink()) > thin * 2.5), `ink ${Math.round(thin)} → ${Math.round(await ink())}`)
     await kit.getByTestId('cad-mode-lwdisplay').click()
     await until(async () => (await drafting()).lwdisplay === false)
+    step('and as a hairline again when it is off', await until(async () => (await ink()) < thin * 1.3), `ink ${Math.round(await ink())}, hairline ${Math.round(thin)}`)
     // The gear, while LINE runs.
     await command('line', '400,250')
     await kit.getByTestId('cad-status-settings').click()
