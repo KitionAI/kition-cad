@@ -131,6 +131,8 @@ impl CadDocument {
                 let dragged = self.dragging;
                 self.dragging = false;
                 if self.hot_grip.is_some() {
+                    // The click places the point: what the dynamic input boxes held is used up.
+                    self.forget_dynamic_entry();
                     // Ctrl (Cmd on a Mac) held while placing places a copy.
                     self.grip_point(target, event.mods.command || event.mods.control)?;
                 } else if self.session.running.is_some() {

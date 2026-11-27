@@ -75,6 +75,24 @@ fn kind(doc: &CadDocument, handle: &str) -> EntityKind {
     doc.session.doc().unwrap().entity(Handle::parse_hex(handle).unwrap()).unwrap().kind.clone()
 }
 
+/// The dynamic input boxes' live values in a tool answer, read as the editor reads them.
+fn live(response: &ToolResponse) -> Option<Value> {
+    response.overlays.iter().find_map(|overlay| match overlay {
+        ToolOverlay::Label { text, color, .. } if *color == dynamic_input::DYNAMIC => serde_json::from_str(text).ok(),
+        _ => None,
+    })
+}
+
+fn circles(doc: &CadDocument) -> Vec<(Vec2, f64)> {
+    doc.session
+        .doc()
+        .unwrap()
+        .model
+        .iter()
+        .filter_map(|e| if let EntityKind::Circle(c) = &e.kind { Some((c.center.xy(), c.radius)) } else { None })
+        .collect()
+}
+
 fn history(doc: &CadDocument) -> Vec<String> {
     doc.history.iter().cloned().collect()
 }
@@ -232,4 +250,57 @@ fn grip_menu_radius_and_convert_to_line() {
     assert!(doc.hot_grip.is_none());
     doc.execute("edit.undo", json!({})).unwrap();
     assert!(matches!(kind(&doc, &handle), EntityKind::LwPolyline(p) if p.vertices[0].bulge == 1.0), "one undo step");
+}
+
+/// A hot grip has the dynamic input boxes (before, they showed only while a command ran): STRETCH
+/// and MOVE take a distance and an angle from the grip, ROTATE an angle and SCALE a factor, with
+/// the live values beside the cursor; a locked distance holds the grip's point, Enter sends the
+/// boxes as `@d<a` from the grip, and a plain number goes that far toward the cursor.
+#[test]
+fn hot_grips_have_the_dynamic_input_boxes() {
+    let mut doc = drawing(&[("circle.add", json!({ "center": [100, 100], "radius": 30 }))]);
+    doc.execute("drafting.dynamicInput", json!({ "on": true })).unwrap();
+    click(&mut doc, Vec2::new(130.0, 100.0));
+    assert_eq!(doc.session.selection().len(), 1);
+    // The right quadrant's grip, hot.
+    click(&mut doc, Vec2::new(130.0, 100.0));
+    assert!(doc.hot_grip.is_some());
+    assert_eq!(parts(&doc)["kind"], "point");
+    assert_eq!(parts(&doc)["base"], json!([130.0, 100.0]));
+    let values = live(&hover(&mut doc, Vec2::new(140.0, 100.0))).expect("the live values");
+    assert_eq!(values["relative"], true);
+    assert_eq!(values["polar"], json!(["10.0000", "0°"]), "{values}");
+    // A locked distance holds the grip's point to it; the click places it there.
+    let answer = doc.execute(dynamic_input::SET_ENTRY, json!({ "text": "20<", "secondLocked": false })).unwrap();
+    assert_eq!(answer["holds"], true, "{answer}");
+    hover(&mut doc, Vec2::new(135.0, 100.0));
+    assert!(doc.aim.is_some_and(|aim| near(aim, Vec2::new(150.0, 100.0))), "{:?}", doc.aim);
+    click(&mut doc, Vec2::new(135.0, 100.0));
+    assert_eq!(circles(&doc), vec![(Vec2::new(100.0, 100.0), 50.0)]);
+    // Enter sends the boxes from the grip: `@d<a`.
+    click(&mut doc, Vec2::new(150.0, 100.0));
+    assert!(doc.hot_grip.is_some());
+    let answer = doc.execute(dynamic_input::SET_ENTRY, json!({ "text": "10<0", "secondLocked": true })).unwrap();
+    assert_eq!(answer["complete"], "@10<0", "{answer}");
+    doc.command_line("@10<0").unwrap();
+    assert_eq!(circles(&doc), vec![(Vec2::new(100.0, 100.0), 60.0)]);
+    // A plain number: direct distance toward the cursor.
+    click(&mut doc, Vec2::new(160.0, 100.0));
+    hover(&mut doc, Vec2::new(200.0, 100.0));
+    doc.command_line("5").unwrap();
+    assert_eq!(circles(&doc), vec![(Vec2::new(100.0, 100.0), 65.0)]);
+    // ROTATE takes an angle, SCALE a factor: one box each, its live value from the grip.
+    click(&mut doc, Vec2::new(165.0, 100.0));
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(parts(&doc)["kind"], "angle");
+    let values = live(&hover(&mut doc, Vec2::new(165.0, 120.0))).expect("ROTATE's live angle");
+    assert_eq!(values["polar"][1], "90°", "{values}");
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(parts(&doc)["kind"], "distance");
+    let values = live(&hover(&mut doc, Vec2::new(167.0, 100.0))).expect("SCALE's live factor");
+    assert_eq!(values["polar"][0], "2.0000", "{values}");
+    // Off (F12), no boxes.
+    doc.execute("drafting.dynamicInput", json!({ "on": false })).unwrap();
+    assert!(live(&hover(&mut doc, Vec2::new(167.0, 100.0))).is_none());
 }

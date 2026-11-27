@@ -97,7 +97,8 @@ export function CadCanvas({ canvas, viewMemory, info, cursor, history, input, on
   // The dynamic input tooltip follows the prompt (F12, `dynamicInput.ts`).
   const dynamic = cursor.dynamic
   dynamic.on = info?.drafting.dynamicInput ?? false
-  dynamic.running = info?.running != null
+  // A hot grip waits for its point, angle or factor as a command does.
+  dynamic.running = info?.running != null || isGripping(info)
   dynamic.prompt = info?.drafting.commandLine.prompt ?? null
   dynamic.execute = doc ? (command, params) => doc.execute(command, params) : null
   dynamic.refresh = () => tools?.refresh()

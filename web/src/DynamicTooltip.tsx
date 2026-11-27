@@ -29,7 +29,7 @@ export function DynamicTooltip({ dynamic }: { dynamic: DynamicInput }) {
   const prompt = dynamic.prompt
   // Typed in the command line itself, the text is the command line's alone.
   if (!layout || !prompt || !dynamic.shows()) return <div className="cad-dynamic" ref={(element) => { dynamic.box = element }} style={{ visibility: 'hidden' }} data-testid="cad-dynamic-input" hidden />
-  const options = prompt.keywords.length > 0
+  const options = dynamic.options().length > 0
   const message = prompt.message ? phrase(prompt.message) : ''
   let body: ReactNode
   if (layout === 'pair') {

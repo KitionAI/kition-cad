@@ -192,13 +192,23 @@ impl Frame {
 }
 
 impl CadDocument {
-    /// The prompt the boxes work for, when they show: dynamic input on, a command asking for a
-    /// point (not a value, an object pick or a hot grip), no selection window open.
-    pub(super) fn dynamic_frame(&self) -> Option<Frame> {
-        if !self.session.settings.dynmode || self.hot_grip.is_some() || self.session.pending_window.is_some() {
+    /// The prompt the boxes work for: a hot grip's (STRETCH and MOVE measure from the grip, ROTATE
+    /// takes an angle, SCALE a factor), or the running command's; none with dynamic input off or a
+    /// selection window open.
+    fn dynamic_prompt(&self) -> Option<kition_cad_engine::Prompt> {
+        if !self.session.settings.dynmode || self.session.pending_window.is_some() {
             return None;
         }
-        let prompt = self.session.current_prompt()?;
+        if self.hot_grip.is_some() {
+            return self.grip_prompt();
+        }
+        self.session.current_prompt()
+    }
+
+    /// The prompt the boxes work for, when they show two: dynamic input on, a command or a hot grip
+    /// asking for a point (not a value or an object pick), no selection window open.
+    pub(super) fn dynamic_frame(&self) -> Option<Frame> {
+        let prompt = self.dynamic_prompt()?;
         (kition_cad_engine::pointmod::accepts(&prompt) && prompt.kind() == kition_cad_engine::prompt::PromptKind::Point)
             .then(|| Frame { base: prompt.base, angles: self.session.angle_settings() })
     }
@@ -229,7 +239,8 @@ impl CadDocument {
             "format": if entry.format == Format::Polar { "polar" } else { "cartesian" },
             "relative": frame.base.is_some(),
             "holds": frame.holds(&entry, second_locked),
-            "complete": frame.complete(&entry, point, self.session.last_point),
+            // A hot grip's `@` reads from the grip (its base point), not the last point given.
+            "complete": frame.complete(&entry, point, if self.hot_grip.is_some() { frame.base.unwrap_or(self.session.last_point) } else { self.session.last_point }),
         }))
     }
 
@@ -241,12 +252,10 @@ impl CadDocument {
     /// The live values the boxes show dimmed, as a transparent label at the cursor: `cartesian`
     /// (X and Y; from the base point when there is one) and `polar` (the distance and the angle in
     /// degrees from the base point), in the drawing's units. Whenever dynamic input is on and the
-    /// prompt takes a point (a value prompt's single box shows the distance or the angle).
+    /// prompt takes a point (a value prompt's single box shows the distance or the angle), a hot
+    /// grip's included: SCALE's factor is the distance from the grip.
     pub(super) fn dynamic_overlay(&self) -> Option<ToolOverlay> {
-        if !self.session.settings.dynmode || self.hot_grip.is_some() || self.session.pending_window.is_some() {
-            return None;
-        }
-        let prompt = self.session.current_prompt().filter(kition_cad_engine::pointmod::accepts)?;
+        let prompt = self.dynamic_prompt().filter(kition_cad_engine::pointmod::accepts)?;
         let point = self.aim.or(self.cursor).filter(|point| point.is_finite())?;
         let frame = Frame { base: prompt.base, angles: self.session.angle_settings() };
         let (x, y) = frame.values(Format::Cartesian, point);

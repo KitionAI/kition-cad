@@ -3,7 +3,8 @@ import type { PromptParts } from './cad'
 
 /**
  * Dynamic input (F12): the prompt and value boxes CAD draws beside the cursor while a command
- * waits (`DynamicTooltip.tsx`).
+ * or a hot grip waits (`DynamicTooltip.tsx`): a hot grip's STRETCH, MOVE and MIRROR take a distance
+ * and an angle from the grip, ROTATE an angle, SCALE a factor.
  *
  * The command line's text is the one source of truth and the boxes show it. What is typed on the
  * canvas goes to the command line (`App.tsx`) and belongs to the boxes, and so does what is typed
@@ -133,7 +134,7 @@ export class DynamicInput {
     for (const listener of this.listeners) listener()
   }
 
-  /** Whether a command waits (not a hot grip) with dynamic input on. */
+  /** Whether a command or a hot grip waits, with dynamic input on. */
   active(): boolean {
     return this.on && this.running && this.prompt != null && this.prompt.kind !== 'command'
   }
@@ -147,6 +148,10 @@ export class DynamicInput {
   /** Whether the tooltip shows: a layout for the prompt, and the text, if any, typed for the boxes. */
   shows(): boolean {
     return this.layout() != null && (this.dynamic || !this.text)
+  }
+  /** The prompt's options the list offers: none for a hot grip (its menu and Space have them), as CAD does. */
+  options(): string[] {
+    return this.prompt?.grip ? [] : this.prompt?.keywords ?? []
   }
   /** Measured from a base point (the last point): distance and angle, relative. */
   relative(): boolean {
@@ -258,7 +263,7 @@ export class DynamicInput {
     const layout = this.layout()
     if (!layout) return false
     if (key === 'ArrowDown') {
-      const keywords = this.prompt?.keywords ?? []
+      const keywords = this.options()
       if (browsingHistory || !keywords.length || !this.inside) return false
       this.menu = { keywords, index: 0 }
       this.notify()

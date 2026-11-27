@@ -292,7 +292,8 @@ impl CadDocument {
     }
 
     /// A command-line entry at the hot-grip prompt: Enter, an option, a mode's name (`rotate`), a
-    /// point (`@45,12`), or a value (an angle, a scale factor, a length change).
+    /// point (`@45,12`, relative to the grip), a value (an angle, a scale factor, a length change),
+    /// or a distance toward the cursor.
     pub(super) fn grip_text(&mut self, text: &str) -> Result<(), String> {
         let text = text.trim();
         if text.is_empty() {
@@ -321,6 +322,16 @@ impl CadDocument {
         }
         if prompt.accept.number {
             return self.grip_value(text);
+        }
+        // Direct distance: a plain number goes that far from the grip toward the cursor (along
+        // what holds it: Ortho, a tracking path, a locked box).
+        if prompt.accept.point
+            && let (Some(base), Some(distance)) = (prompt.base, kition_cad_engine::units::parse_distance(text).filter(|d| d.is_finite()))
+        {
+            let toward = self.aim.or(self.cursor).filter(|p| p.is_finite()).unwrap_or(base);
+            let direction = (toward - base).normalized();
+            let direction = if direction == Vec2::ZERO { Vec2::new(1.0, 0.0) } else { direction };
+            return self.grip_point(base + direction * distance, false);
         }
         Err(other("Specify a point, or press Escape to cancel"))
     }

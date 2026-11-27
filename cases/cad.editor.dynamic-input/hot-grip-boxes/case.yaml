@@ -1,0 +1,21 @@
+format: 1
+id: cad.editor.dynamic-input/hot-grip-boxes
+feature: cad.editor.dynamic-input
+intent: >-
+  A hot grip has the dynamic input boxes, as a running command does (before, none showed while a
+  grip was hot): STRETCH and MOVE take a distance and an angle from the grip with the live values
+  beside the cursor, a locked distance holds the grip's point and the click places it there, Enter
+  sends the boxes as `@d<a` from the grip, a plain number goes that far toward the cursor; ROTATE
+  shows one angle box and SCALE one factor box (the distance from the grip); F12 turns them off.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "hot_grips_have_the_dynamic_input_boxes" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"
