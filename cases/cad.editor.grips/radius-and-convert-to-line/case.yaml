@@ -1,0 +1,21 @@
+format: 1
+id: cad.editor.grips/radius-and-convert-to-line
+feature: cad.editor.grips
+intent: >-
+  The grip menu's options at an arc's midpoint and at a polyline arc segment's midpoint: Radius
+  asks for the new radius ("** RADIUS **", measured from the centre), typed or picked, and keeps
+  the centre and the ends' angles; Convert to Line changes the drawing at once, so grip.edit
+  refuses it and the menu answers it at the prompt, where the segment becomes straight. Each is
+  one undo step.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "grip_menu_radius_and_convert_to_line" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

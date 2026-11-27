@@ -1,8 +1,9 @@
 //! Hot grips: what a click on a selected object's grip starts, as CAD does. The grip goes hot and
 //! the next click places it; Space or Enter cycles the modes STRETCH, MOVE, ROTATE, SCALE and
 //! MIRROR; the options are Base point, Copy, Undo, Reference (ROTATE, SCALE) and eXit, and a single
-//! grip's own options (a line's or an arc's end: Lengthen; a polyline's vertex: Add vertex, Remove
-//! vertex; its segment's midpoint: Add vertex). Ctrl (or Cmd) held while placing places a copy and
+//! grip's own options (a line's or an arc's end: Lengthen; an arc's midpoint: Radius; a polyline's
+//! vertex: Add vertex, Remove vertex; its segment's midpoint: Add vertex, and on an arc segment
+//! Convert to Line). Ctrl (or Cmd) held while placing places a copy and
 //! keeps editing copies until Enter. Shift+click makes several grips hot; a plain click on one of
 //! them stretches them together.
 //!
@@ -189,13 +190,23 @@ impl CadDocument {
         })
     }
 
-    /// The hot grip's options (one grip in STRETCH: Lengthen, Add vertex, Remove vertex).
+    /// The hot grip's options (one grip in STRETCH: Lengthen, Radius, Add vertex, Remove vertex,
+    /// Convert to Line).
     fn grip_actions(&self, edit: &GripEdit) -> Vec<GripAction> {
         match edit.grips.as_slice() {
             [grip] if edit.mode == GripMode::Stretch => {
                 self.session.doc().ok().and_then(|doc| doc.entity(grip.handle)).map(|e| grip_actions(&e.kind, grip.index)).unwrap_or_default()
             }
             _ => Vec::new(),
+        }
+    }
+
+    /// The centre of the arc whose grip is hot (Radius measures from it).
+    fn arc_center(&self, edit: &GripEdit) -> Option<Vec2> {
+        let grip = edit.grips.first()?;
+        match &self.session.doc().ok()?.entity(grip.handle)?.kind {
+            EntityKind::Arc(arc) => Some(arc.center.xy()),
+            _ => None,
         }
     }
 
@@ -213,6 +224,9 @@ impl CadDocument {
             Ask::RefNew(_) => Prompt::new("Specify new length", Accept::POINT_OR_NUMBER).base(base),
             Ask::Action(GripAction::Lengthen) => {
                 Prompt::new("Specify new end point or length change", Accept::POINT_OR_NUMBER).kw(&["eXit"]).base(base)
+            }
+            Ask::Action(GripAction::Radius) => {
+                Prompt::new("Specify radius", Accept::POINT_OR_NUMBER).kw(&["eXit"]).base(self.arc_center(edit).unwrap_or(base))
             }
             Ask::Action(_) => Prompt::new("Specify new vertex point", Accept::POINT).kw(&["eXit"]).base(base),
             Ask::Mode => {
@@ -456,8 +470,31 @@ impl CadDocument {
     /// same points) by the base point's displacement; the other modes transform the objects. In Copy
     /// the objects stay and copies are placed, and the edit goes on; otherwise it ends.
     fn grip_apply(&mut self, how: Edit) -> Result<(), String> {
-        let Some(edit) = self.hot_grip.as_ref() else { return Ok(()) };
+        if self.hot_grip.is_none() {
+            return Ok(());
+        }
+        let mark = self.session.undo_mark();
         let steps_before = self.session.state().map(|state| state.undo.len()).unwrap_or(0);
+        let done = self.grip_commit(how);
+        // One placement is one undo step, however many commands it took (a copy and its
+        // stretch, several hot grips), also when a later one of them was refused.
+        self.session.fold_undo_since(mark);
+        done?;
+        let steps = self.session.state().map(|state| state.undo.len()).unwrap_or(0).saturating_sub(steps_before);
+        match self.hot_grip.as_mut() {
+            Some(edit) if edit.copy => {
+                edit.copies.push(steps);
+                edit.ask = Ask::Mode;
+                self.forget_aim();
+            }
+            _ => self.end_grip_edit(),
+        }
+        Ok(())
+    }
+
+    /// The commands of one placement ([`CadDocument::grip_apply`]).
+    fn grip_commit(&mut self, how: Edit) -> Result<(), String> {
+        let Some(edit) = self.hot_grip.as_ref() else { return Ok(()) };
         let hex = |handles: &[Handle]| handles.iter().map(|handle| handle.hex()).collect::<Vec<_>>();
         let selection = self.session.selection();
         let copy = edit.copy;
@@ -544,19 +581,11 @@ impl CadDocument {
                 self.session.execute(id, &params).map_err(engine_error)?;
             }
         }
-        let steps = self.session.state().map(|state| state.undo.len()).unwrap_or(0).saturating_sub(steps_before);
-        match self.hot_grip.as_mut() {
-            Some(edit) if edit.copy => {
-                edit.copies.push(steps);
-                edit.ask = Ask::Mode;
-                self.forget_aim();
-            }
-            _ => self.end_grip_edit(),
-        }
         Ok(())
     }
 
-    /// A grip option (Lengthen, Add vertex, Remove vertex) on the base grip; the edit ends.
+    /// A grip option (Lengthen, Radius, Add vertex, Remove vertex, Convert to Line) on the base grip;
+    /// the edit ends.
     fn grip_act(&mut self, action: GripAction, to: Option<Vec2>, value: Option<f64>) -> Result<(), String> {
         let Some(grip) = self.hot_grip.as_ref().and_then(|edit| edit.grips.first().copied()) else { return Ok(()) };
         self.session.grip_act(grip.handle, grip.index, action, to, value).map_err(engine_error)?;
@@ -658,6 +687,7 @@ impl CadDocument {
         let from = match edit.ask {
             Ask::RefSecond(first) => Some(first),
             Ask::Mode | Ask::RefNew(_) if edit.mode != GripMode::Stretch => Some(edit.base),
+            Ask::Action(GripAction::Radius) => Some(self.arc_center(edit).unwrap_or(edit.base)),
             Ask::Action(_) => Some(edit.base),
             _ => None,
         };
@@ -682,7 +712,7 @@ impl CadDocument {
 
     /// The grip under the pointer between edits, for the editor's grip menu: a transparent label at
     /// the grip with its object, index and options (`{"handle","index","actions":[{"label","keyword",
-    /// "immediate"}]}`; an immediate option, Remove vertex, changes the drawing as soon as it is
+    /// "immediate"}]}`; an immediate option, Remove vertex or Convert to Line, changes the drawing as soon as it is
     /// answered, so the menu answers it at the prompt rather than through [`EDIT`]).
     fn grip_info(&self) -> Option<ToolOverlay> {
         let grip = self.hover_grip?;
@@ -698,8 +728,8 @@ impl CadDocument {
 
     /// [`EDIT`]: starts editing grip `index` of the selected object `handle`, as a click on it does,
     /// in `mode`, and answers `option` (one of the prompt's options that changes nothing yet: Base
-    /// point, Copy, Reference, Lengthen, Add vertex; not Remove vertex, which is answered at the
-    /// prompt). It changes no drawing, only what the editor holds; it answers the prompt the edit
+    /// point, Copy, Reference, Lengthen, Radius, Add vertex; not Remove vertex or Convert to Line,
+    /// which are answered at the prompt). It changes no drawing, only what the editor holds; it answers the prompt the edit
     /// asks now (`{}` when the option ended it, eXit).
     pub(super) fn grip_edit_command(&mut self, params: &Value) -> Result<Value, String> {
         let handle = params.get("handle").and_then(Value::as_str).and_then(Handle::parse_hex).ok_or("grip.edit needs `handle`, a selected object")?;

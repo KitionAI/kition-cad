@@ -288,6 +288,51 @@ fn grip_options_preview_what_they_commit() {
     }
 }
 
+/// More grip options (stage 8): an arc's midpoint takes a new radius about the same centre (a point
+/// or a typed value), a polyline's arc segment becomes straight at its midpoint grip; the preview
+/// is what `Session::grip_act` commits, in one undo step, and nothing hostile panics.
+#[test]
+fn grip_radius_and_convert_to_line_preview_what_they_commit() {
+    let mut s = Session::new();
+    let a = h(&s.execute("arc.add", &json!({"center": [0, 0], "radius": 5, "start": 0, "end": 90})).unwrap());
+    let arc = kind(&s, a);
+    assert_eq!(grip_actions(&arc, 1), vec![GripAction::Radius], "the midpoint");
+    let preview = grip_action_result(&arc, 1, GripAction::Radius, Some(v(0.0, 8.0)), None).unwrap();
+    s.grip_act(a, 1, GripAction::Radius, Some(v(0.0, 8.0)), None).unwrap();
+    assert_eq!(kind(&s, a), preview);
+    let EntityKind::Arc(now) = kind(&s, a) else { panic!("an arc") };
+    assert!((now.radius - 8.0).abs() < 1e-9 && near(now.center.xy(), 0.0, 0.0), "{now:?}");
+    assert!((now.start - 0.0).abs() < 1e-9 && (now.end - std::f64::consts::FRAC_PI_2).abs() < 1e-9, "the ends keep their angles: {now:?}");
+    s.grip_act(a, 1, GripAction::Radius, None, Some(3.0)).unwrap();
+    assert!(matches!(kind(&s, a), EntityKind::Arc(x) if (x.radius - 3.0).abs() < 1e-9));
+    s.undo().unwrap();
+    assert!(matches!(kind(&s, a), EntityKind::Arc(x) if (x.radius - 8.0).abs() < 1e-9), "one undo step");
+    assert!(s.grip_act(a, 1, GripAction::Radius, None, Some(0.0)).is_err(), "no radius");
+    assert!(s.grip_act(a, 1, GripAction::Radius, Some(v(0.0, 0.0)), None).is_err(), "the centre itself");
+
+    // A polyline with an arc segment, then a straight one: grips vertex 0, mid 0, vertex 1, mid 1, vertex 2.
+    let p = h(&s.execute("polyline.add", &json!({"points": [{"p": [0, 0], "bulge": 1}, [10, 0], [10, 10]]})).unwrap());
+    let poly = kind(&s, p);
+    assert_eq!(grip_actions(&poly, 1), vec![GripAction::AddVertex, GripAction::ConvertToLine]);
+    assert_eq!(grip_actions(&poly, 3), vec![GripAction::AddVertex], "a straight segment");
+    let preview = grip_action_result(&poly, 1, GripAction::ConvertToLine, None, None).unwrap();
+    s.grip_act(p, 1, GripAction::ConvertToLine, None, None).unwrap();
+    assert_eq!(kind(&s, p), preview);
+    assert!(matches!(kind(&s, p), EntityKind::LwPolyline(x) if x.vertices.iter().all(|q| q.bulge == 0.0)));
+    s.undo().unwrap();
+    assert!(matches!(kind(&s, p), EntityKind::LwPolyline(x) if x.vertices[0].bulge == 1.0), "one undo step");
+    assert!(s.grip_act(p, 3, GripAction::ConvertToLine, None, None).is_err(), "not an option of a straight segment");
+    for (index, to, value) in
+        [(usize::MAX, Some(v(1.0, 1.0)), None), (1, Some(v(f64::NAN, 0.0)), None), (1, None, Some(f64::INFINITY)), (1, None, None)]
+    {
+        for action in [GripAction::Radius, GripAction::ConvertToLine] {
+            let _ = s.grip_act(p, index, action, to, value);
+            let _ = s.grip_act(a, index, action, to, value);
+            let _ = grip_action_result(&kind(&s, a), index, action, to, value);
+        }
+    }
+}
+
 /// The modes cycle STRETCH, MOVE, ROTATE, SCALE, MIRROR and round; a typed word names one.
 #[test]
 fn grip_modes_cycle_and_are_named() {

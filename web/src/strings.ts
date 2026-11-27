@@ -200,6 +200,8 @@ export const PHRASES: Record<string, Record<string, string>> = {
     eXit: '退出',
     'Add vertex': '添加顶点',
     'Remove vertex': '删除顶点',
+    'Convert to Line': '转换为直线',
+    'convert to Line': '转换为直线',
     'Current properties': '当前特性',
     '*Varies*': '*多种*',
     'Multiple layers': '*多种*',

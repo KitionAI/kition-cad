@@ -1051,3 +1051,42 @@ fn adding_layer_walls_when_walls_exists_is_one_layer() {
     assert_eq!(walls_keys(&e), ["walls"]);
     assert_holds(&e, "from a DXF");
 }
+
+/// Steps folded into one (`Session::fold_undo_since`, a grip placement the editor makes of several
+/// commands): one Undo takes back all of them in the drawing and its replica, one Redo brings them
+/// all again, a peer receives the same, and an older step stays apart.
+#[test]
+fn folded_undo_steps_take_their_replica_steps_with_them() {
+    let mut s = new_session();
+    let mut peer_session = peer(&mut s);
+    let line = first_line(&s);
+    let before = s.state().unwrap().undo.len();
+    let mark = s.undo_mark();
+    s.execute("object.move", &json!({ "handles": [line], "from": [0, 0], "to": [5, 0] })).unwrap();
+    s.execute("circle.add", &json!({ "center": [40, 10], "radius": 2 })).unwrap();
+    s.execute("object.move", &json!({ "handles": [line], "from": [0, 0], "to": [0, 5] })).unwrap();
+    assert_eq!(s.state().unwrap().undo.len(), before + 3);
+    s.fold_undo_since(mark);
+    assert_eq!(s.state().unwrap().undo.len(), before + 1, "one step");
+    assert!(last_steps(&s) >= 3, "with the replica's transactions of all three: {}", last_steps(&s));
+    assert_holds(&s, "folded");
+    sync(&mut s, &mut peer_session);
+    let circles = |s: &Session| doc(s).model.iter().filter(|e| matches!(e.kind, EntityKind::Circle(_))).count();
+    assert_eq!(circles(&s), 2);
+    s.undo().unwrap();
+    assert_eq!(circles(&s), 1, "one Undo takes all three back");
+    assert!(matches!(&doc(&s).model.iter().find(|e| e.handle.hex() == line).unwrap().kind, EntityKind::Line(l) if l.a.x == 0.0 && l.a.y == 0.0));
+    assert_eq!(s.state().unwrap().undo.len(), before);
+    assert_holds(&s, "undone");
+    s.redo().unwrap();
+    assert_eq!(circles(&s), 2, "one Redo brings them again");
+    assert_holds(&s, "redone");
+    sync(&mut s, &mut peer_session);
+    assert_same(&mut s, &mut peer_session, "the peer");
+    // Nothing to fold, or a mark older than another step left apart: one step stays one.
+    let mark = s.undo_mark();
+    s.fold_undo_since(mark);
+    s.execute("circle.add", &json!({ "center": [60, 10], "radius": 2 })).unwrap();
+    s.fold_undo_since(mark);
+    assert_eq!(s.state().unwrap().undo.len(), before + 2);
+}

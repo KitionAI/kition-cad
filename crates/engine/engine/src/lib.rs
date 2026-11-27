@@ -1306,6 +1306,38 @@ impl Session {
     pub fn undo_scope(&self) -> UndoScope {
         UndoScope::of(self.origin().kind).unwrap_or(UndoScope::Person)
     }
+    /// Where the active drawing's history is now, for [`Session::fold_undo_since`]: how many steps
+    /// it has ever pushed.
+    pub fn undo_mark(&self) -> u64 {
+        self.state().map(|st| st.pushed).unwrap_or(0)
+    }
+
+    /// Folds the undo steps pushed since `mark` ([`Session::undo_mark`]) into one, the first one's
+    /// (its label, the drawing and selection before it), so one Undo takes them all back: an edit
+    /// the editor makes of several commands (a grip placement that stretches several grips, or
+    /// copies and then stretches). Their replica transactions go with the one step. Nothing
+    /// happens unless they are the newest steps, all of one scope.
+    pub fn fold_undo_since(&mut self, mark: u64) {
+        self.top(|s| {
+            let origin = s.origin();
+            let live = s.running.is_some();
+            let Ok(st) = s.state_mut() else { return };
+            // What is not written to the replica yet belongs to the newest step.
+            st.sync_kdm(&origin, false, live);
+            let range = st.pushed_since(mark);
+            let Some(first) = st.undo.get(range.start) else { return };
+            let scope = first.scope;
+            if range.len() < 2 || range.end != st.undo.len() || st.undo.get(range.clone()).is_none_or(|steps| steps.iter().any(|u| u.scope != scope))
+            {
+                return;
+            }
+            let later: Vec<Snapshot> = st.undo.drain(range.start + 1..).collect();
+            if let Some(step) = st.undo.last_mut() {
+                step.steps = later.iter().fold(step.steps, |sum, u| sum.saturating_add(u.steps));
+            }
+        });
+    }
+
     /// Whether the active drawing has a step to undo (or redo) in `scope`.
     pub fn can_undo_in(&self, scope: UndoScope) -> bool {
         self.state().is_ok_and(|st| st.undo.iter().any(|u| u.scope == scope))

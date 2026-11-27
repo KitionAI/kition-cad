@@ -70,6 +70,10 @@ pub enum GripAction {
     RemoveVertex,
     /// Line or arc end: the object lengthened or shortened along itself at this end.
     Lengthen,
+    /// Polyline arc segment (its midpoint grip): the segment becomes straight.
+    ConvertToLine,
+    /// Arc midpoint: a new radius about the same centre, the ends at the same angles.
+    Radius,
 }
 
 impl GripAction {
@@ -79,6 +83,8 @@ impl GripAction {
             GripAction::AddVertex => "Add vertex",
             GripAction::RemoveVertex => "Remove vertex",
             GripAction::Lengthen => "Lengthen",
+            GripAction::ConvertToLine => "convert to Line",
+            GripAction::Radius => "Radius",
         }
     }
 
@@ -88,6 +94,8 @@ impl GripAction {
             GripAction::AddVertex => "Add Vertex",
             GripAction::RemoveVertex => "Remove Vertex",
             GripAction::Lengthen => "Lengthen",
+            GripAction::ConvertToLine => "Convert to Line",
+            GripAction::Radius => "Radius",
         }
     }
 
@@ -97,23 +105,30 @@ impl GripAction {
             GripAction::AddVertex => "ADD VERTEX",
             GripAction::RemoveVertex => "REMOVE VERTEX",
             GripAction::Lengthen => "LENGTHEN",
+            GripAction::ConvertToLine => "CONVERT TO LINE",
+            GripAction::Radius => "RADIUS",
         }
     }
 
-    /// Whether the option asks for a point (Remove vertex acts at once).
+    /// Whether the option asks for a point (Remove vertex and Convert to Line act at once).
     pub fn needs_point(self) -> bool {
-        !matches!(self, GripAction::RemoveVertex)
+        !matches!(self, GripAction::RemoveVertex | GripAction::ConvertToLine)
     }
 }
 
-/// The options of grip `index` of an object: a line's or an arc's ends lengthen; a polyline's
-/// vertex adds a vertex after it or is removed (when more than two are left), its segment midpoint
-/// adds a vertex on the segment.
+/// The options of grip `index` of an object: a line's or an arc's ends lengthen, an arc's midpoint
+/// takes a new radius; a polyline's vertex adds a vertex after it or is removed (when more than two
+/// are left), its segment midpoint adds a vertex on the segment, and an arc segment's becomes
+/// straight.
 pub fn grip_actions(kind: &EntityKind, index: usize) -> Vec<GripAction> {
     match kind {
         EntityKind::Line(_) | EntityKind::Arc(_) if index == 0 || index == 2 => vec![GripAction::Lengthen],
+        EntityKind::Arc(_) if index == 1 => vec![GripAction::Radius],
         EntityKind::LwPolyline(p) => match poly_grip(p, index) {
             Some(PolyGrip::Vertex(_)) if p.vertices.len() > 2 => vec![GripAction::AddVertex, GripAction::RemoveVertex],
+            Some(PolyGrip::Mid(i)) if p.vertices.get(i).is_some_and(|v| v.bulge.abs() > 1e-12) => {
+                vec![GripAction::AddVertex, GripAction::ConvertToLine]
+            }
             Some(PolyGrip::Vertex(_) | PolyGrip::Mid(_)) => vec![GripAction::AddVertex],
             None => Vec::new(),
         },
@@ -163,6 +178,25 @@ pub fn grip_action_result(kind: &EntityKind, index: usize, action: GripAction, t
             }
             (i < n).then(|| p.vertices.remove(i))?;
             Some(EntityKind::LwPolyline(p))
+        }
+        (GripAction::ConvertToLine, EntityKind::LwPolyline(p)) => {
+            let i = action_vertex(p, index)?;
+            let mut p = p.clone();
+            p.vertices.get_mut(i)?.bulge = 0.0;
+            Some(EntityKind::LwPolyline(p))
+        }
+        (GripAction::Radius, EntityKind::Arc(a)) => {
+            let radius = match (value.filter(|r| r.is_finite()), to.filter(|q| q.is_finite())) {
+                (Some(r), _) => r,
+                (None, Some(q)) => a.center.xy().dist(q),
+                (None, None) => return None,
+            };
+            if !(radius > EPS && radius.is_finite()) {
+                return None;
+            }
+            let mut a = a.clone();
+            a.radius = radius;
+            Some(EntityKind::Arc(a))
         }
         _ => None,
     }
@@ -484,8 +518,9 @@ impl Session {
     }
 
     /// Option `action` of grip `grip_index` of `handle` with the point `to` or the length change
-    /// `value` (one undo step), through the commands that do it: `object.lengthen` from the grip's
-    /// end, `polyline.edit`'s vertex insert or remove.
+    /// (Lengthen) or radius (Radius) `value` (one undo step), through the commands that do it:
+    /// `object.lengthen` from the grip's end, `polyline.edit`'s vertex insert, remove or straighten,
+    /// `object.setProperties`' radius.
     pub fn grip_act(&mut self, handle: Handle, grip_index: usize, action: GripAction, to: Option<Vec2>, value: Option<f64>) -> Result<()> {
         let entity = self.doc()?.entity(handle).cloned().ok_or_else(|| EngineError::Other("no such object".into()))?;
         if !grip_actions(&entity.kind, grip_index).contains(&action) {
@@ -509,6 +544,16 @@ impl Session {
                 } else {
                     self.execute("polyline.edit", &json!({ "handle": h, "option": "vertex", "action": "remove", "index": index }))
                 }
+            }
+            (GripAction::ConvertToLine, EntityKind::LwPolyline(p)) => {
+                let index = action_vertex(p, grip_index).ok_or_else(|| EngineError::Other("no such grip".into()))?;
+                self.execute("polyline.edit", &json!({ "handle": h, "option": "vertex", "action": "straighten", "index": index }))
+            }
+            (GripAction::Radius, kind) => {
+                let Some(EntityKind::Arc(arc)) = grip_action_result(kind, grip_index, action, to, value) else {
+                    return Err(EngineError::Other("Requires a radius greater than zero, or a point".into()));
+                };
+                self.execute("object.setProperties", &json!({ "handles": [h], "radius": arc.radius }))
             }
             _ => return Err(EngineError::Other("no such grip option".into())),
         };

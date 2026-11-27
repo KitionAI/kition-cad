@@ -1,0 +1,21 @@
+format: 1
+id: cad.editor.grips/one-undo-per-placement
+feature: cad.editor.grips
+intent: >-
+  One grip placement is one undo step, however many commands it takes: a STRETCH copy (the
+  objects copied in place, then the copy stretched) was two steps, and several hot grips
+  stretched together one step each. Copies stay one step each, as in CAD, and the Undo option
+  takes the last copy back whole; one Undo and one Redo take back and bring again several grips
+  stretched together.
+layer: gate
+source:
+  kind: synthetic
+  from: CAD hand-drafting stage 8 (bindings/wasm/src/handling_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "one_grip_placement_is_one_undo_step" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"
