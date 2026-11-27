@@ -1,0 +1,30 @@
+format: 1
+id: cad.editor.grips/handling-by-hand
+feature: cad.editor.grips
+intent: >-
+  Drafting by hand, round two, in a real browser: with Ortho and polar tracking on, a narrow
+  rectangle drawn by two clicks keeps the height the pointer gave; a click just inside a rectangle
+  lying over a dimension's (undrawn) bounding box picks the rectangle, so BLOCK takes it; a STRETCH
+  copy and two hot grips stretched together are each taken back by one Undo; the grip menu offers
+  Radius at an arc's midpoint (30 Enter sets the radius) and Convert to Line at a polyline arc
+  segment's midpoint; a hot grip shows the dynamic input boxes (distance and angle from the grip,
+  a number typed on the canvas going that far toward the cursor; one angle box in ROTATE); the
+  drawing menu's Select Similar selects the lines on the layer of the selected one; "Select
+  objects" offers ALL, Last, Previous, Add and Remove; a click on a member selects its group.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 8 (web/tests/handling.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/handling.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

@@ -20,6 +20,7 @@
     "test:command-line": "node tests/command-line.mjs chromium && node tests/command-line.mjs webkit",
     "test:dynamic-input": "node tests/dynamic-input.mjs chromium && node tests/dynamic-input.mjs webkit",
     "test:grips": "node tests/grips.mjs chromium && node tests/grips.mjs webkit",
+    "test:handling": "node tests/handling.mjs chromium && node tests/handling.mjs webkit",
     "test:properties": "node tests/properties.mjs chromium && node tests/properties.mjs webkit",
     "test:phrases": "node tests/phrases.mjs chromium && node tests/phrases.mjs webkit",
     "test:status-bar": "node tests/status-bar.mjs chromium && node tests/status-bar.mjs webkit",
