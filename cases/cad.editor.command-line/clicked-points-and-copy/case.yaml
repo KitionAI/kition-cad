@@ -1,0 +1,25 @@
+format: 1
+id: cad.editor.command-line/clicked-points-and-copy
+feature: cad.editor.command-line
+intent: >-
+  The command history by hand, in a real browser (stage 9): LINE's two clicked points are on the
+  history beside their prompts, in drawing units where the clicks were; a grip placed by a click
+  is there too; a right-click on the history window (F2) opens its menu, Copy History puts the
+  whole history on the clipboard and Copy the lines selected in the window.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (web/tests/shell.mjs)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

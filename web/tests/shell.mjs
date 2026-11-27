@@ -367,6 +367,60 @@ try {
     step('the Model tab\'s menu offers New Layout only', (await kit.getByTestId('cad-layout-menu-new').count()) === 1 && (await kit.getByTestId('cad-layout-menu-rename').count()) === 0)
     await page.keyboard.press('Escape')
   })
+
+  // 5. The command history: clicked points are written beside their prompts, a grip's too; the
+  //    history window's menu copies the history.
+  await section('history', async () => {
+    const frame = page.frames().find((item) => item !== page.mainFrame())
+    // The clipboard the page writes, kept where the test can read it.
+    await frame.evaluate(() => {
+      window.__copied = null
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__copied = text } } })
+    })
+    await kit.getByTestId('cad-tool-line.add').click()
+    await wait(300)
+    await click(400, 250)
+    await click(440, 250)
+    await page.keyboard.press('Escape')
+    await idle()
+    const point = /: -?\d+(\.\d+)?,-?\d+(\.\d+)?$/
+    const lines = await history()
+    step('the first point clicked is on the history', lines.some((line) => line.startsWith('LINE Specify first point') && point.test(line)), JSON.stringify(lines.slice(-4)))
+    step('and the next point', lines.some((line) => line.startsWith('LINE Specify next point') && point.test(line)))
+    const written = lines.find((line) => line.startsWith('LINE Specify next point'))?.split(': ').pop()?.split(',').map(Number) ?? []
+    step('in drawing units, where the click was', near(written[0], 440, 2 * perPixel()) && near(written[1], 250, 2 * perPixel()), JSON.stringify(written))
+    // A grip placed by a click.
+    await click(420, 250)
+    await until(async () => (await details()).selection === 1)
+    await click(440, 250)
+    await until(async () => (await prompt()).grip != null)
+    await click(450, 260)
+    step('a grip placed by a click is on the history too', await until(async () => /^STRETCH .*: -?[\d.]+,-?[\d.]+$/.test((await history()).at(-1) ?? '')), (await history()).at(-1))
+    await page.keyboard.press('Escape')
+    await wait(300)
+    await page.keyboard.press('Escape')
+    // The history window's menu.
+    await kit.getByTestId('cad-history-toggle').click()
+    await until(async () => (await kit.locator('[data-testid=cad-history][data-open=true]').count()) === 1)
+    await rightClick(kit.locator('[data-testid=cad-history][data-open=true]'))
+    step('a right-click on the history window opens its menu', await until(async () => (await kit.getByTestId('cad-history-menu').count()) === 1))
+    await screenshot('history-menu')
+    await kit.getByTestId('cad-history-menu-copy-all').click()
+    const copied = async () => frame.evaluate(() => window.__copied)
+    step('Copy History puts the history on the clipboard', await until(async () => /Command: LINE/.test((await copied()) ?? '') && /LINE Specify next point/.test((await copied()) ?? '')), String(await copied()).slice(0, 120))
+    // Copy with a line selected copies that line.
+    await kit.locator('[data-testid=cad-history][data-open=true] .cad-history-line', { hasText: 'Specify first point' }).first().evaluate((line) => {
+      const range = document.createRange()
+      range.selectNodeContents(line)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+    })
+    await rightClick(kit.locator('[data-testid=cad-history][data-open=true] .cad-history-line', { hasText: 'Specify first point' }).first())
+    await until(async () => (await kit.getByTestId('cad-history-menu').count()) === 1)
+    await kit.getByTestId('cad-history-menu-copy').click()
+    step('Copy copies the lines selected', await until(async () => /^LINE Specify first point.*\d$/.test(((await copied()) ?? '').trim())), String(await copied()))
+  })
 } finally {
   if (errors.length) step('no page errors', false, errors.join(' | '))
   await browser.close()

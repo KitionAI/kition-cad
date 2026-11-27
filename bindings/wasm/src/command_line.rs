@@ -51,6 +51,25 @@ impl CadDocument {
         if text.is_empty() { self.write_history(&prompt) } else { self.write_history(&format!("{prompt} {text}")) }
     }
 
+    /// A point clicked on the drawing, written to the history beside the prompt it answers as a
+    /// typed one is ("LINE Specify next point or [Undo]: 120,250"), in the drawing's units and
+    /// precision (LUNITS, LUPREC; decimal without trailing zeros).
+    pub(super) fn echo_point(&mut self, point: Vec2) {
+        if !point.is_finite() {
+            return;
+        }
+        let (lunits, luprec) = self.session.doc().map(|d| (d.header.i64("LUNITS", 2), d.header.i64("LUPREC", 4))).unwrap_or((2, 4));
+        let shown = |v: f64| {
+            let text = kition_cad_engine::units::format_distance(v, lunits, luprec);
+            if lunits != 2 || !text.contains('.') {
+                return text;
+            }
+            let trimmed = text.trim_end_matches('0').trim_end_matches('.');
+            if trimmed == "-0" || trimmed.is_empty() { "0".to_owned() } else { trimmed.to_owned() }
+        };
+        self.echo_entry(&format!("{},{}", shown(point.x), shown(point.y)));
+    }
+
     /// `inspect()`'s `/drafting/commandLine`: the prompt taken apart and the history, its last
     /// [`HISTORY_LINES`] lines and how many lines it has ever had (`serial`, which tells the editor
     /// which lines are new).

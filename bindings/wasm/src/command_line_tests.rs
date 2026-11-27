@@ -152,3 +152,46 @@ fn issue_a_button_starts_the_prompt() {
     assert_eq!(doc.inspect().unwrap()["entities"], entities);
     assert!(doc.prompt().starts_with("DONUT "), "{}", doc.prompt());
 }
+
+/// Stage 9: a point clicked on the drawing goes on the history beside the prompt it answers, as a
+/// typed one does, in the drawing's units ("LINE Specify next point or [Undo]: 40,20"); a grip
+/// placed by a click too; objects picked at "Select objects" write no point.
+#[test]
+fn clicked_points_are_written_beside_their_prompts() {
+    let mut doc = blank();
+    for (name, off) in [("drafting.polar", false), ("drafting.ortho", false), ("drafting.grid", false), ("drafting.snap", false)] {
+        doc.execute(name, json!({ "on": off })).unwrap();
+    }
+    let click = |doc: &mut CadDocument, point: Vec2| {
+        for action in [PointerAction::Move, PointerAction::Down, PointerAction::Up] {
+            let (x, y) = doc.placement().to_doc(point);
+            doc.pointer(&ToolPointer { action, x, y, mods: ToolMods::default(), pressure: 1.0, zoom: 1.0 }).unwrap();
+        }
+    };
+    doc.select_tool("line.add", 1.0).unwrap();
+    click(&mut doc, Vec2::new(10.0, 20.0));
+    click(&mut doc, Vec2::new(40.0, 20.0));
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    let lines = history(&doc);
+    assert!(lines.iter().any(|line| line.starts_with("LINE Specify first point") && line.ends_with(": 10,20")), "{lines:?}");
+    assert!(lines.iter().any(|line| line.starts_with("LINE Specify next point") && line.ends_with(": 40,20")), "{lines:?}");
+
+    // A grip: the line picked, its end grip clicked hot, placed by a click.
+    click(&mut doc, Vec2::new(25.0, 20.0));
+    click(&mut doc, Vec2::new(40.0, 20.0));
+    assert!(doc.inspect().unwrap()["drafting"]["commandLine"]["prompt"]["grip"].is_object(), "the end grip is hot");
+    click(&mut doc, Vec2::new(50.0, 30.0));
+    let lines = history(&doc);
+    assert!(lines.last().is_some_and(|line| line.ends_with(": 50,30")), "{lines:?}");
+
+    // MOVE: the object picked at "Select objects" writes no point; the base point does.
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    line(&mut doc, "move");
+    click(&mut doc, Vec2::new(30.0, 25.0));
+    assert!(history(&doc).iter().all(|line| !line.ends_with(": 30,25")), "a pick writes no point: {:?}", history(&doc));
+    assert!(history(&doc).last().is_some_and(|line| line.contains("1 found")), "{:?}", history(&doc));
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    click(&mut doc, Vec2::new(0.0, 0.0));
+    assert!(history(&doc).last().is_some_and(|line| line.starts_with("MOVE Specify base point") && line.ends_with(": 0,0")), "{:?}", history(&doc));
+}

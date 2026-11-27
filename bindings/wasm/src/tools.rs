@@ -133,6 +133,8 @@ impl CadDocument {
                 if self.hot_grip.is_some() {
                     // The click places the point: what the dynamic input boxes held is used up.
                     self.forget_dynamic_entry();
+                    // The point goes on the history beside the grip's prompt, as a typed one does.
+                    self.echo_point(target);
                     // Ctrl (Cmd on a Mac) held while placing places a copy.
                     self.grip_point(target, event.mods.command || event.mods.control)?;
                 } else if self.session.running.is_some() {
@@ -144,6 +146,11 @@ impl CadDocument {
                     };
                     // The click places the point: what the dynamic input boxes held is used up.
                     self.forget_dynamic_entry();
+                    // A point clicked at a prompt that asks for one goes on the history beside it
+                    // ("LINE Specify next point or [Undo]: 120,250"); picks of objects do not.
+                    if !dragged && self.session.current_prompt().is_some_and(|prompt| prompt.accept.point && !prompt.accept.select) {
+                        self.echo_point(target);
+                    }
                     self.feed(input)?;
                 } else if let Some(grip) = pressed_grip {
                     self.click_grip(grip, shift);

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
 import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, TerminalIcon as Terminal } from '@kition/tessera/icons/react'
-import { useKitEditor, useKitTools } from '@kition/sdk/editor'
+import { createPortal } from 'react-dom'
+import { ContextMenu, MenuItem, useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { CommandLineState, PromptKind } from './cad'
 import { namesExactly, suggest, useCatalog, type Suggestion } from './commands'
 import type { DynamicInput } from './dynamicInput'
@@ -22,6 +23,28 @@ const WAITING: Record<PromptKind, string> = {
   select: 'waitSelect',
   text: 'waitText',
   keyword: 'waitKeyword',
+}
+
+/**
+ * Puts `text` on the clipboard: the asynchronous clipboard where the page may use it, else the
+ * older copy command on a hidden text area (an embedded editor may not be allowed the former).
+ */
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return
+  } catch {
+    // Not allowed here: copy the old way.
+  }
+  const area = document.createElement('textarea')
+  area.value = text
+  area.setAttribute('readonly', '')
+  area.style.position = 'fixed'
+  area.style.opacity = '0'
+  document.body.appendChild(area)
+  area.select()
+  document.execCommand('copy')
+  area.remove()
 }
 
 /** The names INSERT is typed by: they open the insert dialog (the command line never starts INSERT, which may read a file). */
@@ -68,6 +91,8 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
   // typed word is sent as it is rather than completed.
   const pending = useRef(0)
   const log = useRef<HTMLDivElement>(null)
+  // The history window's menu (a right-click on it): Copy, Copy History.
+  const [menu, setMenu] = useState<{ x: number; y: number; selected: string } | null>(null)
   const gripping = line.prompt.grip != null
   const idle = !running && !gripping
   const suggestions = useMemo(() => (idle && historyIndex === null ? suggest(catalog, typed) : []), [catalog, typed, idle, historyIndex])
@@ -202,7 +227,19 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
           </ul>
         ) : null}
         {expanded ? (
-          <div className="cad-history" data-open="true" ref={log} data-testid="cad-history">
+          <div
+            className="cad-history"
+            data-open="true"
+            ref={log}
+            data-testid="cad-history"
+            onContextMenu={(event) => {
+              event.preventDefault()
+              // What is selected in the window, if anything: Copy takes it, else the whole history.
+              const selection = window.getSelection()
+              const inside = selection && log.current && selection.anchorNode && log.current.contains(selection.anchorNode)
+              setMenu({ x: event.clientX, y: event.clientY, selected: inside ? selection.toString() : '' })
+            }}
+          >
             {lines.map((item) => <div key={item.key} className="cad-history-line" data-error={item.error ? 'true' : undefined}>{item.text}</div>)}
           </div>
         ) : (
@@ -211,6 +248,15 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
             {shown.map((item) => <div key={item.key} className="cad-history-line" data-error={item.error ? 'true' : undefined}>{item.text}</div>)}
           </div>
         )}
+        {/* On the page itself: the floating history is placed (and moved) by the frame, and a menu
+            inside it would be placed against it, not the window. */}
+        {menu ? createPortal(
+          <ContextMenu at={menu} onClose={() => setMenu(null)} label={t('commandHistory')} testId="cad-history-menu">
+            <MenuItem label={phrase('Copy')} onSelect={() => void copyText(menu.selected || lines.map((item) => item.text).join('\n'))} testId="cad-history-menu-copy" />
+            <MenuItem label={phrase('Copy History')} onSelect={() => void copyText(lines.map((item) => item.text).join('\n'))} testId="cad-history-menu-copy-all" />
+          </ContextMenu>,
+          document.body,
+        ) : null}
         <div className="cad-prompt" data-testid="cad-prompt">
           {idle ? (
             <span className="kui-muted">{phrase('Command:')}</span>

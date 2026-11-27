@@ -1,0 +1,21 @@
+format: 1
+id: cad.editor.command-line/clicked-points-in-history
+feature: cad.editor.command-line
+intent: >-
+  A point clicked on the drawing goes on the command history beside the prompt it answers, as a
+  typed answer does, in the drawing's units without trailing zeros ("LINE Specify first point:
+  10,20", "LINE Specify next point or [Undo]: 40,20"); a hot grip placed by a click writes its
+  point beside the grip's prompt; an object picked at "Select objects" writes no point (the
+  engine's "1 found" stays), and the base point clicked next does.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (bindings/wasm/src/command_line_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "clicked_points_are_written_beside_their_prompts" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

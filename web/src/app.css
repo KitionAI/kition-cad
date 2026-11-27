@@ -272,6 +272,9 @@ textarea.cad-in-place {
   max-height: 204px;
   overflow-y: auto;
   pointer-events: auto;
+  /* Its lines can be selected and copied (its menu's Copy). */
+  user-select: text;
+  -webkit-user-select: text;
   border: 1px solid var(--kit-border);
   border-bottom: 0;
   background: var(--kit-surface);
