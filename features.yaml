@@ -160,9 +160,10 @@ features:
     priority: P1
     status: partial
     commands: [edit.selectAll, edit.deselectAll, select.set, select.quick, select.quickInfo, grip.move, grip.stretch, grip.rotate, grip.scale, grip.mirror, drafting.selectionCycling, edit.find]
-    paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs]
+    paths: [crates/engine/engine/src/cmd/gripcmds.rs, crates/engine/engine/src/grips.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/qselect.rs, crates/engine/engine/src/select.rs, crates/engine/engine/tests/picking.rs]
     target: "AutoCAD 2027"
     gap: "In the editor (the cases of cad.editor.cursor, cad.editor.drafting-input and cad.editor.grips): the pick box at PICKBOX, hover highlight, window and crossing by drag direction, Shift to remove, select all, grips with modes, options, several hot grips and the grip menu. Not yet: selection cycling, the selection keywords beyond All, Last, Previous, Add and Remove (WP, CP, F typed), lasso, Select Similar, groups picked as one; Quick Select and Find are parameter dialogs."
+    cases: [regressions/issue-webkit-block-pick]
     since: "2026-11-17"
   - id: cad.view.navigation
     title: "Zoom, pan, regenerate, redraw and saved views"

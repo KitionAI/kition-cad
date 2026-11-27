@@ -30,7 +30,16 @@ pub fn hit_polylines(d: &Drawing, e: &Entity, tol: f64) -> Vec<Vec<Vec2>> {
                     &kition_cad_render::Options { tolerance: tol, text: false, ..Default::default() },
                 );
                 v = list.prims.iter().map(|p| list.points(p).to_vec()).collect();
-                v.push(vec![c[0], c[1], c[2], c[3], c[0]]);
+                // A dimension's text is hit in its box; the bounding box, which keeps room for text
+                // and arrows around the definition points, is not drawn and is not hit.
+                let text = match &e.kind {
+                    EntityKind::Dimension(dm) => dimension_text_box(d, dm),
+                    _ => b,
+                };
+                if !text.is_empty() {
+                    let c = text.corners();
+                    v.push(vec![c[0], c[1], c[2], c[3], c[0]]);
+                }
             }
             v
         }
@@ -62,6 +71,12 @@ pub fn hit_polylines(d: &Drawing, e: &Entity, tol: f64) -> Vec<Vec<Vec2>> {
     }
 }
 
+/// The box a dimension's text takes, from its strokes or glyphs (empty without text).
+fn dimension_text_box(d: &Drawing, dm: &kition_cad_doc::Dimension) -> Bounds2 {
+    let g = kition_cad_render::dimension_in(d, dm);
+    Bounds2::from_points(g.text.iter().flatten().chain(g.text_glyphs.iter().flatten().flatten()).copied().filter(|p| p.is_finite()))
+}
+
 fn dist_to_polyline(pts: &[Vec2], p: Vec2) -> f64 {
     if pts.len() == 1 {
         return pts.first().map(|q| q.dist(p)).unwrap_or(f64::INFINITY);
@@ -76,6 +91,11 @@ pub fn entity_distance(d: &Drawing, e: &Entity, p: Vec2, tol: f64) -> f64 {
     let filled = matches!(e.kind, EntityKind::Text(_) | EntityKind::MText(_) | EntityKind::AttDef(_) | EntityKind::Solid(_) | EntityKind::Table(_))
         || matches!(&e.kind, EntityKind::Hatch(h) if h.solid);
     if filled && entity_bounds(d, e, 0).contains(p) {
+        best = 0.0;
+    }
+    if let EntityKind::Dimension(dm) = &e.kind
+        && dimension_text_box(d, dm).contains(p)
+    {
         best = 0.0;
     }
     best

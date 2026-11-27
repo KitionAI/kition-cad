@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-webkit-block-pick
+feature: cad.select.objects
+intent: >-
+  A pick takes what is drawn under the cursor, and the rollover highlight shows the same object: a
+  dimension is hit by its lines, arrows and the box of its text, not by the outline of its
+  bounding box (the definition points with room for text and arrows), which is not drawn. Before,
+  in the acceptance drawing in WebKit, BLOCK's "Select objects" on the bed's lower edge took the
+  120 dimension below it: the pointer lands on whole pixels there, 0.43 units inside the bed, and
+  the dimension's invisible box outline ran a quarter unit inside the bed, closer than the bed's
+  edge. The dimension's text still picks it.
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting acceptance drawing 2026-11-26 (step 13, WebKit)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-engine", filter: "issue_webkit_block_pick" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"
