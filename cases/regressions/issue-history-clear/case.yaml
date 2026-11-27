@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-history-clear
+feature: cad.editor.command-line
+intent: >-
+  The command history window's menu (a right-click on it, F2) has Clear History: after it the
+  window and the lines over the command line show nothing of what was there, and what commands
+  write next shows as before. Before, the menu had only Copy and Copy History, and a long session's
+  history could not be emptied (found by the stage 10 comparison drawing; the reference app's
+  command line menu has it).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting comparison drawing, stage 10 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

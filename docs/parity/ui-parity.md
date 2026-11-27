@@ -162,7 +162,7 @@ Tests: `web/tests/dynamic-input.mjs`.
 | UNDO with Mark, Back, BEgin, End, Auto, Control | yes | count only, whole-document snapshots capped at 2,000 (`lib.rs`, `edit.rs`) |
 | SETVAR for every system variable | ~1,000 sysvars | about 60 session/header variables by name (`sysvars.rs`) |
 | Scripts (SCRIPT, `.scr`) | yes | no: agents send JSON command steps through the headless kit's `cad_run`; no `.scr` file command |
-| Floating/docked command window, transparency, lines of history | yes | a docked input with the prompt on the line above it: options `[Close/Undo]` and the default `<…>` are buttons, the placeholder says what the prompt waits for; command-line errors go to the history and shake the input; up to eight completions by name and alias (Tab completes, Enter runs the first); no transparency setting; the history window's menu has Copy and Copy History only |
+| Floating/docked command window, transparency, lines of history | yes | a docked input with the prompt on the line above it: options `[Close/Undo]` and the default `<…>` are buttons, the placeholder says what the prompt waits for; command-line errors go to the history and shake the input; up to eight completions by name and alias (Tab completes, Enter runs the first); no transparency setting; the history window's menu has Copy, Copy History and Clear History |
 
 ## Chrome and palettes (≈ 60%)
 
@@ -218,3 +218,4 @@ Tests: `web/tests/dynamic-input.mjs`.
 | 2026-11-17 | major | First public version |
 | 2026-11-26 | major | Re-scored on what works end to end in the web editor (≈ 62%) after the hand-drafting work: the cursor pipeline in commands, crosshair and hover, command line, dynamic input, hot-grip modes and menus, menus by state, Properties and Layers panels, in-place text, status bar menus, layout tabs, ribbon icons and labels; stale rows and line references fixed |
 | 2026-11-26 | minor | Second round, stages 8 and 9 (≈ 66%): one undo step per grip placement, Radius and Convert to Line on the grip menu, dynamic input at a hot grip, Select Similar, groups picked as one, a block reference and a dimension picked by what they draw; the Insert dialog, more Properties writes, Transparency and Lineweight drawn, Drafting Settings, layout tab menus, clicked points and Copy in the history |
+| 2026-11-26 | minor | Second round, stage 10: Clear History on the history window's menu (found by the comparison drawing) |

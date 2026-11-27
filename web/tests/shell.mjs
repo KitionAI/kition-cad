@@ -430,6 +430,28 @@ try {
     await until(async () => (await kit.getByTestId('cad-history-menu').count()) === 1)
     await kit.getByTestId('cad-history-menu-copy').click()
     step('Copy copies the lines selected', await until(async () => /^LINE Specify first point.*\d$/.test(((await copied()) ?? '').trim())), String(await copied()))
+    // Clear History (regressions/issue-history-clear): the window empties; what comes next shows.
+    const shownLines = async () => (await kit.locator('[data-testid=cad-history] .cad-history-line').allInnerTexts()).map((line) => line.trim())
+    await kit.locator('[data-testid=cad-history][data-open=true]').evaluate(() => window.getSelection()?.removeAllRanges())
+    await rightClick(kit.locator('[data-testid=cad-history][data-open=true]'))
+    await until(async () => (await kit.getByTestId('cad-history-menu').count()) === 1)
+    const clearItem = kit.getByTestId('cad-history-menu-clear')
+    step('the history menu has Clear History', (await clearItem.count()) === 1)
+    if (await clearItem.count()) await clearItem.click()
+    else await page.keyboard.press('Escape')
+    step('Clear History empties the history window', await until(async () => (await shownLines()).length === 0), JSON.stringify((await shownLines()).slice(-3)))
+    await command('dist', '0,0', '30,40')
+    await idle()
+    step('what commands write next shows, and nothing cleared comes back', await until(async () => {
+      const shown = await shownLines()
+      return shown.some((line) => /Distance = 50/.test(line)) && !shown.some((line) => /Command: LINE|STRETCH/.test(line))
+    }), JSON.stringify((await shownLines()).slice(-4)))
+    await kit.getByTestId('cad-history-toggle').click()
+    await until(async () => (await kit.locator('[data-testid=cad-history][data-open=true]').count()) === 0)
+    step('the lines over the command line stay cleared too', await until(async () => {
+      const shown = await shownLines()
+      return shown.length > 0 && shown.every((line) => !/Command: LINE|STRETCH/.test(line))
+    }), JSON.stringify(await shownLines()))
   })
 } finally {
   if (errors.length) step('no page errors', false, errors.join(' | '))

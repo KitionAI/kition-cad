@@ -91,7 +91,10 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
   // typed word is sent as it is rather than completed.
   const pending = useRef(0)
   const log = useRef<HTMLDivElement>(null)
-  // The history window's menu (a right-click on it): Copy, Copy History.
+  // The history window's menu (a right-click on it): Copy, Copy History, Clear History.
+  // Clear History hides what the history holds now (the engine's serial then): the window and the
+  // lines over the command line show only what commands write after it. The engine keeps its log.
+  const [clearedAt, setClearedAt] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; selected: string } | null>(null)
   const gripping = line.prompt.grip != null
   const idle = !running && !gripping
@@ -104,13 +107,18 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
     for (const error of pendingErrors) out.push({ text: error.text, error: true, key: `e${error.after}-${out.length}` })
     line.history.lines.forEach((text, index) => {
       const at = first + index + 1
-      out.push({ text, error: false, key: `l${at}` })
+      // Errors are emptied with the history, so those still here came after Clear History.
+      if (clearedAt == null || at > clearedAt) out.push({ text, error: false, key: `l${at}` })
       for (const error of errors) if (error.after === at) out.push({ text: error.text, error: true, key: `e${at}-${out.length}` })
     })
     return out
-  }, [line.history, errors])
+  }, [line.history, errors, clearedAt])
   useEffect(() => { if (expanded && log.current) log.current.scrollTop = log.current.scrollHeight }, [expanded, lines])
-  useEffect(() => setErrors([]), [session.doc])
+  useEffect(() => { setErrors([]); setClearedAt(null) }, [session.doc])
+  const clearHistory = () => {
+    setErrors([])
+    setClearedAt(line.history.serial)
+  }
   useEffect(() => {
     if (!shake) return
     const timer = window.setTimeout(() => setShake(0), SHAKE_MS)
@@ -254,6 +262,7 @@ export function CommandLine({ line, running, input, history, onCommand, expanded
           <ContextMenu at={menu} onClose={() => setMenu(null)} label={t('commandHistory')} testId="cad-history-menu">
             <MenuItem label={phrase('Copy')} onSelect={() => void copyText(menu.selected || lines.map((item) => item.text).join('\n'))} testId="cad-history-menu-copy" />
             <MenuItem label={phrase('Copy History')} onSelect={() => void copyText(lines.map((item) => item.text).join('\n'))} testId="cad-history-menu-copy-all" />
+            <MenuItem label={phrase('Clear History')} onSelect={clearHistory} testId="cad-history-menu-clear" />
           </ContextMenu>,
           document.body,
         ) : null}

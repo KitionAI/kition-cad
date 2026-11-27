@@ -26,7 +26,7 @@ shaping and right-to-left text through TrueType, vertical SHX text styles.
   **973 rows**, covering menus, command labels, tool groups and tooltips, status controls,
   object snaps, drafting prompts and property labels. Engine diagnostics and command history
   stay English, and uncatalogued text falls back to English.
-- **Simplified Chinese** (`PHRASES['zh-CN']` and the zh-CN catalog in `web/src/strings.ts`): 491
+- **Simplified Chinese** (`PHRASES['zh-CN']` and the zh-CN catalog in `web/src/strings.ts`): 492
   phrases and 31 editor strings, every label the editor shows: the engine's command titles and
   menu groups (ribbon tabs, menus, the command line's completions), the editor's menus, the status
   bar and its menus, the Properties rows and object types, the grip menu. `web/tests/phrases.mjs`

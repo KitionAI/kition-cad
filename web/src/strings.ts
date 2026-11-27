@@ -558,6 +558,7 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'The prompt and the value boxes beside the cursor: X and Y at a first point, distance and angle after it, and at a hot grip.': '光标旁的提示和输入框：第一点给 X 和 Y，之后给距离和角度，热夹点也一样。',
     // The command history window's menu.
     'Copy History': '复制历史记录',
+    'Clear History': '清除历史记录',
     // The insert dialog.
     'Insertion point': '插入点',
     'Specify On-screen': '在屏幕上指定',
