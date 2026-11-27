@@ -453,6 +453,23 @@ try {
       return shown.length > 0 && shown.every((line) => !/Command: LINE|STRETCH/.test(line))
     }), JSON.stringify(await shownLines()))
   })
+
+  // 6. Home's Hatch... opens the hatch dialog, as Draw › Hatch... does (regressions/issue-home-hatch-dialog).
+  await section('home hatch', async () => {
+    const hatch = kit.locator('[data-testid="cad-cmd-hatch.add"]:visible, [data-testid="cad-tool-hatch.add"]:visible').first()
+    step("Home has Hatch...", (await hatch.count()) === 1)
+    await hatch.click()
+    step("Home's Hatch... asks the pattern first", await until(async () => (await kit.getByTestId('cad-hatch-dialog').count()) === 1), JSON.stringify({ running: (await details()).running, prompt: (await prompt()).message }))
+    step('and starts nothing before Pick Points', (await details()).running == null)
+    if (await kit.getByTestId('cad-hatch-dialog').count()) {
+      await kit.getByTestId('cad-hatch-pattern').selectOption('ANSI37')
+      await kit.getByTestId('cad-hatch-dialog-ok').click()
+      step('Pick Points goes on to pick internal points', await until(async () => (await details()).running === 'hatch.add' && /Pick internal point/.test((await prompt()).message ?? '')), JSON.stringify(await prompt()))
+    }
+    await wait(300)
+    await page.keyboard.press('Escape')
+    await idle()
+  })
 } finally {
   if (errors.length) step('no page errors', false, errors.join(' | '))
   await browser.close()

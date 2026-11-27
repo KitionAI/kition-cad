@@ -52,8 +52,36 @@ function HomeCommand({ id, icon, primary }: { id: string; icon?: IconComponent; 
   return <CommandButton command={id} icon={icon} label={label} primary={primary} ask />
 }
 
-export function HomeTab({ info, onFit, onLayers, onInsert }: { info: CadInfo; onFit: () => void; onLayers: () => void; onInsert: () => void }) {
+/**
+ * Hatch... on Home: the hatch dialog (pattern, scale, angle), then HATCH picks internal points, as
+ * Draw › Hatch... does; not the engine's tool, which went straight to picking with the last pattern
+ * (regressions/issue-home-hatch-dialog). Labelled as the tool is, so Home's width does not change.
+ */
+function HatchButton({ onHatch, primary }: { onHatch: () => void; primary?: boolean }) {
+  const tools = useKitTools()
+  const { phrase: p, enabled, testId } = useKitEditor()
+  const tool = tools?.tools.find((item) => item.id === 'hatch.add')
+  if (!tools?.tools.length) return null
+  const label = p(tool?.label ?? 'Hatch...')
+  return (
+    <RibbonButton
+      icon={CAD_ICONS['hatch.add'] ?? toolIcon(tool?.icon ?? 'tool-bucket', 'hatch.add')}
+      label={label}
+      size="small"
+      primary={primary}
+      title={tool?.shortcut ? `${label} (${tool.shortcut})` : label}
+      disabled={!enabled('hatch.add') || !enabled('command.runLine')}
+      onClick={onHatch}
+      data-testid={`${testId}-cmd-hatch.add`}
+      data-kit-ui-id="command:hatch.add"
+    />
+  )
+}
+
+export function HomeTab({ info, onFit, onLayers, onInsert, onHatch }: { info: CadInfo; onFit: () => void; onLayers: () => void; onInsert: () => void; onHatch: () => void }) {
   const { run, enabled, phrase: p, t } = useKitEditor()
+  /** One of the Draw group's small commands: Hatch... opens its dialog. */
+  const draw = (id: string) => (id === 'hatch.add' ? <HatchButton key={id} onHatch={onHatch} primary={PRIMARY.has(id)} /> : <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)
   const layerProperties = (size: 'large' | 'small') => <RibbonButton key="cad-layer-properties" icon={Layers3} size={size} label={p('Layer Properties')} onClick={onLayers} data-testid="cad-layer-properties" primary />
   const layerField = (
     <RibbonRow key="cad-layer">
@@ -86,13 +114,13 @@ export function HomeTab({ info, onFit, onLayers, onInsert }: { info: CadInfo; on
         label={p('Draw')}
         icon={Pencil}
         name="draw"
-        shown={[...DRAW_TOOLS.map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} />), <HomeCommand key={DRAW[0]} id={DRAW[0]} primary={PRIMARY.has(DRAW[0])} />]}
-        more={DRAW.slice(1).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
+        shown={[...DRAW_TOOLS.map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} />), draw(DRAW[0])]}
+        more={DRAW.slice(1).map(draw)}
       >
         {DRAW_TOOLS.slice(0, 4).map((id) => <Tool key={id} id={id} primary={PRIMARY.has(id)} size="large" />)}
         {[0, 3].map((start) => (
           <RibbonStack key={start}>
-            {DRAW.slice(start, start + 3).map((id) => <HomeCommand key={id} id={id} primary={PRIMARY.has(id)} />)}
+            {DRAW.slice(start, start + 3).map(draw)}
           </RibbonStack>
         ))}
       </FitGroup>

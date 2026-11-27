@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-home-hatch-dialog
+feature: cad.editor.ribbon
+intent: >-
+  Home's "Hatch..." opens the hatch dialog (pattern, scale, angle) and starts nothing until its
+  Pick Points, then HATCH picks internal points with that pattern, as Draw › Hatch... does. Before,
+  the Home button was the engine's tool and went straight to "Pick internal point" with the last
+  pattern, while its title (ending in an ellipsis) and the Draw tab's button promised the dialog;
+  the editor opens in Classic, where a drafter expects HATCH's dialog (found by the stage 10
+  comparison drawing).
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting comparison drawing, stage 10 (2026-11-26)
+  license: Apache-2.0
+input: []
+steps:
+  - exec:
+      cmd: [node, web/tests/shell.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+tags: [browser]
+requires: [chromium]
+timeout_s: 300
+since: "2026-11-26"

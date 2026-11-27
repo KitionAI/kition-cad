@@ -104,7 +104,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const tabs: FrameTab[] = [
-    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} onInsert={() => setInserting(true)} /> : null },
+    { id: 'home', label: phrase('Home'), ribbon: state ? <HomeTab info={state} onFit={() => { void editor.run('view.zoomToFit', {}) }} onLayers={() => showPanel('layers')} onInsert={() => setInserting(true)} onHatch={() => setHatch({ mode: 'new' })} /> : null },
     ...MENU_TABS.map((menu) => ({ id: menu, label: phrase(menu), view: menu === 'View', ribbon: <CadCommandTab menu={menu} exclude={menu === 'File' ? HOST_FILE_COMMANDS : []} primary={CAD_PRIMARY[menu]} onHatch={() => setHatch({ mode: 'new' })} onDraftingSettings={() => setSettings(true)} /> })),
   ]
   const activeTab = tabs.some((item) => item.id === tab) ? tab : 'home'
