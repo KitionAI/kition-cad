@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-rectangle-corner-ortho
+feature: cad.editor.drafting-input
+intent: >-
+  RECTANG's other corner (and any prompt for a corner opposite one already given) is held by
+  object snap and grid snap only: with Ortho on the corner is not squared to the first one, and
+  with polar tracking on a narrow rectangle drawn by two clicks keeps its height. Before, the
+  cursor pipeline ran Ortho and tracking there as at LINE's next point, so a 20 x 3 window came
+  out flat ("The rectangle has no area"; acceptance drawing, step 9). LINE's next point still
+  takes Ortho.
+layer: gate
+source:
+  kind: issue
+  from: CAD hand-drafting acceptance drawing 2026-11-26 (step 9)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "issue_rectangle_corner_ortho" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

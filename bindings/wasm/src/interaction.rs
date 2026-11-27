@@ -92,6 +92,24 @@ impl CadDocument {
                 self.hit = hit;
                 hit.map_or(raw, |hit| hit.point)
             }
+            // A corner opposite another (RECTANG's other corner, a window's opposite corner): the
+            // two corners already make the sides square, so neither Ortho nor tracking holds it;
+            // object snap and grid snap still do.
+            None if self.corner_prompt() => {
+                let osmode = self.session.settings.osmode | if self.session.settings.osnaphatch { kition_cad_engine::snap::mode::HATCH } else { 0 };
+                let state = self.session.state().ok();
+                let hit =
+                    state.and_then(|state| kition_cad_engine::snap::osnap(&state.doc, &state.edit_space(), raw, aperture, osmode, base, deferred));
+                self.hit = hit;
+                match (hit, self.session.state().ok()) {
+                    (Some(hit), _) => hit.point,
+                    (None, Some(state)) if self.session.settings.snapmode => {
+                        let (origin, angle) = kition_cad_engine::snap::grid_frame(&state.doc);
+                        kition_cad_engine::snap::grid_snap(raw, self.session.settings.snapunit, origin, angle)
+                    }
+                    _ => raw,
+                }
+            }
             None => {
                 let query = CursorQuery { base, deferred, aperture, tol: pixel * TRACK_PX, now: self.clock, shift: self.shift };
                 let resolved = self.session.snap_cursor(raw, &query);
@@ -129,6 +147,15 @@ impl CadDocument {
         }
         let prompt = self.session.current_prompt()?;
         kition_cad_engine::pointmod::accepts(&prompt).then_some((prompt.base, prompt.deferred))
+    }
+
+    /// Whether the running command asks for a corner opposite one it has (RECTANG's "Specify other
+    /// corner point", an "opposite corner"): the cursor pipeline leaves Ortho and tracking out there.
+    pub(super) fn corner_prompt(&self) -> bool {
+        self.hot_grip.is_none()
+            && self.session.current_prompt().is_some_and(|prompt| {
+                prompt.base.is_some() && prompt.accept.point && !prompt.accept.number && prompt.message.to_ascii_lowercase().contains("corner")
+            })
     }
 
     /// The tracking guides at the cursor: each path the point lies on as a dashed line (a
@@ -252,7 +279,8 @@ impl CadDocument {
         let Some(raw) = self.cursor.filter(|point| point.is_finite()) else { return Vec::new() };
         let aim = self.aim.filter(|point| point.is_finite()).unwrap_or(raw);
         let settings = &self.session.settings;
-        let held = self.hit.is_some() || (settings.snapmode && !settings.orthomode && self.track.is_none() && self.point_query().is_some());
+        let held = self.hit.is_some()
+            || (settings.snapmode && (!settings.orthomode || self.corner_prompt()) && self.track.is_none() && self.point_query().is_some());
         let place = self.placement();
         let (x, y) = place.to_doc(if held { aim } else { raw });
         let size = (settings.pickbox.max(1.0) * 3.0).min(300.0) as f32;

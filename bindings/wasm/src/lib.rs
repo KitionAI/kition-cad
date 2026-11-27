@@ -38,6 +38,8 @@ mod files;
 mod grip_edit;
 #[cfg(test)]
 mod grip_edit_tests;
+#[cfg(test)]
+mod handling_tests;
 mod in_place;
 #[cfg(test)]
 mod in_place_tests;
