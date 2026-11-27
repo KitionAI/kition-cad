@@ -1,0 +1,22 @@
+format: 1
+id: cad.editor.properties/set-properties-places
+feature: cad.editor.properties
+intent: >-
+  object.setProperties places what the Properties panel shows a place for: `vertex` with
+  `vertexAt` moves one polyline vertex and leaves the others (a vertex the polyline lacks, a
+  negative number, a point that does not read, or one key without the other is refused and
+  changes nothing; one undo step takes the move back); `center` moves an ellipse, `position` a
+  point, a paragraph and a block reference, whose attributes go with it; a block reference's scale
+  and rotation are written with it.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (crates/engine/engine/tests/set_properties_places.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-cad-engine, test: set_properties_places }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

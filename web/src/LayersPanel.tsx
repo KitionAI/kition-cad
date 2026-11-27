@@ -120,7 +120,11 @@ function LayerRow({ layer, details, described }: { layer: CadInfo['layers'][numb
  */
 export function LayersPanel({ info, focus, onClose }: { info: CadInfo; focus: { part: PanelPart; serial: number }; onClose: () => void }) {
   const { ask, enabled, t } = useKitEditor()
-  const described = useDescribed(info)
+  // The polyline vertex the Properties panel shows (from 0); a new selection starts at the first.
+  const [vertex, setVertex] = useState(0)
+  const selected = info.selectedObjects.map((object) => object.handle).join(',')
+  useEffect(() => setVertex(0), [selected])
+  const described = useDescribed(info, vertex)
   const properties = useRef<HTMLDivElement>(null)
   const layers = useRef<HTMLDivElement>(null)
   // Both parts always show: the one asked for gets the keyboard's attention (its first field).
@@ -137,7 +141,7 @@ export function LayersPanel({ info, focus, onClose }: { info: CadInfo; focus: { 
         <IconButton icon={Close} label={t('closePanel')} onClick={onClose} data-testid="cad-panel-close" />
       </div>
       <div className="cad-side-part cad-side-properties" ref={properties} data-testid="cad-panel-properties">
-        <PropertiesPanel info={info} described={described} />
+        <PropertiesPanel info={info} described={described} onVertex={setVertex} />
       </div>
       <div className="cad-side-part cad-side-layers" ref={layers} data-testid="cad-panel-layers">
         <div className="kui-panel-header">

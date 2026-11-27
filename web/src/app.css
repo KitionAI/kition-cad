@@ -566,3 +566,16 @@ textarea.cad-in-place {
   font-size: 12px;
   max-width: 280px;
 }
+
+/* A polyline's current vertex in the Properties panel, with the buttons to the one before and after. */
+.cad-vertex {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cad-vertex-number {
+  min-width: 3ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,21 @@
+format: 1
+id: cad.editor.properties/vertices-and-positions
+feature: cad.editor.properties
+intent: >-
+  The Properties panel writes more (stage 9): a polyline shows its current vertex (from 1) and the
+  X and Y of that vertex, which move it alone in one undo step through object.setProperties
+  (`vertex`, `vertexAt`); the describe command's `vertex` picks the vertex shown, past the end the
+  last; several polylines show a vertex without writing it; an ellipse's centre, a point's
+  position and a block reference's position, scale and rotation are written from their rows.
+layer: gate
+source:
+  kind: probe
+  from: CAD hand-drafting stage 9 (bindings/wasm/src/properties_tests.rs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: "kition-cad-kit", filter: "a_polyline_vertex_and_the_positions_are_written_from_the_panel" }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-26"

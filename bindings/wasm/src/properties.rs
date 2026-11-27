@@ -25,7 +25,7 @@ pub(super) fn command() -> KitCommand {
     KitCommand {
         id: DESCRIBE.into(),
         title: "Describe Properties".into(),
-        params: Some(r#"{handles?: [string], parse?: [{text: string, unit?: "length"|"angle"|"number"}]}"#.into()),
+        params: Some(r#"{handles?: [string], vertex?: number, parse?: [{text: string, unit?: "length"|"angle"|"number"}]}"#.into()),
         mutates: false,
         enabled: true,
         ..Default::default()
@@ -240,8 +240,9 @@ fn rgb_of(d: &Drawing, color: Color, layer: &str) -> String {
     color.resolve(layer, Color::Index(7)).hex()
 }
 
-/// The general rows every object has, and its kind's own.
-fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
+/// The general rows every object has, and its kind's own; a polyline shows its vertex `vertex`
+/// (from 0; the last one past its end).
+fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>, vertex: usize) {
     let c = &e.common;
     rows.push("General", "color", "Color", "color", None, json!(c.color.name()), Some(rows.set("color")));
     if let Some(last) = rows.rows.last_mut() {
@@ -281,8 +282,18 @@ fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
         EntityKind::LwPolyline(p) => {
             let pl = kition_cad_geom::Polyline { vertices: p.vertices.clone(), closed: p.closed };
             rows.number("Geometry", "vertices", "Vertices", Unit::Number, p.vertices.len() as f64, None);
-            if let Some(first) = p.vertices.first() {
-                rows.point("Geometry", "vertex", ["Vertex X", "Vertex Y"], first.p, None);
+            // The current vertex (counted from 1, as the panel steps through them) and where it is:
+            // its X and Y move that vertex alone.
+            let index = vertex.min(p.vertices.len().saturating_sub(1));
+            if let Some(at) = p.vertices.get(index) {
+                rows.number("Geometry", "currentVertex", "Current vertex", Unit::Number, (index + 1) as f64, None);
+                let first = rows.rows.len();
+                rows.point("Geometry", "vertex", ["Vertex X", "Vertex Y"], at.p, Some("vertexAt"));
+                for row in rows.rows.iter_mut().skip(first) {
+                    if let Some(write) = row.write.as_mut() {
+                        write["params"]["vertex"] = json!(index);
+                    }
+                }
             }
             rows.number("Geometry", "width", "Global width", Unit::Length, p.const_width, Some("width"));
             rows.number("Geometry", "length", "Length", Unit::Length, pl.len(), None);
@@ -292,11 +303,11 @@ fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
             rows.push("Misc", "closed", "Closed", "boolean", None, json!(p.closed), Some(rows.set("closed")));
         }
         EntityKind::Ellipse(k) => {
-            rows.point("Geometry", "center", ["Center X", "Center Y"], k.center.xy(), None);
+            rows.point("Geometry", "center", ["Center X", "Center Y"], k.center.xy(), Some("center"));
             rows.number("Geometry", "majorRadius", "Major radius", Unit::Length, k.major.xy().len(), None);
             rows.number("Geometry", "minorRadius", "Minor radius", Unit::Length, k.major.xy().len() * k.ratio, None);
         }
-        EntityKind::Point(k) => rows.point("Geometry", "position", ["Position X", "Position Y"], k.p.xy(), None),
+        EntityKind::Point(k) => rows.point("Geometry", "position", ["Position X", "Position Y"], k.p.xy(), Some("position")),
         EntityKind::Text(t) => {
             rows.text("Text", "text", "Contents", &t.value, Some("text"));
             rows.text("Text", "style", "Style", &t.style, None);
@@ -311,7 +322,7 @@ fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
             rows.number("Text", "height", "Height", Unit::Length, t.height, Some("height"));
             rows.number("Text", "rotation", "Rotation", Unit::Angle, t.rotation.to_degrees(), Some("rotation"));
             rows.number("Text", "width", "Width", Unit::Length, t.width, Some("width"));
-            rows.point("Geometry", "position", ["Position X", "Position Y"], t.insert.xy(), None);
+            rows.point("Geometry", "position", ["Position X", "Position Y"], t.insert.xy(), Some("position"));
         }
         EntityKind::Dimension(k) => {
             rows.choice("Text", "dimStyle", "Dimension style", json!(k.style), Some("dimStyle"));
@@ -332,7 +343,7 @@ fn object_rows(d: &Drawing, e: &Entity, rows: &mut Rows<'_>) {
         }
         EntityKind::Insert(i) => {
             rows.text("Misc", "block", "Name", &i.block, None);
-            rows.point("Geometry", "position", ["Position X", "Position Y"], i.insert.xy(), None);
+            rows.point("Geometry", "position", ["Position X", "Position Y"], i.insert.xy(), Some("position"));
             rows.number("Geometry", "scale", "Scale", Unit::Number, i.scale.x, Some("scale"));
             rows.number("Geometry", "rotation", "Rotation", Unit::Angle, i.rotation.to_degrees(), Some("rotation"));
         }
@@ -563,6 +574,8 @@ impl CadDocument {
             .and_then(Value::as_array)
             .map(|list| list.iter().filter_map(Value::as_str).filter_map(kition_cad_doc::Handle::parse_hex).collect());
         let handles = given.unwrap_or_else(|| self.session.selection());
+        // The polyline vertex the panel shows (from 0).
+        let vertex = params.get("vertex").and_then(Value::as_u64).and_then(|n| usize::try_from(n).ok()).unwrap_or(0);
         let entities: Vec<&Entity> = handles.iter().filter_map(|h| d.entity(*h)).map(|e| &**e).collect();
         let names: Vec<String> = entities.iter().map(|e| e.handle.hex()).collect();
         let current = entities.is_empty();
@@ -582,7 +595,7 @@ impl CadDocument {
             let mut merged: Option<Vec<(Row, bool)>> = None;
             for e in entities.iter().take(MOST_OBJECTS) {
                 let mut own = Rows { rows: Vec::new(), handles: &names };
-                object_rows(d, e, &mut own);
+                object_rows(d, e, &mut own, vertex);
                 merged = Some(match merged {
                     None => own.rows.into_iter().map(|row| (row, false)).collect(),
                     // The rows every object has, in the first one's order, marked where they disagree.
@@ -607,6 +620,10 @@ impl CadDocument {
                     if varies {
                         row.value = Value::Null;
                         row.rgb = None;
+                    }
+                    // A vertex is one polyline's: several polylines show it without writing it.
+                    if row.key.starts_with("vertex.") && entities.len() > 1 {
+                        row.write = None;
                     }
                     // One coordinate of a point is written with the other kept: not where the
                     // objects disagree on the other.

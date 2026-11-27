@@ -198,6 +198,66 @@ try {
     step('and what is typed next goes to the drawing', await until(async () => (await details()).running === 'line.add'), JSON.stringify(await prompt()))
     await page.keyboard.press('Escape')
   })
+
+  // 2. The Properties panel writes more: a polyline's vertices one by one, an ellipse's centre, a
+  //    block reference's position and rotation; its linetype list has every library linetype, and
+  //    choosing one not loaded loads it.
+  await section('properties', async () => {
+    const [poly] = await agent(['polyline.add', { points: [[400, 200], [440, 200], [440, 230]] }])
+    await agent(['ellipse.add', { center: [470, 215], major: [8, 0], ratio: 0.5 }])
+    const [circle] = await agent(['circle.add', { center: [0, 0], radius: 3 }])
+    await agent(['block.add', { name: 'Stool', base: [0, 0], handles: [circle.handle] }], ['block.insert', { name: 'Stool', at: [500, 215] }])
+    await calibrate()
+    const field = (key) => kit.getByTestId(`cad-property-${key}`)
+    const vertices = async () => (await query('lwpolyline')).find((item) => item.handle === poly.handle)?.geometry.vertices.map((v) => [v.p.x, v.p.y]) ?? []
+    // A click on empty paper gives the keyboard to the drawing (and opens a window): Escape drops
+    // the window, Escape again the selection.
+    const deselect = async () => {
+      await click(460, 260)
+      await page.keyboard.press('Escape')
+      await wait(300)
+      await page.keyboard.press('Escape')
+      await until(async () => (await details()).selection === 0)
+    }
+    await click(420, 200)
+    step('a click selects the polyline', await until(async () => (await details()).selection === 1))
+    step('the panel shows its first vertex', await until(async () => (await text('cad-property-currentVertex')) === '1' && (await field('vertex.x').inputValue()) === '400'), `${await text('cad-property-currentVertex').catch(() => '?')} at ${await field('vertex.x').inputValue().catch(() => '?')}`)
+    await kit.getByTestId('cad-property-vertex-next').click()
+    step('the next button steps to the second vertex', await until(async () => (await text('cad-property-currentVertex')) === '2' && (await field('vertex.x').inputValue()) === '440'))
+    await field('vertex.y').fill('195')
+    await field('vertex.y').press('Enter')
+    step('its Y moves that vertex alone', await until(async () => JSON.stringify(await vertices()) === JSON.stringify([[400, 200], [440, 195], [440, 230]])), JSON.stringify(await vertices()))
+    await screenshot('properties-vertex')
+    // Every library linetype is listed; one not loaded loads when chosen.
+    const library = (await agent(['object.describeProperties', { handles: [] }]))[0]?.library ?? []
+    const offered = (await field('linetype').locator('option').allInnerTexts()).map((name) => name.trim())
+    step('the linetype list has every library linetype', library.length > 5 && library.every((name) => offered.includes(name)), `${library.length} in the library, missing ${library.filter((name) => !offered.includes(name)).join(', ')}`)
+    const choice = library.includes('DASHED') ? 'DASHED' : library[0]
+    await field('linetype').selectOption(choice)
+    const linetype = async () => (await agent(['object.describeProperties', { handles: [poly.handle] }]))[0]?.rows?.find((row) => row.key === 'linetype')?.value
+    step('choosing one not loaded loads it and gives it to the polyline', await until(async () => (await linetype()) === choice), String(await linetype()))
+    await deselect()
+    // The ellipse's centre.
+    await click(478, 215)
+    step('a click selects the ellipse', await until(async () => (await details()).selectedObjects[0]?.type === 'Ellipse'), JSON.stringify((await details()).selectedObjects))
+    await field('center.x').fill('480')
+    await field('center.x').press('Enter')
+    const ellipse = async () => (await query('ellipse'))[0]?.geometry.center
+    step('its Center X moves it', await until(async () => (await ellipse())?.x === 480 && (await ellipse())?.y === 215), JSON.stringify(await ellipse()))
+    await deselect()
+    // The block reference's position and rotation.
+    await click(503, 215)
+    step('a click selects the block reference', await until(async () => (await details()).selectedObjects[0]?.type === 'Block Reference'), JSON.stringify((await details()).selectedObjects))
+    await field('position.x').fill('510')
+    await field('position.x').press('Enter')
+    const stool = async () => (await query('insert')).find((ref) => ref.geometry.block === 'Stool')?.geometry
+    step('its Position X moves it', await until(async () => (await stool())?.insert.x === 510), JSON.stringify(await stool()))
+    await until(async () => (await field('rotation').inputValue()) === '0')
+    await field('rotation').fill('30')
+    await field('rotation').press('Enter')
+    step('its Rotation turns it', await until(async () => near((await stool())?.rotation ?? 0, Math.PI / 6, 1e-9)), JSON.stringify(await stool()))
+    await screenshot('properties-block')
+  })
 } finally {
   if (errors.length) step('no page errors', false, errors.join(' | '))
   await browser.close()

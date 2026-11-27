@@ -59,10 +59,13 @@ export type Described = {
   parsed?: Array<number | null>
 }
 
-/** The description of the selection (or the current properties), asked again as the drawing or the selection changes. */
-export function useDescribed(info: CadInfo): Described | null {
-  const key = `${info.selectedObjects.map((object) => object.handle).join(',')}|${info.entities}|${info.currentLayer}|${JSON.stringify(info.layers)}`
-  return useEngineQuery<Described>(DESCRIBE, {}, key)
+/**
+ * The description of the selection (or the current properties), asked again as the drawing or the
+ * selection changes; a polyline's rows show its vertex `vertex` (from 0).
+ */
+export function useDescribed(info: CadInfo, vertex = 0): Described | null {
+  const key = `${info.selectedObjects.map((object) => object.handle).join(',')}|${info.entities}|${info.currentLayer}|${JSON.stringify(info.layers)}|${vertex}`
+  return useEngineQuery<Described>(DESCRIBE, vertex ? { vertex } : {}, key)
 }
 
 /** A row option's value as a `<select>` holds it: strings as they are (layer names), others as JSON. */

@@ -536,6 +536,10 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'Clear All': '全部清除',
     More: '更多',
     Model: '模型',
+    // The Properties panel's polyline vertex.
+    'Current vertex': '当前顶点',
+    'Previous vertex': '上一个顶点',
+    'Next vertex': '下一个顶点',
     // The insert dialog.
     'Insertion point': '插入点',
     'Specify On-screen': '在屏幕上指定',

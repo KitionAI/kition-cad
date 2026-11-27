@@ -148,11 +148,29 @@ function ChoiceRow({ row, disabled, testId, ariaLabel }: { row: PropertyRow; dis
   )
 }
 
-function Row({ row, locked }: { row: PropertyRow; locked: boolean }) {
+/**
+ * A polyline's current vertex (counted from 1) with buttons to the one before and after, as CAD's
+ * panel steps through them; the Vertex X and Y rows below show and move that vertex.
+ */
+function VertexRow({ row, count, onVertex }: { row: PropertyRow; count: number; onVertex: (index: number) => void }) {
+  const { phrase } = useKitEditor()
+  const current = typeof row.value === 'number' ? row.value : 1
+  const go = (next: number) => onVertex(Math.max(0, Math.min(count - 1, next - 1)))
+  return (
+    <span className="cad-vertex" role="group" aria-label={phrase(row.label)}>
+      <button type="button" className="kui-icon-button" aria-label={phrase('Previous vertex')} title={phrase('Previous vertex')} disabled={row.varies || current <= 1} onClick={() => go(current - 1)} data-testid="cad-property-vertex-previous">‹</button>
+      <span className="cad-vertex-number" data-testid="cad-property-currentVertex">{row.varies ? phrase('*Varies*') : row.display}</span>
+      <button type="button" className="kui-icon-button" aria-label={phrase('Next vertex')} title={phrase('Next vertex')} disabled={row.varies || current >= count} onClick={() => go(current + 1)} data-testid="cad-property-vertex-next">›</button>
+    </span>
+  )
+}
+
+function Row({ row, locked, vertices, onVertex }: { row: PropertyRow; locked: boolean; vertices: number; onVertex: (index: number) => void }) {
   const { phrase, enabled } = useKitEditor()
   const disabled = locked || !row.editable || !row.write || !enabled(row.write.command)
   const label = phrase(row.label)
   const field = (() => {
+    if (row.key === 'currentVertex') return <VertexRow row={row} count={vertices} onVertex={onVertex} />
     switch (row.kind) {
       case 'number':
         return <NumberRow row={row} disabled={disabled} />
@@ -165,6 +183,8 @@ function Row({ row, locked }: { row: PropertyRow; locked: boolean }) {
           : <ChoiceRow row={row} disabled={disabled} testId={`cad-property-${dashed(row.key)}`} ariaLabel={label} />
     }
   })()
+  // The vertex buttons are not in a label (a click on its text would press the first of them).
+  if (row.key === 'currentVertex') return <div className="cad-property" data-testid={`cad-property-row-${dashed(row.key)}`}><span title={label}>{label}</span>{field}</div>
   return <label className="cad-property" data-testid={`cad-property-row-${dashed(row.key)}`}><span title={label}>{label}</span>{field}</label>
 }
 
@@ -173,13 +193,15 @@ function Row({ row, locked }: { row: PropertyRow; locked: boolean }) {
  * drawing's units show them, "*Varies*" where several objects disagree; with nothing selected the
  * current properties new objects get, which may be changed here too.
  */
-export function PropertiesPanel({ info, described }: { info: CadInfo; described: Described | null }) {
+export function PropertiesPanel({ info, described, onVertex }: { info: CadInfo; described: Described | null; onVertex: (index: number) => void }) {
   const { t, phrase } = useKitEditor()
   const objects = info.selectedObjects
   const type = objects.length && objects.every((object) => object.type === objects[0].type) ? objects[0].type : 'Multiple types'
   // The description follows the selection; until it has, nothing stale shows.
   const fresh = described && (described.current ? objects.length === 0 : described.count === objects.length)
   const rows = fresh ? described.rows : []
+  const count = rows.find((row) => row.key === 'vertices')?.value
+  const vertices = typeof count === 'number' ? count : 0
   return (
     <div className="cad-properties" data-testid="cad-selection-properties">
       <div className="cad-properties-title">
@@ -192,7 +214,7 @@ export function PropertiesPanel({ info, described }: { info: CadInfo; described:
         return (
           <section key={group} className="cad-property-group" data-testid={`cad-property-group-${group}`}>
             <div className="cad-property-group-title">{phrase(group)}</div>
-            {own.map((row) => <Row key={row.key} row={row} locked={described?.locked ?? false} />)}
+            {own.map((row) => <Row key={row.key} row={row} locked={described?.locked ?? false} vertices={vertices} onVertex={onVertex} />)}
           </section>
         )
       })}

@@ -250,3 +250,65 @@ fn issue_dimension_measurement_zero() {
     assert_eq!(measured["unit"], json!("angle"), "{measured}");
     assert!((measured["value"].as_f64().unwrap() - 90.0).abs() < 1e-9, "{measured}");
 }
+
+/// Stage 9: a polyline's vertices one by one (the current vertex, from 1, and its X and Y, which
+/// move that vertex alone), and the positions of an ellipse, a point and a block reference are
+/// written through `object.setProperties`, one undo step each.
+#[test]
+fn a_polyline_vertex_and_the_positions_are_written_from_the_panel() {
+    let mut doc = blank();
+    let poly = added(&mut doc, "polyline.add", json!({ "points": [[0, 0], [10, 0], [10, 5]] }));
+    select(&mut doc, &[&poly]);
+    let first = describe(&mut doc);
+    assert_eq!(row(&first, "currentVertex")["value"], json!(1.0));
+    assert_eq!(row(&first, "vertex.x")["value"], json!(0.0));
+    let second = doc.execute(properties::DESCRIBE, json!({ "vertex": 1 })).unwrap();
+    assert_eq!(row(&second, "currentVertex")["value"], json!(2.0));
+    assert_eq!(row(&second, "vertex.x")["value"], json!(10.0));
+    assert_eq!(row(&second, "vertex.y")["editable"], json!(true));
+    write(&mut doc, row(&second, "vertex.y"), json!(-3));
+    let shape = |doc: &CadDocument| match &doc.session.doc().unwrap().entity(kition_cad_doc::Handle::parse_hex(&poly).unwrap()).unwrap().kind {
+        EntityKind::LwPolyline(pl) => pl.vertices.iter().map(|v| (v.p.x, v.p.y)).collect::<Vec<_>>(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(shape(&doc), vec![(0.0, 0.0), (10.0, -3.0), (10.0, 5.0)]);
+    doc.execute("edit.undo", json!({})).unwrap();
+    assert_eq!(shape(&doc), vec![(0.0, 0.0), (10.0, 0.0), (10.0, 5.0)], "one undo step");
+    write(&mut doc, row(&second, "vertex.y"), json!(-3));
+    // Past the end: the last vertex (Undo left nothing selected).
+    select(&mut doc, &[&poly]);
+    let last = doc.execute(properties::DESCRIBE, json!({ "vertex": 99 })).unwrap();
+    assert_eq!(row(&last, "currentVertex")["value"], json!(3.0));
+    // Two polylines show a vertex without writing it.
+    let other = added(&mut doc, "polyline.add", json!({ "points": [[0, 20], [10, 20]] }));
+    select(&mut doc, &[&poly, &other]);
+    let both = describe(&mut doc);
+    assert_eq!(row(&both, "vertex.x")["editable"], json!(false));
+
+    for (command, params, key) in [
+        ("ellipse.add", json!({ "center": [50, 50], "major": [10, 0], "ratio": 0.5 }), "center.x"),
+        ("point.add", json!({ "at": [60, 60] }), "position.x"),
+    ] {
+        let made = added(&mut doc, command, params);
+        select(&mut doc, &[&made]);
+        let described = describe(&mut doc);
+        assert_eq!(row(&described, key)["editable"], json!(true), "{command}");
+        write(&mut doc, row(&described, key), json!(70));
+        let moved = describe(&mut doc);
+        assert_eq!(row(&moved, key)["value"], json!(70.0), "{command}");
+    }
+    let circle = added(&mut doc, "circle.add", json!({ "center": [0, 0], "radius": 2 }));
+    doc.execute("block.add", json!({ "name": "Seat", "base": [0, 0], "handles": [circle] })).unwrap();
+    let seat = added(&mut doc, "block.insert", json!({ "name": "Seat", "at": [80, 80] }));
+    select(&mut doc, &[&seat]);
+    let described = describe(&mut doc);
+    for key in ["position.x", "position.y", "scale", "rotation"] {
+        assert_eq!(row(&described, key)["editable"], json!(true), "{key}");
+    }
+    write(&mut doc, row(&described, "position.y"), json!(90));
+    write(&mut doc, row(&described, "rotation"), json!(45));
+    let moved = describe(&mut doc);
+    assert_eq!(row(&moved, "position.y")["value"], json!(90.0));
+    assert_eq!(row(&moved, "position.x")["value"], json!(80.0));
+    assert_eq!(row(&moved, "rotation")["display"], json!("45"));
+}

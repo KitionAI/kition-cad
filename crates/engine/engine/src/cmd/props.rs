@@ -16,7 +16,7 @@ const DIMSTYLE_PARAMS: &str = "{name: str, current?: bool (make it the current s
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("object.properties", "Properties", run_get).menu(&["Modify", "Properties"]).alias(&["pr", "props", "ch"]).params("{handles?} → properties of the selection").noundo(),
-        CommandSpec::new("object.setProperties", "Set Properties", run_set).params("{handles?, layer?: string (a layer name), color?, linetype?, lineweight?, ltscale?: number, transparency?: \"ByLayer\" | \"ByBlock\" | 0..90, visible?: bool, dimStyle?: string (a dimension style name), start?: [x,y], end?: [x,y], length?: number (a line's), angle?: number (degrees; a line's, or a hatch pattern's), center?: [x,y], radius?: number, diameter?: number, circumference?: number, area?: number, startAngle?: number (degrees), endAngle?: number (degrees), text?: string, textOverride?: string (a dimension's), height?: number, rotation?: number (degrees), widthFactor?: number, width?: number (a polyline's or text frame's), position?: [x,y] (text), closed?: bool, scale?: number (a block's or hatch pattern's), pattern?: string (a hatch pattern name)}"),
+        CommandSpec::new("object.setProperties", "Set Properties", run_set).params("{handles?, layer?: string (a layer name), color?, linetype?, lineweight?, ltscale?: number, transparency?: \"ByLayer\" | \"ByBlock\" | 0..90, visible?: bool, dimStyle?: string (a dimension style name), start?: [x,y], end?: [x,y], length?: number (a line's), angle?: number (degrees; a line's, or a hatch pattern's), center?: [x,y] (a circle's, an arc's or an ellipse's), radius?: number, diameter?: number, circumference?: number, area?: number, startAngle?: number (degrees), endAngle?: number (degrees), text?: string, textOverride?: string (a dimension's), height?: number, rotation?: number (degrees), widthFactor?: number, width?: number (a polyline's or text frame's), position?: [x,y] (where a text, a paragraph, a point or a block reference is placed), vertex?: number (a polyline vertex, from 0, that vertexAt moves), vertexAt?: [x,y], closed?: bool, scale?: number (a block's or hatch pattern's), pattern?: string (a hatch pattern name)}"),
         CommandSpec::new("object.matchProperties", "Match Properties", run_matchprop).menu(&["Modify", "Match Properties"]).alias(&["ma", "painter"]).params("{source, targets: [str] (handles)}"),
         CommandSpec::new("property.color", "Color...", run_color).menu(&["Format", "Color..."]).alias(&["col", "colour"]).params("{color: \"ByLayer\" | \"red\" | 1..255 | \"r,g,b\"}"),
         CommandSpec::new("property.linetype", "Linetype...", run_linetype).menu(&["Format", "Linetype..."]).alias(&["lt", "ltype"]).params("{current?: name, load?: name | \"*\"}"),
@@ -192,6 +192,30 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
     let dim_style = str_param(p, "dimStyle")
         .map(|n| d.dim_style(n).map(|st| st.name.clone()).ok_or_else(|| bad("object.setProperties", format!("dimension style `{n}` not found"))))
         .transpose()?;
+    // `vertex` with `vertexAt` moves one polyline vertex; one without the other is refused.
+    let vertex = match (p.get("vertex"), p.get("vertexAt")) {
+        (None, None) => None,
+        (Some(v), Some(at)) => {
+            if point_value(at).is_none_or(|q| !q.is_finite()) {
+                return Err(bad("object.setProperties", "`vertexAt` must be a point [x, y]"));
+            }
+            Some(
+                v.as_u64()
+                    .and_then(|n| usize::try_from(n).ok())
+                    .ok_or_else(|| bad("object.setProperties", "`vertex` must be a vertex number from 0"))?,
+            )
+        }
+        _ => return Err(bad("object.setProperties", "`vertex` and `vertexAt` go together")),
+    };
+    if let Some(index) = vertex {
+        for h in &hs {
+            if let Some(EntityKind::LwPolyline(pl)) = d.entity(*h).map(|e| &e.kind)
+                && index >= pl.vertices.len()
+            {
+                return Err(bad("object.setProperties", format!("the polyline has no vertex {index} (it has {})", pl.vertices.len())));
+            }
+        }
+    }
     for h in &hs {
         d.modify_entity(*h, |e| {
             if let Some(l) = str_param(p, "layer") {
@@ -302,6 +326,9 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
                     if let Some(x) = num("rotation") {
                         t.rotation = x.to_radians();
                     }
+                    if let Some(v) = p.get("position") {
+                        set_xy(&mut t.insert, v);
+                    }
                 }
                 EntityKind::LwPolyline(pl) => {
                     if let Some(x) = num("width").filter(|x| *x >= 0.0) {
@@ -310,8 +337,36 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
                     if let Some(c) = p.get("closed").and_then(Value::as_bool) {
                         pl.closed = c;
                     }
+                    // One vertex moved: `vertex` (from 0) to `vertexAt`; the others stay.
+                    if let (Some(index), Some(to)) = (vertex, p.get("vertexAt").and_then(point_value))
+                        && let Some(v) = pl.vertices.get_mut(index)
+                    {
+                        v.p = to;
+                    }
+                }
+                EntityKind::Ellipse(el) => {
+                    if let Some(v) = p.get("center") {
+                        set_xy(&mut el.center, v);
+                    }
+                }
+                EntityKind::Point(pt) => {
+                    if let Some(v) = p.get("position") {
+                        set_xy(&mut pt.p, v);
+                    }
                 }
                 EntityKind::Insert(i) => {
+                    // The insertion point moves the reference with its attributes.
+                    if let Some(to) = p.get("position").and_then(point_value) {
+                        let d = to - i.insert.xy();
+                        i.insert.x = to.x;
+                        i.insert.y = to.y;
+                        for a in &mut i.attribs {
+                            for q in std::iter::once(&mut a.text.insert).chain(a.text.align_pt.as_mut()) {
+                                q.x += d.x;
+                                q.y += d.y;
+                            }
+                        }
+                    }
                     if let Some(x) = num("rotation") {
                         i.rotation = x.to_radians();
                     }
